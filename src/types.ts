@@ -9,11 +9,11 @@ export interface Word {
   text: string;
   stress: number; // индекс ударной буквы
   syllables: string[];
-  danger: number[]; // индексы «опасных» букв (непроверяемые, непроизносимые...)
-  dangerKind: DangerKind;
+  danger: number[]; // индексы «опасных» букв (безударные гласные, двойные и непроизносимые согласные)
+  dangerKind: DangerKind; // 'other' — в слове есть и гласные, и согласные опасности («Россия»)
+  hint: string; // короткое пояснение значения — показывается и в заданиях, где слова не видно
   emoji: string;
   sentence: string; // предложение с пропуском ____
-  hint: string; // короткое пояснение значения
   mnemonic?: string; // мнемоника / ассоциация
   theme: string; // id темы (урока)
 }

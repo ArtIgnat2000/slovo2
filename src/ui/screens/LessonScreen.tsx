@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import type { Profile, Task, WordState } from '../../types';
 import { LESSON_BY_ID, WORD_BY_ID, WORDS } from '../../content/words';
-import { buildLesson, makeTask, repairTask, shuffle } from '../../engine/scheduler';
+import { buildLesson, makeTask, pickDanger, repairTask, shuffle } from '../../engine/scheduler';
 import { pickReview } from '../../engine/srs';
 import { masteredCount, useActiveProfile, useApp } from '../../state/store';
 import { CHEER, PRAISE, pick, useMascot } from '../../state/mascot';
@@ -286,5 +286,6 @@ function buildQueue(profile: Profile | null, lessonId: string): Task[] {
 
 function makeReviewTask(kind: 'write' | 'fix' | 'syllables', wordId: string): Task {
   const w = WORD_BY_ID[wordId];
-  return makeTask(kind, wordId, 'review', w.danger[0] ?? 0);
+  // берём самую коварную опасную букву, а не первую в списке
+  return makeTask(kind, wordId, 'review', pickDanger(w));
 }
