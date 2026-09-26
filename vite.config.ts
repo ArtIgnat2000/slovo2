@@ -1,9 +1,47 @@
+import { execSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
 // Имя репозитория на GitHub Pages. Если репозиторий назовёте иначе — поменяйте тут.
 const REPO_BASE = '/slovo2/';
+
+/** Номер релиза из package.json — поднимайте его перед каждым релизом. */
+const pkg = JSON.parse(
+  readFileSync(fileURLToPath(new URL('./package.json', import.meta.url)), 'utf8'),
+) as { version: string };
+
+/**
+ * Короткий SHA коммита, из которого собрана версия приложения (показывается
+ * в настройках). Суффикс «-dirty» — были незакоммиченные изменения при сборке.
+ * По SHA легко сверить, что за версия стоит на сайте и что в разработке.
+ */
+function buildSha(): string {
+  try {
+    const sha = execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString()
+      .trim();
+    // tsc -b и сам Vite генерируют эти файлы при сборке — это не изменения исходников.
+    const dirty = execSync(
+      "git status --porcelain --untracked-files=all -- . ':!tsconfig.tsbuildinfo' ':!vite.config.ts.timestamp-*.mjs'",
+      {
+        stdio: ['ignore', 'pipe', 'ignore'],
+      },
+    )
+      .toString()
+      .trim();
+    return dirty ? `${sha}-dirty` : sha;
+  } catch {
+    return 'dev';
+  }
+}
+
+// Передаём в приложение через import.meta.env (работает и в dev, и в build —
+// обычный `define` в dev-сервере vite не подставляется).
+process.env.VITE_APP_VERSION = pkg.version;
+process.env.VITE_BUILD_SHA = buildSha();
 
 export default defineConfig(({ command }) => ({
   base: command === 'build' ? REPO_BASE : '/',
