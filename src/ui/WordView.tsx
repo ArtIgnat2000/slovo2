@@ -76,12 +76,11 @@ export function lengthLabel(word: Word): string {
 
 /** Человеческое описание «опасных» букв — по самим буквам, а не по общему типу слова. */
 export function dangerSummary(word: Word): string {
+  if (!word.danger.length) return 'Опасных букв нет — слово пишется так, как слышится';
   const letters = [...new Set(word.danger.map((i) => word.text[i].toUpperCase()))];
   const vowels = word.danger.filter((i) => VOWELS.includes(word.text[i])).length;
   const kind =
-    word.danger.length === 0
-      ? 'буква'
-      : vowels === word.danger.length
+    vowels === word.danger.length
         ? plural(word.danger.length, 'безударная гласная', 'безударные гласные', 'безударные гласные')
         : vowels === 0
           ? plural(word.danger.length, 'согласная', 'согласные', 'согласные')
