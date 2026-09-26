@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main, arena/01a0d807-slovo2]
+    branches: [main, arena/01a0de33-slovo2]
   workflow_dispatch:
 
 permissions:
