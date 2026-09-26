@@ -51,10 +51,17 @@ function Intro({ word, onSolve }: { word: Word; onSolve: SolveFn }) {
       <Sentence word={word} hidden={false} />
       <p className="muted center">{word.hint}</p>
       {word.mnemonic && <div className="banner">💡 {word.mnemonic}</div>}
-      <p className="tiny center">
-        Оранжевая — «опасная» буква. Посмотри на слово, проговори его так, как пишется, и закрой глаза —
-        представь эту букву.
-      </p>
+      {word.danger.length ? (
+        <p className="tiny center">
+          Оранжевая — «опасная» буква. Посмотри на слово, проговори его так, как пишется, и закрой глаза —
+          представь эту букву.
+        </p>
+      ) : (
+        <p className="tiny center">
+          Здесь нет «опасных» букв — слово пишется так, как слышится. Посмотри на слово, проговори его и
+          закрой глаза — представь все буквы.
+        </p>
+      )}
       <button
         className="btn green wide lg"
         onClick={() => {
