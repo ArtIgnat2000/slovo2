@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Task, Word } from '../types';
-import { Sentence, WordLetters } from './WordView';
+import { Sentence, WordClue, WordLetters } from './WordView';
 import { Keyboard } from './Keyboard';
 import { sfx } from '../platform/sound';
 import { haptic } from '../platform/haptics';
@@ -213,10 +213,7 @@ function Build({ word, task, onSolve }: { word: Word; task: Task; onSolve: Solve
 
   return (
     <div className="task">
-      <div className="row">
-        <span style={{ fontSize: 40 }}>{word.emoji}</span>
-        <Sentence word={word} />
-      </div>
+      <WordClue word={word} />
       <p className="prompt">Собери слово из букв</p>
       <div className={`slots ${bad ? 'shake' : ''}`}>
         {placed.map((l, i) => (
@@ -277,10 +274,7 @@ function Write({ word, task, onSolve }: { word: Word; task: Task; onSolve: Solve
 
   return (
     <div className="task">
-      <div className="row">
-        <span style={{ fontSize: 40 }}>{word.emoji}</span>
-        <Sentence word={word} />
-      </div>
+      <WordClue word={word} />
       <p className="prompt">Напиши слово ✍️</p>
       {showHint && (
         <div style={{ textAlign: 'center' }}>
@@ -374,10 +368,7 @@ function Visual({ word, task, onSolve }: { word: Word; task: Task; onSolve: Solv
 
   return (
     <div className="task">
-      <div className="row">
-        <span style={{ fontSize: 40 }}>{word.emoji}</span>
-        <Sentence word={word} />
-      </div>
+      <WordClue word={word} />
       <p className="prompt">Напиши слово ✍️</p>
       <div className={`typed ${state}`}>{val || <span style={{ opacity: 0.3 }}>·</span>}</div>
       <Keyboard onKey={key} disabled={state !== 'idle'} />
@@ -395,7 +386,9 @@ function Visual({ word, task, onSolve }: { word: Word; task: Task; onSolve: Solv
 function Fix({ word, task, onSolve }: { word: Word; task: Task; onSolve: SolveFn }) {
   const [chosen, setChosen] = useState<string | null>(null);
   const wrong = task.wrong ?? word.text;
-  const diffIdx = wrong.split('').findIndex((c, i) => c !== word.text[i]);
+  // если робот потерял букву («клас» вместо «класс»), подсвечиваем последнюю оставшуюся
+  const rawDiff = wrong.split('').findIndex((c, i) => c !== word.text[i]);
+  const diffIdx = Math.min(rawDiff === -1 ? wrong.length - 1 : rawDiff, wrong.length - 1);
 
   const pick = (v: string) => {
     if (chosen) return;
@@ -422,7 +415,7 @@ function Fix({ word, task, onSolve }: { word: Word; task: Task; onSolve: SolveFn
           </span>
         ))}
       </div>
-      <Sentence word={word} />
+      <WordClue word={word} />
       <div className="options" style={{ gridTemplateColumns: '1fr' }}>
         {(task.options ?? []).map((o) => {
           const cls = !chosen ? '' : o === word.text ? 'ok' : o === chosen ? 'bad' : 'dim';

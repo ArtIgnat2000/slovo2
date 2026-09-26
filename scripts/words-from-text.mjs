@@ -69,7 +69,7 @@ const lines = words.map(({ text, stress }) => {
   const danger = stress >= 0 ? text.split('').map((c, i) => (i !== stress && VOWELS.includes(c) ? i : -1)).filter((i) => i >= 0) : [];
   const st = stress >= 0 ? stress : 'AUTO';
   const dg = danger.length ? danger.slice(0, 2).join(',') : 'AUTO';
-  return `${text}|${st}|${syl.join('-')}|${dg}|vowel|❔|Вставь предложение с пропуском ____.|пояснение|`;
+  return `${text}|${st}|${syl.join('-')}|${dg}|vowel|❔|Вставь предложение с пропуском ____.|пояснение`;
 });
 
 console.log(lines.join('\n'));

@@ -17,14 +17,62 @@ export function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-function pickDanger(w: Word): number {
-  return w.danger[Math.floor(Math.random() * w.danger.length)] ?? Math.floor(w.text.length / 2);
+/**
+ * Похожие по звучанию буквы: именно их дети и путают.
+ * Из этой таблицы собираем и варианты ответа, и «ошибку робота».
+ */
+const CONFUSE: Record<string, string[]> = {
+  а: ['о'],
+  о: ['а'],
+  е: ['и', 'я'],
+  и: ['е'],
+  я: ['и', 'е'],
+  ы: ['и'],
+  у: ['ю'],
+  ю: ['у'],
+  э: ['е'],
+  ё: ['о', 'е'],
+  б: ['п'],
+  п: ['б'],
+  в: ['ф'],
+  ф: ['в'],
+  г: ['к'],
+  к: ['г'],
+  д: ['т'],
+  т: ['д'],
+  ж: ['ш'],
+  ш: ['ж'],
+  з: ['с'],
+  с: ['з'],
+  ч: ['ц'],
+  ц: ['ч'],
+};
+
+/**
+ * Насколько буква «коварна»: 0 — настоящая опасность (безударные о/е/я/а/и, двойные и
+ * непроизносимые согласные), 1 — буква, которая и без ударения слышится как пишется (у/ы/ю).
+ * Такие «простые» буквы не даём в заданиях, если есть что-то посложнее.
+ */
+function dangerWeight(w: Word, idx: number): number {
+  return 'уыю'.includes(w.text[idx]) ? 1 : 0;
+}
+
+/**
+ * Выбираем «опасное место» для задания. Не любую отмеченную букву, а самую коварную:
+ * в «ученик» — безударную Е, а не очевидную У; в «класс» — двойную С.
+ */
+export function pickDanger(w: Word): number {
+  if (!w.danger.length) return Math.floor(w.text.length / 2);
+  const sorted = [...w.danger].sort((a, b) => dangerWeight(w, a) - dangerWeight(w, b));
+  const best = dangerWeight(w, sorted[0]);
+  const top = sorted.filter((i) => dangerWeight(w, i) === best);
+  return top[Math.floor(Math.random() * top.length)];
 }
 
 function letterOptions(correct: string): string[] {
-  // Варианты подбираем по самой букве: гласные — к гласным, согласные — к согласным
+  // Сначала похожие буквы, потом добираем буквами того же класса
   const pool = VOWELS.includes(correct) ? VOWELS : CONSONANTS;
-  const set = new Set<string>([correct]);
+  const set = new Set<string>([correct, ...(CONFUSE[correct] ?? [])]);
   let guard = 0;
   while (set.size < 4 && guard++ < 50) set.add(pool[Math.floor(Math.random() * pool.length)]);
   return shuffle([...set]);
@@ -39,19 +87,56 @@ function buildLetters(w: Word): string[] {
   return shuffle(w.text.split(''));
 }
 
+/**
+ * Типичная ошибка в согласной букве:
+ *  • двойная — одну букву теряют: «класс» → «клас», «Россия» → «Росия»;
+ *  • на конце слова — пишут парную глухую: «вдруг» → «вдрук»;
+ *  • непроизносимая — пропускают: «здравствуйте» → «здраствуйте».
+ */
+function consonantError(text: string, idx: number): string | null {
+  const ch = text[idx];
+  const drop = () => text.slice(0, idx) + text.slice(idx + 1);
+  if (text[idx - 1] === ch || text[idx + 1] === ch) return drop();
+  const pair = CONFUSE[ch]?.[0];
+  if (idx === text.length - 1 && pair && !VOWELS.includes(pair)) {
+    return text.slice(0, idx) + pair + text.slice(idx + 1);
+  }
+  return drop();
+}
+
+function replaceAt(text: string, idx: number, letter: string): string {
+  return text.slice(0, idx) + letter + text.slice(idx + 1);
+}
+
+/**
+ * Варианты для задания «исправь робота». Робот ошибается так, как ошибаются дети,
+ * а не случайными буквами: в «ворона» — «варона», в «класс» — «клас».
+ */
 function wrongVariants(w: Word, dangerIdx: number, count: number): string[] {
   const correctLetter = w.text[dangerIdx];
-  const pool = w.dangerKind === 'consonant' ? CONSONANTS : VOWELS;
   const out: string[] = [];
-  let guard = 0;
-  while (out.length < count && guard++ < 60) {
-    const l = pool[Math.floor(Math.random() * pool.length)];
-    if (l === correctLetter) continue;
-    const variant = w.text.slice(0, dangerIdx) + l + w.text.slice(dangerIdx + 1);
-    if (variant !== w.text && !out.includes(variant)) out.push(variant);
+  const push = (v: string) => {
+    if (v && v !== w.text && !out.includes(v)) out.push(v);
+  };
+
+  if (VOWELS.includes(correctLetter)) {
+    for (const l of shuffle(CONFUSE[correctLetter] ?? [])) push(replaceAt(w.text, dangerIdx, l));
+  } else {
+    const err = consonantError(w.text, dangerIdx);
+    if (err) push(err);
   }
-  const all = shuffle([w.text, ...out]);
-  return all.slice(0, count + 1);
+
+  if (!out.length) {
+    // страховка: вариант нужен всегда, иначе задание «исправь робота» потеряет смысл
+    const pool = VOWELS.includes(correctLetter) ? VOWELS : CONSONANTS;
+    let guard = 0;
+    while (!out.length && guard++ < 60) {
+      const l = pool[Math.floor(Math.random() * pool.length)];
+      if (l !== correctLetter) push(replaceAt(w.text, dangerIdx, l));
+    }
+  }
+
+  return shuffle([w.text, ...out.slice(0, count)]);
 }
 
 export /**

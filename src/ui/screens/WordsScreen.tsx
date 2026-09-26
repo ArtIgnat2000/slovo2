@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { LESSONS, WORDS } from '../../content/words';
 import { useActiveProfile } from '../../state/store';
-import { Sentence, WordLetters } from '../WordView';
+import { Sentence, WordLetters, dangerSummary } from '../WordView';
 
 /** Словарик: всё, что учим, с ударениями и «опасными» буквами. */
 export function WordsScreen() {
@@ -65,10 +65,7 @@ export function WordsScreen() {
               {word.mnemonic && (
                 <div className="banner mt">💡 {word.mnemonic}</div>
               )}
-              <p className="tiny mt">
-                Опасная буква: <b>{word.text[word.danger[0]].toUpperCase()}</b> (
-                {word.dangerKind === 'consonant' ? 'согласная' : 'гласная'})
-              </p>
+              <p className="tiny mt">{dangerSummary(word)}</p>
               {profile?.words[word.id] && (
                 <p className="tiny">
                   Освоенность: {profile.words[word.id].s}% · ошибок: {profile.words[word.id].wrong}
