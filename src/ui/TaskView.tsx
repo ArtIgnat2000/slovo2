@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Task, Word } from '../types';
-import { Sentence, WordClue, WordLetters } from './WordView';
+import { Sentence, WordClue, WordLetters, dangerSummary } from './WordView';
 import { Keyboard } from './Keyboard';
 import { sfx } from '../platform/sound';
 import { haptic } from '../platform/haptics';
@@ -34,9 +34,48 @@ export function TaskView({ task, word, onSolve }: Props) {
   }
 }
 
+// ── Подсказки: единые правила для всех заданий ──────────────────────────────
+//
+// 1. Кнопка «💡 Подсказка» есть в каждом задании и всегда выглядит одинаково.
+// 2. У каждого задания своя «механическая» помощь: 50:50 в окошке, подстановка
+//    буквы в сборке, контур слова при письме, подглядывание в диктанте…
+// 3. Вместе с помощью раскрывается мнемоника (или объяснение опасной буквы) —
+//    подсказка должна учить, а не просто давать ответ.
+// 4. Ответ с подсказкой приносит меньше XP (quality 3 → XP.taskWithHint),
+//    но остаётся «правильным» — подсказка не наказывается жёстко.
+
+function HintBtn({
+  onClick,
+  label = 'Подсказка',
+  disabled,
+}: {
+  onClick: () => void;
+  label?: string;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      className="btn ghost sm"
+      onClick={() => {
+        sfx.hint();
+        onClick();
+      }}
+      disabled={disabled}
+    >
+      💡 {label}
+    </button>
+  );
+}
+
+/** Мнемоника или объяснение опасных букв — второй слой каждой подсказки. */
+function HintCard({ word }: { word: Word }) {
+  return <div className="banner">💡 {word.mnemonic ?? dangerSummary(word)}</div>;
+}
+
 // ── 1. Знакомство: LOOK → SAY → увидеть опасное место ────────────────────────
 
 function Intro({ word, onSolve }: { word: Word; onSolve: SolveFn }) {
+  const [showHint, setShowHint] = useState(false);
   return (
     <div className="task">
       <div className="big-emoji">{word.emoji}</div>
@@ -62,6 +101,11 @@ function Intro({ word, onSolve }: { word: Word; onSolve: SolveFn }) {
           закрой глаза — представь все буквы.
         </p>
       )}
+      {showHint ? (
+        <div className="banner">🔎 {dangerSummary(word)}</div>
+      ) : (
+        <HintBtn onClick={() => setShowHint(true)} label="Какие буквы опасные?" />
+      )}
       <button
         className="btn green wide lg"
         onClick={() => {
@@ -80,9 +124,10 @@ function Intro({ word, onSolve }: { word: Word; onSolve: SolveFn }) {
 
 function Syllables({ word, onSolve }: { word: Word; onSolve: SolveFn }) {
   const [step, setStep] = useState(0);
+  const [showHint, setShowHint] = useState(false);
   return (
     <div className="task">
-      <WordLetters word={word} stress />
+      <WordLetters word={word} stress markDanger={showHint} />
       <p className="prompt">Прочитай по слогам — как пишется 👇</p>
       <div className="syllables">
         {word.syllables.map((s, i) => (
@@ -102,6 +147,7 @@ function Syllables({ word, onSolve }: { word: Word; onSolve: SolveFn }) {
         ))}
       </div>
       <Sentence word={word} hidden={false} />
+      {showHint ? <HintCard word={word} /> : <HintBtn onClick={() => setShowHint(true)} label="Показать опасную букву" />}
     </div>
   );
 }
@@ -110,6 +156,8 @@ function Syllables({ word, onSolve }: { word: Word; onSolve: SolveFn }) {
 
 function Gap({ word, task, onSolve }: { word: Word; task: Task; onSolve: SolveFn }) {
   const [chosen, setChosen] = useState<string | null>(null);
+  const [hintUsed, setHintUsed] = useState(false);
+  const [eliminated, setEliminated] = useState<string[]>([]);
   const correct = word.text[task.dangerIdx];
 
   const pick = (l: string) => {
@@ -124,7 +172,16 @@ function Gap({ word, task, onSolve }: { word: Word; task: Task; onSolve: SolveFn
       sfx.wrong();
       haptic.wrong();
     }
-    setTimeout(() => onSolve(ok ? 5 : 0, l), ok ? 700 : 1200);
+    setTimeout(() => onSolve(ok ? (hintUsed ? 3 : 5) : 0, l), ok ? 700 : 1200);
+  };
+
+  /** Подсказка «50:50» — как в телевикторине: убираем две неверные буквы. */
+  const hint = () => {
+    if (chosen || hintUsed) return;
+    const wrongs = (task.options ?? []).filter((o) => o !== correct);
+    const drop = [...wrongs].sort(() => Math.random() - 0.5).slice(0, 2);
+    setEliminated(drop);
+    setHintUsed(true);
   };
 
   return (
@@ -134,14 +191,24 @@ function Gap({ word, task, onSolve }: { word: Word; task: Task; onSolve: SolveFn
       <Sentence word={word} />
       <div className="options">
         {(task.options ?? []).map((o) => {
-          const cls = !chosen ? '' : o === correct ? 'ok' : o === chosen ? 'bad' : 'dim';
+          const out = eliminated.includes(o);
+          const cls = !chosen ? (out ? 'dim' : '') : o === correct ? 'ok' : o === chosen ? 'bad' : 'dim';
           return (
-            <button key={o} className={`option ${cls}`} disabled={!!chosen} onClick={() => pick(o)}>
+            <button key={o} className={`option ${cls}`} disabled={!!chosen || out} onClick={() => pick(o)}>
               {o.toUpperCase()}
             </button>
           );
         })}
       </div>
+      {hintUsed ? (
+        word.mnemonic ? (
+          <div className="banner">💡 {word.mnemonic}</div>
+        ) : (
+          <p className="tiny">Осталось два варианта — вспомни, как пишется! 👆</p>
+        )
+      ) : (
+        !chosen && <HintBtn onClick={hint} label="Убрать две буквы" />
+      )}
     </div>
   );
 }
@@ -155,12 +222,14 @@ function Build({ word, task, onSolve }: { word: Word; task: Task; onSolve: Solve
   const [hintUsed, setHintUsed] = useState(false);
   const [bad, setBad] = useState(false);
 
-  const finish = (arr: (string | null)[]) => {
+  // usedHint передаём явно: подсказка может поставить последнюю букву и завершить
+  // задание в том же обработчике — state hintUsed к этому моменту ещё «старый».
+  const finish = (arr: (string | null)[], usedHint = hintUsed) => {
     const s = arr.join('');
     if (s === word.text) {
       sfx.correct();
       haptic.correct();
-      setTimeout(() => onSolve(hintUsed ? 3 : 5), 700);
+      setTimeout(() => onSolve(usedHint ? 3 : 5), 700);
     } else {
       sfx.wrong();
       haptic.wrong();
@@ -201,13 +270,13 @@ function Build({ word, task, onSolve }: { word: Word; task: Task; onSolve: Solve
     sfx.tap();
   };
 
+  /** Подсказка ставит следующую букву на своё место; повторные нажатия — ещё букву. */
   const hint = () => {
     const slot = placed.findIndex((p) => p === null);
     if (slot < 0 || bad) return;
     const need = word.text[slot];
     const li = letters.findIndex((l, j) => !used[j] && l === need);
     if (li < 0) return;
-    sfx.hint();
     setHintUsed(true);
     const np = [...placed];
     np[slot] = need;
@@ -215,7 +284,7 @@ function Build({ word, task, onSolve }: { word: Word; task: Task; onSolve: Solve
     nu[li] = true;
     setPlaced(np);
     setUsed(nu);
-    if (!np.includes(null)) finish(np);
+    if (!np.includes(null)) finish(np, true);
   };
 
   return (
@@ -241,10 +310,9 @@ function Build({ word, task, onSolve }: { word: Word; task: Task; onSolve: Solve
         ))}
       </div>
       {!bad && placed.includes(null) && (
-        <button className="btn ghost sm" onClick={hint}>
-          🔤 Подставить букву{hintUsed ? ' (уже была)' : ' − меньше очков'}
-        </button>
+        <HintBtn onClick={hint} label={hintUsed ? 'Ещё букву' : 'Подставить букву'} />
       )}
+      {hintUsed && <HintCard word={word} />}
     </div>
   );
 }
@@ -255,7 +323,6 @@ function Write({ word, task, onSolve }: { word: Word; task: Task; onSolve: Solve
   const [val, setVal] = useState('');
   const [state, setState] = useState<'idle' | 'ok' | 'bad'>('idle');
   const [hintUsed, setHintUsed] = useState(false);
-  const [showHint, setShowHint] = useState(false);
 
   const key = (k: string) => {
     if (state !== 'idle') return;
@@ -283,10 +350,11 @@ function Write({ word, task, onSolve }: { word: Word; task: Task; onSolve: Solve
     <div className="task">
       <WordClue word={word} />
       <p className="prompt">Напиши слово ✍️</p>
-      {showHint && (
-        <div style={{ textAlign: 'center' }}>
+      {hintUsed && (
+        <div style={{ textAlign: 'center', width: '100%' }}>
           <WordLetters word={word} markDanger hide={hideAll} small />
           <p className="tiny">Опасная буква — {word.text[task.dangerIdx].toUpperCase()}</p>
+          <HintCard word={word} />
         </div>
       )}
       <div className={`typed ${state}`} style={{ minHeight: 56 }}>
@@ -295,18 +363,7 @@ function Write({ word, task, onSolve }: { word: Word; task: Task; onSolve: Solve
       <Keyboard onKey={key} disabled={state !== 'idle'} />
       {state === 'idle' && (
         <div className="row" style={{ width: '100%' }}>
-          {!showHint && (
-            <button
-              className="btn ghost"
-              onClick={() => {
-                setShowHint(true);
-                setHintUsed(true);
-                sfx.hint();
-              }}
-            >
-              💡
-            </button>
-          )}
+          {!hintUsed && <HintBtn onClick={() => setHintUsed(true)} />}
           <button className="btn primary wide lg" disabled={!val} onClick={check}>
             Проверить ✓
           </button>
@@ -324,6 +381,8 @@ function Visual({ word, task, onSolve }: { word: Word; task: Task; onSolve: Solv
   const [left, setLeft] = useState(ms);
   const [val, setVal] = useState('');
   const [state, setState] = useState<'idle' | 'ok' | 'bad'>('idle');
+  const [peek, setPeek] = useState(false);
+  const [hintUsed, setHintUsed] = useState(false);
 
   useEffect(() => {
     if (phase !== 'show') return;
@@ -339,6 +398,13 @@ function Visual({ word, task, onSolve }: { word: Word; task: Task; onSolve: Solv
     }, 200);
     return () => clearInterval(t);
   }, [phase, ms]);
+
+  // Подглядывание: слово мелькает на пару секунд и снова прячется
+  useEffect(() => {
+    if (!peek) return;
+    const t = setTimeout(() => setPeek(false), 1900);
+    return () => clearTimeout(t);
+  }, [peek]);
 
   const key = (k: string) => {
     if (state !== 'idle') return;
@@ -357,7 +423,7 @@ function Visual({ word, task, onSolve }: { word: Word; task: Task; onSolve: Solv
       sfx.wrong();
       haptic.wrong();
     }
-    setTimeout(() => onSolve(ok ? 5 : 0, val.trim()), ok ? 700 : 1300);
+    setTimeout(() => onSolve(ok ? (hintUsed ? 3 : 5) : 0, val.trim()), ok ? 700 : 1300);
   };
 
   if (phase === 'show') {
@@ -377,13 +443,37 @@ function Visual({ word, task, onSolve }: { word: Word; task: Task; onSolve: Solv
     <div className="task">
       <WordClue word={word} />
       <p className="prompt">Напиши слово ✍️</p>
-      <div className={`typed ${state}`}>{val || <span style={{ opacity: 0.3 }}>·</span>}</div>
-      <Keyboard onKey={key} disabled={state !== 'idle'} />
-      {state === 'idle' && (
-        <button className="btn primary wide lg" disabled={!val} onClick={check}>
-          Проверить ✓
-        </button>
+      {peek && (
+        <div className="banner center">
+          <WordLetters word={word} stress markDanger small />
+          <div className="tiny">👀 Запомни ещё раз!</div>
+        </div>
       )}
+      <div className={`typed ${state}`}>{val || <span style={{ opacity: 0.3 }}>·</span>}</div>
+      <Keyboard onKey={key} disabled={state !== 'idle' || peek} />
+      {state === 'idle' && (
+        <div className="row" style={{ width: '100%' }}>
+          {!hintUsed ? (
+            <HintBtn
+              onClick={() => {
+                setHintUsed(true);
+                setPeek(true);
+              }}
+              label="Взглянуть"
+            />
+          ) : (
+            !peek && (
+              <button className="btn ghost sm" onClick={() => setPeek(true)}>
+                👀 Ещё раз
+              </button>
+            )
+          )}
+          <button className="btn primary wide lg" disabled={!val} onClick={check}>
+            Проверить ✓
+          </button>
+        </div>
+      )}
+      {hintUsed && !peek && <HintCard word={word} />}
     </div>
   );
 }
@@ -392,6 +482,7 @@ function Visual({ word, task, onSolve }: { word: Word; task: Task; onSolve: Solv
 
 function Fix({ word, task, onSolve }: { word: Word; task: Task; onSolve: SolveFn }) {
   const [chosen, setChosen] = useState<string | null>(null);
+  const [hintUsed, setHintUsed] = useState(false);
   const wrong = task.wrong ?? word.text;
   // если робот потерял букву («клас» вместо «класс»), подсвечиваем последнюю оставшуюся
   const rawDiff = wrong.split('').findIndex((c, i) => c !== word.text[i]);
@@ -409,7 +500,7 @@ function Fix({ word, task, onSolve }: { word: Word; task: Task; onSolve: SolveFn
       sfx.wrong();
       haptic.wrong();
     }
-    setTimeout(() => onSolve(ok ? 5 : 0, v), ok ? 700 : 1200);
+    setTimeout(() => onSolve(ok ? (hintUsed ? 3 : 5) : 0, v), ok ? 700 : 1200);
   };
 
   return (
@@ -433,6 +524,7 @@ function Fix({ word, task, onSolve }: { word: Word; task: Task; onSolve: SolveFn
           );
         })}
       </div>
+      {hintUsed ? <HintCard word={word} /> : !chosen && <HintBtn onClick={() => setHintUsed(true)} label="Что тут опасно?" />}
     </div>
   );
 }

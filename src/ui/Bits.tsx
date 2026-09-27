@@ -8,24 +8,45 @@ export function Bar({ value, tone }: { value: number; tone?: 'green' | 'orange' 
 }
 
 /**
- * Кольцо прогресса с подписью внутри.
- * SVG и `textLength` нужны, чтобы подпись влезала всегда: раньше «160/120»
- * вылезало за границы круга. Длинные подписи вида «набрано/цель» рисуем в две строки.
+ * Кольцо цели (стиль спортивных приложений — Garmin / Apple Fitness).
+ *
+ * Прогресс-план дробью («150/120») не показываем: при переборе это выглядит
+ * некрасиво и ребёнку непонятно. Вместо этого:
+ *  • крупное число в центре — сколько набрано;
+ *  • мелкая подпись «цель 120» под числом;
+ *  • кольцо закрывается на 100% и становится зелёным с галочкой ✓.
+ * «Лишние» XP хозяин экрана выносит бейджем рядом с текстом.
  */
-export function Ring({ value, label, size = 76 }: { value: number; label: string; size?: number }) {
+export function Ring({
+  value,
+  main,
+  sub,
+  done = false,
+  size = 76,
+}: {
+  /** Процент к цели (клампится до 0..100) */
+  value: number;
+  /** Крупное число в центре, например «150» */
+  main: string;
+  /** Мелкая подпись под числом, например «цель 120» */
+  sub?: string;
+  /** Цель выполнена: зелёное кольцо + галочка */
+  done?: boolean;
+  size?: number;
+}) {
   const pct = Math.max(0, Math.min(100, value));
   const R = 32;
   const C = 2 * Math.PI * R;
-  const [top, bottom] = label.includes('/') ? label.split('/') : [label, ''];
-  const lines = bottom ? [top, `/${bottom}`] : [top];
-  const longest = Math.max(...lines.map((l) => l.length));
-  const fs = longest <= 3 ? 21 : longest <= 4 ? 19 : longest <= 5 ? 17 : longest <= 6 ? 15 : longest <= 8 ? 12.5 : 10.5;
-  const gap = fs * 0.98;
-  const maxWidth = 44;
-  const y0 = 38 - ((lines.length - 1) * gap) / 2;
+  const fs = main.length <= 3 ? 23 : main.length <= 4 ? 19 : main.length <= 5 ? 15.5 : 12.5;
+  const maxWidth = 48;
 
   return (
-    <div className="ring" style={{ width: size, height: size }} role="img" aria-label={`${label} — ${Math.round(pct)}%`}>
+    <div
+      className={`ring ${done ? 'done' : ''}`}
+      style={{ width: size, height: size }}
+      role="img"
+      aria-label={`${main} XP, ${sub ?? ''}${done ? ', цель выполнена' : ''}`}
+    >
       <svg viewBox="0 0 76 76" width={size} height={size}>
         <circle cx="38" cy="38" r={R} fill="none" stroke="var(--primary-soft)" strokeWidth="8" />
         <circle
@@ -33,32 +54,44 @@ export function Ring({ value, label, size = 76 }: { value: number; label: string
           cy="38"
           r={R}
           fill="none"
-          stroke="var(--green)"
+          stroke={done ? 'var(--green)' : 'var(--primary)'}
           strokeWidth="8"
           strokeLinecap="round"
           strokeDasharray={C}
           strokeDashoffset={C * (1 - pct / 100)}
           transform="rotate(-90 38 38)"
+          style={{ transition: 'stroke-dashoffset .5s ease, stroke .3s ease' }}
         />
-        {lines.map((line, i) => (
+        <text
+          x="38"
+          y={sub ? 32 : 38}
+          textAnchor="middle"
+          dominantBaseline="central"
+          fontSize={fs}
+          fontWeight={800}
+          fill="var(--ink)"
+          style={{ fontVariantNumeric: 'tabular-nums' }}
+          {...(main.length * fs * 0.62 > maxWidth
+            ? { textLength: maxWidth, lengthAdjust: 'spacingAndGlyphs' }
+            : {})}
+        >
+          {main}
+        </text>
+        {sub && (
           <text
-            key={i}
             x="38"
-            y={y0 + i * gap}
+            y={53}
             textAnchor="middle"
             dominantBaseline="central"
-            fontSize={fs}
-            fontWeight={800}
-            fill="var(--ink)"
-            style={{ fontVariantNumeric: 'tabular-nums' }}
-            {...(line.length * fs * 0.62 > maxWidth
-              ? { textLength: maxWidth, lengthAdjust: 'spacingAndGlyphs' }
-              : {})}
+            fontSize={9.5}
+            fontWeight={700}
+            fill="var(--ink-3)"
           >
-            {line}
+            {sub}
           </text>
-        ))}
+        )}
       </svg>
+      {done && <span className="ring-check">✓</span>}
     </div>
   );
 }

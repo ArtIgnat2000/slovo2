@@ -1,6 +1,7 @@
 export const XP = {
   task: 10,
-  taskWithHint: 4,
+  /** Ответ с подсказкой: мягкий штраф — подсказка не должна отбивать желание просить помощь. */
+  taskWithHint: 7,
   lessonDone: 40,
   perfectBonus: 30,
   review: 6,
