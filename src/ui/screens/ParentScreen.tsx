@@ -199,6 +199,13 @@ export function ParentScreen({ unlocked, onUnlock, onOpenProfiles }: Props) {
             ))}
           </div>
         </div>
+        <div className="kv">
+          <span>Версия</span>
+          <span className="tiny" title="SHA коммита, из которого собрана эта версия — сверяйте с git в разработке">
+            v{import.meta.env.VITE_APP_VERSION} ·{' '}
+            <span style={{ fontFamily: 'ui-monospace, monospace' }}>{import.meta.env.VITE_BUILD_SHA}</span>
+          </span>
+        </div>
       </div>
 
       {!isStandalone() && (
