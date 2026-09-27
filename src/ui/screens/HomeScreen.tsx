@@ -19,6 +19,8 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview }: Pro
   const today = todayStat(profile);
   const goal = settings.dailyGoal;
   const goalPct = Math.min(100, (today.xp / Math.max(1, goal)) * 100);
+  const goalDone = today.xp >= goal;
+  const over = Math.max(0, today.xp - goal);
   const lvl = levelOf(profile.xp);
   const lvlPct = levelProgress(profile.xp) * 100;
 
@@ -44,12 +46,15 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview }: Pro
 
       <div className="card mb">
         <div className="row">
-          <Ring value={goalPct} label={`${today.xp}/${goal}`} />
+          <Ring value={goalPct} main={String(today.xp)} sub={`цель ${goal}`} done={goalDone} />
           <div className="grow">
             <h3>Цель дня</h3>
-            <p className="muted" style={{ marginBottom: 6 }}>
-              {goalPct >= 100 ? 'Цель выполнена — молодец! 🎉' : `Ещё ${Math.max(0, goal - today.xp)} XP до цели`}
-            </p>
+            <div className="row" style={{ flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
+              <p className="muted" style={{ margin: 0 }}>
+                {goalDone ? 'Цель выполнена — молодец! 🎉' : `Ещё ${goal - today.xp} XP до цели`}
+              </p>
+              {over > 0 && <span className="goal-over">+{over} сверх цели</span>}
+            </div>
             <Bar value={lvlPct} />
             <div className="tiny" style={{ marginTop: 4 }}>
               До уровня {lvl + 1}: {Math.max(0, xpForLevel(lvl + 1) - profile.xp)} XP
