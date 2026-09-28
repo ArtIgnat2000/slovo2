@@ -15,6 +15,8 @@ export interface Word {
   emoji: string;
   sentence: string; // предложение с пропуском ____
   mnemonic?: string; // мнемоника / ассоциация
+  /** Имя файла картинки в public/words/ (без расширения). Нет — показываем эмодзи. */
+  image?: string;
   theme: string; // id темы (урока)
 }
 
@@ -50,6 +52,30 @@ export interface DayStat {
   correct: number;
   wrong: number;
   lessons: number;
+  /** Лучшая серия верных ответов подряд за день — для задания «без ошибок» */
+  flawless: number;
+  /** Верных ответов в режиме «Повторение» — для задания «повтори слова» */
+  reviewCorrect: number;
+}
+
+/** Слоты, по которым БУК может носить вещи: шапка, очки, шея, значок. */
+export type ShopSlot = 'head' | 'face' | 'neck' | 'badge';
+
+/** Что ребёнок купил и что носит прямо сейчас (магазин — пункт 4 плана). */
+export interface ShopState {
+  owned: string[];
+  equipped: Partial<Record<ShopSlot, string>>;
+}
+
+/**
+ * Состояние ежедневных заданий (пункт 3 плана). Метрики дня отдельно не храним —
+ * они считаются из `days[day]`; здесь только «что уже забрано» и счётчики сундуков.
+ */
+export interface DailyState {
+  day: string; // YYYY-MM-DD, к которому относятся claimed/chestsToday
+  claimed: string[]; // id выполненных и забранных заданий: `<день>:<вид>`
+  chestsToday: number;
+  chestsTotal: number;
 }
 
 export interface Profile {
@@ -67,6 +93,8 @@ export interface Profile {
   errors: Record<string, number>;
   days: Record<string, DayStat>;
   achievements: string[];
+  daily?: DailyState; // опционально: профили, созданные до этой версии, живут без него
+  shop?: ShopState; // опционально: появилось вместе с магазином
 }
 
 // ── Задания ──────────────────────────────────────────────────────────────────

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 
 export function Bar({ value, tone }: { value: number; tone?: 'green' | 'orange' }) {
   return (
@@ -114,6 +115,65 @@ export function Crowns({ level }: { level: number }) {
       {[0, 1, 2, 3, 4].map((i) => (
         <span key={i} className={`crown ${i < level ? 'on' : ''}`} />
       ))}
+    </div>
+  );
+}
+
+/**
+ * Диалог подтверждения — общий компонент для «опасных» действий
+ * (выход из урока, позже — покупки в магазине).
+ *
+ * Принципы для 2 класса:
+ *  • главная кнопка — «безопасное» действие («Остаться»), второстепенная — уход;
+ *  • тап по фону и Esc работают как «отмена» — промах пальцем не наказывает;
+ *  • иконка и короткий текст, без канцелярита.
+ */
+export function ConfirmDialog({
+  emoji,
+  title,
+  text,
+  stayLabel = 'Остаться',
+  leaveLabel = 'Выйти',
+  onStay,
+  onLeave,
+}: {
+  emoji?: string;
+  title: string;
+  text?: string;
+  stayLabel?: string;
+  leaveLabel?: string;
+  onStay: () => void;
+  onLeave: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onStay();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onStay]);
+
+  return (
+    <div className="overlay" role="presentation" onClick={onStay}>
+      <div
+        className="dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {emoji && <div className="dialog-emoji">{emoji}</div>}
+        <h2>{title}</h2>
+        {text && <p className="muted">{text}</p>}
+        <div className="dialog-actions">
+          <button className="btn primary wide lg" onClick={onStay}>
+            {stayLabel}
+          </button>
+          <button className="btn ghost wide" onClick={onLeave}>
+            {leaveLabel}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

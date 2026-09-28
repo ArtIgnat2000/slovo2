@@ -1,14 +1,27 @@
 import React from 'react';
+import type { ShopSlot } from '../types';
+import { MascotAccessory, SLOT_ORDER } from './MascotLook';
 
 export type Mood = 'idle' | 'happy' | 'excited' | 'sad' | 'think' | 'dance';
+
+/** Что надето на БУКа: слот → id аксессуара (магазин, пункт 4 плана). */
+export type Look = Partial<Record<ShopSlot, string>>;
 
 interface Props {
   mood: Mood;
   message?: string;
+  /** Купленные и надетые аксессуары — рисуются поверх совы */
+  look?: Look;
+  /** Размер в пикселях (в магазине БУК крупнее — его там наряжают) */
+  size?: number;
+  /** Ступень роста (0 — птенец … 3 — магистр): БУК растёт по освоенным словам */
+  stage?: number;
 }
 
 /** БУК — сова-помощник. Крупные глаза и округлые формы → привязанность ребёнка. */
-export function Mascot({ mood, message }: Props) {
+export function Mascot({ mood, message, look, size, stage = 1 }: Props) {
+  // Рост читается тремя способами сразу: размер, хвост из перьев и «перья на груди»
+  const scale = 0.9 + 0.035 * stage;
   const eyes: Record<Mood, React.ReactNode> = {
     idle: (
       <>
@@ -76,7 +89,20 @@ export function Mascot({ mood, message }: Props) {
   return (
     <div className={`mascot ${mood === 'dance' ? 'dance' : ''}`}>
       {message && <div className="bubble pop">{message}</div>}
-      <svg width="92" height="110" viewBox="0 0 100 120" aria-hidden="true">
+      <svg
+        width={(size ?? 92) * (100 / 120) * 1.09 * scale}
+        height={(size ?? 110) * scale}
+        viewBox="0 0 100 120"
+        aria-hidden="true"
+      >
+        {/* хвост из перьев — признак взрослого БУКа (растёт со знанием слов) */}
+        {stage >= 3 && (
+          <>
+            <path d="M78 96 Q98 88 100 70 Q88 84 74 88Z" fill="#e8901a" />
+            <path d="M74 102 Q96 100 100 86 Q86 96 72 96Z" fill="#f4a51a" />
+          </>
+        )}
+        {stage === 2 && <path d="M78 98 Q96 92 97 76 Q86 88 74 90Z" fill="#e8901a" />}
         <ellipse cx="50" cy="82" rx="36" ry="37" fill="#f4a51a" />
         <ellipse cx="50" cy="88" rx="24" ry="27" fill="#fcd768" />
         {mood === 'dance' ? (
@@ -91,15 +117,42 @@ export function Mascot({ mood, message }: Props) {
           </>
         )}
         <ellipse cx="50" cy="37" rx="30" ry="28" fill="#f4a51a" />
-        <path d="M24 18 L18 4 L31 13Z" fill="#e8901a" />
-        <path d="M76 18 L82 4 L69 13Z" fill="#e8901a" />
+        {stage === 0 ? (
+          <>
+            {/* птенец: вместо ушек — пух на макушке */}
+            <path d="M42 12 Q46 2 50 10 Q54 1 58 12" stroke="#f4a51a" strokeWidth="3.4" fill="none" strokeLinecap="round" />
+            <path d="M33 30 Q50 -2 67 30" fill="#f4a51a" opacity="0.5" />
+          </>
+        ) : (
+          <>
+            <path d="M24 18 L18 4 L31 13Z" fill="#e8901a" />
+            <path d="M76 18 L82 4 L69 13Z" fill="#e8901a" />
+          </>
+        )}
         <circle cx="36" cy="37" r="13" fill="#fcd768" />
         <circle cx="64" cy="37" r="13" fill="#fcd768" />
         {eyes[mood]}
         <path d="M44 45 L50 53 L56 45Z" fill="#e8901a" />
         {mouths[mood]}
+        {/* «перья-полоски» на груди: одна за каждую освоенную ступень */}
+        {Array.from({ length: stage }).map((_, i) => (
+          <path
+            key={i}
+            d={`M40 ${100 - i * 7} Q50 ${105 - i * 7} 60 ${100 - i * 7}`}
+            stroke="#f0a92c"
+            strokeWidth="3"
+            fill="none"
+            strokeLinecap="round"
+          />
+        ))}
         <ellipse cx="38" cy="116" rx="10" ry="5" fill="#e8901a" />
         <ellipse cx="62" cy="116" rx="10" ry="5" fill="#e8901a" />
+        {/* аксессуары поверх совы; порядок слотов — чтобы очки легли на глаза, а шарф под голову */}
+        {look &&
+          SLOT_ORDER.map((slot) => {
+            const id = look[slot];
+            return id ? <MascotAccessory key={slot} id={id} /> : null;
+          })}
       </svg>
     </div>
   );

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useActiveProfile, useApp } from './state/store';
+import { masteredCount, useActiveProfile, useApp, useLook } from './state/store';
 import { useMascot } from './state/mascot';
 import { Mascot } from './ui/Mascot';
 import { HomeScreen } from './ui/screens/HomeScreen';
@@ -7,20 +7,56 @@ import { WordsScreen } from './ui/screens/WordsScreen';
 import { ParentScreen } from './ui/screens/ParentScreen';
 import { ProfilesScreen } from './ui/screens/ProfilesScreen';
 import { LessonScreen } from './ui/screens/LessonScreen';
+import { ShopScreen } from './ui/screens/ShopScreen';
 import { setSoundEnabled } from './platform/sound';
 import { setHapticsEnabled } from './platform/haptics';
 import { applyUpdate, shouldSuggestInstall, markInstallHintShown } from './platform/pwa';
+import { growthStage } from './engine/shop';
 
-type Tab = 'home' | 'words' | 'parent';
+type Tab = 'home' | 'words' | 'shop' | 'parent';
+
+/**
+ * Всплывающая награда («+3 кристалла», «Сундук открыт»).
+ * Живёт поверх любого экрана, включая урок, чтобы награда догоняла ребёнка
+ * там, где он её заработал. Исчезает сама — нажимать нечего.
+ */
+function Toast() {
+  const toast = useApp((s) => s.toast);
+  const hide = useApp((s) => s.hideToast);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(hide, 3400);
+    return () => clearTimeout(t);
+  }, [toast, hide]);
+
+  if (!toast) return null;
+  return (
+    <div className="toast" role="status" onClick={hide}>
+      <span className="toast-emoji">{toast.emoji}</span>
+      <div className="grow">
+        <div className="toast-title">{toast.title}</div>
+        {toast.text && <div className="tiny">{toast.text}</div>}
+      </div>
+    </div>
+  );
+}
 
 export default function App() {
   const profile = useActiveProfile();
   const settings = useApp((s) => s.settings);
   const mood = useMascot((s) => s.mood);
   const message = useMascot((s) => s.message);
+  // Аксессуары, купленные в магазине: БУК носит их и в уроках, и на главной
+  const look = useLook();
+  // Ступень роста: считается по освоенным словам, поэтому БУК растёт вместе со знаниями
+  const stage = growthStage(masteredCount(profile)).index;
 
   const [tab, setTab] = useState<Tab>('home');
   const [lessonId, setLessonId] = useState<string | null>(null);
+  // Цель дня на момент старта урока. Экран результатов сравнивает урок с ней,
+  // а не с текущей настройкой: «Родители» могут поменять цель прямо во время урока.
+  const [lessonGoal, setLessonGoal] = useState(settings.dailyGoal);
   const [profilesOpen, setProfilesOpen] = useState(false);
   const [parentUnlocked, setParentUnlocked] = useState(false);
   const [updateReady, setUpdateReady] = useState(false);
@@ -52,10 +88,22 @@ export default function App() {
     );
   }
 
+  const startLesson = (id: string) => {
+    setLessonGoal(settings.dailyGoal);
+    setLessonId(id);
+  };
+
   if (lessonId) {
     return (
       <div className="app">
-        <LessonScreen lessonId={lessonId} onExit={() => setLessonId(null)} />
+        {/* key — чтобы состояние урока не переезжало в другой урок */}
+        <LessonScreen
+          key={lessonId}
+          lessonId={lessonId}
+          goal={lessonGoal}
+          onExit={() => setLessonId(null)}
+        />
+        <Toast />
       </div>
     );
   }
@@ -66,12 +114,14 @@ export default function App() {
         <ProfilesScreen onClose={() => setProfilesOpen(false)} />
       ) : tab === 'home' ? (
         <HomeScreen
-          onStartLesson={setLessonId}
+          onStartLesson={startLesson}
           onOpenProfiles={() => setProfilesOpen(true)}
-          onStartReview={() => setLessonId('review')}
+          onStartReview={() => startLesson('review')}
         />
       ) : tab === 'words' ? (
         <WordsScreen />
+      ) : tab === 'shop' ? (
+        <ShopScreen />
       ) : (
         <ParentScreen
           unlocked={parentUnlocked}
@@ -80,7 +130,10 @@ export default function App() {
         />
       )}
 
-      {!profilesOpen && <Mascot mood={mood} message={message} />}
+      {!profilesOpen && tab !== 'shop' && (
+        <Mascot mood={mood} message={message} look={look} stage={stage} />
+      )}
+      <Toast />
 
       {updateReady && (
         <div className="footer-bar">
@@ -118,6 +171,10 @@ export default function App() {
         <button className={`tab ${tab === 'words' ? 'on' : ''}`} onClick={() => setTab('words')}>
           <span className="ico">📖</span>
           Слова
+        </button>
+        <button className={`tab ${tab === 'shop' ? 'on' : ''}`} onClick={() => setTab('shop')}>
+          <span className="ico">🎩</span>
+          БУК
         </button>
         <button className={`tab ${tab === 'parent' ? 'on' : ''}`} onClick={() => setTab('parent')}>
           <span className="ico">👨‍👩‍👧</span>

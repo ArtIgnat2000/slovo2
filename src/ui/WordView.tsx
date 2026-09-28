@@ -2,6 +2,33 @@ import type { Word } from '../types';
 
 const VOWELS = 'аеёиоуыэюя';
 
+/**
+ * Картинка слова (картинки лежат в public/words/, WebP 256×256).
+ * Есть картинка — показываем её, нет — остаётся эмодзи. Картинки важны
+ * для визуальной памяти: слово запоминается вместе с образом, а не с буквами.
+ */
+export function WordArt({ word, size = 96, className = '' }: { word: Word; size?: number; className?: string }) {
+  if (!word.image) {
+    return (
+      <span className={`big-emoji ${className}`} style={{ fontSize: size }} aria-hidden="true">
+        {word.emoji}
+      </span>
+    );
+  }
+  return (
+    <img
+      className={`word-art ${className}`}
+      src={`${import.meta.env.BASE_URL}words/${word.image}.webp`}
+      alt=""
+      width={size}
+      height={size}
+      style={{ width: size, height: size }}
+      decoding="async"
+      draggable={false}
+    />
+  );
+}
+
 interface Props {
   word: Word;
   stress?: boolean;
@@ -95,9 +122,7 @@ export function dangerSummary(word: Word): string {
 export function WordClue({ word }: { word: Word }) {
   return (
     <div className="clue">
-      <span className="clue-emoji" aria-hidden="true">
-        {word.emoji}
-      </span>
+      <WordArt word={word} size={56} className="clue-art" />
       <div className="clue-body">
         <Sentence word={word} />
         <p className="clue-hint">

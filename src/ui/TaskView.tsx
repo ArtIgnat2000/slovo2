@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Task, Word } from '../types';
-import { Sentence, WordClue, WordLetters, dangerSummary } from './WordView';
+import { Sentence, WordArt, WordClue, WordLetters, dangerSummary } from './WordView';
 import { Keyboard } from './Keyboard';
 import { sfx } from '../platform/sound';
 import { haptic } from '../platform/haptics';
@@ -78,7 +78,7 @@ function Intro({ word, onSolve }: { word: Word; onSolve: SolveFn }) {
   const [showHint, setShowHint] = useState(false);
   return (
     <div className="task">
-      <div className="big-emoji">{word.emoji}</div>
+      <WordArt word={word} size={120} />
       <WordLetters word={word} stress markDanger blink />
       <div className="row" style={{ flexWrap: 'wrap', justifyContent: 'center' }}>
         {word.syllables.map((s, i) => (

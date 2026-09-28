@@ -71,7 +71,8 @@ export default defineConfig(({ command }) => ({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,png,svg,webmanifest}'],
+        // webp — картинки слов: без них офлайн-режим показывал бы пустые рамки
+        globPatterns: ['**/*.{js,css,html,png,svg,webp,webmanifest}'],
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,
         clientsClaim: true,

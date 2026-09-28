@@ -298,6 +298,20 @@ p {
   animation: pop 0.35s cubic-bezier(0.2, 1.4, 0.4, 1);
 }
 
+/* Полоска цели дня с меткой «с чего начали»: после урока видно, сколько он дал */
+.goal-track {
+  position: relative;
+}
+.goal-mark {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--ink-3);
+  opacity: 0.55;
+}
+
 /* Бейдж «+30 сверх цели» — перебор плана отдельной наградой, а не дробью */
 .goal-over {
   display: inline-flex;
@@ -311,6 +325,233 @@ p {
   font-size: 12px;
   font-weight: 800;
   white-space: nowrap;
+}
+
+/* Бейдж «🔧 ещё раз» — задание-отработка после ошибки.
+   Подсказывает, почему слово вернулось, но не выглядит наказанием. */
+.stat-pill.repair {
+  color: var(--orange);
+  border-color: var(--orange);
+  background: var(--orange-soft);
+}
+.stat-pill.tasks {
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Задания дня ─────────────────────────────────────────────────────────── */
+
+.quest {
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 10px 12px;
+  background: var(--bg-2);
+}
+.quest.done {
+  border-color: var(--green);
+  background: var(--green-soft);
+}
+.quest-emoji {
+  font-size: 24px;
+  width: 30px;
+  text-align: center;
+  flex: none;
+}
+.quest-title {
+  font-weight: 800;
+  font-size: var(--fs-sm);
+}
+.quest-gem {
+  font-weight: 800;
+  font-size: var(--fs-sm);
+  color: var(--primary);
+  white-space: nowrap;
+}
+.quest-gem.taken {
+  color: var(--green);
+}
+.chest {
+  background: var(--orange);
+  box-shadow: 0 5px 0 #c87b08;
+  animation: pulse 1.8s ease-in-out infinite;
+}
+.chest:active {
+  box-shadow: 0 2px 0 #c87b08;
+  transform: translateY(3px);
+}
+.stat-pill.gems {
+  color: var(--primary);
+}
+
+/* Полоска серии дней внутри карточки «Цель дня» (пункт 5) */
+.streak-label {
+  margin-top: 10px;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.streak-days {
+  display: flex;
+  gap: 6px;
+  margin-top: 5px;
+}
+.streak-dot {
+  flex: 1;
+  height: 20px;
+  border-radius: 8px;
+  background: var(--line);
+}
+.streak-dot.on {
+  background: var(--orange);
+  box-shadow: 0 2px 0 #c87b08;
+}
+.streak-dot.today {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+/* ── Магазин БУКа ────────────────────────────────────────────────────────── */
+
+.shop-stage {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.shop-mascot {
+  border: none;
+  background: var(--primary-soft);
+  border-radius: var(--r-lg);
+  padding: 6px 10px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  flex: none;
+  min-width: 118px;
+}
+.shop-mascot .mascot {
+  position: static;
+  animation: none;
+}
+/* в магазине маскот не «висит» поверх экрана, а стоит в карточке */
+.shop-mascot .mascot.dance {
+  animation: dance 0.6s ease-in-out 3;
+}
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.shop-item {
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg-2);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+.shop-item.owned {
+  border-color: var(--green);
+}
+.shop-item.on {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.shop-icon {
+  height: 76px;
+  display: grid;
+  place-items: center;
+}
+.shop-icon .mascot {
+  position: static;
+  animation: none;
+}
+.shop-title {
+  font-weight: 800;
+  font-size: var(--fs-sm);
+}
+.shop-desc {
+  min-height: 32px;
+}
+
+/* ── Тост-награда ────────────────────────────────────────────────────────── */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  top: calc(12px + var(--safe-t));
+  z-index: 45;
+  max-width: 420px;
+  width: calc(100% - 32px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--card);
+  border: 2px solid var(--primary);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-lg);
+  cursor: pointer;
+  animation: toastIn 0.3s cubic-bezier(0.2, 1.3, 0.4, 1);
+}
+.toast-emoji {
+  font-size: 26px;
+  flex: none;
+}
+.toast-title {
+  font-weight: 800;
+  font-size: var(--fs-sm);
+}
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* ── Диалог подтверждения ────────────────────────────────────────────────── */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(36, 31, 54, 0.45);
+  backdrop-filter: blur(2px);
+  animation: fadeIn 0.18s ease;
+}
+.dialog {
+  width: 100%;
+  max-width: 340px;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 20px 18px;
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+  animation: pop 0.22s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+.dialog-emoji {
+  font-size: 46px;
+  line-height: 1;
+}
+.dialog h2 {
+  margin: 6px 0 4px;
+}
+.dialog-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
 }
 
 /* ── Путь уроков ─────────────────────────────────────────────────────────── */
@@ -633,6 +874,23 @@ p {
   align-items: center;
   gap: 10px;
   width: 100%;
+}
+.word-art {
+  display: block;
+  border-radius: 22px;
+  background: var(--card);
+  border: 2px solid var(--line);
+  object-fit: contain;
+  flex: none;
+}
+.clue-art {
+  border-radius: 16px;
+  border-width: 2px;
+}
+.word-chip-art {
+  border-radius: 6px;
+  vertical-align: -5px;
+  margin-right: 2px;
 }
 .clue-emoji {
   font-size: 40px;
