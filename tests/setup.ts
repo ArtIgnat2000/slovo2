@@ -3,6 +3,27 @@
 import { JSDOM } from 'jsdom';
 import 'fake-indexeddb/auto';
 
+// ── Детерминированность ──────────────────────────────────────────────────────
+// Приложение перемешивает задания, варианты ответа и буквы через Math.random,
+// поэтому смоук-тест был «рулеткой»: один и тот же коммит то зелёный, то красный
+// (проверка «задания-отработки после ошибок встречались» падала примерно в 1 из 7
+// прогонов — просто потому, что намеренная ошибка не всегда попадала в задание,
+// где она засчитывается). Подменяем генератор на воспроизводимый: прогон всегда
+// одинаковый, а любое падение можно повторить и разобрать.
+// Другой seed — для проверки на других перестановках: SMOKE_SEED=42 npm run test:smoke
+function mulberry32(a: number) {
+  return function random() {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const smokeSeed = Number(process.env.SMOKE_SEED ?? 1);
+Math.random = mulberry32(Number.isFinite(smokeSeed) ? smokeSeed : 1);
+
 const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', {
   url: 'http://localhost:5173/',
   pretendToBeVisual: true,
