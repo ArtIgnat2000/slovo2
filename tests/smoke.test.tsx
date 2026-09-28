@@ -63,7 +63,7 @@ async function playLesson(second = false) {
   let sawDialog = false;
   let exitTried = false;
   let idle = 0;
-  let wrongEvery = 0;
+  let madeMistake = false;
   let steps = 0;
   let reachedResults = false;
 
@@ -74,6 +74,8 @@ async function playLesson(second = false) {
     const inVerdict = !!verdictBar && !!btnText('Далее');
     if (inVerdict && !lastHadVerdict) verdicts++;
     lastHadVerdict = inVerdict;
+    // вердикт «✗ Ошибка» виден до нажатия «Далее» — фиксируем, что промах засчитан
+    if (document.querySelector('.footer-bar.bad')) madeMistake = true;
 
     const w = lessonBarWidth();
     if (w >= 0) widths.push(w);
@@ -135,8 +137,10 @@ async function playLesson(second = false) {
       continue;
     }
 
-    // 4. Окошко / исправь робота (каждое третье задание отвечаем неверно:
-    //    нужен и путь ошибки с отработкой)
+    // 4. Окошко / исправь робота. Первое такое задание в уроке отвечаем НЕВЕРНО —
+    //    но только когда уверены, что жмём именно неверный вариант. Раньше ошибка
+    //    вставлялась «в каждое третье задание» и проверка отработки была рулеткой:
+    //    примерно один прогон из семи был красным на ровном месте.
     const options = Array.from(document.querySelectorAll('.option')) as HTMLButtonElement[];
     if (options.length) {
       idle = 0;
@@ -149,8 +153,8 @@ async function playLesson(second = false) {
       } else if (word) {
         correct = options.find((o) => (o.textContent ?? '').trim() === word.text);
       }
-      const wantWrong = wrongEvery++ % 3 === 1;
-      const wrong = options.find((o) => o !== correct);
+      const wrong = correct ? options.find((o) => o !== correct) : undefined;
+      const wantWrong = !madeMistake && !!wrong;
       click((wantWrong ? wrong : correct) ?? options[0]);
       continue;
     }
@@ -160,8 +164,10 @@ async function playLesson(second = false) {
     const word = currentWord();
     if (keys.length && word) {
       idle = 0;
-      // каждый четвёртый раз ошибаемся на последней букве — проверяем отработку ошибки
-      const wantWrong = wrongEvery++ % 4 === 3;
+      // первое задание на письмо тоже отвечаем неверно, чтобы отработка ошибки
+      // гарантированно встретилась. Букву берём ту, что ТОЧНО есть на клавиатуре:
+      // раньше набирали «ъ», а его в раскладке нет — промах не засчитывался вовсе
+      const wantWrong = !madeMistake;
       const typed = (document.querySelector('.typed')?.textContent ?? '').replace('·', '').trim();
       const need = wantWrong ? word.text.slice(typed.length, -1) : word.text.slice(typed.length);
       for (const ch of need) {
@@ -171,9 +177,12 @@ async function playLesson(second = false) {
         await sleep(6);
       }
       if (wantWrong) {
-        const badLetter = typed.length === 0 ? 'я' : 'ъ';
-        const k = keys.find((b) => (b.textContent ?? '').trim() === badLetter);
-        if (k) click(k);
+        const nextLetter = word.text[typed.length + need.length];
+        const bad = keys.find((b) => {
+          const t = (b.textContent ?? '').trim();
+          return t !== '⌫' && t !== nextLetter;
+        });
+        if (bad) click(bad);
       }
       const checkBtn = btnText('Проверить');
       if (checkBtn && !checkBtn.disabled) click(checkBtn);
@@ -199,7 +208,7 @@ async function playLesson(second = false) {
     mono && compact.length > 3,
     JSON.stringify(compact.map((v) => Math.round(v))),
   );
-  return { sawDialog, reachedResults, verdicts, repairBadges, counterHiddenOnRepair };
+  return { sawDialog, reachedResults, verdicts, repairBadges, counterHiddenOnRepair, madeMistake };
 }
 
 
@@ -250,6 +259,7 @@ async function main() {
   const run = await playLesson();
   check('диалог «Выйти из урока?» показан, урок продолжился', run.sawDialog, '');
   check('экрана результатов достигли', run.reachedResults, `ответов с вердиктом: ${run.verdicts}`);
+  check('ошибка в уроке засчитана (вердикт «Ошибка» видели)', run.madeMistake, `вердиктов: ${run.verdicts}`);
   check('задания-отработки после ошибок встречались', run.repairBadges > 0, '');
   check('на отработке счётчик уступает место пометке «ещё раз»', run.counterHiddenOnRepair, '');
   check('результаты показывают цель дня', has('цель 120') && has('Цель дня'), body().slice(0, 300));
