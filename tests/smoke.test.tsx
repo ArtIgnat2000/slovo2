@@ -204,9 +204,40 @@ async function playLesson(second = false) {
 
 
 async function main() {
-  useApp.getState().createProfile('Тест', '🦊');
+  // ── Первый запуск: профиля ещё нет ──────────────────────────────────────────
+  // Здесь ловится «пустой экран» с GitHub Pages. useLook() возвращал литерал {}
+  // на каждый вызов, zustand 5 сравнивает результат селектора по ссылке, React
+  // не получал стабильного снимка и уходил в бесконечный цикл перерисовок
+  // (на проде — «Minified React error #185»), поэтому #root оставался пустым.
+  // Профиль создаём ПОСЛЕ первой отрисовки: иначе у селектора всегда есть
+  // стабильный equipped, и баг не воспроизводится.
+  // React в dev-режиме при бесконечном цикле пишет предупреждение в console.error
+  // и роняет процесс непойманным «Maximum update depth exceeded» — перехватываем
+  // оба канала, чтобы проверка упала внятно, а не молчаливым крашем.
+  const bootErrors: string[] = [];
+  const realError = console.error;
+  const onUncaught = (e: Error) => {
+    bootErrors.push(`${e?.name ?? 'Error'}: ${e?.message ?? e}`);
+  };
+  process.on('uncaughtException', onUncaught);
+  console.error = (...args: unknown[]) => {
+    bootErrors.push(args.map((a) => String(a)).join(' '));
+    realError(...(args as [unknown]));
+  };
+
   const root = createRoot(document.getElementById('root')!);
   root.render(createElement(App));
+  await sleep(150);
+
+  process.off('uncaughtException', onUncaught);
+  console.error = realError;
+  check(
+    'виден экран выбора ученика, ошибок в консоли нет',
+    has('Кто будет учиться') && bootErrors.length === 0,
+    bootErrors.length ? bootErrors[0].replace(/\s+/g, ' ').slice(0, 220) : body().slice(0, 200),
+  );
+
+  useApp.getState().createProfile('Тест', '🦊');
   await sleep(60);
 
   check('профиль создан, показана главная', has('Цель дня') && has('Задания дня'), body().slice(0, 200));

@@ -360,11 +360,21 @@ function getActive(s: AppState): Profile | null {
   return s.profiles.find((p) => p.id === s.activeId) ?? null;
 }
 
+/**
+ * Запасной пустой гардероб. Вынесен в константу нарочно: zustand 5 передаёт
+ * селектор прямо в useSyncExternalStore и сравнивает результат по ссылке.
+ * Литерал `{}` внутри селектора создавал новый объект на каждый вызов, и React,
+ * не дождавшись стабильного снимка, уходил в бесконечный цикл перерисовок
+ * (на проде — «Minified React error #185»): на первом запуске, пока профиля ещё
+ * нет, приложение падало с пустым #root. Отсюда и «пустой экран» на Pages.
+ */
+const NO_LOOK: Partial<Record<ShopSlot, string>> = {};
+
 /** Что надето на БУКа в активном профиле — для маскота и магазина. */
 export function useLook(): Partial<Record<ShopSlot, string>> {
   return useApp((s) => {
     const p = s.profiles.find((x) => x.id === s.activeId);
-    return p?.shop?.equipped ?? {};
+    return p?.shop?.equipped ?? NO_LOOK;
   });
 }
 export type { AppState };
