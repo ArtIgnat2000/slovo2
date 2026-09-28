@@ -1,9 +1,14 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { DayStat, LessonState, Profile, WordState } from '../types';
+import type { DailyState, DayStat, LessonState, Profile, ShopState, ShopSlot, WordState } from '../types';
 import { applyAnswer, initState } from '../engine/srs';
 import { idbStorage } from '../platform/storage';
 import { GEMS_PER_STREAK, levelOf } from '../engine/rewards';
+import { dayKey, prevDay } from '../engine/day';
+import { CHEST_GEMS, type Chest } from '../engine/quests';
+import { ITEM_BY_ID, isOwned } from '../engine/shop';
+
+export { dayKey };
 
 export interface Settings {
   sound: boolean;
@@ -14,15 +19,36 @@ export interface Settings {
 
 const DEFAULT_SETTINGS: Settings = { sound: true, haptics: true, dailyGoal: 120, theme: 'auto' };
 
-export function dayKey(d: Date = new Date()): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+/** Показываем поверх любого экрана: «+30 XP», «Сундук: 15 💎» */
+export interface Toast {
+  id: number;
+  emoji: string;
+  title: string;
+  text?: string;
 }
 
-function prevDay(key: string): string {
-  const [y, m, dd] = key.split('-').map(Number);
-  const d = new Date(y, m - 1, dd);
-  d.setDate(d.getDate() - 1);
-  return dayKey(d);
+function emptyDay(): DayStat {
+  return { xp: 0, correct: 0, wrong: 0, lessons: 0, flawless: 0, reviewCorrect: 0 };
+}
+
+/** Старые записи дня (до заданий дня) не имеют полей серии — достраиваем на чтении. */
+function readDay(p: Profile, day: string): DayStat {
+  return { ...emptyDay(), ...(p.days[day] ?? {}) };
+}
+
+/** Состояние заданий дня; если профиль «переехал» на новый день — начинаем день заново. */
+function readDaily(p: Profile): DailyState {
+  const today = dayKey();
+  const st = p.daily;
+  if (!st || st.day !== today) {
+    return { day: today, claimed: [], chestsToday: 0, chestsTotal: st?.chestsTotal ?? 0 };
+  }
+  return st;
+}
+
+/** Гардероб БУКа; у профилей до магазина поля нет — достраиваем пустое. */
+function readShop(p: Profile): ShopState {
+  return { owned: p.shop?.owned ?? [], equipped: p.shop?.equipped ?? {} };
 }
 
 function newProfile(name: string, avatar: string): Profile {
@@ -41,6 +67,8 @@ function newProfile(name: string, avatar: string): Profile {
     errors: {},
     days: {},
     achievements: [],
+    daily: { day: dayKey(), claimed: [], chestsToday: 0, chestsTotal: 0 },
+    shop: { owned: [], equipped: {} },
   };
 }
 
@@ -48,6 +76,7 @@ interface AppState {
   profiles: Profile[];
   activeId: string | null;
   settings: Settings;
+  toast: Toast | null;
 
   createProfile: (name: string, avatar: string) => void;
   selectProfile: (id: string) => void;
@@ -55,10 +84,25 @@ interface AppState {
   renameProfile: (id: string, name: string, avatar: string) => void;
 
   touchDay: () => void;
-  answer: (wordId: string, quality: number) => void;
+  answer: (wordId: string, quality: number, review?: boolean) => void;
   finishLesson: (lessonId: string, pct: number) => void;
   addXp: (n: number) => void;
+  addGems: (n: number) => void;
+  addFreeze: (n: number) => void;
   grantAchievement: (id: string) => void;
+
+  /** Забрать награду за выполненные задания дня (кристаллы) */
+  claimQuest: (id: string, gems: number) => void;
+  /** Открыть сундук: награда приходит снаружи (rollChest), стор её только применяет */
+  openChest: (chest: Chest) => void;
+
+  /** Купить аксессуар у БУКа. Возвращает false, если кристаллов не хватает. */
+  buyItem: (id: string) => boolean;
+  /** Надеть/снять аксессуар: повторный тап по надетой вещи снимает её */
+  toggleEquip: (id: string) => void;
+
+  showToast: (t: Omit<Toast, 'id'>) => void;
+  hideToast: () => void;
 
   resetProfile: (id: string) => void;
   replaceAll: (data: { profiles: Profile[]; activeId: string | null; settings: Settings }) => void;
@@ -72,10 +116,11 @@ function patchActive(s: AppState, fn: (p: Profile) => Profile): Partial<AppState
 
 export const useApp = create<AppState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       profiles: [],
       activeId: null,
       settings: DEFAULT_SETTINGS,
+      toast: null,
 
       createProfile: (name, avatar) =>
         set((s) => {
@@ -120,13 +165,13 @@ export const useApp = create<AppState>()(
           }),
         ),
 
-      answer: (wordId, quality) =>
+      answer: (wordId, quality, review = false) =>
         set((s) =>
           patchActive(s, (p) => {
             const prev: WordState = p.words[wordId] ?? initState();
             const next = applyAnswer(prev, quality);
             const today = dayKey();
-            const day: DayStat = p.days[today] ?? { xp: 0, correct: 0, wrong: 0, lessons: 0 };
+            const day = readDay(p, today);
             const ok = quality >= 3;
             return {
               ...p,
@@ -134,7 +179,14 @@ export const useApp = create<AppState>()(
               errors: ok ? p.errors : { ...p.errors, [wordId]: (p.errors[wordId] ?? 0) + 1 },
               days: {
                 ...p.days,
-                [today]: { ...day, correct: day.correct + (ok ? 1 : 0), wrong: day.wrong + (ok ? 0 : 1) },
+                [today]: {
+                  ...day,
+                  correct: day.correct + (ok ? 1 : 0),
+                  wrong: day.wrong + (ok ? 0 : 1),
+                  // задание «без ошибок»: считаем лучшую серию за день
+                  flawless: ok ? day.flawless + 1 : 0,
+                  reviewCorrect: day.reviewCorrect + (ok && review ? 1 : 0),
+                },
               },
             };
           }),
@@ -145,7 +197,7 @@ export const useApp = create<AppState>()(
           patchActive(s, (p) => {
             const cur: LessonState = p.lessons[lessonId] ?? { level: 0, best: 0, doneAt: 0, plays: 0 };
             const today = dayKey();
-            const day: DayStat = p.days[today] ?? { xp: 0, correct: 0, wrong: 0, lessons: 0 };
+            const day = readDay(p, today);
             const level = pct >= 60 ? Math.min(5, cur.level + 1) : cur.level;
             return {
               ...p,
@@ -162,7 +214,7 @@ export const useApp = create<AppState>()(
         set((s) =>
           patchActive(s, (p) => {
             const today = dayKey();
-            const day: DayStat = p.days[today] ?? { xp: 0, correct: 0, wrong: 0, lessons: 0 };
+            const day = readDay(p, today);
             const streakBefore = Math.floor(p.streak / GEMS_PER_STREAK);
             const xp = p.xp + n;
             const streakAfter = Math.floor(p.streak / GEMS_PER_STREAK);
@@ -174,6 +226,87 @@ export const useApp = create<AppState>()(
             };
           }),
         ),
+
+      addGems: (n) =>
+        set((s) =>
+          patchActive(s, (p) => (n === 0 ? p : { ...p, gems: Math.max(0, p.gems + n) })),
+        ),
+
+      addFreeze: (n) =>
+        set((s) =>
+          patchActive(s, (p) => (n === 0 ? p : { ...p, freezes: Math.max(0, p.freezes + n) })),
+        ),
+
+      claimQuest: (id, gems) =>
+        set((s) =>
+          patchActive(s, (p) => {
+            const daily = readDaily(p);
+            if (daily.claimed.includes(id)) return p;
+            return {
+              ...p,
+              gems: p.gems + gems,
+              daily: { ...daily, claimed: [...daily.claimed, id] },
+            };
+          }),
+        ),
+
+      openChest: (chest) =>
+        set((s) =>
+          patchActive(s, (p) => {
+            const daily = readDaily(p);
+            const today = dayKey();
+            const day = readDay(p, today);
+            return {
+              ...p,
+              gems: p.gems + chest.gems,
+              freezes: p.freezes + chest.freezes,
+              days: { ...p.days, [today]: { ...day, xp: day.xp + chest.xp } },
+              xp: p.xp + chest.xp,
+              daily: {
+                ...daily,
+                chestsToday: daily.chestsToday + 1,
+                chestsTotal: daily.chestsTotal + 1,
+              },
+            };
+          }),
+        ),
+
+      buyItem: (id) => {
+        const item = ITEM_BY_ID[id];
+        const p = getActive(get());
+        if (!item || !p || isOwned(readShop(p).owned, id) || p.gems < item.price) return false;
+        set((s) =>
+          patchActive(s, (prof) => {
+            const shop = readShop(prof);
+            return {
+              ...prof,
+              gems: prof.gems - item.price,
+              shop: {
+                owned: [...shop.owned, id],
+                // купленное сразу надевается — ребёнку не нужно ещё раз тапать
+                equipped: { ...shop.equipped, [item.slot]: id },
+              },
+            };
+          }),
+        );
+        return true;
+      },
+
+      toggleEquip: (id) =>
+        set((s) =>
+          patchActive(s, (prof) => {
+            const item = ITEM_BY_ID[id];
+            const shop = readShop(prof);
+            if (!item || !isOwned(shop.owned, id)) return prof;
+            const equipped: ShopState['equipped'] = { ...shop.equipped };
+            if (equipped[item.slot] === id) delete equipped[item.slot];
+            else equipped[item.slot] = id;
+            return { ...prof, shop: { ...shop, equipped } };
+          }),
+        ),
+
+      showToast: (t) => set({ toast: { ...t, id: Date.now() } }),
+      hideToast: () => set({ toast: null }),
 
       grantAchievement: (id) =>
         set((s) =>
@@ -208,8 +341,8 @@ export function useActiveProfile(): Profile | null {
 }
 
 export function todayStat(p: Profile | null): DayStat {
-  if (!p) return { xp: 0, correct: 0, wrong: 0, lessons: 0 };
-  return p.days[dayKey()] ?? { xp: 0, correct: 0, wrong: 0, lessons: 0 };
+  if (!p) return emptyDay();
+  return { ...emptyDay(), ...(p.days[dayKey()] ?? {}) };
 }
 
 export function masteredCount(p: Profile | null): number {
@@ -222,4 +355,18 @@ export function levelOfProfile(p: Profile | null): number {
 }
 
 export const getState = () => useApp.getState();
+
+function getActive(s: AppState): Profile | null {
+  return s.profiles.find((p) => p.id === s.activeId) ?? null;
+}
+
+/** Что надето на БУКа в активном профиле — для маскота и магазина. */
+export function useLook(): Partial<Record<ShopSlot, string>> {
+  return useApp((s) => {
+    const p = s.profiles.find((x) => x.id === s.activeId);
+    return p?.shop?.equipped ?? {};
+  });
+}
 export type { AppState };
+
+export { CHEST_GEMS };

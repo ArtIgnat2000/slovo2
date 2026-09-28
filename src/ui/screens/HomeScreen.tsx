@@ -1,6 +1,8 @@
 import { LESSONS, WORDS } from '../../content/words';
-import { masteredCount, todayStat, useActiveProfile, useApp } from '../../state/store';
+import { dayKey, masteredCount, todayStat, useActiveProfile, useApp } from '../../state/store';
+import { lastDays } from '../../engine/day';
 import { Bar, Crowns, Ring } from '../Bits';
+import { DailyQuests } from '../DailyQuests';
 import { levelOf, levelProgress, xpForLevel } from '../../engine/rewards';
 import { ACHIEVEMENTS } from '../../engine/rewards';
 import { pickReview } from '../../engine/srs';
@@ -8,7 +10,17 @@ import { pickReview } from '../../engine/srs';
 interface Props {
   onStartLesson: (lessonId: string) => void;
   onOpenProfiles: () => void;
-  onStartReview: (lessonId: string) => void;
+  /** «Пора повторить» — отдельный режим тренировки, id урока не нужен */
+  onStartReview: () => void;
+}
+
+/** «1 день / 3 дня / 8 дней» — чтобы «Серия: 1 дней» не резало глаз. */
+function dayWord(n: number): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return 'день';
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return 'дня';
+  return 'дней';
 }
 
 export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview }: Props) {
@@ -42,6 +54,7 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview }: Pro
         </div>
         <div className="stat-pill fire">🔥 {profile.streak}</div>
         <div className="stat-pill xp">⚡ {profile.xp}</div>
+        <div className="stat-pill gems">💎 {profile.gems}</div>
       </div>
 
       <div className="card mb">
@@ -59,12 +72,34 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview }: Pro
             <div className="tiny" style={{ marginTop: 4 }}>
               До уровня {lvl + 1}: {Math.max(0, xpForLevel(lvl + 1) - profile.xp)} XP
             </div>
+
+            {/* Серия дней как «коллекция»: закрашенные дни — то, что ребёнок копит.
+                Внутри карточки цели дня, чтобы не плодить блоки на главной. */}
+            <div className="streak-label">
+              {profile.streak > 0 ? `Серия: ${profile.streak} ${dayWord(profile.streak)} 🔥` : 'Серия дней'}
+              {profile.freezes > 0 && <span className="tiny"> · 🧊 {profile.freezes}</span>}
+            </div>
+            <div className="streak-days">
+              {lastDays(7).map((d) => {
+                const st = profile.days[d];
+                const busy = !!st && (st.lessons > 0 || st.correct > 0);
+                return (
+                  <span
+                    key={d}
+                    className={`streak-dot ${busy ? 'on' : ''} ${d === dayKey() ? 'today' : ''}`}
+                    title={d}
+                  />
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
 
+      <DailyQuests />
+
       {reviews.length > 0 && (
-        <button className="card mb wide" style={{ textAlign: 'left', cursor: 'pointer' }} onClick={() => onStartReview(current.id)}>
+        <button className="card mb wide" style={{ textAlign: 'left', cursor: 'pointer' }} onClick={onStartReview}>
           <div className="row">
             <span style={{ fontSize: 30 }}>🔁</span>
             <div className="grow">

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { LESSONS, WORDS } from '../../content/words';
 import { useActiveProfile } from '../../state/store';
-import { Sentence, WordLetters, dangerSummary } from '../WordView';
+import { Sentence, WordArt, WordLetters, dangerSummary } from '../WordView';
 
 /** Словарик: всё, что учим, с ударениями и «опасными» буквами. */
 export function WordsScreen() {
@@ -37,7 +37,19 @@ export function WordsScreen() {
           const cls = s >= 90 ? 'good' : s >= 40 ? 'mid' : st && st.wrong > 0 ? 'weak' : '';
           return (
             <button key={w.id} className={`word-chip ${cls}`} onClick={() => setOpen(w.id)}>
-              {w.emoji} {w.text}
+              {w.image ? (
+                <img
+                  className="word-chip-art"
+                  src={`${import.meta.env.BASE_URL}words/${w.image}.webp`}
+                  alt=""
+                  width={22}
+                  height={22}
+                  decoding="async"
+                />
+              ) : (
+                <span aria-hidden="true">{w.emoji}</span>
+              )}{' '}
+              {w.text}
             </button>
           );
         })}
@@ -50,7 +62,7 @@ export function WordsScreen() {
         >
           <div className="card" style={{ width: '100%', maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
             <div className="center">
-              <div className="big-emoji">{word.emoji}</div>
+              <WordArt word={word} size={128} />
               <WordLetters word={word} stress markDanger />
               <div className="row" style={{ justifyContent: 'center', flexWrap: 'wrap', marginTop: 8 }}>
                 {word.syllables.map((s, i) => (

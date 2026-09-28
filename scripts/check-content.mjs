@@ -16,7 +16,7 @@
  *
  * Запуск: npm run content:check
  */
-import fs from 'node:fs';
+import fs, { existsSync } from 'node:fs';
 import path from 'node:path';
 
 const file = path.join(process.cwd(), 'src/content/words.ts');
@@ -199,14 +199,24 @@ function checkCase(text, sentence, fail, warn) {
 
 for (const row of rows) {
   const parts = row.split('|');
-  const [text, stressRaw, syll, dangerRaw, kind, emoji, sentence, hint, mnemonic] = parts;
+  const [text, stressRaw, syll, dangerRaw, kind, emoji, sentence, hint, mnemonic, image] = parts;
   const stress = Number(stressRaw);
   const letters = text.split('');
   // пустое поле = «опасных букв нет» (число 0 — это индекс, не отсутствие)
   const danger = dangerRaw ? dangerRaw.split(',').map(Number) : [];
 
-  if (parts.length !== 9)
-    fail(text, `ожидалось 9 полей (слово|ударение|слоги|опасные|тип|эмодзи|предложение|подсказка|мнемоника), получили ${parts.length}`);
+  if (parts.length !== 9 && parts.length !== 10)
+    fail(
+      text,
+      `ожидалось 9–10 полей (слово|ударение|слоги|опасные|тип|эмодзи|предложение|подсказка|мнемоника|картинка?), получили ${parts.length}`,
+    );
+  // Картинка необязательна, но если указана — файл должен существовать:
+  // иначе в заданиях будет битая картинка вместо эмодзи
+  if (image) {
+    if (!/^[a-z0-9_-]+$/.test(image)) fail(text, `имя картинки «${image}» — только латиница, цифры, дефис и подчёркивание`);
+    const file = new URL(`../public/words/${image}.webp`, import.meta.url);
+    if (!existsSync(file)) fail(text, `нет файла картинки public/words/${image}.webp`);
+  }
   if (seen.has(text)) fail(text, 'слово повторяется');
   seen.add(text);
 
@@ -299,9 +309,10 @@ if (notes.length) {
   for (const n of notes) console.log(`   ${n}`);
 }
 
+const withPic = rows.filter((r) => r.split('|')[9]).length;
 console.log(
   errors === 0
-    ? `✓ Контент в порядке: ${rows.length} слов (ударения, опасные буквы, падежи, мнемоники, подсказки)`
+    ? `✓ Контент в порядке: ${rows.length} слов (ударения, опасные буквы, падежи, мнемоники, подсказки); картинок: ${withPic}`
     : `✗ Ошибок: ${errors}`,
 );
 process.exit(errors === 0 ? 0 : 1);
