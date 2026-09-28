@@ -32,7 +32,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # 22 нужен смоук-тесту: jsdom 30 требует Node ^22.22.2 (см. engines в package.json)
+          node-version: 22
           cache: npm
       - run: npm ci
       - run: npm run content:check

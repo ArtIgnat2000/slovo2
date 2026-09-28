@@ -8,6 +8,18 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
+// jsdom 30 не работает на Node младше 22.22 — проверяем сразу, иначе падение
+// внутри библиотеки выглядит как загадочная ошибка (так и случилось в CI на Node 20)
+const [maj, min, patch] = process.versions.node.split('.').map(Number);
+const ok = maj > 22 || (maj === 22 && (min > 22 || (min === 22 && patch >= 2)));
+if (!ok) {
+  console.error(
+    `✗ Смоук-тест требует Node ≥ 22.22.2 (сейчас ${process.versions.node}).\n` +
+      '  Такой Node нужен jsdom 30: обновите Node или CI-workflow.',
+  );
+  process.exit(1);
+}
+
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.join(root, '.smoke'); // внутри проекта: бандл должен видеть node_modules
 const entry = path.join(out, 'smoke.mjs');
