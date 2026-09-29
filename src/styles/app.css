@@ -1401,3 +1401,185 @@ p {
 @media (prefers-reduced-motion: reduce) {
   .word-art-frame > .word-art { transition: none; }
 }
+
+/* ── V-labs: промо-блок и внутренний раздел ────────────────────────────── */
+
+.vlabs-promo {
+  border: 2px solid var(--primary) !important;
+  background:
+    radial-gradient(120% 100% at 100% 0%, #ece7ff 0%, transparent 55%),
+    radial-gradient(100% 90% at 0% 100%, #fff2d6 0%, transparent 60%),
+    var(--card) !important;
+  box-shadow: var(--shadow);
+  transition: transform 0.08s ease, border-color 0.15s ease;
+}
+.vlabs-promo:active { transform: translateY(1px); }
+.vlabs-promo-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  background: var(--primary);
+  color: #fff;
+  flex: none;
+}
+.vlabs-promo-title {
+  font-weight: 800;
+  font-size: var(--fs-md);
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.vlabs-hero {
+  border: 2px solid var(--primary) !important;
+  background:
+    radial-gradient(150% 80% at 0% 0%, #ece7ff 0%, transparent 60%),
+    radial-gradient(120% 80% at 100% 100%, #fff2d6 0%, transparent 65%),
+    var(--card) !important;
+}
+.vlabs-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--r-pill);
+  background: var(--primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.vlabs-brand {
+  color: var(--primary);
+}
+.vlabs-tagline {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0;
+  line-height: 1.2;
+}
+.vlabs-proof-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.vlabs-proof {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: var(--r-pill);
+  background: var(--card);
+  border: 2px solid var(--line);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+.vlabs-scratch {
+  background:
+    radial-gradient(130% 80% at 100% 0%, #fef3c7 0%, transparent 55%),
+    var(--card) !important;
+  border-color: #f59e0b !important;
+}
+.vlabs-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  font-size: 30px;
+  background: #fff7ed;
+  border: 2px solid #fed7aa;
+  flex: none;
+}
+.vlabs-kicker {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #d97706;
+}
+.vlabs-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.vlabs-chip {
+  display: inline-flex;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  background: #fff;
+  border: 2px solid #fde68a;
+  color: #92400e;
+  font-size: 12px;
+  font-weight: 800;
+}
+.vlabs-list {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+  line-height: 1.45;
+}
+.vlabs-list li { margin: 4px 0; }
+.vlabs-list li::marker { color: #f59e0b; }
+
+.vlabs-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+@media (min-width: 460px) {
+  .vlabs-grid { grid-template-columns: repeat(3, 1fr); }
+}
+.vlabs-mini {
+  border: 2px solid var(--line);
+  background: var(--bg-2);
+  border-radius: var(--r-md);
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+.vlabs-mini-ico { font-size: 24px; line-height: 1; }
+.vlabs-mini b { font-size: var(--fs-sm); line-height: 1.2; }
+.vlabs-more {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  background: var(--primary-soft);
+  border: 2px dashed var(--line);
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+  text-align: center;
+  font-weight: 600;
+}
+
+.vlabs-why { display: flex; flex-direction: column; gap: 12px; }
+.vlabs-why-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.vlabs-why-ico {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  background: var(--primary-soft);
+  border: 2px solid var(--line);
+  flex: none;
+}
+.vlabs-cta { border-color: var(--green) !important; }
+.vlabs-cta h3 { color: var(--ink); }

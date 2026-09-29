@@ -14,6 +14,7 @@ interface Props {
   onOpenProfiles: () => void;
   /** «Пора повторить» — отдельный режим тренировки, id урока не нужен */
   onStartReview: () => void;
+  onOpenVlabs: () => void;
 }
 
 /** «1 день / 3 дня / 8 дней» — чтобы «Серия: 1 дней» не резало глаз. */
@@ -25,7 +26,7 @@ function dayWord(n: number): string {
   return 'дней';
 }
 
-export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview }: Props) {
+export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpenVlabs }: Props) {
   const profile = useActiveProfile();
   const settings = useApp((s) => s.settings);
   const nextLesson = LESSONS.find((l) => (profile?.lessons[l.id]?.level ?? 0) < 5) ?? LESSONS[LESSONS.length - 1];
@@ -162,6 +163,17 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview }: Pro
           </div>
         </>
       )}
+
+      <button className="vlabs-promo card mb wide" onClick={onOpenVlabs} style={{ textAlign: 'left', cursor: 'pointer' }}>
+        <div className="row">
+          <span className="vlabs-promo-icon">🧪</span>
+          <div className="grow">
+            <div className="vlabs-promo-title">Слово2 сделали в V-labs</div>
+            <div className="tiny">Хочешь делать такие игры сам? Начни с Scratch — покажем школу →</div>
+          </div>
+          <span style={{ fontSize: 22, color: 'var(--primary)', flex: 'none' }}>▸</span>
+        </div>
+      </button>
 
       <p className="tiny center mt">Слов в курсе: {WORDS.length}</p>
     </div>

@@ -10,9 +10,10 @@ interface Props {
   unlocked: boolean;
   onUnlock: () => void;
   onOpenProfiles: () => void;
+  onOpenVlabs: () => void;
 }
 
-export function ParentScreen({ unlocked, onUnlock, onOpenProfiles }: Props) {
+export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs }: Props) {
   const profile = useActiveProfile();
   const { settings, setSettings, replaceAll, resetProfile, setLessonSize } = useApp();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -226,6 +227,17 @@ export function ParentScreen({ unlocked, onUnlock, onOpenProfiles }: Props) {
           </span>
         </div>
       </div>
+
+      <button className="vlabs-promo card mb wide" onClick={onOpenVlabs} style={{ textAlign: 'left', cursor: 'pointer' }}>
+        <div className="row">
+          <span className="vlabs-promo-icon">🧪</span>
+          <div className="grow">
+            <div className="vlabs-promo-title">Слово2 сделали в V-labs</div>
+            <div className="tiny">Школа программирования для детей — создаём игры, а не просто играем. Про Scratch →</div>
+          </div>
+          <span style={{ fontSize: 22, color: 'var(--primary)', flex: 'none' }}>▸</span>
+        </div>
+      </button>
 
       {!isStandalone() && (
         <div className="banner mb">
