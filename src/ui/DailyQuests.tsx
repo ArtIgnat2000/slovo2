@@ -2,47 +2,56 @@ import { useState } from 'react';
 import { useActiveProfile, useApp, dayKey } from '../state/store';
 import {
   allQuestsDone,
-  describeChest,
   dayMetrics,
   questId,
   questProgress,
   questsForDay,
   rollChest,
+  type Chest,
 } from '../engine/quests';
 import { Bar, Confetti } from './Bits';
 import { sfx } from '../platform/sound';
 import { haptic } from '../platform/haptics';
 
+type ChestView = { reward: Chest };
+
+function ChestRewards({ reward }: { reward: Chest }) {
+  return (
+    <div className="chest-rewards" aria-label="Награда сундука">
+      {reward.gems > 0 && <span className="chest-reward">💎 +{reward.gems}</span>}
+      {reward.xp > 0 && <span className="chest-reward">⚡ +{reward.xp} XP</span>}
+      {reward.freezes > 0 && <span className="chest-reward">🧊 +{reward.freezes} заморозка</span>}
+    </div>
+  );
+}
+
 /**
- * Карточка «Задания дня» на главной (пункт 3 плана).
+ * Карточка «Задания дня» на главной.
  *
- * Решения, которые здесь видны:
- *  • награда — кристаллы 💎, а не XP: цель дня не должна закрываться «сама собой»
- *    от выдач (решение по наградам: кристаллы + сундук);
- *  • закрытые задания не исчезают: ребёнок сам жмёт «Забрать» и видит, что получил;
- *  • сундук — за все три задания, один в день. Открытие — маленький праздник
- *    с конфетти, чтобы «дойти до конца списка» было приятно.
+ * Три задания — это три ключа сундука БУКа. Ключи считаются по прогрессу
+ * заданий и поэтому переживают перезагрузку без отдельного счётчика.
  */
 export function DailyQuests() {
   const profile = useActiveProfile();
   const claimQuest = useApp((s) => s.claimQuest);
   const openChest = useApp((s) => s.openChest);
   const showToast = useApp((s) => s.showToast);
-  const [chest, setChest] = useState<{ open: boolean; text: string } | null>(null);
+  const [chest, setChest] = useState<ChestView | null>(null);
 
   if (!profile) return null;
 
   const day = dayKey();
   const quests = questsForDay(day);
-  const m = dayMetrics(profile.days[day]);
   const st = profile.daily && profile.daily.day === day ? profile.daily : null;
   const claimed = st?.claimed ?? [];
   const chestsToday = st?.chestsToday ?? 0;
-
-  const items = quests.map((q) => ({ ...questProgress(q, m), id: questId(day, q.kind) }));
+  const metrics = dayMetrics(profile.days[day]);
+  const items = quests.map((q) => ({ ...questProgress(q, metrics), id: questId(day, q.kind) }));
   const doneCount = items.filter((i) => i.done).length;
-  const all = allQuestsDone(quests, m);
-  const chestAvailable = all && chestsToday === 0;
+  const all = allQuestsDone(quests, metrics);
+  const chestReady = all && chestsToday === 0;
+  const chestOpened = chestsToday > 0;
+  const storedReward = st?.lastChest;
 
   const claim = (id: string, gems: number) => {
     sfx.correct();
@@ -52,23 +61,25 @@ export function DailyQuests() {
   };
 
   const takeChest = () => {
-    const rolled = rollChest(chestsToday);
-    openChest(rolled);
-    const text = describeChest(rolled);
-    setChest({ open: true, text });
+    const reward = rollChest();
+    if (!openChest(reward)) return;
+    setChest({ reward });
     sfx.finish(3);
     haptic.finish();
-    showToast({ emoji: '🎁', title: 'Сундук открыт!', text });
-    setTimeout(() => setChest(null), 2600);
+  };
+
+  const showStoredChest = () => {
+    if (storedReward) setChest({ reward: storedReward });
   };
 
   return (
     <div className="card mb">
       <Confetti show={!!chest} />
+
       <div className="row mb">
         <div className="grow">
           <h3 style={{ margin: 0 }}>Задания дня</h3>
-          <div className="tiny">Каждый день — три новых задания</div>
+          <div className="tiny">Собери 3 ключа — открой сундук БУКа</div>
         </div>
         <div className="stat-pill tasks">{doneCount} из {quests.length}</div>
       </div>
@@ -109,21 +120,66 @@ export function DailyQuests() {
         })}
       </div>
 
-      {chestAvailable ? (
+      <div className={`chest-progress ${chestOpened ? 'opened' : chestReady ? 'ready' : ''}`}>
+        <div className="row">
+          <div className="chest-glyph" aria-hidden="true">
+            {chestOpened ? '📦' : chestReady ? '🎁' : '🔒'}
+          </div>
+          <div className="grow">
+            <div className="chest-title">Сундук БУКа</div>
+            <div className="tiny">
+              Ключи: {doneCount} из {quests.length}
+              {chestOpened ? ' · сегодня уже открыт' : chestReady ? ' · все собраны!' : ''}
+            </div>
+          </div>
+        </div>
+        <div className="chest-keys" role="progressbar" aria-label={`Ключи сундука: ${doneCount} из ${quests.length}`} aria-valuemin={0} aria-valuemax={quests.length} aria-valuenow={doneCount}>
+          {items.map(({ id, done }) => (
+            <span key={id} className={`chest-key ${done ? 'on' : ''}`} aria-hidden="true">
+              {done ? '🔑' : '▫️'}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {chestReady ? (
         <button className="btn green wide lg mt chest" onClick={takeChest}>
-          🎁 Открыть сундук
+          🎁 Открыть сундук БУКа
         </button>
-      ) : all && chestsToday > 0 ? (
-        <div className="banner mt center">
-          🎁 Сундук открыт! Следующий — завтра
-          {(profile.daily?.chestsTotal ?? 0) > 1 && (
-            <div className="tiny">Всего открыто сундуков: {profile.daily?.chestsTotal}</div>
+      ) : chestOpened ? (
+        <div className="chest-receipt mt">
+          <div className="row">
+            <span className="chest-receipt-icon" aria-hidden="true">✅</span>
+            <div className="grow">
+              <div className="quest-title">Награда получена</div>
+              {storedReward ? <ChestRewards reward={storedReward} /> : <div className="tiny">Сундук открыт сегодня</div>}
+            </div>
+          </div>
+          {storedReward && (
+            <button className="btn ghost wide sm mt" onClick={showStoredChest}>
+              Посмотреть награду
+            </button>
           )}
         </div>
       ) : (
         <p className="tiny center" style={{ margin: '12px 0 0' }}>
-          Выполни все три задания — и получишь сундук с наградой 🎁
+          Выполни задания и собери все три ключа 🔑
         </p>
+      )}
+
+      {chest && (
+        <div className="overlay" role="presentation">
+          <div className="dialog chest-dialog" role="dialog" aria-modal="true" aria-labelledby="chest-title">
+            <div className="dialog-emoji" aria-hidden="true">🎉</div>
+            <h2 id="chest-title">Сундук БУКа открыт!</h2>
+            <p className="muted">Ты собрал все три ключа. Вот твоя награда:</p>
+            <ChestRewards reward={chest.reward} />
+            <div className="tiny mt">Теперь у тебя 💎 {profile.gems}</div>
+            <button className="btn green wide lg mt" onClick={() => setChest(null)}>
+              Отлично!
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
