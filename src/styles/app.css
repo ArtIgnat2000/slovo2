@@ -209,6 +209,45 @@ p {
   border-color: var(--primary);
 }
 
+/* Кнопка выхода из урока — увеличенная зона тапа для Android (48dp) */
+.lesson-exit {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  min-height: 48px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background: var(--card);
+  color: var(--ink-2);
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  flex: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  position: relative;
+  z-index: 1;
+}
+.lesson-exit:active {
+  background: var(--line);
+  transform: scale(0.96);
+}
+@media (hover: none) {
+  .lesson-exit {
+    /* Расширяем хит-зону без визуального увеличения (для пальца) */
+    position: relative;
+  }
+  .lesson-exit::after {
+    content: '';
+    position: absolute;
+    inset: -8px;
+  }
+}
+
 /* ── Верхняя панель ──────────────────────────────────────────────────────── */
 
 .topbar {
