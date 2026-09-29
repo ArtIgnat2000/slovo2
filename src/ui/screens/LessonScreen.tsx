@@ -244,7 +244,18 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
   return (
     <div className="screen" style={{ paddingBottom: verdict ? '230px' : '110px' }}>
       <div className="row mb">
-        <button className="chip" onClick={tryExit} aria-label="Выйти из урока">
+        <button
+          className="lesson-exit"
+          type="button"
+          onClick={tryExit}
+          onTouchEnd={(e) => {
+            // Android Chrome иногда не шлёт click при быстром тапе на маленькую цель —
+            // дублируем выход и на touchEnd (preventDefault не даёт повторного click)
+            e.preventDefault();
+            tryExit();
+          }}
+          aria-label="Выйти из урока"
+        >
           ✕
         </button>
         <div className="grow">

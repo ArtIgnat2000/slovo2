@@ -263,7 +263,7 @@ async function main() {
   await sleep(60);
 
   check('профиль создан, показана главная', has('Цель дня') && has('Задания дня'), body().slice(0, 200));
-  check('размер урока по умолчанию обычный', useApp.getState().profiles[0].lessonSize === 'standard', '');
+  check('размер урока по умолчанию короткий', useApp.getState().profiles[0].lessonSize === 'short', '');
   const profileForSchedule = useApp.getState().profiles[0];
   const scheduleCounts = (['short', 'standard', 'full'] as const).map((size) =>
     buildLesson({

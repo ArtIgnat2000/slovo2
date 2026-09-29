@@ -6,15 +6,15 @@ const VOWELS = 'аеёиоуыэюя';
 const CONSONANTS = 'бвгджзйклмнпрстфхцчшщ';
 
 export const LESSON_SIZE_OPTIONS: { id: LessonSize; title: string; limit: number; description: string }[] = [
-  { id: 'short', title: 'Короткий', limit: 12, description: '12 карточек — если ребёнок устал или только начинает' },
-  { id: 'standard', title: 'Обычный', limit: 16, description: '16 карточек — рекомендуемый режим' },
+  { id: 'short', title: 'Короткий', limit: 12, description: '12 карточек — по умолчанию, легко и быстро' },
+  { id: 'standard', title: 'Обычный', limit: 16, description: '16 карточек — если хочется подольше' },
   { id: 'full', title: 'Полный', limit: 20, description: '20 карточек — для спокойных дней' },
 ];
 
-export const DEFAULT_LESSON_SIZE: LessonSize = 'standard';
+export const DEFAULT_LESSON_SIZE: LessonSize = 'short';
 
 export function lessonCardLimit(size: LessonSize = DEFAULT_LESSON_SIZE): number {
-  return LESSON_SIZE_OPTIONS.find((option) => option.id === size)?.limit ?? 16;
+  return LESSON_SIZE_OPTIONS.find((option) => option.id === size)?.limit ?? 12;
 }
 
 let seq = 0;

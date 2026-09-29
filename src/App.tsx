@@ -8,6 +8,7 @@ import { ParentScreen } from './ui/screens/ParentScreen';
 import { ProfilesScreen } from './ui/screens/ProfilesScreen';
 import { LessonScreen } from './ui/screens/LessonScreen';
 import { ShopScreen } from './ui/screens/ShopScreen';
+import { VlabsScreen } from './ui/screens/VlabsScreen';
 import { setSoundEnabled } from './platform/sound';
 import { setHapticsEnabled } from './platform/haptics';
 import { applyUpdate, shouldSuggestInstall, markInstallHintShown } from './platform/pwa';
@@ -57,6 +58,7 @@ export default function App() {
   // Цель дня на момент старта урока. Экран результатов сравнивает урок с ней,
   // а не с текущей настройкой: «Родители» могут поменять цель прямо во время урока.
   const [lessonGoal, setLessonGoal] = useState(settings.dailyGoal);
+  const [vlabsOpen, setVlabsOpen] = useState(false);
   const [profilesOpen, setProfilesOpen] = useState(false);
   const [parentUnlocked, setParentUnlocked] = useState(false);
   const [updateReady, setUpdateReady] = useState(false);
@@ -108,6 +110,15 @@ export default function App() {
     );
   }
 
+  if (vlabsOpen) {
+    return (
+      <div className="app">
+        <VlabsScreen onBack={() => setVlabsOpen(false)} />
+        <Toast />
+      </div>
+    );
+  }
+
   return (
     <div className="app">
       {profilesOpen ? (
@@ -117,6 +128,7 @@ export default function App() {
           onStartLesson={startLesson}
           onOpenProfiles={() => setProfilesOpen(true)}
           onStartReview={() => startLesson('review')}
+          onOpenVlabs={() => setVlabsOpen(true)}
         />
       ) : tab === 'words' ? (
         <WordsScreen />
@@ -127,6 +139,7 @@ export default function App() {
           unlocked={parentUnlocked}
           onUnlock={() => setParentUnlocked(true)}
           onOpenProfiles={() => setProfilesOpen(true)}
+          onOpenVlabs={() => setVlabsOpen(true)}
         />
       )}
 

@@ -8,6 +8,7 @@ import { GEMS_PER_STREAK, levelOf } from '../engine/rewards';
 import { dayKey, prevDay } from '../engine/day';
 import { allQuestsDone, CHEST_GEMS, dayMetrics, questsForDay, type Chest } from '../engine/quests';
 import { ITEM_BY_ID, isOwned } from '../engine/shop';
+import { DEFAULT_LESSON_SIZE } from '../engine/scheduler';
 
 export { dayKey };
 
@@ -68,7 +69,7 @@ function newProfile(name: string, avatar: string): Profile {
     errors: {},
     days: {},
     achievements: [],
-    lessonSize: 'standard',
+    lessonSize: DEFAULT_LESSON_SIZE,
     daily: { day: dayKey(), claimed: [], chestsToday: 0, chestsTotal: 0 },
     shop: { owned: [], equipped: {} },
   };
