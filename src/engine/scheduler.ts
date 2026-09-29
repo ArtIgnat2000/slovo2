@@ -1,9 +1,21 @@
-import type { Lesson, Task, TaskKind, Word, WordState } from '../types';
+import type { Lesson, LessonSize, Task, TaskKind, Word, WordState } from '../types';
 import { WORD_BY_ID } from '../content/words';
 import { priority } from './srs';
 
 const VOWELS = 'аеёиоуыэюя';
 const CONSONANTS = 'бвгджзйклмнпрстфхцчшщ';
+
+export const LESSON_SIZE_OPTIONS: { id: LessonSize; title: string; limit: number; description: string }[] = [
+  { id: 'short', title: 'Короткий', limit: 12, description: '12 карточек — если ребёнок устал или только начинает' },
+  { id: 'standard', title: 'Обычный', limit: 16, description: '16 карточек — рекомендуемый режим' },
+  { id: 'full', title: 'Полный', limit: 20, description: '20 карточек — для спокойных дней' },
+];
+
+export const DEFAULT_LESSON_SIZE: LessonSize = 'standard';
+
+export function lessonCardLimit(size: LessonSize = DEFAULT_LESSON_SIZE): number {
+  return LESSON_SIZE_OPTIONS.find((option) => option.id === size)?.limit ?? 16;
+}
 
 let seq = 0;
 const uid = () => `t${Date.now().toString(36)}${(seq++).toString(36)}`;
@@ -185,44 +197,80 @@ export interface BuildLessonArgs {
   level: number;
   states: Record<string, WordState>;
   reviewWords: Word[];
+  /** Лимит базовой очереди; repair-карточки после ошибки добавляются отдельно. */
+  maxCards?: number;
+}
+
+function wordNeedScore(id: string, states: Record<string, WordState>): number {
+  const st = states[id];
+  if (!st || st.ok + st.wrong === 0) return 10_000;
+  // В коротком режиме сначала оставляем слова, которые ещё не выучены или чаще ошибались.
+  return st.wrong * 100 + Math.max(0, 100 - st.s) + (st.due <= Date.now() ? 20 : 0);
+}
+
+function selectedWordIds(
+  ids: string[],
+  states: Record<string, WordState>,
+  maxCards: number | undefined,
+  reviewCount: number,
+): string[] {
+  if (!maxCards || ids.length === 0) return ids;
+  // Оставляем место для 1–2 старых слов. Если старых слов нет, вместится ещё одно
+  // слово текущей темы — лимит остаётся честным, а не искусственно пустым.
+  const reviewReserve = Math.min(reviewCount, maxCards <= 12 ? 2 : maxCards >= 20 ? 3 : 0);
+  const capacity = Math.max(1, Math.floor((maxCards - reviewReserve) / 2));
+  if (ids.length <= capacity) return ids;
+  return [...ids]
+    .sort((a, b) => wordNeedScore(b, states) - wordNeedScore(a, states))
+    .slice(0, capacity);
 }
 
 /**
  * Строим последовательность заданий урока.
  * Порядок методический: ЗНАКОМСТВО → ПРОГОВАРИВАНИЕ → ЗАКРЕПЛЕНИЕ →
  * ПРОВЕРКА ИЗ ПАМЯТИ → ПОВТОРЕНИЕ ПРОЙДЕННОГО (интерливинг).
+ *
+ * При лимите сначала сохраняем знакомство и первую попытку вспомнить выбранные
+ * слова. Сокращается второй круг уверенных слов; карточки repair не проходят
+ * через этот лимит и добавляются LessonScreen после ошибки.
  */
-export function buildLesson({ lesson, level, states, reviewWords }: BuildLessonArgs): Task[] {
-  const tasks: Task[] = [];
+export function buildLesson({ lesson, level, states, reviewWords, maxCards }: BuildLessonArgs): Task[] {
   const kinds = practiceKinds(level);
+  const selectedIds = selectedWordIds(lesson.wordIds, states, maxCards, reviewWords.length);
 
-  // 1. Знакомство + орфографическое проговаривание новых слов
-  for (const id of lesson.wordIds) {
-    const st = states[id];
-    const isNew = !st || (st.ok + st.wrong) === 0;
-    if (isNew) {
-      tasks.push(makeTask('intro', id, 'learn', pickDanger(WORD_BY_ID[id])));
-    }
-  }
-
-  // 2. Первое закрепление каждого слова урока
-  for (const id of lesson.wordIds) {
-    tasks.push(makeTask(firstKind(level, states[id]), id, 'practice', pickDanger(WORD_BY_ID[id])));
-  }
+  // 1. Знакомство + 2. первое закрепление выбранных слов
+  const intro = selectedIds
+    .filter((id) => {
+      const st = states[id];
+      return !st || st.ok + st.wrong === 0;
+    })
+    .map((id) => makeTask('intro', id, 'learn', pickDanger(WORD_BY_ID[id])));
+  const first = selectedIds.map((id) =>
+    makeTask(firstKind(level, states[id]), id, 'practice', pickDanger(WORD_BY_ID[id])),
+  );
 
   // 3. Второй круг — другие типы заданий (перемешиваем, чтобы не было «одного и того же»)
-  const second = shuffle(lesson.wordIds).map((id, i) =>
+  const second = shuffle(selectedIds).map((id, i) =>
     makeTask(kinds[i % kinds.length], id, 'practice', pickDanger(WORD_BY_ID[id])),
   );
-  tasks.push(...second);
 
   // 4. Интерливинг: повторение слов из прошлых уроков
-  for (const w of reviewWords) {
+  const review = reviewWords.map((w) => {
     const kind: TaskKind = level >= 2 ? 'write' : 'fix';
-    tasks.push(makeTask(kind, w.id, 'review', pickDanger(w)));
-  }
+    return makeTask(kind, w.id, 'review', pickDanger(w));
+  });
 
-  return tasks;
+  if (!maxCards) return [...intro, ...first, ...second, ...review];
+
+  const base = [...intro, ...first];
+  const remaining = Math.max(0, maxCards - base.length);
+  // В коротком режиме сначала оставляем небольшой интерливинг, затем добираем
+  // второй круг. Для обычного режима место под старые слова появляется только
+  // если все обязательные карточки уже поместились.
+  const reviewCount = Math.min(review.length, maxCards <= 12 ? 2 : maxCards >= 20 ? 3 : remaining);
+  const reviewSlice = review.slice(0, reviewCount);
+  const secondSlice = second.slice(0, Math.max(0, remaining - reviewSlice.length));
+  return [...base, ...secondSlice, ...reviewSlice];
 }
 
 /** Задание «исправь ошибку» — вставляется в урок чуть позже после промаха. */

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Profile, Task, WordState } from '../../types';
 import { LESSON_BY_ID, LESSONS, REVIEW, WORD_BY_ID, WORDS } from '../../content/words';
-import { buildLesson, makeTask, pickDanger, repairTask, shuffle } from '../../engine/scheduler';
+import { buildLesson, DEFAULT_LESSON_SIZE, lessonCardLimit, makeTask, pickDanger, repairTask, shuffle } from '../../engine/scheduler';
 import { pickReview } from '../../engine/srs';
 import { dayKey, masteredCount, todayStat, useActiveProfile, useApp } from '../../state/store';
 import { claimableQuests, dayMetrics, questId, questsForDay } from '../../engine/quests';
@@ -414,10 +414,12 @@ function buildQueue(profile: Profile | null, lessonId: string): Task[] {
   const lesson = LESSON_BY_ID[lessonId];
   const states: Record<string, WordState> = profile?.words ?? {};
   const level = profile?.lessons?.[lessonId]?.level ?? 0;
+  const maxCards = lessonCardLimit(profile?.lessonSize ?? DEFAULT_LESSON_SIZE);
 
   if (lessonId === REVIEW.id) {
     const current = LESSONS.find((l) => (profile?.lessons[l.id]?.level ?? 0) < 5);
-    const due = pickReview(WORDS, states, new Set(current?.wordIds ?? []), 8);
+    const dueLimit = Math.max(1, Math.floor(maxCards / 2));
+    const due = pickReview(WORDS, states, new Set(current?.wordIds ?? []), Math.min(8, dueLimit));
     return due.flatMap((w, i) => [
       makeReviewTask(i % 2 === 0 ? 'write' : 'fix', w.id),
       makeReviewTask('syllables', w.id),
@@ -429,7 +431,7 @@ function buildQueue(profile: Profile | null, lessonId: string): Task[] {
   const current = LESSONS.find((l) => (profile?.lessons[l.id]?.level ?? 0) < 5);
   const exclude = new Set([...lesson.wordIds, ...(current?.wordIds ?? [])]);
   const review = pickReview(WORDS, states, exclude, 3);
-  const tasks = buildLesson({ lesson, level, states, reviewWords: review });
+  const tasks = buildLesson({ lesson, level, states, reviewWords: review, maxCards });
   // Знакомство держим в начале — это первое, что видит ребёнок; повторение — в конце
   const intro = tasks.filter((t) => t.kind === 'intro');
   const rest = shuffle(tasks.filter((t) => t.kind !== 'intro' && t.reason !== 'review'));

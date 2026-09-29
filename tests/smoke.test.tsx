@@ -6,7 +6,8 @@ import './setup';
 import { createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from '../src/App';
-import { WORDS } from '../src/content/words';
+import { LESSONS, WORDS } from '../src/content/words';
+import { buildLesson, lessonCardLimit } from '../src/engine/scheduler';
 import { dayKey, useApp } from '../src/state/store';
 import { questsForDay } from '../src/engine/quests';
 import { growthStage } from '../src/engine/shop';
@@ -34,9 +35,19 @@ const byHint = new Map(WORDS.map((w) => [w.hint, w]));
 /** Какое слово сейчас в задании — по подсказке в блоке clue. */
 function currentWord() {
   const clue = document.querySelector('.clue-hint');
-  if (!clue) return null;
-  const txt = (clue.textContent ?? '').replace(/^💡\s*/, '').split('·')[0].trim();
-  return byHint.get(txt) ?? null;
+  if (clue) {
+    const txt = (clue.textContent ?? '').replace(/^💡\s*/, '').split('·')[0].trim();
+    const fromClue = byHint.get(txt);
+    if (fromClue) return fromClue;
+  }
+  // «Окошко» не показывает clue-hint: восстанавливаем слово по видимым буквам
+  // и □, чтобы намеренная ошибка в smoke всегда была действительно ошибкой.
+  const spans = Array.from(document.querySelectorAll('.word-big > span'));
+  const pattern = spans.map((s) => (s.textContent ?? '').trim()).join('');
+  if (!pattern.includes('□')) return null;
+  return WORDS.find(
+    (w) => w.text.length === pattern.length && [...pattern].every((ch, i) => ch === '□' || ch === w.text[i]),
+  ) ?? null;
 }
 
 /** Полоска прогресса именно урока (в шапке), а не уровня на главной. */
@@ -54,6 +65,7 @@ async function playLesson(second = false) {
   click(startBtn);
   await sleep(60);
   check(`открылся урок${second ? ' (второй)' : ''}`, document.querySelector('.task') !== null, body().slice(0, 200));
+  if (!second) check('короткий режим ограничивает базовый урок 12 карточками', /\/12/.test(body()), '');
 
   const widths: number[] = [];
   let verdicts = 0;
@@ -250,10 +262,34 @@ async function main() {
   await sleep(60);
 
   check('профиль создан, показана главная', has('Цель дня') && has('Задания дня'), body().slice(0, 200));
+  check('размер урока по умолчанию обычный', useApp.getState().profiles[0].lessonSize === 'standard', '');
+  const profileForSchedule = useApp.getState().profiles[0];
+  const scheduleCounts = (['short', 'standard', 'full'] as const).map((size) =>
+    buildLesson({
+      lesson: LESSONS[0],
+      level: 0,
+      states: profileForSchedule.words,
+      reviewWords: [],
+      maxCards: lessonCardLimit(size),
+    }).length,
+  );
+  check('scheduler держит лимиты 12/16/20', scheduleCounts.every((n, i) => n <= [12, 16, 20][i]), scheduleCounts.join('/'));
+  useApp.getState().setLessonSize('short');
+  await sleep(40);
+  check('родительский лимит короткого урока сохранён', useApp.getState().profiles[0].lessonSize === 'short', '');
+  // Уровень 1 даёт первому уроку активное письмо: так smoke проверяет
+  // намеренную ошибку и обязательную repair-карточку, не меняя поведение нового профиля.
+  useApp.setState((state) => ({
+    profiles: state.profiles.map((p) => ({
+      ...p,
+      lessons: { ...p.lessons, school: { ...p.lessons.school, level: 1 } },
+    })),
+  }));
 
   const quests = questsForDay(dayKey());
   check('три задания дня в карточке', quests.every((q) => has(q.title)), quests.map((q) => q.title).join(' / '));
-  check('подсказка про сундук видна', has('получишь сундук'), '');
+  check('подсказка про ключи сундука видна', has('Собери 3 ключа'), '');
+  check('сундук начинает с нулём ключей', has('Ключи: 0 из 3'), '');
   check('кристаллов пока 0', has('💎 0'), '');
 
   const run = await playLesson();
@@ -266,6 +302,11 @@ async function main() {
   check('видно, что урок принёс опыт', /Урок принёс|Тренировка дала|Прогресс есть/.test(body()), '');
   click(btnText('К урокам')!);
   await sleep(80);
+
+  // Перед вторым запуском проверяем, что родительский режим можно сменить для следующего урока.
+  useApp.getState().setLessonSize('standard');
+  await sleep(40);
+  check('обычный режим сохранён для следующего урока', useApp.getState().profiles[0].lessonSize === 'standard', '');
 
   // второй урок — задание «Пройди 2 урока» должно закрыться
   const run2 = await playLesson(true);
@@ -296,17 +337,35 @@ async function main() {
   check(`награда за задания забрана (${claims} шт., 💎 ${gemsBefore} → ${gemsAfter})`, gemsAfter > gemsBefore, '');
   check('тост о награде показан', has('кристаллов'), '');
 
-  const chest = btnText('Открыть сундук');
+  check('собраны все три ключа', has('Ключи: 3 из 3'), '');
+  const chest = btnText('Открыть сундук БУКа');
   check('сундук доступен после всех заданий', !!chest, '');
   if (chest) {
     const before = useApp.getState().profiles[0].gems;
     click(chest);
     await sleep(60);
     const p = useApp.getState().profiles[0];
-    check('сундук открылся, награда применена', (p.daily?.chestsTotal ?? 0) === 1 && p.gems > before, '');
-    check('кнопка сундука исчезла', !btnText('Открыть сундук'), '');
-    check('сказано, что следующий — завтра', has('Следующий — завтра'), '');
+    check(
+      'сундук открылся и награда применена',
+      (p.daily?.chestsTotal ?? 0) === 1 && p.gems === before + 15 && p.daily?.lastChest?.gems === 15,
+      '',
+    );
+    check('в окне видна полная награда', has('Сундук БУКа открыт!') && has('+15'), '');
+    check('кнопка открытия исчезла', !btnText('Открыть сундук БУКа'), '');
+    check('сохранён чек награды', has('Награда получена') && has('Посмотреть награду'), '');
     check('счётчик сундуков дня стоит', p.daily?.chestsToday === 1, '');
+
+    // Закрываем окно и пробуем открыть ещё раз: награда не должна выдаваться дважды.
+    click(btnText('Отлично!'));
+    await sleep(40);
+    const afterClose = useApp.getState().profiles[0].gems;
+    check('окно награды закрывается, чек остаётся', !has('Сундук БУКа открыт!') && has('Награда получена'), '');
+    click(btnText('Посмотреть награду'));
+    await sleep(30);
+    check('чек можно открыть повторно', has('Сундук БУКа открыт!') && has('+15'), '');
+    click(btnText('Отлично!'));
+    await sleep(30);
+    check('повторное открытие не дублирует награду', useApp.getState().profiles[0].gems === afterClose, '');
   }
 
   // ── Картинки к словам (пункт 6) ───────────────────────────────────────────
@@ -407,6 +466,42 @@ async function main() {
     document.querySelectorAll('.streak-dot.on').length >= 1,
     '',
   );
+
+  // ── Настройка размера урока в разделе «Родителям» ─────────────────────────
+  const parentTab = buttons().find((b) => (b.textContent ?? '').includes('Родителям') && b.className.includes('tab'));
+  click(parentTab!);
+  await sleep(60);
+  check('раздел родителей открывается', has('Раздел для взрослых'), '');
+  const equation = document.body.textContent?.match(/(\d+) × (\d+) = \?/);
+  const answerInput = document.querySelector('input.input') as HTMLInputElement | null;
+  if (equation && answerInput) {
+    const value = String(Number(equation[1]) * Number(equation[2]));
+    const setValue = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+    setValue?.call(answerInput, value);
+    answerInput.dispatchEvent(new window.Event('input', { bubbles: true }));
+    await sleep(20);
+    click(btnText('Войти'));
+    await sleep(60);
+  }
+  check('родителям видны режимы размера урока', has('Размер урока') && has('Короткий · 12') && has('Обычный · 16') && has('Полный · 20'), '');
+  const shortSize = btnText('Короткий · 12');
+  if (shortSize) click(shortSize);
+  await sleep(40);
+  check('режим короткого урока меняется кнопкой', useApp.getState().profiles[0].lessonSize === 'short', '');
+
+  // В режиме повторения карточки тоже должны уважать выбранный потолок.
+  click(btnText('Уроки'));
+  await sleep(50);
+  const reviewStart = btnText('Пора повторить');
+  if (reviewStart) {
+    click(reviewStart);
+    await sleep(60);
+    const counter = document.querySelector('.stat-pill.tasks')?.textContent ?? '';
+    const reviewLimit = Number(counter.split('/')[1]);
+    check('режим повторения не превышает короткий лимит', Number.isFinite(reviewLimit) && reviewLimit <= 12, counter);
+  } else {
+    check('режим повторения не превышает короткий лимит', true, 'повторять нечего');
+  }
 
   console.log(failures ? `\n✗ ошибок: ${failures}` : '\n✓ все проверки пройдены');
   process.exit(failures ? 1 : 0);

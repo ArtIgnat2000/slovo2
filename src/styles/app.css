@@ -379,6 +379,113 @@ p {
   box-shadow: 0 2px 0 #c87b08;
   transform: translateY(3px);
 }
+.chest-progress {
+  margin-top: 14px;
+  padding: 12px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg-2);
+}
+.chest-progress.ready {
+  border-color: var(--orange);
+  background: var(--orange-soft);
+}
+.chest-progress.opened {
+  border-color: var(--green);
+  background: var(--green-soft);
+}
+.chest-glyph {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  font-size: 30px;
+  border-radius: var(--r-sm);
+  background: var(--orange-soft);
+}
+.chest-progress.opened .chest-glyph {
+  background: var(--green-soft);
+}
+.chest-title {
+  font-weight: 800;
+  font-size: var(--fs-md);
+}
+.chest-keys {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px dashed var(--line);
+}
+.chest-key {
+  width: 38px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 2px dashed var(--line);
+  border-radius: var(--r-pill);
+  color: var(--ink-3);
+  font-size: 20px;
+  filter: grayscale(1);
+  opacity: 0.7;
+}
+.chest-key.on {
+  border-style: solid;
+  border-color: var(--orange);
+  background: #fff;
+  filter: none;
+  opacity: 1;
+  animation: keyPop 0.25s ease-out;
+}
+@keyframes keyPop {
+  from { transform: scale(0.7); }
+  to { transform: scale(1); }
+}
+.chest-receipt {
+  padding: 12px;
+  border: 2px solid var(--green);
+  border-radius: var(--r-md);
+  background: var(--green-soft);
+}
+.chest-receipt-icon {
+  font-size: 25px;
+  flex: none;
+}
+.chest-rewards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+.chest-receipt .chest-rewards {
+  justify-content: flex-start;
+  margin-top: 4px;
+}
+.chest-reward {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 8px 12px;
+  border-radius: var(--r-pill);
+  background: var(--primary-soft);
+  color: var(--ink);
+  font-size: var(--fs-md);
+  font-weight: 800;
+}
+.chest-dialog {
+  max-width: 360px;
+}
+.chest-dialog .dialog-emoji {
+  animation: chestCelebrate 0.7s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+@keyframes chestCelebrate {
+  0% { transform: scale(0.5) rotate(-10deg); }
+  70% { transform: scale(1.18) rotate(5deg); }
+  100% { transform: scale(1) rotate(0); }
+}
 .stat-pill.gems {
   color: var(--primary);
 }

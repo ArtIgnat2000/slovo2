@@ -1,11 +1,11 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { DailyState, DayStat, LessonState, Profile, ShopState, ShopSlot, WordState } from '../types';
+import type { DailyState, DayStat, LessonSize, LessonState, Profile, ShopState, ShopSlot, WordState } from '../types';
 import { applyAnswer, initState } from '../engine/srs';
 import { idbStorage } from '../platform/storage';
 import { GEMS_PER_STREAK, levelOf } from '../engine/rewards';
 import { dayKey, prevDay } from '../engine/day';
-import { CHEST_GEMS, type Chest } from '../engine/quests';
+import { allQuestsDone, CHEST_GEMS, dayMetrics, questsForDay, type Chest } from '../engine/quests';
 import { ITEM_BY_ID, isOwned } from '../engine/shop';
 
 export { dayKey };
@@ -67,6 +67,7 @@ function newProfile(name: string, avatar: string): Profile {
     errors: {},
     days: {},
     achievements: [],
+    lessonSize: 'standard',
     daily: { day: dayKey(), claimed: [], chestsToday: 0, chestsTotal: 0 },
     shop: { owned: [], equipped: {} },
   };
@@ -93,8 +94,8 @@ interface AppState {
 
   /** Забрать награду за выполненные задания дня (кристаллы) */
   claimQuest: (id: string, gems: number) => void;
-  /** Открыть сундук: награда приходит снаружи (rollChest), стор её только применяет */
-  openChest: (chest: Chest) => void;
+  /** Открыть сундук БУКа; возвращает false, если он уже открыт или ещё не готов */
+  openChest: (chest: Chest) => boolean;
 
   /** Купить аксессуар у БУКа. Возвращает false, если кристаллов не хватает. */
   buyItem: (id: string) => boolean;
@@ -107,6 +108,8 @@ interface AppState {
   resetProfile: (id: string) => void;
   replaceAll: (data: { profiles: Profile[]; activeId: string | null; settings: Settings }) => void;
   setSettings: (patch: Partial<Settings>) => void;
+  /** Изменить размер базовой очереди урока для текущего профиля. */
+  setLessonSize: (size: LessonSize) => void;
 }
 
 function patchActive(s: AppState, fn: (p: Profile) => Profile): Partial<AppState> {
@@ -250,11 +253,34 @@ export const useApp = create<AppState>()(
           }),
         ),
 
-      openChest: (chest) =>
+      openChest: (chest) => {
+        const current = getActive(get());
+        const today = dayKey();
+        if (!current) return false;
+        const daily = readDaily(current);
+        const ready = allQuestsDone(questsForDay(today), dayMetrics(current.days[today]));
+        // Защита от двойного тапа и от выдачи награды до трёх ключей.
+        if (
+          daily.chestsToday > 0 ||
+          !ready ||
+          !Number.isFinite(chest.gems) ||
+          !Number.isFinite(chest.xp) ||
+          !Number.isFinite(chest.freezes) ||
+          chest.gems < CHEST_GEMS ||
+          chest.xp < 0 ||
+          chest.freezes < 0
+        ) {
+          return false;
+        }
+
+        let opened = false;
         set((s) =>
           patchActive(s, (p) => {
-            const daily = readDaily(p);
-            const today = dayKey();
+            const freshDaily = readDaily(p);
+            // Повторно проверяем внутри обновления: состояние могло измениться
+            // между чтением и записью при быстром двойном тапе.
+            if (freshDaily.chestsToday > 0) return p;
+            opened = true;
             const day = readDay(p, today);
             return {
               ...p,
@@ -263,13 +289,16 @@ export const useApp = create<AppState>()(
               days: { ...p.days, [today]: { ...day, xp: day.xp + chest.xp } },
               xp: p.xp + chest.xp,
               daily: {
-                ...daily,
-                chestsToday: daily.chestsToday + 1,
-                chestsTotal: daily.chestsTotal + 1,
+                ...freshDaily,
+                chestsToday: 1,
+                chestsTotal: freshDaily.chestsTotal + 1,
+                lastChest: { ...chest },
               },
             };
           }),
-        ),
+        );
+        return opened;
+      },
 
       buyItem: (id) => {
         const item = ITEM_BY_ID[id];
@@ -325,6 +354,9 @@ export const useApp = create<AppState>()(
       replaceAll: (data) => set(data),
 
       setSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
+
+      setLessonSize: (size) =>
+        set((s) => patchActive(s, (p) => ({ ...p, lessonSize: size }))),
     }),
     {
       name: 'slovo2',

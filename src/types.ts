@@ -61,6 +61,9 @@ export interface DayStat {
 /** Слоты, по которым БУК может носить вещи: шапка, очки, шея, значок. */
 export type ShopSlot = 'head' | 'face' | 'neck' | 'badge';
 
+/** Размер базовой очереди урока; настройки принадлежат профилю ребёнка. */
+export type LessonSize = 'short' | 'standard' | 'full';
+
 /** Что ребёнок купил и что носит прямо сейчас (магазин — пункт 4 плана). */
 export interface ShopState {
   owned: string[];
@@ -69,13 +72,15 @@ export interface ShopState {
 
 /**
  * Состояние ежедневных заданий (пункт 3 плана). Метрики дня отдельно не храним —
- * они считаются из `days[day]`; здесь только «что уже забрано» и счётчики сундуков.
+ * они считаются из `days[day]`; здесь только «что уже забрано», счётчики сундуков и чек последней награды.
  */
 export interface DailyState {
   day: string; // YYYY-MM-DD, к которому относятся claimed/chestsToday
   claimed: string[]; // id выполненных и забранных заданий: `<день>:<вид>`
   chestsToday: number;
   chestsTotal: number;
+  /** Последняя награда сундука этого дня — чтобы чек не пропадал после закрытия окна. */
+  lastChest?: { gems: number; xp: number; freezes: number };
 }
 
 export interface Profile {
@@ -93,6 +98,8 @@ export interface Profile {
   errors: Record<string, number>;
   days: Record<string, DayStat>;
   achievements: string[];
+  /** Размер базовой очереди урока; у старых профилей по умолчанию «standard». */
+  lessonSize?: LessonSize;
   daily?: DailyState; // опционально: профили, созданные до этой версии, живут без него
   shop?: ShopState; // опционально: появилось вместе с магазином
 }

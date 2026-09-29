@@ -4,6 +4,7 @@ import { WORDS, WORD_BY_ID } from '../../content/words';
 import { dayKey, masteredCount, useActiveProfile, useApp } from '../../state/store';
 import { download } from '../../platform/storage';
 import { isStandalone } from '../../platform/pwa';
+import { DEFAULT_LESSON_SIZE, LESSON_SIZE_OPTIONS } from '../../engine/scheduler';
 
 interface Props {
   unlocked: boolean;
@@ -13,7 +14,7 @@ interface Props {
 
 export function ParentScreen({ unlocked, onUnlock, onOpenProfiles }: Props) {
   const profile = useActiveProfile();
-  const { settings, setSettings, replaceAll, resetProfile } = useApp();
+  const { settings, setSettings, replaceAll, resetProfile, setLessonSize } = useApp();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [a, b] = useMemo(() => [2 + Math.floor(Math.random() * 8), 2 + Math.floor(Math.random() * 8)], []);
@@ -195,6 +196,24 @@ export function ParentScreen({ unlocked, onUnlock, onOpenProfiles }: Props) {
             {[60, 120, 200].map((g) => (
               <button key={g} className={`chip ${settings.dailyGoal === g ? 'on' : ''}`} onClick={() => setSettings({ dailyGoal: g })}>
                 {g}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="kv" style={{ alignItems: 'flex-start' }}>
+          <div>
+            <div>Размер урока</div>
+            <div className="tiny">Меняется со следующего запуска урока</div>
+          </div>
+          <div className="row" style={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            {LESSON_SIZE_OPTIONS.map((option) => (
+              <button
+                key={option.id}
+                className={`chip ${(profile.lessonSize ?? DEFAULT_LESSON_SIZE) === option.id ? 'on' : ''}`}
+                title={option.description}
+                onClick={() => setLessonSize(option.id)}
+              >
+                {option.title} · {option.limit}
               </button>
             ))}
           </div>
