@@ -10,6 +10,7 @@ import App from '../src/App';
 import { body, btn, btnText, buttons, check, click, currentWord, failureCount, has, sleep } from './ui-helpers';
 import { runAdaptiveUiChecks } from './adaptive-ui.test';
 import { runQuestUiChecks } from './quests-ui.test';
+import { runInstallHintChecks } from './install-hint.test';
 import { LESSONS, WORDS } from '../src/content/words';
 import { buildLesson, lessonCardLimit } from '../src/engine/scheduler';
 import { dayKey, dayPlan, useApp } from '../src/state/store';
@@ -267,6 +268,9 @@ async function main() {
   check('подсказка про ключи сундука видна', has('Собери 3 ключа'), '');
   check('сундук начинает с нулём ключей', has('Ключи: 0 из 3'), '');
   check('кристаллов пока 0', has('💎 0'), '');
+
+  // ── Подсказка «Добавь приложение на экран» ─────────────────────────────────
+  await runInstallHintChecks();
 
   const run = await playLesson();
   check('диалог «Выйти из урока?» показан, урок продолжился', run.sawDialog, '');
