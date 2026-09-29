@@ -9,10 +9,11 @@ import { createRoot } from 'react-dom/client';
 import App from '../src/App';
 import { body, btn, btnText, buttons, check, click, currentWord, failureCount, has, sleep } from './ui-helpers';
 import { runAdaptiveUiChecks } from './adaptive-ui.test';
+import { runQuestUiChecks } from './quests-ui.test';
 import { LESSONS, WORDS } from '../src/content/words';
 import { buildLesson, lessonCardLimit } from '../src/engine/scheduler';
-import { dayKey, useApp } from '../src/state/store';
-import { questsForDay } from '../src/engine/quests';
+import { dayKey, dayPlan, useApp } from '../src/state/store';
+import { questTitle } from '../src/engine/quests';
 import { growthStage } from '../src/engine/shop';
 import { masteredCount } from '../src/state/store';
 
@@ -255,8 +256,14 @@ async function main() {
     })),
   }));
 
-  const quests = questsForDay(dayKey());
-  check('три задания дня в карточке', quests.every((q) => has(q.title)), quests.map((q) => q.title).join(' / '));
+  // Задания дня берём из плана профиля — того же источника, что и интерфейс:
+  // новичку «Повтори N слов» заменяется другим заданием дня.
+  const plan = dayPlan(useApp.getState().profiles[0]);
+  check(
+    'три задания дня в карточке',
+    plan.length === 3 && plan.every((q) => has(questTitle(q.spec, q.target))),
+    plan.map((q) => questTitle(q.spec, q.target)).join(' / '),
+  );
   check('подсказка про ключи сундука видна', has('Собери 3 ключа'), '');
   check('сундук начинает с нулём ключей', has('Ключи: 0 из 3'), '');
   check('кристаллов пока 0', has('💎 0'), '');
@@ -287,7 +294,7 @@ async function main() {
   // Задания «6 подряд» и «повтори 5 слов» уроком целиком не закрыть (мы специально
   // ошибались) — доигрываем их через тот же API стора, что и настоящие ответы
   const st = useApp.getState();
-  const kinds = questsForDay(dayKey()).map((q) => q.kind);
+  const kinds = dayPlan(useApp.getState().profiles[0]).map((q) => q.spec.kind);
   if (kinds.includes('review')) for (let i = 0; i < 5; i++) st.answer(WORDS[i].id, 5, true);
   if (kinds.includes('correct')) for (let i = 0; i < 12; i++) st.answer(WORDS[i].id, 5, false);
   if (kinds.includes('flawless')) for (let i = 0; i < 6; i++) st.answer(WORDS[i].id, 5, false);
@@ -481,6 +488,9 @@ async function main() {
   } else {
     check('режим повторения не превышает короткий лимит', true, 'повторять нечего');
   }
+
+  // ── Задания дня: понятность и выполнимость (обратная связь 2026-09-29) ────
+  await runQuestUiChecks();
 
   // ── Адаптация урока: интеграционные проверки (этап 2) ─────────────────────
   // Идут последними: блок сам управляет активным профилем, бюджетом и потолком,

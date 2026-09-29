@@ -4,9 +4,9 @@ import { useEffect, useRef, useState } from 'react';
 import type { Profile, Task, WordState } from '../../types';
 import { LESSON_BY_ID, LESSONS, REVIEW, WORD_BY_ID, WORDS } from '../../content/words';
 import { buildLesson, DEFAULT_LESSON_SIZE, lessonCardLimit, makeTask, pickDanger, repairTask, shuffle } from '../../engine/scheduler';
-import { pickReview } from '../../engine/srs';
-import { dayKey, masteredCount, todayStat, useActiveProfile, useApp } from '../../state/store';
-import { claimableQuests, dayMetrics, questId, questsForDay } from '../../engine/quests';
+import { pickReview, pickReviewWords } from '../../engine/srs';
+import { dayKey, dayPlan, masteredCount, todayStat, useActiveProfile, useApp } from '../../state/store';
+import { claimableQuests, dayMetrics, questId } from '../../engine/quests';
 import { CHEER, PRAISE, pick, useMascot } from '../../state/mascot';
 import { TaskView } from '../TaskView';
 import { Bar, Confetti, ConfirmDialog, Ring, Stars } from '../Bits';
@@ -439,7 +439,7 @@ function claimableToday(profile: Profile | null): string[] {
   if (!profile) return [];
   const day = dayKey();
   const claimed = profile.daily && profile.daily.day === day ? profile.daily.claimed : [];
-  return claimableQuests(questsForDay(day), dayMetrics(profile.days[day]), claimed, day).map((q) =>
+  return claimableQuests(dayPlan(profile), dayMetrics(profile.days[day]), claimed, day).map((q) =>
     questId(day, q.spec.kind),
   );
 }
@@ -453,10 +453,18 @@ function buildQueue(profile: Profile | null, lessonId: string): Task[] {
   const maxCards = effectiveCards(profile?.adaptiveCards, lessonCardLimit(profile?.lessonSize ?? DEFAULT_LESSON_SIZE));
 
   if (lessonId === REVIEW.id) {
-    const current = LESSONS.find((l) => (profile?.lessons[l.id]?.level ?? 0) < 5);
-    const dueLimit = Math.max(1, Math.floor(maxCards / 2));
-    const due = pickReview(WORDS, states, new Set(current?.wordIds ?? []), Math.min(8, dueLimit));
-    return due.flatMap((w, i) => [
+    // Слова берём тем же правилом, что и блок «Пора повторить» на главной: иначе блок
+    // обещал одни слова, а урок показывал «Повторять нечего!». Если повторять по срокам
+    // нечего — тренируем самые слабые пройденные слова, чтобы задание дня было выполнимо.
+    const limit = Math.min(8, Math.max(1, Math.floor(maxCards / 2)));
+    const pick = pickReviewWords(
+      WORDS,
+      states,
+      new Set(),
+      limit,
+      new Set(profile?.days?.[dayKey()]?.reviewWords ?? []),
+    );
+    return pick.words.flatMap((w, i) => [
       makeReviewTask(i % 2 === 0 ? 'write' : 'fix', w.id),
       makeReviewTask('syllables', w.id),
     ]);

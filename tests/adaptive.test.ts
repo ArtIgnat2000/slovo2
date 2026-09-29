@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+// Правила заданий дня живут рядом: и test:adaptive, и смоук гоняют оба набора.
+import './quests.test';
 import { effectiveCards, nextAdaptiveState, recordAttempt } from '../src/engine/adaptive';
 import { buildLesson } from '../src/engine/scheduler';
 import { LESSONS, WORDS } from '../src/content/words';

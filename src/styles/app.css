@@ -386,6 +386,17 @@ p {
   padding: 10px 12px;
   background: var(--bg-2);
 }
+/* Подпись «что делать» + кнопка запуска внутри карточки задания дня */
+.quest-action {
+  margin-top: 8px;
+  gap: 8px;
+  align-items: center;
+}
+.quest-action .btn.sm {
+  min-height: 40px;
+  padding: 8px 14px;
+}
+
 .quest.done {
   border-color: var(--green);
   background: var(--green-soft);

@@ -9,22 +9,21 @@
 //  • задания не дублируют цель дня по XP (иначе она закрывается «сама»): награда —
 //    кристаллы, а не опыт;
 //  • «без ошибок» считаем по всей дневной практике, а не по одному уроку —
-//    иначе задание превращается в перфекционизм.
+//    иначе задание превращается в перфекционизм;
+//  • «повтори N слов» считает потренированные слова (а не верные ответы): ошибка
+//    в повторении не «замораживает» счётчик, а точность измеряет задание «без ошибок»;
+//  • задание дня, которое нельзя выполнить, не выдаём: у нового профиля повторять
+//    нечего, поэтому в наборе дня оно заменяется другим видом.
 //
 // Модуль чистый: ни React, ни стора. Сторы только хранят состояние.
 
-import type { DayStat, Profile } from '../types';
+import type { DayStat, Profile, QuestKind, QuestPlanItem } from '../types';
 import { dayKey } from './day';
 
-export type QuestKind =
-  /** Пройти N уроков (урок = дошедший до конца LessonScreen, включая «Повторение») */
-  | 'lessons'
-  /** Ответить верно N раз без ошибок подряд */
-  | 'flawless'
-  /** Ответить верно N заданий */
-  | 'correct'
-  /** Потренировать N слов, которые пора повторить (режим «Повторение») */
-  | 'review';
+export type { QuestKind, QuestPlanItem };
+
+/** Все виды заданий дня — из них собираются три задания дня. */
+export const ALL_QUEST_KINDS: QuestKind[] = ['lessons', 'flawless', 'correct', 'review'];
 
 export interface QuestSpec {
   kind: QuestKind;
@@ -47,7 +46,7 @@ export interface DayMetrics {
   lessons: number; // уроков пройдено за день
   correct: number; // верных ответов за день
   flawless: number; // лучшая серия верных ответов без ошибок за день
-  reviewCorrect: number; // верных ответов в режиме «Повторение»
+  reviewWords: number; // разных слов, потренированных в повторении за день
 }
 
 export interface QuestProgress {
@@ -63,7 +62,7 @@ export const CHEST_GEMS = 15;
 /** Какой набор заданий у дня: детерминированно от даты — обновил страницу, и он тот же. */
 export function questsForDay(day: string): QuestSpec[] {
   const seed = hash(day);
-  const kinds: QuestKind[] = ['lessons', 'flawless', 'correct', 'review'];
+  const kinds: QuestKind[] = [...ALL_QUEST_KINDS];
   for (let i = kinds.length - 1; i > 0; i--) {
     const j = (seed + i * 7) % (i + 1);
     [kinds[i], kinds[j]] = [kinds[j], kinds[i]];
@@ -75,6 +74,76 @@ export function questsForDay(day: string): QuestSpec[] {
     const pick = i === 1 && variants.length > 1 ? variants[1] : variants[0];
     return pick;
   });
+}
+
+/** Задание по виду: в пуле ровно один шаблон каждого вида. */
+export function specFor(kind: QuestKind): QuestSpec {
+  return QUEST_POOL.find((q) => q.kind === kind) ?? QUEST_POOL[0];
+}
+
+/** Русская форма числительного: 1 слово / 2 слова / 5 слов. */
+export function plural(n: number, one: string, few: string, many: string): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
+  return many;
+}
+
+/** Заголовок задания с учётом цели дня: «Повтори 3 слова» вместо жёстких «5 слов». */
+export function questTitle(spec: QuestSpec, target: number): string {
+  if (spec.kind !== 'review') return spec.title;
+  return `Повтори ${target} ${plural(target, 'слово', 'слова', 'слов')}`;
+}
+
+/** Сколько слов ребёнок уже пробовал — только их и можно повторять. */
+export function practisedCount(profile: Profile): number {
+  return Object.values(profile.words).filter((st) => st.s > 0).length;
+}
+
+/** Меньше двух слов повторять бессмысленно: задание дня заменяется другим видом. */
+export const MIN_REVIEW_WORDS = 2;
+
+/**
+ * Набор заданий дня для конкретного профиля.
+ *
+ * Виды берём из `questsForDay` (детерминированно от даты), но «Повтори N слов» нельзя
+ * выдать, если повторять нечего: у нового профиля выученных слов нет вовсе, и задание
+ * повисало бы на весь день — вместе с сундуком, который открывается по всем трём ключам.
+ * Поэтому: совсем нечего повторять — заменяем четвёртым видом дня; слов мало — опускаем
+ * цель до числа доступных слов (2..5), чтобы её можно было достичь за одну тренировку.
+ *
+ * План фиксируется на день и хранится в `profile.daily.plan`: иначе цель «уезжала» бы
+ * посреди дня, как только ребёнок выучит новые слова.
+ */
+export function buildDayPlan(profile: Profile, day: string = dayKey()): QuestPlanItem[] {
+  const specs = questsForDay(day);
+  const practised = practisedCount(profile);
+  return specs.map((spec) => {
+    if (spec.kind !== 'review') return { kind: spec.kind, target: spec.target };
+    if (practised < MIN_REVIEW_WORDS) {
+      const spare = ALL_QUEST_KINDS.find((kind) => !specs.some((s) => s.kind === kind));
+      if (!spare) return { kind: 'review', target: spec.target };
+      return { kind: spare, target: specFor(spare).target };
+    }
+    return { kind: 'review', target: Math.min(spec.target, practised) };
+  });
+}
+
+/** Задание дня, готовое к показу: шаблон + цель из плана. */
+export interface PlannedQuest {
+  spec: QuestSpec;
+  target: number;
+}
+
+export function plannedQuests(plan: QuestPlanItem[]): PlannedQuest[] {
+  return plan.map((item) => ({ spec: specFor(item.kind), target: item.target }));
+}
+
+/** План дня, если он ещё не зафиксирован (старые профили, новый день). */
+export function planOf(profile: Profile, day: string = dayKey()): QuestPlanItem[] {
+  const stored = profile.daily && profile.daily.day === day ? profile.daily.plan : undefined;
+  return stored?.length ? stored : buildDayPlan(profile, day);
 }
 
 function hash(s: string): number {
@@ -92,11 +161,12 @@ export function dayMetrics(day: DayStat | undefined): DayMetrics {
     lessons: day?.lessons ?? 0,
     correct: day?.correct ?? 0,
     flawless: day?.flawless ?? 0,
-    reviewCorrect: day?.reviewCorrect ?? 0,
+    reviewWords: day?.reviewWords?.length ?? 0,
   };
 }
 
-export function questProgress(spec: QuestSpec, m: DayMetrics): QuestProgress {
+/** Прогресс задания: цель берём из плана дня, а не из шаблона. */
+export function questProgress(spec: QuestSpec, target: number, m: DayMetrics): QuestProgress {
   const raw =
     spec.kind === 'lessons'
       ? m.lessons
@@ -104,14 +174,14 @@ export function questProgress(spec: QuestSpec, m: DayMetrics): QuestProgress {
         ? m.flawless
         : spec.kind === 'correct'
           ? m.correct
-          : m.reviewCorrect;
-  const progress = Math.min(spec.target, raw);
-  return { spec, progress, done: raw >= spec.target };
+          : m.reviewWords;
+  const progress = Math.min(target, raw);
+  return { spec, progress, done: raw >= target };
 }
 
 /** Все ли задания дня закрыты (значит, пора забирать сундук). */
-export function allQuestsDone(quests: QuestSpec[], m: DayMetrics): boolean {
-  return quests.every((q) => questProgress(q, m).done);
+export function allQuestsDone(plan: QuestPlanItem[], m: DayMetrics): boolean {
+  return plan.every((item) => questProgress(specFor(item.kind), item.target, m).done);
 }
 
 export interface Chest {
@@ -136,13 +206,13 @@ export function rollChest(): Chest {
  * дважды: `claimed` — список id заданий дня (id = `<день>:<тип>`).
  */
 export function claimableQuests(
-  quests: QuestSpec[],
+  quests: PlannedQuest[],
   m: DayMetrics,
   claimed: string[],
   day: string,
 ): QuestProgress[] {
   return quests
-    .map((q) => questProgress(q, m))
+    .map((q) => questProgress(q.spec, q.target, m))
     .filter((p) => p.done && !claimed.includes(questId(day, p.spec.kind)));
 }
 
@@ -156,7 +226,7 @@ export function chestReady(profile: Profile): boolean {
   const st = profile.daily;
   if (!st || st.day !== day) return false;
   const m = dayMetrics(profile.days[day]);
-  return allQuestsDone(questsForDay(day), m) && st.chestsToday === 0;
+  return allQuestsDone(planOf(profile, day), m) && st.chestsToday === 0;
 }
 
 export function dayStatOf(profile: Profile, day: string): DayStat | undefined {

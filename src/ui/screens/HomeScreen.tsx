@@ -7,7 +7,8 @@ import { Bar, Crowns, Ring } from '../Bits';
 import { DailyQuests } from '../DailyQuests';
 import { levelOf, levelProgress, xpForLevel } from '../../engine/rewards';
 import { ACHIEVEMENTS } from '../../engine/rewards';
-import { pickReview } from '../../engine/srs';
+import { pickReviewWords } from '../../engine/srs';
+import { plural, type QuestKind } from '../../engine/quests';
 
 interface Props {
   onStartLesson: (lessonId: string) => void;
@@ -33,6 +34,15 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
   useEffect(() => scheduleWordImages(WORDS.filter((w) => nextLesson.wordIds.includes(w.id))), [nextLesson]);
   if (!profile) return null;
 
+  /**
+   * Запуск задания дня: «Повтори N слов» ведёт в режим повторения, остальные задания
+   * выполняются в уроке — открываем текущий урок с карты пути.
+   */
+  const startQuest = (kind: QuestKind) => {
+    if (kind === 'review') onStartReview();
+    else onStartLesson(current.id);
+  };
+
   const today = todayStat(profile);
   const goal = settings.dailyGoal;
   const goalPct = Math.min(100, (today.xp / Math.max(1, goal)) * 100);
@@ -43,7 +53,16 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
 
   // Первый урок, который ещё не пройден полностью
   const current = LESSONS.find((l) => (profile.lessons[l.id]?.level ?? 0) < 5) ?? LESSONS[LESSONS.length - 1];
-  const reviews = pickReview(WORDS, profile.words, new Set(), 12);
+  // «Пора повторить» считает слова тем же правилом, что и сам урок повторения:
+  // раньше блок обещал слова, которых урок не показывал, и открывалось «Повторять нечего!».
+  const review = pickReviewWords(
+    WORDS,
+    profile.words,
+    new Set(),
+    12,
+    new Set(profile.days[dayKey()]?.reviewWords ?? []),
+  );
+  const reviews = review.words;
 
   return (
     <div className="screen">
@@ -101,7 +120,7 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
         </div>
       </div>
 
-      <DailyQuests />
+      <DailyQuests onStart={startQuest} />
 
       {reviews.length > 0 && (
         <button className="card mb wide" style={{ textAlign: 'left', cursor: 'pointer' }} onClick={onStartReview}>
@@ -110,7 +129,9 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
             <div className="grow">
               <h3 style={{ margin: 0 }}>Пора повторить</h3>
               <p className="muted" style={{ margin: 0 }}>
-                {reviews.length} слов(а) готовы забыться — освежим память
+                {review.kind === 'due'
+                  ? `${reviews.length} ${plural(reviews.length, 'слово готово', 'слова готовы', 'слов готовы')} забыться — освежим память`
+                  : `Потренируем ${reviews.length} ${plural(reviews.length, 'слово', 'слова', 'слов')} — станут крепче`}
               </p>
             </div>
             <span style={{ fontSize: 22 }}>▸</span>

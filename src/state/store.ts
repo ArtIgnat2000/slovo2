@@ -6,7 +6,16 @@ import { applyAnswer, initState } from '../engine/srs';
 import { idbStorage } from '../platform/storage';
 import { GEMS_PER_STREAK, levelOf } from '../engine/rewards';
 import { dayKey, prevDay } from '../engine/day';
-import { allQuestsDone, CHEST_GEMS, dayMetrics, questsForDay, type Chest } from '../engine/quests';
+import {
+  allQuestsDone,
+  buildDayPlan,
+  CHEST_GEMS,
+  dayMetrics,
+  plannedQuests,
+  planOf,
+  type Chest,
+  type PlannedQuest,
+} from '../engine/quests';
 import { ITEM_BY_ID, isOwned } from '../engine/shop';
 import { DEFAULT_LESSON_SIZE } from '../engine/scheduler';
 
@@ -30,7 +39,7 @@ export interface Toast {
 }
 
 function emptyDay(): DayStat {
-  return { xp: 0, correct: 0, wrong: 0, lessons: 0, flawless: 0, reviewCorrect: 0 };
+  return { xp: 0, correct: 0, wrong: 0, lessons: 0, flawless: 0, reviewCorrect: 0, reviewWords: [] };
 }
 
 /** Старые записи дня (до заданий дня) не имеют полей серии — достраиваем на чтении. */
@@ -43,8 +52,17 @@ function readDaily(p: Profile): DailyState {
   const today = dayKey();
   const st = p.daily;
   if (!st || st.day !== today) {
-    return { day: today, claimed: [], chestsToday: 0, chestsTotal: st?.chestsTotal ?? 0 };
+    // План заданий нового дня фиксируем здесь — до первого ответа: «Повтори N слов»
+    // заменяется другим заданием, если ребёнку ещё нечего повторять (см. buildDayPlan).
+    return {
+      day: today,
+      claimed: [],
+      chestsToday: 0,
+      chestsTotal: st?.chestsTotal ?? 0,
+      plan: buildDayPlan(p, today),
+    };
   }
+  if (!st.plan?.length) return { ...st, plan: buildDayPlan(p, today) };
   return st;
 }
 
@@ -179,8 +197,14 @@ export const useApp = create<AppState>()(
             const today = dayKey();
             const day = readDay(p, today);
             const ok = quality >= 3;
+            // Задание «Повтори N слов» считает потренированные слова: ошибка в повторении
+            // не «замораживает» счётчик (точность измеряет задание «без ошибок»).
+            const doneWords = day.reviewWords ?? [];
+            const reviewWords = review && !doneWords.includes(wordId) ? [...doneWords, wordId] : doneWords;
             return {
               ...p,
+              // План дня фиксируется здесь же (readDaily), до того как слово изменит состояние
+              daily: readDaily(p),
               words: { ...p.words, [wordId]: next },
               errors: ok ? p.errors : { ...p.errors, [wordId]: (p.errors[wordId] ?? 0) + 1 },
               days: {
@@ -192,6 +216,7 @@ export const useApp = create<AppState>()(
                   // задание «без ошибок»: считаем лучшую серию за день
                   flawless: ok ? day.flawless + 1 : 0,
                   reviewCorrect: day.reviewCorrect + (ok && review ? 1 : 0),
+                  reviewWords,
                 },
               },
             };
@@ -261,7 +286,7 @@ export const useApp = create<AppState>()(
         const today = dayKey();
         if (!current) return false;
         const daily = readDaily(current);
-        const ready = allQuestsDone(questsForDay(today), dayMetrics(current.days[today]));
+        const ready = allQuestsDone(planOf(current, today), dayMetrics(current.days[today]));
         // Защита от двойного тапа и от выдачи награды до трёх ключей.
         if (
           daily.chestsToday > 0 ||
@@ -377,6 +402,14 @@ export const useApp = create<AppState>()(
 );
 
 // ── Селекторы ────────────────────────────────────────────────────────────────
+
+/**
+ * Задания сегодняшнего дня для профиля: шаблон + цель из зафиксированного плана.
+ * План не пересчитывается на лету — иначе цель менялась бы посреди дня.
+ */
+export function dayPlan(profile: Profile | null): PlannedQuest[] {
+  return profile ? plannedQuests(planOf(profile)) : [];
+}
 
 export function useActiveProfile(): Profile | null {
   return useApp((s) => s.profiles.find((p) => p.id === s.activeId) ?? null);
