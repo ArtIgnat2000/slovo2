@@ -3,6 +3,7 @@
 // диалог выхода из урока, монотонную полоску прогресса, пометку отработки ошибки,
 // экран результатов с целью дня, выдачу награды за задания дня и сундук.
 import './setup';
+import './adaptive.test';
 import { createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from '../src/App';
@@ -387,6 +388,16 @@ async function main() {
     click(document.querySelector('.word-chip-art')!.closest('.word-chip'));
     await sleep(60);
     check('в карточке слова картинка показана крупно', !!document.querySelector('.word-art'), '');
+    const art = document.querySelector('.word-art')!;
+    check('до загрузки есть эмодзи-подложка', !!document.querySelector('.word-art-placeholder') && !art.classList.contains('is-ready'), '');
+    check('приоритет карточки высокий, миниатюры ленивые', art.getAttribute('fetchpriority') === 'high' && chips.every((c) => c.getAttribute('loading') === 'lazy'), '');
+    art.dispatchEvent(new window.Event('load'));
+    await sleep(20);
+    check('загрузка открывает картинку', art.classList.contains('is-ready'), '');
+    art.dispatchEvent(new window.Event('error'));
+    await sleep(20);
+    check('ошибка картинки оставляет эмодзи', !document.querySelector('.word-art') && !!document.querySelector('.word-art-placeholder'), '');
+
     click(btnText('Закрыть'));
     await sleep(40);
   }
