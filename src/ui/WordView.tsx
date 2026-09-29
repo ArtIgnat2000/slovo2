@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { wordImageUrl } from '../platform/word-images';
 import type { Word } from '../types';
 
 const VOWELS = 'аеёиоуыэюя';
@@ -8,24 +10,25 @@ const VOWELS = 'аеёиоуыэюя';
  * для визуальной памяти: слово запоминается вместе с образом, а не с буквами.
  */
 export function WordArt({ word, size = 96, className = '' }: { word: Word; size?: number; className?: string }) {
-  if (!word.image) {
-    return (
-      <span className={`big-emoji ${className}`} style={{ fontSize: size }} aria-hidden="true">
-        {word.emoji}
-      </span>
-    );
-  }
+  // Key isolates readiness when the same component is reused for another word.
+  return <WordImage key={wordImageUrl(word) ?? word.id} word={word} size={size} className={className} />;
+}
+
+function WordImage({ word, size, className }: { word: Word; size: number; className: string }) {
+  const [ready, setReady] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const src = wordImageUrl(word);
   return (
-    <img
-      className={`word-art ${className}`}
-      src={`${import.meta.env.BASE_URL}words/${word.image}.webp`}
-      alt=""
-      width={size}
-      height={size}
-      style={{ width: size, height: size }}
-      decoding="async"
-      draggable={false}
-    />
+    <span className={`word-art-frame ${className}`} style={{ width: size, height: size }} aria-hidden="true">
+      <span className="word-art-placeholder" style={{ fontSize: size * 0.7 }}>{word.emoji}</span>
+      {src && !failed && <img
+        className={`word-art ${ready ? 'is-ready' : ''}`}
+        src={src} alt="" width={size} height={size}
+        style={{ width: size, height: size }} decoding="async"
+        {...{ fetchpriority: 'high' }} draggable={false}
+        onLoad={() => setReady(true)} onError={() => setFailed(true)}
+      />}
+    </span>
   );
 }
 

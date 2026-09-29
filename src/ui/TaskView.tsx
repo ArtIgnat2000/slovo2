@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import type { Task, Word } from '../types';
 import { Sentence, WordArt, WordClue, WordLetters, dangerSummary } from './WordView';
 import { Keyboard } from './Keyboard';
@@ -11,9 +11,10 @@ interface Props {
   task: Task;
   word: Word;
   onSolve: SolveFn;
+  onAttempt?: (quality: number) => void;
 }
 
-export function TaskView({ task, word, onSolve }: Props) {
+export function TaskView({ task, word, onSolve, onAttempt }: Props) {
   switch (task.kind) {
     case 'intro':
       return <Intro word={word} onSolve={onSolve} />;
@@ -22,7 +23,7 @@ export function TaskView({ task, word, onSolve }: Props) {
     case 'gap':
       return <Gap word={word} task={task} onSolve={onSolve} />;
     case 'build':
-      return <Build word={word} task={task} onSolve={onSolve} />;
+      return <Build word={word} task={task} onSolve={onSolve} onAttempt={onAttempt} />;
     case 'write':
       return <Write word={word} task={task} onSolve={onSolve} />;
     case 'visual':
@@ -123,6 +124,7 @@ function Intro({ word, onSolve }: { word: Word; onSolve: SolveFn }) {
 // ── 2. Орфографическое проговаривание ───────────────────────────────────────
 
 function Syllables({ word, onSolve }: { word: Word; onSolve: SolveFn }) {
+  const later = useTaskTimeout();
   const [step, setStep] = useState(0);
   const [showHint, setShowHint] = useState(false);
   return (
@@ -139,7 +141,7 @@ function Syllables({ word, onSolve }: { word: Word; onSolve: SolveFn }) {
               sfx.tap();
               haptic.tap();
               setStep(i + 1);
-              if (i + 1 === word.syllables.length) setTimeout(() => onSolve(null), 400);
+              if (i + 1 === word.syllables.length) later(() => onSolve(null), 400);
             }}
           >
             {s}
@@ -155,6 +157,7 @@ function Syllables({ word, onSolve }: { word: Word; onSolve: SolveFn }) {
 // ── 3. Окошко ───────────────────────────────────────────────────────────────
 
 function Gap({ word, task, onSolve }: { word: Word; task: Task; onSolve: SolveFn }) {
+  const later = useTaskTimeout();
   const [chosen, setChosen] = useState<string | null>(null);
   const [hintUsed, setHintUsed] = useState(false);
   const [eliminated, setEliminated] = useState<string[]>([]);
@@ -172,7 +175,7 @@ function Gap({ word, task, onSolve }: { word: Word; task: Task; onSolve: SolveFn
       sfx.wrong();
       haptic.wrong();
     }
-    setTimeout(() => onSolve(ok ? (hintUsed ? 3 : 5) : 0, l), ok ? 700 : 1200);
+    later(() => onSolve(ok ? (hintUsed ? 3 : 5) : 0, l), ok ? 700 : 1200);
   };
 
   /** Подсказка «50:50» — как в телевикторине: убираем две неверные буквы. */
@@ -215,26 +218,30 @@ function Gap({ word, task, onSolve }: { word: Word; task: Task; onSolve: SolveFn
 
 // ── 4. Собери слово ─────────────────────────────────────────────────────────
 
-function Build({ word, task, onSolve }: { word: Word; task: Task; onSolve: SolveFn }) {
+function Build({ word, task, onSolve, onAttempt }: Props) {
+  const later = useTaskTimeout();
   const letters = task.letters ?? [];
   const [placed, setPlaced] = useState<(string | null)[]>(Array(word.text.length).fill(null));
   const [used, setUsed] = useState<boolean[]>(letters.map(() => false));
   const [hintUsed, setHintUsed] = useState(false);
   const [bad, setBad] = useState(false);
+  const solved = useRef(false);
 
   // usedHint передаём явно: подсказка может поставить последнюю букву и завершить
   // задание в том же обработчике — state hintUsed к этому моменту ещё «старый».
   const finish = (arr: (string | null)[], usedHint = hintUsed) => {
     const s = arr.join('');
+    onAttempt?.(s === word.text ? (usedHint ? 3 : 5) : 0);
     if (s === word.text) {
+      solved.current = true;
       sfx.correct();
       haptic.correct();
-      setTimeout(() => onSolve(usedHint ? 3 : 5), 700);
+      later(() => onSolve(usedHint ? 3 : 5), 700);
     } else {
       sfx.wrong();
       haptic.wrong();
       setBad(true);
-      setTimeout(() => {
+      later(() => {
         setPlaced(Array(word.text.length).fill(null));
         setUsed(letters.map(() => false));
         setBad(false);
@@ -243,7 +250,7 @@ function Build({ word, task, onSolve }: { word: Word; task: Task; onSolve: Solve
   };
 
   const tapLetter = (i: number) => {
-    if (used[i] || bad) return;
+    if (solved.current || used[i] || bad) return;
     const slot = placed.findIndex((p) => p === null);
     if (slot < 0) return;
     sfx.tap();
@@ -257,7 +264,7 @@ function Build({ word, task, onSolve }: { word: Word; task: Task; onSolve: Solve
   };
 
   const tapSlot = (i: number) => {
-    if (bad || placed[i] === null) return;
+    if (solved.current || bad || placed[i] === null) return;
     const l = placed[i]!;
     let idx = -1;
     for (let j = used.length - 1; j >= 0; j--) if (used[j] && letters[j] === l) idx = j;
@@ -273,7 +280,7 @@ function Build({ word, task, onSolve }: { word: Word; task: Task; onSolve: Solve
   /** Подсказка ставит следующую букву на своё место; повторные нажатия — ещё букву. */
   const hint = () => {
     const slot = placed.findIndex((p) => p === null);
-    if (slot < 0 || bad) return;
+    if (solved.current || slot < 0 || bad) return;
     const need = word.text[slot];
     const li = letters.findIndex((l, j) => !used[j] && l === need);
     if (li < 0) return;
@@ -320,6 +327,7 @@ function Build({ word, task, onSolve }: { word: Word; task: Task; onSolve: Solve
 // ── 5. Напиши слово по памяти ───────────────────────────────────────────────
 
 function Write({ word, task, onSolve }: { word: Word; task: Task; onSolve: SolveFn }) {
+  const later = useTaskTimeout();
   const [val, setVal] = useState('');
   const [state, setState] = useState<'idle' | 'ok' | 'bad'>('idle');
   const [hintUsed, setHintUsed] = useState(false);
@@ -341,7 +349,7 @@ function Write({ word, task, onSolve }: { word: Word; task: Task; onSolve: Solve
       sfx.wrong();
       haptic.wrong();
     }
-    setTimeout(() => onSolve(ok ? (hintUsed ? 3 : 5) : 0, val.trim()), ok ? 700 : 1300);
+    later(() => onSolve(ok ? (hintUsed ? 3 : 5) : 0, val.trim()), ok ? 700 : 1300);
   };
 
   const hideAll = word.text.split('').map((_, i) => i).filter((i) => i !== task.dangerIdx);
@@ -376,6 +384,7 @@ function Write({ word, task, onSolve }: { word: Word; task: Task; onSolve: Solve
 // ── 6. Зрительный диктант ───────────────────────────────────────────────────
 
 function Visual({ word, task, onSolve }: { word: Word; task: Task; onSolve: SolveFn }) {
+  const later = useTaskTimeout();
   const ms = task.showMs ?? 2600;
   const [phase, setPhase] = useState<'show' | 'type'>('show');
   const [left, setLeft] = useState(ms);
@@ -402,7 +411,7 @@ function Visual({ word, task, onSolve }: { word: Word; task: Task; onSolve: Solv
   // Подглядывание: слово мелькает на пару секунд и снова прячется
   useEffect(() => {
     if (!peek) return;
-    const t = setTimeout(() => setPeek(false), 1900);
+    const t = later(() => setPeek(false), 1900);
     return () => clearTimeout(t);
   }, [peek]);
 
@@ -423,7 +432,7 @@ function Visual({ word, task, onSolve }: { word: Word; task: Task; onSolve: Solv
       sfx.wrong();
       haptic.wrong();
     }
-    setTimeout(() => onSolve(ok ? (hintUsed ? 3 : 5) : 0, val.trim()), ok ? 700 : 1300);
+    later(() => onSolve(ok ? (hintUsed ? 3 : 5) : 0, val.trim()), ok ? 700 : 1300);
   };
 
   if (phase === 'show') {
@@ -481,6 +490,7 @@ function Visual({ word, task, onSolve }: { word: Word; task: Task; onSolve: Solv
 // ── 7. Исправь робота ───────────────────────────────────────────────────────
 
 function Fix({ word, task, onSolve }: { word: Word; task: Task; onSolve: SolveFn }) {
+  const later = useTaskTimeout();
   const [chosen, setChosen] = useState<string | null>(null);
   const [hintUsed, setHintUsed] = useState(false);
   const wrong = task.wrong ?? word.text;
@@ -500,7 +510,7 @@ function Fix({ word, task, onSolve }: { word: Word; task: Task; onSolve: SolveFn
       sfx.wrong();
       haptic.wrong();
     }
-    setTimeout(() => onSolve(ok ? (hintUsed ? 3 : 5) : 0, v), ok ? 700 : 1200);
+    later(() => onSolve(ok ? (hintUsed ? 3 : 5) : 0, v), ok ? 700 : 1200);
   };
 
   return (
@@ -527,4 +537,15 @@ function Fix({ word, task, onSolve }: { word: Word; task: Task; onSolve: SolveFn
       {hintUsed ? <HintCard word={word} /> : !chosen && <HintBtn onClick={() => setHintUsed(true)} label="Что тут опасно?" />}
     </div>
   );
+}
+
+/** A delayed answer must not outlive its task (exit, profile change, next card). */
+function useTaskTimeout() {
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(() => () => { timers.current.forEach(clearTimeout); timers.current = []; }, []);
+  return (fn: () => void, ms: number) => {
+    const timer = setTimeout(fn, ms);
+    timers.current.push(timer);
+    return timer;
+  };
 }

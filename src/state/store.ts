@@ -1,3 +1,4 @@
+import { nextAdaptiveState, type Outcome } from '../engine/adaptive';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { DailyState, DayStat, LessonSize, LessonState, Profile, ShopState, ShopSlot, WordState } from '../types';
@@ -110,6 +111,7 @@ interface AppState {
   setSettings: (patch: Partial<Settings>) => void;
   /** Изменить размер базовой очереди урока для текущего профиля. */
   setLessonSize: (size: LessonSize) => void;
+  adaptLesson: (profileId: string, ceiling: number, outcome: Outcome) => void;
 }
 
 function patchActive(s: AppState, fn: (p: Profile) => Profile): Partial<AppState> {
@@ -355,8 +357,15 @@ export const useApp = create<AppState>()(
 
       setSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
 
+      adaptLesson: (profileId, ceiling, outcome) => set((s) => ({
+        profiles: s.profiles.map((p) => {
+          if (p.id !== profileId) return p;
+          const next = nextAdaptiveState({ cards: p.adaptiveCards, good: p.adaptiveGood }, ceiling, outcome);
+          return { ...p, adaptiveCards: next.cards, adaptiveGood: next.good };
+        }),
+      })),
       setLessonSize: (size) =>
-        set((s) => patchActive(s, (p) => ({ ...p, lessonSize: size }))),
+        set((s) => patchActive(s, (p) => ({ ...p, lessonSize: size, adaptiveGood: 0 }))),
     }),
     {
       name: 'slovo2',

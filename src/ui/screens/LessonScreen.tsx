@@ -1,3 +1,5 @@
+import { effectiveCards, recordAttempt, type Attempts } from '../../engine/adaptive';
+import { scheduleWordImages } from '../../platform/word-images';
 import { useEffect, useRef, useState } from 'react';
 import type { Profile, Task, WordState } from '../../types';
 import { LESSON_BY_ID, LESSONS, REVIEW, WORD_BY_ID, WORDS } from '../../content/words';
@@ -44,6 +46,18 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
   const { touchDay, answer, addXp, finishLesson, grantAchievement } = useApp.getState();
   const say = useMascot((s) => s.say);
 
+  const attempts = useRef<Attempts>({ total: 0, independent: 0 });
+  const observed = useRef(new Set<string>());
+  const solvedTasks = useRef(new Set<string>());
+  const finalized = useRef(false);
+  const runProfile = useRef(profile?.id).current;
+  const ceiling = useRef(lessonCardLimit(profile?.lessonSize)).current;
+  const finalizeAdaptive = (kind: 'finish' | 'quit') => {
+    if (finalized.current) return;
+    finalized.current = true;
+    if (lessonId !== REVIEW.id && runProfile) useApp.getState().adaptLesson(runProfile, ceiling,
+      kind === 'quit' ? { kind } : { kind, attempts: attempts.current });
+  };
   const stats = useRef<Stats>({ correct: 0, wrong: 0, xp: 0 });
   const started = useRef(false);
   const [queue, setQueue] = useState<Task[]>(() => buildQueue(profile, lessonId));
@@ -74,15 +88,22 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
 
   const task = queue[index];
   const total = baseTotal;
+  useEffect(() => {
+    if (done) return;
+    // Look ahead only a few cards, including dynamically inserted repair tasks.
+    return scheduleWordImages(queue.slice(index + 1, index + 4).map((t) => WORD_BY_ID[t.wordId]));
+  }, [queue, index, done]);
 
   /** Выход из урока: если ещё ничего не отвечено — терять нечего, выходим сразу. */
   const tryExit = () => {
-    if (stats.current.correct + stats.current.wrong > 0) setAskExit(true);
+    if (attempts.current.total > 0 || stats.current.correct + stats.current.wrong > 0) setAskExit(true);
     else onExit();
   };
 
   const onSolve = (quality: number | null) => {
-    if (!task) return;
+    if (!task || finalized.current || solvedTasks.current.has(task.uid)) return;
+    solvedTasks.current.add(task.uid);
+    if (quality !== null) recordAttempt(observed.current, attempts.current, task.uid, task.reason === 'repair', quality);
     if (quality === null) {
       setVerdict(null);
       goNext();
@@ -134,6 +155,8 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
   };
 
   const finish = () => {
+    if (finalized.current) return;
+    finalizeAdaptive('finish');
     const { correct, wrong } = stats.current;
     const answered = correct + wrong;
     const pct = answered === 0 ? 100 : Math.round((correct / answered) * 100);
@@ -243,7 +266,9 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
         {lesson.emoji} {lesson.title}
       </div>
 
-      <TaskView key={task.uid} task={task} word={word} onSolve={onSolve} />
+      <TaskView key={task.uid} task={task} word={word} onSolve={onSolve} onAttempt={(quality) => {
+        if (!finalized.current) recordAttempt(observed.current, attempts.current, task.uid, task.reason === 'repair', quality);
+      }} />
 
       {verdict && (
         <div className={`footer-bar ${verdict.ok ? 'ok' : 'bad'}`}>
@@ -279,7 +304,7 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
           stayLabel="Продолжить урок ▶"
           leaveLabel="Выйти"
           onStay={() => setAskExit(false)}
-          onLeave={onExit}
+          onLeave={() => { finalizeAdaptive('quit'); onExit(); }}
         />
       )}
     </div>
@@ -414,7 +439,7 @@ function buildQueue(profile: Profile | null, lessonId: string): Task[] {
   const lesson = LESSON_BY_ID[lessonId];
   const states: Record<string, WordState> = profile?.words ?? {};
   const level = profile?.lessons?.[lessonId]?.level ?? 0;
-  const maxCards = lessonCardLimit(profile?.lessonSize ?? DEFAULT_LESSON_SIZE);
+  const maxCards = effectiveCards(profile?.adaptiveCards, lessonCardLimit(profile?.lessonSize ?? DEFAULT_LESSON_SIZE));
 
   if (lessonId === REVIEW.id) {
     const current = LESSONS.find((l) => (profile?.lessons[l.id]?.level ?? 0) < 5);

@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+import { scheduleWordImages } from '../../platform/word-images';
 import { LESSONS, WORDS } from '../../content/words';
 import { dayKey, masteredCount, todayStat, useActiveProfile, useApp } from '../../state/store';
 import { lastDays } from '../../engine/day';
@@ -26,6 +28,8 @@ function dayWord(n: number): string {
 export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview }: Props) {
   const profile = useActiveProfile();
   const settings = useApp((s) => s.settings);
+  const nextLesson = LESSONS.find((l) => (profile?.lessons[l.id]?.level ?? 0) < 5) ?? LESSONS[LESSONS.length - 1];
+  useEffect(() => scheduleWordImages(WORDS.filter((w) => nextLesson.wordIds.includes(w.id))), [nextLesson]);
   if (!profile) return null;
 
   const today = todayStat(profile);

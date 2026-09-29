@@ -100,6 +100,8 @@ export interface Profile {
   achievements: string[];
   /** Размер базовой очереди урока; у старых профилей по умолчанию «standard». */
   lessonSize?: LessonSize;
+  adaptiveCards?: number;
+  adaptiveGood?: number;
   daily?: DailyState; // опционально: профили, созданные до этой версии, живут без него
   shop?: ShopState; // опционально: появилось вместе с магазином
 }

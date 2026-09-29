@@ -45,6 +45,8 @@ export function WordsScreen() {
                   width={22}
                   height={22}
                   decoding="async"
+                  loading="lazy"
+                  {...{ fetchpriority: 'low' }}
                 />
               ) : (
                 <span aria-hidden="true">{w.emoji}</span>

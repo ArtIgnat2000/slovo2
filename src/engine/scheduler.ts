@@ -158,7 +158,7 @@ export /**
  */
 function safeKind(kind: TaskKind, wordId: string): TaskKind {
   const w = WORD_BY_ID[wordId];
-  if (!w.text.includes(' ')) return kind;
+  if (kind === 'intro' || kind === 'syllables' || !w.text.includes(' ')) return kind;
   return kind === 'fix' || kind === 'gap' ? kind : 'gap';
 }
 
@@ -250,7 +250,7 @@ export function buildLesson({ lesson, level, states, reviewWords, maxCards }: Bu
   );
 
   // 3. Второй круг — другие типы заданий (перемешиваем, чтобы не было «одного и того же»)
-  const second = shuffle(selectedIds).map((id, i) =>
+  const second = shuffle(selectedIds).sort((a, b) => wordNeedScore(b, states) - wordNeedScore(a, states)).map((id, i) =>
     makeTask(kinds[i % kinds.length], id, 'practice', pickDanger(WORD_BY_ID[id])),
   );
 

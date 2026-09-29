@@ -12,7 +12,8 @@
     "content:check": "node scripts/check-content.mjs",
     "test:smoke": "node scripts/smoke.mjs",
     "test:boot": "node scripts/prod-boot-check.mjs",
-    "images": "node scripts/make-word-images.mjs"
+    "images": "node scripts/make-word-images.mjs",
+    "test:adaptive": "node scripts/adaptive-test.mjs"
   },
   "dependencies": {
     "idb": "^8.0.3",
