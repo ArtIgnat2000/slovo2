@@ -57,6 +57,10 @@ for (const key of [
 ]) {
   if (w[key]) g[key] = w[key];
 }
+// localStorage нужен приложению (флаг подсказки «добавь на экран»); в jsdom он есть,
+// но в Node-глобали не попадает — иначе try/catch в platform/pwa.ts молча всё отключает.
+g.localStorage = dom.window.localStorage;
+g.sessionStorage = dom.window.sessionStorage;
 g.requestAnimationFrame = (cb: (t: number) => void) => setTimeout(() => cb(Date.now()), 8) as unknown as number;
 g.cancelAnimationFrame = (id: number) => clearTimeout(id);
 g.IS_REACT_ACT_ENVIRONMENT = false;

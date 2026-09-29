@@ -8,6 +8,14 @@ import { VitePWA } from 'vite-plugin-pwa';
 // Имя репозитория на GitHub Pages. Если репозиторий назовёте иначе — поменяйте тут.
 const REPO_BASE = '/slovo2/';
 
+/**
+ * База сборки. Для GitHub Pages — '/slovo2/', а для локального показа в песочнице
+ * (npm run preview:build) нужен корень: превью-прокси открывает приложение по адресу
+ * без пути репозитория, иначе получается белый экран из-за путей к /slovo2/assets/*.
+ * Переопределяется переменной окружения VITE_BASE (см. package.json).
+ */
+const buildBase = process.env.VITE_BASE ?? REPO_BASE;
+
 /** Номер релиза из package.json — поднимайте его перед каждым релизом. */
 const pkg = JSON.parse(
   readFileSync(fileURLToPath(new URL('./package.json', import.meta.url)), 'utf8'),
@@ -44,12 +52,12 @@ process.env.VITE_APP_VERSION = pkg.version;
 process.env.VITE_BUILD_SHA = buildSha();
 
 export default defineConfig(({ command }) => ({
-  base: command === 'build' ? REPO_BASE : '/',
+  base: command === 'build' ? buildBase : '/',
   plugins: [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      base: REPO_BASE,
+      base: buildBase,
       includeAssets: ['icons/*.png', 'icons/*.svg'],
       manifest: {
         name: 'СЛОВО 2.0 — учи словарные слова',

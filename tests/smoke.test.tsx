@@ -7,49 +7,19 @@ import './adaptive.test';
 import { createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from '../src/App';
+import { body, btn, btnText, buttons, check, click, currentWord, failureCount, has, sleep } from './ui-helpers';
+import { runAdaptiveUiChecks } from './adaptive-ui.test';
+import { runQuestUiChecks } from './quests-ui.test';
+import { runInstallHintChecks } from './install-hint.test';
 import { LESSONS, WORDS } from '../src/content/words';
 import { buildLesson, lessonCardLimit } from '../src/engine/scheduler';
-import { dayKey, useApp } from '../src/state/store';
-import { questsForDay } from '../src/engine/quests';
+import { dayKey, dayPlan, useApp } from '../src/state/store';
+import { questTitle } from '../src/engine/quests';
 import { growthStage } from '../src/engine/shop';
 import { masteredCount } from '../src/state/store';
 
-const sleep = (ms = 0) => new Promise((r) => setTimeout(r, ms));
-const body = () => document.body.textContent ?? '';
-const buttons = () => Array.from(document.querySelectorAll('button')) as HTMLButtonElement[];
-const click = (el?: Element | null) => {
-  if (!el) throw new Error('click: элемент не найден\n' + new Error().stack);
-  el.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
-};
-const btn = (pred: (b: HTMLButtonElement) => boolean) => buttons().find(pred);
-const btnText = (t: string) => btn((b) => (b.textContent ?? '').includes(t));
-const has = (t: string) => body().includes(t);
-
-let failures = 0;
-function check(name: string, cond: boolean, extra = '') {
-  console.log(`${cond ? '✓' : '✗'} ${name}${cond ? '' : ' — ' + extra}`);
-  if (!cond) failures++;
-}
-
-const byHint = new Map(WORDS.map((w) => [w.hint, w]));
-
-/** Какое слово сейчас в задании — по подсказке в блоке clue. */
-function currentWord() {
-  const clue = document.querySelector('.clue-hint');
-  if (clue) {
-    const txt = (clue.textContent ?? '').replace(/^💡\s*/, '').split('·')[0].trim();
-    const fromClue = byHint.get(txt);
-    if (fromClue) return fromClue;
-  }
-  // «Окошко» не показывает clue-hint: восстанавливаем слово по видимым буквам
-  // и □, чтобы намеренная ошибка в smoke всегда была действительно ошибкой.
-  const spans = Array.from(document.querySelectorAll('.word-big > span'));
-  const pattern = spans.map((s) => (s.textContent ?? '').trim()).join('');
-  if (!pattern.includes('□')) return null;
-  return WORDS.find(
-    (w) => w.text.length === pattern.length && [...pattern].every((ch, i) => ch === '□' || ch === w.text[i]),
-  ) ?? null;
-}
+// Общая обвязка (клики, поиск кнопок, счётчик проверок) — в tests/ui-helpers.ts:
+// её же использует блок интеграционных проверок адаптации.
 
 /** Полоска прогресса именно урока (в шапке), а не уровня на главной. */
 function lessonBarWidth(): number {
@@ -287,11 +257,20 @@ async function main() {
     })),
   }));
 
-  const quests = questsForDay(dayKey());
-  check('три задания дня в карточке', quests.every((q) => has(q.title)), quests.map((q) => q.title).join(' / '));
+  // Задания дня берём из плана профиля — того же источника, что и интерфейс:
+  // новичку «Повтори N слов» заменяется другим заданием дня.
+  const plan = dayPlan(useApp.getState().profiles[0]);
+  check(
+    'три задания дня в карточке',
+    plan.length === 3 && plan.every((q) => has(questTitle(q.spec, q.target))),
+    plan.map((q) => questTitle(q.spec, q.target)).join(' / '),
+  );
   check('подсказка про ключи сундука видна', has('Собери 3 ключа'), '');
   check('сундук начинает с нулём ключей', has('Ключи: 0 из 3'), '');
   check('кристаллов пока 0', has('💎 0'), '');
+
+  // ── Подсказка «Добавь приложение на экран» ─────────────────────────────────
+  await runInstallHintChecks();
 
   const run = await playLesson();
   check('диалог «Выйти из урока?» показан, урок продолжился', run.sawDialog, '');
@@ -319,7 +298,7 @@ async function main() {
   // Задания «6 подряд» и «повтори 5 слов» уроком целиком не закрыть (мы специально
   // ошибались) — доигрываем их через тот же API стора, что и настоящие ответы
   const st = useApp.getState();
-  const kinds = questsForDay(dayKey()).map((q) => q.kind);
+  const kinds = dayPlan(useApp.getState().profiles[0]).map((q) => q.spec.kind);
   if (kinds.includes('review')) for (let i = 0; i < 5; i++) st.answer(WORDS[i].id, 5, true);
   if (kinds.includes('correct')) for (let i = 0; i < 12; i++) st.answer(WORDS[i].id, 5, false);
   if (kinds.includes('flawless')) for (let i = 0; i < 6; i++) st.answer(WORDS[i].id, 5, false);
@@ -514,6 +493,15 @@ async function main() {
     check('режим повторения не превышает короткий лимит', true, 'повторять нечего');
   }
 
+  // ── Задания дня: понятность и выполнимость (обратная связь 2026-09-29) ────
+  await runQuestUiChecks();
+
+  // ── Адаптация урока: интеграционные проверки (этап 2) ─────────────────────
+  // Идут последними: блок сам управляет активным профилем, бюджетом и потолком,
+  // поэтому не должен менять состояние под предыдущие сценарии.
+  await runAdaptiveUiChecks();
+
+  const failures = failureCount();
   console.log(failures ? `\n✗ ошибок: ${failures}` : '\n✓ все проверки пройдены');
   process.exit(failures ? 1 : 0);
 }

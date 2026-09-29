@@ -1,13 +1,15 @@
 import { useState } from 'react';
-import { useActiveProfile, useApp, dayKey } from '../state/store';
+import { dayKey, dayPlan, useActiveProfile, useApp } from '../state/store';
 import {
   allQuestsDone,
   dayMetrics,
+  planOf,
   questId,
   questProgress,
-  questsForDay,
+  questTitle,
   rollChest,
   type Chest,
+  type QuestKind,
 } from '../engine/quests';
 import { Bar, Confetti } from './Bits';
 import { sfx } from '../platform/sound';
@@ -31,7 +33,20 @@ function ChestRewards({ reward }: { reward: Chest }) {
  * Три задания — это три ключа сундука БУКа. Ключи считаются по прогрессу
  * заданий и поэтому переживают перезагрузку без отдельного счётчика.
  */
-export function DailyQuests() {
+/** Что делать ребёнку для каждого задания — короткая подпись рядом с кнопкой «Начать». */
+const QUEST_HINT: Record<QuestKind, string> = {
+  review: 'Откроется режим 🔁 Повторение',
+  lessons: 'Уроки ждут на карте «Мой путь»',
+  correct: 'Верные ответы считаются в уроках',
+  flawless: 'Отвечай верно один за другим',
+};
+
+interface Props {
+  /** Запустить задание: «Повтори N слов» открывает повторение, остальные — урок. */
+  onStart: (kind: QuestKind) => void;
+}
+
+export function DailyQuests({ onStart }: Props) {
   const profile = useActiveProfile();
   const claimQuest = useApp((s) => s.claimQuest);
   const openChest = useApp((s) => s.openChest);
@@ -41,14 +56,15 @@ export function DailyQuests() {
   if (!profile) return null;
 
   const day = dayKey();
-  const quests = questsForDay(day);
+  const plan = planOf(profile, day);
+  const quests = dayPlan(profile);
   const st = profile.daily && profile.daily.day === day ? profile.daily : null;
   const claimed = st?.claimed ?? [];
   const chestsToday = st?.chestsToday ?? 0;
   const metrics = dayMetrics(profile.days[day]);
-  const items = quests.map((q) => ({ ...questProgress(q, metrics), id: questId(day, q.kind) }));
+  const items = quests.map((q) => ({ ...questProgress(q.spec, q.target, metrics), id: questId(day, q.spec.kind), target: q.target }));
   const doneCount = items.filter((i) => i.done).length;
-  const all = allQuestsDone(quests, metrics);
+  const all = allQuestsDone(plan, metrics);
   const chestReady = all && chestsToday === 0;
   const chestOpened = chestsToday > 0;
   const storedReward = st?.lastChest;
@@ -85,7 +101,7 @@ export function DailyQuests() {
       </div>
 
       <div className="col" style={{ gap: 10 }}>
-        {items.map(({ spec, progress, done, id }) => {
+        {items.map(({ spec, progress, done, id, target }) => {
           const isClaimed = claimed.includes(id);
           const canClaim = done && !isClaimed;
           return (
@@ -95,9 +111,9 @@ export function DailyQuests() {
                   {done ? '✅' : spec.emoji}
                 </span>
                 <div className="grow">
-                  <div className="quest-title">{spec.title}</div>
+                  <div className="quest-title">{questTitle(spec, target)}</div>
                   <div className="tiny">
-                    {isClaimed ? 'Награда получена' : `${progress} / ${spec.target}`}
+                    {isClaimed ? 'Награда получена' : `${progress} / ${target}`}
                   </div>
                 </div>
                 {canClaim ? (
@@ -111,9 +127,19 @@ export function DailyQuests() {
                 )}
               </div>
               {!done && (
-                <div style={{ marginTop: 6 }}>
-                  <Bar value={(progress / spec.target) * 100} tone="orange" />
-                </div>
+                <>
+                  <div style={{ marginTop: 6 }}>
+                    <Bar value={(progress / target) * 100} tone="orange" />
+                  </div>
+                  {/* Раньше карточка была «мёртвой»: непонятно, что делать и где.
+                      Теперь у каждого задания есть действие и подпись, куда оно приведёт. */}
+                  <div className="row quest-action">
+                    <span className="tiny grow">{QUEST_HINT[spec.kind]}</span>
+                    <button className="btn primary sm" onClick={() => onStart(spec.kind)}>
+                      Начать ▸
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           );

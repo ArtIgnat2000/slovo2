@@ -59,6 +59,16 @@ export default function App() {
   // а не с текущей настройкой: «Родители» могут поменять цель прямо во время урока.
   const [lessonGoal, setLessonGoal] = useState(settings.dailyGoal);
   const [vlabsOpen, setVlabsOpen] = useState(false);
+  /**
+   * Подсказка «добавь на экран». Читаем флаг один раз при старте и держим в состоянии:
+   * раньше `markInstallHintShown()` писал в localStorage, но React об этом не знал —
+   * блок оставался на экране до случайной перерисовки, и кнопка «Понятно» выглядела сломанной.
+   */
+  const [installHint, setInstallHint] = useState(() => shouldSuggestInstall());
+  const dismissInstallHint = () => {
+    markInstallHintShown();
+    setInstallHint(false);
+  };
   const [profilesOpen, setProfilesOpen] = useState(false);
   const [parentUnlocked, setParentUnlocked] = useState(false);
   const [updateReady, setUpdateReady] = useState(false);
@@ -162,14 +172,14 @@ export default function App() {
         </div>
       )}
 
-      {shouldSuggestInstall() && (
+      {installHint && (
         <div className="footer-bar" style={{ bottom: 'calc(64px + var(--safe-b))' }}>
           <div className="footer-inner">
             <div className="grow">
               <div className="verdict">📲 Добавь приложение на экран</div>
               <small>Будет работать без интернета</small>
             </div>
-            <button className="btn primary" onClick={() => markInstallHintShown()}>
+            <button className="btn primary" onClick={dismissInstallHint}>
               Понятно
             </button>
           </div>

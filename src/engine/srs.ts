@@ -61,6 +61,47 @@ export function pickReview(
     .slice(0, limit);
 }
 
+/**
+ * Что тренировать в режиме «Повторение».
+ *
+ * Раньше главная и сам урок повторения считали слова по-разному: главная — все
+ * просроченные, урок — просроченные, кроме слов активного урока. Из-за этого блок
+ * «Пора повторить» мог обещать слова, которых урок не показывал («Повторять нечего!»).
+ * Теперь правило одно и живёт здесь.
+ *
+ *  • `due` — слова, у которых истёк срок повторения (сначала самые «забытые»);
+ *  • `training` — если таких нет, тренируем самые слабые из уже пройденных слов:
+ *    иначе задание дня «Повтори N слов» нечем закрыть, когда всё свежо в памяти.
+ *  • В обоих случаях сначала идут слова, которых сегодня ещё не было: так повторный
+ *    заход не крутит одни и те же слова, а прогресс задания растёт.
+ *
+ * Слова, которые ребёнок ещё не проходил (s = 0), в повторение не попадают никогда.
+ */
+export interface ReviewPick {
+  kind: 'due' | 'training';
+  words: Word[];
+}
+
+export function pickReviewWords(
+  all: Word[],
+  states: Record<string, WordState>,
+  exclude: Set<string>,
+  limit: number,
+  practisedToday: Set<string> = new Set(),
+  now = Date.now(),
+): ReviewPick {
+  const pool = all.filter((w) => !exclude.has(w.id) && (states[w.id]?.s ?? 0) > 0);
+  const order = (a: Word, b: Word) => {
+    // Слова, которых сегодня ещё не было, идут первыми (компаратор: < 0 — «a» раньше)
+    const seenToday = Number(practisedToday.has(a.id)) - Number(practisedToday.has(b.id));
+    if (seenToday !== 0) return seenToday;
+    return priority(states[b.id], now) - priority(states[a.id], now);
+  };
+  const due = pool.filter((w) => isDue(states[w.id], now)).sort(order);
+  if (due.length) return { kind: 'due', words: due.slice(0, limit) };
+  return { kind: 'training', words: [...pool].sort(order).slice(0, limit) };
+}
+
 export function mastered(st: WordState | undefined): boolean {
   return (st?.s ?? 0) >= 90;
 }
