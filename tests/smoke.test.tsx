@@ -7,6 +7,8 @@ import './adaptive.test';
 import { createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from '../src/App';
+import { body, btn, btnText, buttons, check, click, currentWord, failureCount, has, sleep } from './ui-helpers';
+import { runAdaptiveUiChecks } from './adaptive-ui.test';
 import { LESSONS, WORDS } from '../src/content/words';
 import { buildLesson, lessonCardLimit } from '../src/engine/scheduler';
 import { dayKey, useApp } from '../src/state/store';
@@ -14,42 +16,8 @@ import { questsForDay } from '../src/engine/quests';
 import { growthStage } from '../src/engine/shop';
 import { masteredCount } from '../src/state/store';
 
-const sleep = (ms = 0) => new Promise((r) => setTimeout(r, ms));
-const body = () => document.body.textContent ?? '';
-const buttons = () => Array.from(document.querySelectorAll('button')) as HTMLButtonElement[];
-const click = (el?: Element | null) => {
-  if (!el) throw new Error('click: элемент не найден\n' + new Error().stack);
-  el.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
-};
-const btn = (pred: (b: HTMLButtonElement) => boolean) => buttons().find(pred);
-const btnText = (t: string) => btn((b) => (b.textContent ?? '').includes(t));
-const has = (t: string) => body().includes(t);
-
-let failures = 0;
-function check(name: string, cond: boolean, extra = '') {
-  console.log(`${cond ? '✓' : '✗'} ${name}${cond ? '' : ' — ' + extra}`);
-  if (!cond) failures++;
-}
-
-const byHint = new Map(WORDS.map((w) => [w.hint, w]));
-
-/** Какое слово сейчас в задании — по подсказке в блоке clue. */
-function currentWord() {
-  const clue = document.querySelector('.clue-hint');
-  if (clue) {
-    const txt = (clue.textContent ?? '').replace(/^💡\s*/, '').split('·')[0].trim();
-    const fromClue = byHint.get(txt);
-    if (fromClue) return fromClue;
-  }
-  // «Окошко» не показывает clue-hint: восстанавливаем слово по видимым буквам
-  // и □, чтобы намеренная ошибка в smoke всегда была действительно ошибкой.
-  const spans = Array.from(document.querySelectorAll('.word-big > span'));
-  const pattern = spans.map((s) => (s.textContent ?? '').trim()).join('');
-  if (!pattern.includes('□')) return null;
-  return WORDS.find(
-    (w) => w.text.length === pattern.length && [...pattern].every((ch, i) => ch === '□' || ch === w.text[i]),
-  ) ?? null;
-}
+// Общая обвязка (клики, поиск кнопок, счётчик проверок) — в tests/ui-helpers.ts:
+// её же использует блок интеграционных проверок адаптации.
 
 /** Полоска прогресса именно урока (в шапке), а не уровня на главной. */
 function lessonBarWidth(): number {
@@ -514,6 +482,12 @@ async function main() {
     check('режим повторения не превышает короткий лимит', true, 'повторять нечего');
   }
 
+  // ── Адаптация урока: интеграционные проверки (этап 2) ─────────────────────
+  // Идут последними: блок сам управляет активным профилем, бюджетом и потолком,
+  // поэтому не должен менять состояние под предыдущие сценарии.
+  await runAdaptiveUiChecks();
+
+  const failures = failureCount();
   console.log(failures ? `\n✗ ошибок: ${failures}` : '\n✓ все проверки пройдены');
   process.exit(failures ? 1 : 0);
 }
