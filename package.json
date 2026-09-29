@@ -8,6 +8,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
+    "preview:build": "VITE_BASE=/ vite build --outDir preview",
+    "preview:show": "python3 -m http.server 8080 --bind 0.0.0.0 --directory preview",
     "typecheck": "tsc --noEmit",
     "content:check": "node scripts/check-content.mjs",
     "test:smoke": "node scripts/smoke.mjs",

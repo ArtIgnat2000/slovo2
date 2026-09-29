@@ -101,6 +101,8 @@
   числовой слайдер. Этап3 ещё не начат.
 * Перед продолжением: `git status --short --branch`, `git log -3 --oneline`.
   Если нет зависимостей — `npm ci` (Node ≥22.22.2).
+* Показать приложение в песочнице: `npm run preview:build && npm run preview:show`,
+  открывать превью **без** пути `/slovo2/` (иначе белый экран — см. «Заметка: как поднять превью»).
 * Проверки передачи: `npm run typecheck`, `npm run content:check`,
   `npm run test:adaptive`, `npm run test:smoke` (~70 с), `npm run build`, `npm run test:boot`.
 * Эта передача — тесты и документация; прод-код не менялся, поэтому версия осталась 0.8.0.
@@ -422,10 +424,19 @@ Checkpoint, аудио и свободный слайдер не добавле�
 Порядок восстановления (быстрый путь):
 
 ```bash
-npm install                                    # ~7 с, если node_modules пропали
-npx vite build --base=/ --outDir preview       # статическая сборка (base=/ — чтобы открывалась с корня)
-python3 -m http.server 8080 --bind 0.0.0.0 --directory preview   # мгновенный показ
+npm ci                       # ~6 с, если node_modules пропали
+npm run preview:build        # статическая сборка с базой '/' — открывается с корня превью
+npm run preview:show         # python3 -m http.server 8080 --bind 0.0.0.0 --directory preview
 ```
+
+**Важно (проверено 2026-09-29):** открывать превью нужно по адресу **без пути `/slovo2/`**.
+Прод-сборка для Pages собрана с базой `/slovo2/`, и в превью-прокси (адрес вида
+`https://<порт>-<sandbox>.e2b.app/`) её HTML грузится, но `/assets/*.js` и `/assets/*.css`
+уходят в 404 — получается белый экран. `preview:build` переопределяет базу переменной
+`VITE_BASE=/` (см. `vite.config.ts`), поэтому манифест, service worker, иконки и картинки
+слов тоже отдаются с корня. Если правите `vite.config.ts` — проверьте обе сборки:
+`npm run build` (в `dist/index.html` пути должны остаться `/slovo2/...`) и
+`npm run preview:build` (пути `/assets/...`).
 
 `preview/` намеренно **не** названа `dist` и добавлена в `.gitignore`: `dist/` исключается
 из снимка песочницы, а `preview/` должна переживать перезапуски, чтобы поднимать показ

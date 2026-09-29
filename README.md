@@ -22,7 +22,8 @@
 npm install
 npm run dev        # разработка
 npm run build      # прод-сборка (dist/)
-npm run preview    # посмотреть прод-сборку
+npm run preview    # посмотреть прод-сборку (база /slovo2/ — как на GitHub Pages)
+npm run preview:build && npm run preview:show   # показ с корня (для превью в песочнице)
 npm run content:check  # проверить разметку слов
 npm run test:smoke     # смоук-тест в jsdom: пройти урок и получить награды
 SMOKE_SEED=42 npm run test:smoke  # тот же тест на другой перестановке (по умолчанию сид 1)
