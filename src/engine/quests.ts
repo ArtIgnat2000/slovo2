@@ -121,31 +121,14 @@ export interface Chest {
 }
 
 /**
- * Открыть сундук. Первый сундук дня — настоящая награда с гарантированными
- * кристаллами; дальше могут попадаться «пустые» сундуки (0 кристаллов),
- * чтобы не возникало экономики бесконечной награды за один и тот же день.
+ * Содержимое ежедневного сундука БУКа.
+ *
+ * Сейчас награда намеренно прозрачная и воспроизводимая: за три ключа ребёнок
+ * всегда получает базовые 15 кристаллов. Пустых сундуков нет, а редкие бонусы
+ * можно добавить позже, не заменяя гарантированную награду.
  */
-export function rollChest(openedToday: number): Chest {
-  const roll = Math.random();
-  if (openedToday === 0) {
-    if (roll < 0.08) return { gems: CHEST_GEMS * 2, xp: 0, freezes: 0 }; // редкая удача ×2
-    if (roll < 0.9) return { gems: CHEST_GEMS, xp: 0, freezes: 0 };
-    if (roll < 0.97) return { gems: CHEST_GEMS, xp: 15, freezes: 0 };
-    return { gems: CHEST_GEMS, xp: 0, freezes: 1 };
-  }
-  if (roll < 0.5) return { gems: 0, xp: 10, freezes: 0 };
-  if (roll < 0.85) return { gems: 3, xp: 0, freezes: 0 };
-  if (roll < 0.97) return { gems: 6, xp: 0, freezes: 0 };
-  return { gems: 0, xp: 0, freezes: 1 };
-}
-
-/** Текст награды для тоста — одинаковый на всех экранах. */
-export function describeChest(c: Chest): string {
-  const bits: string[] = [];
-  if (c.gems) bits.push(`${c.gems} 💎`);
-  if (c.xp) bits.push(`${c.xp} ⚡`);
-  if (c.freezes) bits.push(`${c.freezes} 🧊 заморозка`);
-  return bits.length ? bits.join(' · ') : 'пусто — но завтра повезёт!';
+export function rollChest(): Chest {
+  return { gems: CHEST_GEMS, xp: 0, freezes: 0 };
 }
 
 /**

@@ -253,7 +253,8 @@ async function main() {
 
   const quests = questsForDay(dayKey());
   check('три задания дня в карточке', quests.every((q) => has(q.title)), quests.map((q) => q.title).join(' / '));
-  check('подсказка про сундук видна', has('получишь сундук'), '');
+  check('подсказка про ключи сундука видна', has('Собери 3 ключа'), '');
+  check('сундук начинает с нулём ключей', has('Ключи: 0 из 3'), '');
   check('кристаллов пока 0', has('💎 0'), '');
 
   const run = await playLesson();
@@ -296,17 +297,35 @@ async function main() {
   check(`награда за задания забрана (${claims} шт., 💎 ${gemsBefore} → ${gemsAfter})`, gemsAfter > gemsBefore, '');
   check('тост о награде показан', has('кристаллов'), '');
 
-  const chest = btnText('Открыть сундук');
+  check('собраны все три ключа', has('Ключи: 3 из 3'), '');
+  const chest = btnText('Открыть сундук БУКа');
   check('сундук доступен после всех заданий', !!chest, '');
   if (chest) {
     const before = useApp.getState().profiles[0].gems;
     click(chest);
     await sleep(60);
     const p = useApp.getState().profiles[0];
-    check('сундук открылся, награда применена', (p.daily?.chestsTotal ?? 0) === 1 && p.gems > before, '');
-    check('кнопка сундука исчезла', !btnText('Открыть сундук'), '');
-    check('сказано, что следующий — завтра', has('Следующий — завтра'), '');
+    check(
+      'сундук открылся и награда применена',
+      (p.daily?.chestsTotal ?? 0) === 1 && p.gems === before + 15 && p.daily?.lastChest?.gems === 15,
+      '',
+    );
+    check('в окне видна полная награда', has('Сундук БУКа открыт!') && has('+15'), '');
+    check('кнопка открытия исчезла', !btnText('Открыть сундук БУКа'), '');
+    check('сохранён чек награды', has('Награда получена') && has('Посмотреть награду'), '');
     check('счётчик сундуков дня стоит', p.daily?.chestsToday === 1, '');
+
+    // Закрываем окно и пробуем открыть ещё раз: награда не должна выдаваться дважды.
+    click(btnText('Отлично!'));
+    await sleep(40);
+    const afterClose = useApp.getState().profiles[0].gems;
+    check('окно награды закрывается, чек остаётся', !has('Сундук БУКа открыт!') && has('Награда получена'), '');
+    click(btnText('Посмотреть награду'));
+    await sleep(30);
+    check('чек можно открыть повторно', has('Сундук БУКа открыт!') && has('+15'), '');
+    click(btnText('Отлично!'));
+    await sleep(30);
+    check('повторное открытие не дублирует награду', useApp.getState().profiles[0].gems === afterClose, '');
   }
 
   // ── Картинки к словам (пункт 6) ───────────────────────────────────────────
