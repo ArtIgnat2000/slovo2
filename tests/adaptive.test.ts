@@ -97,3 +97,36 @@ import type { WordState } from '../src/types';
 }
 
 console.log('✓ риски scheduler §13: фразы, отложенные слова, порядок второго круга');
+
+// ── Предтестовый аудит: орфограммы 94 слов и подсветка ошибки робота ─────────
+import { makeTask, pickDanger } from '../src/engine/scheduler';
+import { findFixDiffIdx } from '../src/ui/TaskView';
+
+{
+  assert.equal(WORDS.length, 94, 'в словаре 94 слова 2 класса');
+  for (const w of WORDS) {
+    assert.ok(w.danger.length >= 1, `${w.text}: должна быть хотя бы одна опасная буква`);
+    assert.ok(!w.danger.includes(w.stress), `${w.text}: ударная буква не может быть в danger`);
+    const d = pickDanger(w);
+    assert.notEqual(d, w.stress, `${w.text}: pickDanger не должен возвращать ударную гласную`);
+    const gap = makeTask('gap', w.id, 'practice', d);
+    assert.notEqual(gap.dangerIdx, w.stress, `${w.text}: окошко не закрывает ударную гласную`);
+    assert.ok(gap.options?.includes(w.text[d]), `${w.text}: в вариантах окошка есть верная буква`);
+    const fix = makeTask('fix', w.id, 'practice', d);
+    assert.ok(fix.wrong && fix.wrong !== w.text, `${w.text}: робот должен сделать ошибку`);
+    const diffIdx = findFixDiffIdx(w.text, fix.wrong!);
+    assert.ok(diffIdx >= 0 && diffIdx < fix.wrong!.length, `${w.text}: индекс подсветки в пределах слова`);
+  }
+
+  // Удвоенные согласные в середине и на конце: подсвечивается оставшаяся парная согласная
+  assert.equal(findFixDiffIdx('Россия', 'Росия'), 2);
+  assert.equal('Росия'[findFixDiffIdx('Россия', 'Росия')], 'с');
+  assert.equal(findFixDiffIdx('русский', 'руский'), 2);
+  assert.equal('руский'[findFixDiffIdx('русский', 'руский')], 'с');
+  assert.equal(findFixDiffIdx('суббота', 'субота'), 2);
+  assert.equal('субота'[findFixDiffIdx('суббота', 'субота')], 'б');
+  assert.equal(findFixDiffIdx('класс', 'клас'), 3);
+  assert.equal('клас'[findFixDiffIdx('класс', 'клас')], 'с');
+}
+
+console.log('✓ предтестовый аудит: орфограммы 94 слов и подсветка в «Исправь робота»');

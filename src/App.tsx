@@ -43,15 +43,23 @@ function Toast() {
   );
 }
 
+/**
+ * Плавающий БУК для главных вкладок и экрана результатов урока.
+ * Подписка на useMascot изолирована здесь, чтобы смена эмоции/реплики
+ * не вызывала холостую перерисовку всего дерева App и карточек урока.
+ */
+export function FloatingMascot() {
+  const profile = useActiveProfile();
+  const mood = useMascot((s) => s.mood);
+  const message = useMascot((s) => s.message);
+  const look = useLook();
+  const stage = growthStage(masteredCount(profile)).index;
+  return <Mascot mood={mood} message={message} look={look} stage={stage} />;
+}
+
 export default function App() {
   const profile = useActiveProfile();
   const settings = useApp((s) => s.settings);
-  const mood = useMascot((s) => s.mood);
-  const message = useMascot((s) => s.message);
-  // Аксессуары, купленные в магазине: БУК носит их и в уроках, и на главной
-  const look = useLook();
-  // Ступень роста: считается по освоенным словам, поэтому БУК растёт вместе со знаниями
-  const stage = growthStage(masteredCount(profile)).index;
 
   const [tab, setTab] = useState<Tab>('home');
   const [lessonId, setLessonId] = useState<string | null>(null);
@@ -88,8 +96,9 @@ export default function App() {
   }, [settings.sound, settings.haptics]);
 
   useEffect(() => {
-    window.addEventListener('slovo2:update', () => setUpdateReady(true));
-    return () => window.removeEventListener('slovo2:update', () => setUpdateReady(true));
+    const onUpdate = () => setUpdateReady(true);
+    window.addEventListener('slovo2:update', onUpdate);
+    return () => window.removeEventListener('slovo2:update', onUpdate);
   }, []);
 
   if (!profile) {
@@ -101,8 +110,15 @@ export default function App() {
   }
 
   const startLesson = (id: string) => {
+    setParentUnlocked(false);
     setLessonGoal(settings.dailyGoal);
     setLessonId(id);
+  };
+
+  const switchTab = (next: Tab) => {
+    setProfilesOpen(false);
+    if (next !== 'parent') setParentUnlocked(false);
+    setTab(next);
   };
 
   if (lessonId) {
@@ -138,7 +154,10 @@ export default function App() {
           onStartLesson={startLesson}
           onOpenProfiles={() => setProfilesOpen(true)}
           onStartReview={() => startLesson('review')}
-          onOpenVlabs={() => setVlabsOpen(true)}
+          onOpenVlabs={() => {
+            setParentUnlocked(false);
+            setVlabsOpen(true);
+          }}
         />
       ) : tab === 'words' ? (
         <WordsScreen />
@@ -149,17 +168,18 @@ export default function App() {
           unlocked={parentUnlocked}
           onUnlock={() => setParentUnlocked(true)}
           onOpenProfiles={() => setProfilesOpen(true)}
-          onOpenVlabs={() => setVlabsOpen(true)}
+          onOpenVlabs={() => {
+            setParentUnlocked(false);
+            setVlabsOpen(true);
+          }}
         />
       )}
 
-      {!profilesOpen && tab !== 'shop' && (
-        <Mascot mood={mood} message={message} look={look} stage={stage} />
-      )}
+      {!profilesOpen && tab !== 'shop' && <FloatingMascot />}
       <Toast />
 
       {updateReady && (
-        <div className="footer-bar">
+        <div className="footer-bar" style={{ bottom: 'calc(64px + var(--safe-b))' }}>
           <div className="footer-inner">
             <div className="grow">
               <div className="verdict">Доступно обновление</div>
@@ -172,7 +192,7 @@ export default function App() {
         </div>
       )}
 
-      {installHint && (
+      {!updateReady && installHint && (
         <div className="footer-bar" style={{ bottom: 'calc(64px + var(--safe-b))' }}>
           <div className="footer-inner">
             <div className="grow">
@@ -187,19 +207,19 @@ export default function App() {
       )}
 
       <nav className="tabs">
-        <button className={`tab ${tab === 'home' ? 'on' : ''}`} onClick={() => setTab('home')}>
+        <button className={`tab ${!profilesOpen && tab === 'home' ? 'on' : ''}`} onClick={() => switchTab('home')}>
           <span className="ico">🗺️</span>
           Уроки
         </button>
-        <button className={`tab ${tab === 'words' ? 'on' : ''}`} onClick={() => setTab('words')}>
+        <button className={`tab ${!profilesOpen && tab === 'words' ? 'on' : ''}`} onClick={() => switchTab('words')}>
           <span className="ico">📖</span>
           Слова
         </button>
-        <button className={`tab ${tab === 'shop' ? 'on' : ''}`} onClick={() => setTab('shop')}>
+        <button className={`tab ${!profilesOpen && tab === 'shop' ? 'on' : ''}`} onClick={() => switchTab('shop')}>
           <span className="ico">🎩</span>
           БУК
         </button>
-        <button className={`tab ${tab === 'parent' ? 'on' : ''}`} onClick={() => setTab('parent')}>
+        <button className={`tab ${!profilesOpen && tab === 'parent' ? 'on' : ''}`} onClick={() => switchTab('parent')}>
           <span className="ico">👨‍👩‍👧</span>
           Родителям
         </button>

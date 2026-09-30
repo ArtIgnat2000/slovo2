@@ -6,8 +6,9 @@ import { LESSON_BY_ID, LESSONS, REVIEW, WORD_BY_ID, WORDS } from '../../content/
 import { buildLesson, DEFAULT_LESSON_SIZE, lessonCardLimit, makeTask, pickDanger, repairTask, shuffle } from '../../engine/scheduler';
 import { pickReview, pickReviewWords } from '../../engine/srs';
 import { dayKey, dayPlan, masteredCount, todayStat, useActiveProfile, useApp } from '../../state/store';
-import { claimableQuests, dayMetrics, questId } from '../../engine/quests';
+import { claimableQuests, dayMetrics, plural, questId } from '../../engine/quests';
 import { CHEER, PRAISE, pick, useMascot } from '../../state/mascot';
+import { FloatingMascot } from '../../App';
 import { TaskView } from '../TaskView';
 import { Bar, Confetti, ConfirmDialog, Ring, Stars } from '../Bits';
 import { WordLetters } from '../WordView';
@@ -77,14 +78,14 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
   const [xpShown, setXpShown] = useState(0);
   const [askExit, setAskExit] = useState(false);
 
-  // Отмечаем «сегодня занимались» после монтирования, а не во время рендера:
-  // запись в стор во время рендера — это setState чужого компонента (React ругается)
-  useEffect(() => {
+  // Отмечаем «сегодня занимались» только при первом реальном действии в уроке,
+  // чтобы случайный вход в урок и мгновенное нажатие ✕ не тратили заморозку
+  // и не продлевали серию дней без единого ответа.
+  const ensureTouchedToday = () => {
     if (started.current) return;
     started.current = true;
     touchDay();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  };
 
   const task = queue[index];
   const total = baseTotal;
@@ -103,6 +104,7 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
   const onSolve = (quality: number | null) => {
     if (!task || finalized.current || solvedTasks.current.has(task.uid)) return;
     solvedTasks.current.add(task.uid);
+    ensureTouchedToday();
     if (quality !== null) recordAttempt(observed.current, attempts.current, task.uid, task.reason === 'repair', quality);
     if (quality === null) {
       setVerdict(null);
@@ -156,6 +158,7 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
 
   const finish = () => {
     if (finalized.current) return;
+    ensureTouchedToday();
     finalizeAdaptive('finish');
     const { correct, wrong } = stats.current;
     const answered = correct + wrong;
@@ -183,17 +186,17 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
       say('think', 'Попробуем ещё раз?');
     }
 
-    if (profile) {
+    const fresh = useApp.getState().profiles.find((p) => p.id === profile?.id) ?? profile;
+    if (fresh) {
       const ctx = {
-        streak: profile.streak,
-        xp: profile.xp + stats.current.xp,
-        mastered: masteredCount(profile),
-        lessonsDone: Object.values(profile.lessons).reduce((a, l) => a + l.plays, 0) + 1,
-        perfectLessons:
-          Object.values(profile.lessons).filter((l) => l.best >= 100).length + (stars === 3 ? 1 : 0),
-        wordsTrained: Object.keys(profile.words).length,
+        streak: fresh.streak,
+        xp: fresh.xp,
+        mastered: masteredCount(fresh),
+        lessonsDone: Object.values(fresh.lessons).reduce((a, l) => a + l.plays, 0),
+        perfectLessons: Object.values(fresh.lessons).filter((l) => l.best >= 100).length,
+        wordsTrained: Object.keys(fresh.words).length,
       };
-      checkAchievements(ctx, profile.achievements).forEach(grantAchievement);
+      checkAchievements(ctx, fresh.achievements).forEach(grantAchievement);
     }
     // Задания дня могли закрыться прямо этим уроком — зовём забрать награду
     const after = claimableToday(useApp.getState().profiles.find((p) => p.id === profile?.id) ?? null);
@@ -220,6 +223,7 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
           xpBefore={xpBefore}
           onHome={onExit}
         />
+        <FloatingMascot />
       </>
     );
   }
@@ -278,7 +282,10 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
       </div>
 
       <TaskView key={task.uid} task={task} word={word} onSolve={onSolve} onAttempt={(quality) => {
-        if (!finalized.current) recordAttempt(observed.current, attempts.current, task.uid, task.reason === 'repair', quality);
+        if (!finalized.current) {
+          ensureTouchedToday();
+          recordAttempt(observed.current, attempts.current, task.uid, task.reason === 'repair', quality);
+        }
       }} />
 
       {verdict && (
@@ -381,7 +388,9 @@ function Results({
           {profile && wrong > 0 && (
             <div className="kv">
               <span>Вернёмся к ним завтра</span>
-              <b>{wrong} слов</b>
+              <b>
+                {wrong} {plural(wrong, 'слово', 'слова', 'слов')}
+              </b>
             </div>
           )}
         </div>

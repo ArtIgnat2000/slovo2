@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
-import type { Chest } from '../engine/quests';
+import { plural, type Chest } from '../engine/quests';
 import { haptic } from '../platform/haptics';
 import { sfx } from '../platform/sound';
 import { ChestIllustration, KeySymbol } from './ChestArt';
@@ -54,7 +54,11 @@ function ExtraRewards({ reward }: { reward: Chest }) {
   return (
     <div className="ceremony-extra-rewards">
       {reward.xp > 0 && <span>⚡ +{reward.xp} XP</span>}
-      {reward.freezes > 0 && <span>🧊 +{reward.freezes} заморозка</span>}
+      {reward.freezes > 0 && (
+        <span>
+          🧊 +{reward.freezes} {plural(reward.freezes, 'заморозка', 'заморозки', 'заморозок')}
+        </span>
+      )}
     </div>
   );
 }
@@ -171,7 +175,7 @@ export function ChestCelebration({ reward, balance, look, stage, learnerName, ce
 
   const skip = () => {
     clearSequenceTimers();
-    if (celebrate && sequenceStartedRef.current && !feedbackPlayedRef.current) playUnlockFeedback();
+    feedbackPlayedRef.current = true;
     setDisplayBalance(balance);
     setPhase('final');
   };
@@ -267,7 +271,8 @@ export function ChestCelebration({ reward, balance, look, stage, learnerName, ce
               <GemIcon />
             </div>
             <div className="chest-ceremony-balance">
-              Теперь у тебя <strong>{displayBalance.toLocaleString('ru-RU')}</strong> кристаллов
+              Теперь у тебя <strong>{displayBalance.toLocaleString('ru-RU')}</strong>{' '}
+              {plural(displayBalance, 'кристалл', 'кристалла', 'кристаллов')}
             </div>
             <ExtraRewards reward={reward} />
           </div>
@@ -294,7 +299,7 @@ export function ChestCelebration({ reward, balance, look, stage, learnerName, ce
             ? `Все три ключа готовы${firstName ? `, ${firstName}` : ''}. Нажми «Повернуть ключи», чтобы открыть сундук.`
             : introducing
               ? 'Ключи поворачиваются, БУК открывает сундук.'
-              : `Сундук открыт. Получено ${gems} кристаллов. Теперь у тебя ${balance} кристаллов.`}
+              : `Сундук открыт. Получено ${gems} ${plural(gems, 'кристалл', 'кристалла', 'кристаллов')}. Теперь у тебя ${balance} ${plural(balance, 'кристалл', 'кристалла', 'кристаллов')}.`}
         </div>
       </section>
     </div>

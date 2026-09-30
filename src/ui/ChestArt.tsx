@@ -1,5 +1,23 @@
+import { useState } from 'react';
+
 interface KeySymbolProps {
   lit?: boolean;
+}
+
+const prewarmedChestUrls = new Set<string>();
+
+/** Предзагрузка спрайтов сундука до открытия торжественной сцены. */
+export function prewarmChestArt(): void {
+  if (typeof Image === 'undefined') return;
+  const base = import.meta.env.BASE_URL;
+  for (const file of ['illustrations/chest-closed.webp', 'illustrations/chest-open.webp']) {
+    const url = `${base}${file}`;
+    if (prewarmedChestUrls.has(url)) continue;
+    prewarmedChestUrls.add(url);
+    const img = new Image();
+    img.decoding = 'async';
+    img.src = url;
+  }
 }
 
 /** Небольшой векторный ключ — одинаково выглядит на iOS, Android и в офлайне. */
@@ -48,6 +66,7 @@ export function ChestGlyph({ state }: { state: ChestGlyphState }) {
 /** Иллюстрация сундука БУКа. Открытая и закрытая версии — локальные WebP-спрайты. */
 export function ChestIllustration() {
   const base = import.meta.env.BASE_URL;
+  const [imgFailed, setImgFailed] = useState(false);
   return (
     <div
       className="chest-illustration"
@@ -55,18 +74,31 @@ export function ChestIllustration() {
       aria-label="Бирюзовый сундук с золотой отделкой; внутри сияют разноцветные кристаллы"
     >
       <div className="chest-aura" aria-hidden="true" />
-      <img
-        className="chest-art-image chest-art-closed"
-        src={`${base}illustrations/chest-closed.webp`}
-        alt=""
-        draggable={false}
-      />
-      <img
-        className="chest-art-image chest-art-open"
-        src={`${base}illustrations/chest-open.webp`}
-        alt=""
-        draggable={false}
-      />
+      {imgFailed ? (
+        <div
+          className="chest-art-image chest-art-open"
+          style={{ display: 'grid', placeItems: 'center', opacity: 1, transform: 'scale(1)' }}
+        >
+          <ChestGlyph state="opened" />
+        </div>
+      ) : (
+        <>
+          <img
+            className="chest-art-image chest-art-closed"
+            src={`${base}illustrations/chest-closed.webp`}
+            alt=""
+            draggable={false}
+            onError={() => setImgFailed(true)}
+          />
+          <img
+            className="chest-art-image chest-art-open"
+            src={`${base}illustrations/chest-open.webp`}
+            alt=""
+            draggable={false}
+            onError={() => setImgFailed(true)}
+          />
+        </>
+      )}
       <svg className="chest-art-keys" viewBox="0 0 900 900" aria-hidden="true" focusable="false">
         {/* Три ключа прилетают к замкам, соответствующим трём выполненным заданиям. */}
         <g transform="translate(462 408)">

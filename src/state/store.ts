@@ -93,6 +93,56 @@ function newProfile(name: string, avatar: string): Profile {
   };
 }
 
+function normalizeProfile(raw: Partial<Profile> | null | undefined): Profile | null {
+  if (!raw || typeof raw !== 'object' || typeof raw.id !== 'string' || !raw.id.trim()) return null;
+  const base = newProfile(
+    typeof raw.name === 'string' && raw.name.trim() ? raw.name.trim() : 'Ученик',
+    typeof raw.avatar === 'string' && raw.avatar.trim() ? raw.avatar : '🦊',
+  );
+  return {
+    ...base,
+    ...raw,
+    id: raw.id,
+    name: base.name,
+    avatar: base.avatar,
+    createdAt: typeof raw.createdAt === 'number' && Number.isFinite(raw.createdAt) ? raw.createdAt : base.createdAt,
+    xp: typeof raw.xp === 'number' && Number.isFinite(raw.xp) && raw.xp >= 0 ? raw.xp : 0,
+    gems: typeof raw.gems === 'number' && Number.isFinite(raw.gems) && raw.gems >= 0 ? raw.gems : 0,
+    streak: typeof raw.streak === 'number' && Number.isFinite(raw.streak) && raw.streak >= 0 ? raw.streak : 0,
+    lastDay: typeof raw.lastDay === 'string' ? raw.lastDay : '',
+    freezes: typeof raw.freezes === 'number' && Number.isFinite(raw.freezes) && raw.freezes >= 0 ? raw.freezes : 0,
+    words: raw.words && typeof raw.words === 'object' ? raw.words : {},
+    lessons: raw.lessons && typeof raw.lessons === 'object' ? raw.lessons : {},
+    errors: raw.errors && typeof raw.errors === 'object' ? raw.errors : {},
+    days: raw.days && typeof raw.days === 'object' ? raw.days : {},
+    achievements: Array.isArray(raw.achievements) ? raw.achievements.filter((a): a is string => typeof a === 'string') : [],
+    lessonSize:
+      raw.lessonSize === 'short' || raw.lessonSize === 'standard' || raw.lessonSize === 'full'
+        ? raw.lessonSize
+        : DEFAULT_LESSON_SIZE,
+    shop: {
+      owned: Array.isArray(raw.shop?.owned) ? raw.shop.owned.filter((x): x is string => typeof x === 'string') : [],
+      equipped: raw.shop?.equipped && typeof raw.shop.equipped === 'object' ? raw.shop.equipped : {},
+    },
+  };
+}
+
+function normalizeSettings(raw: Partial<Settings> | null | undefined): Settings {
+  if (!raw || typeof raw !== 'object') return DEFAULT_SETTINGS;
+  return {
+    sound: typeof raw.sound === 'boolean' ? raw.sound : DEFAULT_SETTINGS.sound,
+    haptics: typeof raw.haptics === 'boolean' ? raw.haptics : DEFAULT_SETTINGS.haptics,
+    dailyGoal:
+      typeof raw.dailyGoal === 'number' && Number.isFinite(raw.dailyGoal) && raw.dailyGoal > 0
+        ? raw.dailyGoal
+        : DEFAULT_SETTINGS.dailyGoal,
+    theme:
+      raw.theme === 'auto' || raw.theme === 'light' || raw.theme === 'dark'
+        ? raw.theme
+        : DEFAULT_SETTINGS.theme,
+  };
+}
+
 interface AppState {
   profiles: Profile[];
   activeId: string | null;
@@ -185,7 +235,9 @@ export const useApp = create<AppState>()(
               streak = 1;
             }
             if (streak > 0 && streak % 7 === 0) freezes += 1;
-            return { ...p, streak, freezes, lastDay: today };
+            const streakBonusGems =
+              streak > p.streak && streak % GEMS_PER_STREAK === 0 ? 1 : 0;
+            return { ...p, streak, freezes, gems: p.gems + streakBonusGems, lastDay: today };
           }),
         ),
 
@@ -246,14 +298,10 @@ export const useApp = create<AppState>()(
           patchActive(s, (p) => {
             const today = dayKey();
             const day = readDay(p, today);
-            const streakBefore = Math.floor(p.streak / GEMS_PER_STREAK);
-            const xp = p.xp + n;
-            const streakAfter = Math.floor(p.streak / GEMS_PER_STREAK);
             return {
               ...p,
-              xp,
+              xp: p.xp + n,
               days: { ...p.days, [today]: { ...day, xp: day.xp + n } },
-              gems: p.gems + Math.max(0, streakAfter - streakBefore),
             };
           }),
         ),
@@ -379,7 +427,18 @@ export const useApp = create<AppState>()(
           ),
         })),
 
-      replaceAll: (data) => set(data),
+      replaceAll: (data) =>
+        set(() => {
+          const profiles = Array.isArray(data?.profiles)
+            ? data.profiles.map((p) => normalizeProfile(p)).filter((p): p is Profile => p !== null)
+            : [];
+          const activeId =
+            typeof data?.activeId === 'string' && profiles.some((p) => p.id === data.activeId)
+              ? data.activeId
+              : (profiles[0]?.id ?? null);
+          const settings = normalizeSettings(data?.settings);
+          return { profiles, activeId, settings, toast: null };
+        }),
 
       setSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
 
@@ -397,6 +456,11 @@ export const useApp = create<AppState>()(
       name: 'slovo2',
       version: 1,
       storage: createJSONStorage(() => idbStorage),
+      partialize: (s) => ({
+        profiles: s.profiles,
+        activeId: s.activeId,
+        settings: s.settings,
+      }),
     },
   ),
 );

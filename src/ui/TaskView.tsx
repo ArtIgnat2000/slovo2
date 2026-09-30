@@ -21,15 +21,15 @@ export function TaskView({ task, word, onSolve, onAttempt }: Props) {
     case 'syllables':
       return <Syllables word={word} onSolve={onSolve} />;
     case 'gap':
-      return <Gap word={word} task={task} onSolve={onSolve} />;
+      return <Gap word={word} task={task} onSolve={onSolve} onAttempt={onAttempt} />;
     case 'build':
       return <Build word={word} task={task} onSolve={onSolve} onAttempt={onAttempt} />;
     case 'write':
-      return <Write word={word} task={task} onSolve={onSolve} />;
+      return <Write word={word} task={task} onSolve={onSolve} onAttempt={onAttempt} />;
     case 'visual':
-      return <Visual word={word} task={task} onSolve={onSolve} />;
+      return <Visual word={word} task={task} onSolve={onSolve} onAttempt={onAttempt} />;
     case 'fix':
-      return <Fix word={word} task={task} onSolve={onSolve} />;
+      return <Fix word={word} task={task} onSolve={onSolve} onAttempt={onAttempt} />;
     default:
       return null;
   }
@@ -156,7 +156,7 @@ function Syllables({ word, onSolve }: { word: Word; onSolve: SolveFn }) {
 
 // ── 3. Окошко ───────────────────────────────────────────────────────────────
 
-function Gap({ word, task, onSolve }: { word: Word; task: Task; onSolve: SolveFn }) {
+function Gap({ word, task, onSolve, onAttempt }: Props) {
   const later = useTaskTimeout();
   const [chosen, setChosen] = useState<string | null>(null);
   const [hintUsed, setHintUsed] = useState(false);
@@ -167,6 +167,8 @@ function Gap({ word, task, onSolve }: { word: Word; task: Task; onSolve: SolveFn
     if (chosen) return;
     setChosen(l);
     const ok = l === correct;
+    const quality = ok ? (hintUsed ? 3 : 5) : 0;
+    onAttempt?.(quality);
     sfx.tap();
     if (ok) {
       sfx.correct();
@@ -175,7 +177,7 @@ function Gap({ word, task, onSolve }: { word: Word; task: Task; onSolve: SolveFn
       sfx.wrong();
       haptic.wrong();
     }
-    later(() => onSolve(ok ? (hintUsed ? 3 : 5) : 0, l), ok ? 700 : 1200);
+    later(() => onSolve(quality, l), ok ? 700 : 1200);
   };
 
   /** Подсказка «50:50» — как в телевикторине: убираем две неверные буквы. */
@@ -326,7 +328,7 @@ function Build({ word, task, onSolve, onAttempt }: Props) {
 
 // ── 5. Напиши слово по памяти ───────────────────────────────────────────────
 
-function Write({ word, task, onSolve }: { word: Word; task: Task; onSolve: SolveFn }) {
+function Write({ word, task, onSolve, onAttempt }: Props) {
   const later = useTaskTimeout();
   const [val, setVal] = useState('');
   const [state, setState] = useState<'idle' | 'ok' | 'bad'>('idle');
@@ -341,6 +343,8 @@ function Write({ word, task, onSolve }: { word: Word; task: Task; onSolve: Solve
 
   const check = () => {
     const ok = val.trim().toLowerCase() === word.text.toLowerCase();
+    const quality = ok ? (hintUsed ? 3 : 5) : 0;
+    onAttempt?.(quality);
     setState(ok ? 'ok' : 'bad');
     if (ok) {
       sfx.correct();
@@ -349,7 +353,7 @@ function Write({ word, task, onSolve }: { word: Word; task: Task; onSolve: Solve
       sfx.wrong();
       haptic.wrong();
     }
-    later(() => onSolve(ok ? (hintUsed ? 3 : 5) : 0, val.trim()), ok ? 700 : 1300);
+    later(() => onSolve(quality, val.trim()), ok ? 700 : 1300);
   };
 
   const hideAll = word.text.split('').map((_, i) => i).filter((i) => i !== task.dangerIdx);
@@ -383,7 +387,7 @@ function Write({ word, task, onSolve }: { word: Word; task: Task; onSolve: Solve
 
 // ── 6. Зрительный диктант ───────────────────────────────────────────────────
 
-function Visual({ word, task, onSolve }: { word: Word; task: Task; onSolve: SolveFn }) {
+function Visual({ word, task, onSolve, onAttempt }: Props) {
   const later = useTaskTimeout();
   const ms = task.showMs ?? 2600;
   const [phase, setPhase] = useState<'show' | 'type'>('show');
@@ -424,6 +428,8 @@ function Visual({ word, task, onSolve }: { word: Word; task: Task; onSolve: Solv
 
   const check = () => {
     const ok = val.trim().toLowerCase() === word.text.toLowerCase();
+    const quality = ok ? (hintUsed ? 3 : 5) : 0;
+    onAttempt?.(quality);
     setState(ok ? 'ok' : 'bad');
     if (ok) {
       sfx.correct();
@@ -432,7 +438,7 @@ function Visual({ word, task, onSolve }: { word: Word; task: Task; onSolve: Solv
       sfx.wrong();
       haptic.wrong();
     }
-    later(() => onSolve(ok ? (hintUsed ? 3 : 5) : 0, val.trim()), ok ? 700 : 1300);
+    later(() => onSolve(quality, val.trim()), ok ? 700 : 1300);
   };
 
   if (phase === 'show') {
@@ -489,19 +495,32 @@ function Visual({ word, task, onSolve }: { word: Word; task: Task; onSolve: Solv
 
 // ── 7. Исправь робота ───────────────────────────────────────────────────────
 
-function Fix({ word, task, onSolve }: { word: Word; task: Task; onSolve: SolveFn }) {
+/** Индекс буквы в слове с ошибкой, которую нужно подсветить красным. */
+export function findFixDiffIdx(wordText: string, wrong: string): number {
+  const rawDiff = wrong.split('').findIndex((c, i) => c !== wordText[i]);
+  // Если робот потерял удвоенную согласную («Росия», «руский», «субота», «клас»),
+  // подсвечиваем оставшуюся парную согласную, а не следующую за ней букву.
+  const droppedDouble =
+    wrong.length < wordText.length && rawDiff > 0 && wordText[rawDiff] === wordText[rawDiff - 1];
+  return Math.min(
+    rawDiff === -1 ? wrong.length - 1 : droppedDouble ? rawDiff - 1 : rawDiff,
+    wrong.length - 1,
+  );
+}
+
+function Fix({ word, task, onSolve, onAttempt }: Props) {
   const later = useTaskTimeout();
   const [chosen, setChosen] = useState<string | null>(null);
   const [hintUsed, setHintUsed] = useState(false);
   const wrong = task.wrong ?? word.text;
-  // если робот потерял букву («клас» вместо «класс»), подсвечиваем последнюю оставшуюся
-  const rawDiff = wrong.split('').findIndex((c, i) => c !== word.text[i]);
-  const diffIdx = Math.min(rawDiff === -1 ? wrong.length - 1 : rawDiff, wrong.length - 1);
+  const diffIdx = findFixDiffIdx(word.text, wrong);
 
   const pick = (v: string) => {
     if (chosen) return;
     setChosen(v);
     const ok = v === word.text;
+    const quality = ok ? (hintUsed ? 3 : 5) : 0;
+    onAttempt?.(quality);
     sfx.tap();
     if (ok) {
       sfx.correct();
@@ -510,7 +529,7 @@ function Fix({ word, task, onSolve }: { word: Word; task: Task; onSolve: SolveFn
       sfx.wrong();
       haptic.wrong();
     }
-    later(() => onSolve(ok ? (hintUsed ? 3 : 5) : 0, v), ok ? 700 : 1200);
+    later(() => onSolve(quality, v), ok ? 700 : 1200);
   };
 
   return (

@@ -56,7 +56,7 @@ export default defineConfig(({ command }) => ({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       base: buildBase,
       includeAssets: ['icons/*.png', 'icons/*.svg'],
       manifest: {
@@ -83,7 +83,6 @@ export default defineConfig(({ command }) => ({
         globPatterns: ['**/*.{js,css,html,png,svg,webp,webmanifest}'],
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,
-        clientsClaim: true,
       },
       devOptions: { enabled: false },
     }),

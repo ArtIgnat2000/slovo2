@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '../../state/store';
+import { ConfirmDialog } from '../Bits';
 
 const AVATARS = ['🦊', '🐱', '🐼', '🦉', '🐸', '🦄', '🐨', '🐯', '🐙', '🦖'];
 
@@ -8,6 +9,7 @@ export function ProfilesScreen({ onClose }: { onClose?: () => void }) {
   const [name, setName] = useState('');
   const [avatar, setAvatar] = useState(AVATARS[0]);
   const [editing, setEditing] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
 
   const create = () => {
     const n = name.trim();
@@ -38,9 +40,8 @@ export function ProfilesScreen({ onClose }: { onClose?: () => void }) {
               </button>
               <button
                 className="chip"
-                onClick={() => {
-                  if (confirm(`Удалить профиль ${p.name} и весь его прогресс?`)) deleteProfile(p.id);
-                }}
+                aria-label={`Удалить профиль ${p.name}`}
+                onClick={() => setConfirmDelete({ id: p.id, name: p.name })}
               >
                 🗑
               </button>
@@ -93,6 +94,25 @@ export function ProfilesScreen({ onClose }: { onClose?: () => void }) {
         <button className="btn ghost wide mt" onClick={onClose}>
           Закрыть
         </button>
+      )}
+
+      {confirmDelete && (
+        <ConfirmDialog
+          emoji="🧸"
+          title={`Удалить профиль «${confirmDelete.name}»?`}
+          text="Весь прогресс, серия и кристаллы этого ученика будут удалены."
+          stayLabel="Оставить профиль"
+          leaveLabel="Удалить профиль"
+          onStay={() => setConfirmDelete(null)}
+          onLeave={() => {
+            if (editing === confirmDelete.id) {
+              setEditing(null);
+              setName('');
+            }
+            deleteProfile(confirmDelete.id);
+            setConfirmDelete(null);
+          }}
+        />
       )}
     </div>
   );
