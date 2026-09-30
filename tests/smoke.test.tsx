@@ -12,6 +12,7 @@ import { runAdaptiveUiChecks } from './adaptive-ui.test';
 import { runQuestUiChecks } from './quests-ui.test';
 import { runInstallHintChecks } from './install-hint.test';
 import { runChestCeremonyChecks } from './chest-ceremony-ui.test';
+import { runPretestAuditChecks } from './pretest-audit.test';
 import { LESSONS, WORDS } from '../src/content/words';
 import { buildLesson, lessonCardLimit } from '../src/engine/scheduler';
 import { dayKey, dayPlan, useApp } from '../src/state/store';
@@ -284,6 +285,8 @@ async function main() {
   const run = await playLesson();
   check('диалог «Выйти из урока?» показан, урок продолжился', run.sawDialog, '');
   check('экрана результатов достигли', run.reachedResults, `ответов с вердиктом: ${run.verdicts}`);
+  check('на экране результатов виден плавающий БУК', document.querySelectorAll('.app > .mascot').length === 1, '');
+  check('склонение слов на экране результатов («1 слово»)', has('1 слово'), body().slice(0, 220));
   check('ошибка в уроке засчитана (вердикт «Ошибка» видели)', run.madeMistake, `вердиктов: ${run.verdicts}`);
   check('задания-отработки после ошибок встречались', run.repairBadges > 0, '');
   check('на отработке счётчик уступает место пометке «ещё раз»', run.counterHiddenOnRepair, '');
@@ -324,7 +327,7 @@ async function main() {
   }
   const gemsAfter = useApp.getState().profiles[0].gems;
   check(`награда за задания забрана (${claims} шт., 💎 ${gemsBefore} → ${gemsAfter})`, gemsAfter > gemsBefore, '');
-  check('тост о награде показан', has('кристаллов'), '');
+  check('тост о награде показан', has('кристалл'), '');
 
   check('собраны все три ключа', has('Ключи: 3 из 3'), '');
   const chest = btnText('Открыть сундук БУКа');
@@ -532,6 +535,9 @@ async function main() {
   // Идут последними: блок сам управляет активным профилем, бюджетом и потолком,
   // поэтому не должен менять состояние под предыдущие сценарии.
   await runAdaptiveUiChecks();
+
+  // ── Предтестовый аудит: UX, навигация, серия и обновления ─────────────────
+  await runPretestAuditChecks();
 
   const failures = failureCount();
   console.log(failures ? `\n✗ ошибок: ${failures}` : '\n✓ все проверки пройдены');

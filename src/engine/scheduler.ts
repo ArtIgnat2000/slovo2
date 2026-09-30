@@ -75,7 +75,11 @@ function dangerWeight(w: Word, idx: number): number {
  * в «ученик» — безударную Е, а не очевидную У; в «класс» — двойную С.
  */
 export function pickDanger(w: Word): number {
-  if (!w.danger.length) return Math.floor(w.text.length / 2);
+  if (!w.danger.length) {
+    const mid = Math.floor(w.text.length / 2);
+    if (mid !== w.stress) return mid;
+    return mid > 0 ? mid - 1 : Math.min(w.text.length - 1, mid + 1);
+  }
   const sorted = [...w.danger].sort((a, b) => dangerWeight(w, a) - dangerWeight(w, b));
   const best = dangerWeight(w, sorted[0]);
   const top = sorted.filter((i) => dangerWeight(w, i) === best);

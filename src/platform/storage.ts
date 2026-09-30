@@ -8,12 +8,21 @@ import type { StateStorage } from 'zustand/middleware';
 const DB_NAME = 'slovo2';
 const STORE = 'kv';
 
-const dbPromise = () =>
-  openDB(DB_NAME, 1, {
-    upgrade(db) {
-      if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE);
-    },
-  });
+let cachedDbPromise: ReturnType<typeof openDB> | null = null;
+
+const dbPromise = () => {
+  if (!cachedDbPromise) {
+    cachedDbPromise = openDB(DB_NAME, 1, {
+      upgrade(db) {
+        if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE);
+      },
+    }).catch((err) => {
+      cachedDbPromise = null;
+      throw err;
+    });
+  }
+  return cachedDbPromise;
+};
 
 export const idbStorage: StateStorage = {
   async getItem(name) {

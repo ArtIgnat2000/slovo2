@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { masteredCount, useActiveProfile, useApp, useLook } from '../../state/store';
+import { plural } from '../../engine/quests';
 import {
   SHOP_ITEMS,
   SLOT_TITLE,
@@ -98,8 +99,8 @@ export function ShopScreen() {
           <div className="tiny">{growth.desc}</div>
           <div className="tiny" style={{ marginTop: 4 }}>
             {growth.nextAt
-              ? `Освоено ${mastered} слов · до ступени выше ${growth.nextAt - mastered}`
-              : `Освоено ${mastered} слов — самая высокая ступень ✨`}
+              ? `Освоено ${mastered} ${plural(mastered, 'слово', 'слова', 'слов')} · до ступени выше ${growth.nextAt - mastered}`
+              : `Освоено ${mastered} ${plural(mastered, 'слово', 'слова', 'слов')} — самая высокая ступень ✨`}
           </div>
           <div className="tiny" style={{ marginTop: 4 }}>
             {next

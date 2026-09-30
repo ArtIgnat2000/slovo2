@@ -5,6 +5,7 @@ import {
   allQuestsDone,
   dayMetrics,
   planOf,
+  plural,
   questId,
   questProgress,
   questTitle,
@@ -14,7 +15,7 @@ import {
 } from '../engine/quests';
 import { Bar } from './Bits';
 import { ChestCelebration } from './ChestCelebration';
-import { ChestGlyph, KeySymbol } from './ChestArt';
+import { ChestGlyph, KeySymbol, prewarmChestArt } from './ChestArt';
 import { growthStage } from '../engine/shop';
 import { sfx } from '../platform/sound';
 import { haptic } from '../platform/haptics';
@@ -76,7 +77,11 @@ function ChestRewards({ reward }: { reward: Chest }) {
     <div className="chest-rewards" aria-label="Награда сундука">
       {reward.gems > 0 && <span className="chest-reward">💎 +{reward.gems}</span>}
       {reward.xp > 0 && <span className="chest-reward">⚡ +{reward.xp} XP</span>}
-      {reward.freezes > 0 && <span className="chest-reward">🧊 +{reward.freezes} заморозка</span>}
+      {reward.freezes > 0 && (
+        <span className="chest-reward">
+          🧊 +{reward.freezes} {plural(reward.freezes, 'заморозка', 'заморозки', 'заморозок')}
+        </span>
+      )}
     </div>
   );
 }
@@ -109,27 +114,35 @@ export function DailyQuests({ onStart }: Props) {
   const [chest, setChest] = useState<ChestView | null>(null);
   const receiptButtonRef = useRef<HTMLButtonElement>(null);
 
-  if (!profile) return null;
-
   const day = dayKey();
-  const plan = planOf(profile, day);
+  const plan = profile ? planOf(profile, day) : [];
   const quests = dayPlan(profile);
-  const st = profile.daily && profile.daily.day === day ? profile.daily : null;
+  const st = profile?.daily && profile.daily.day === day ? profile.daily : null;
   const claimed = st?.claimed ?? [];
   const chestsToday = st?.chestsToday ?? 0;
-  const metrics = dayMetrics(profile.days[day]);
+  const metrics = dayMetrics(profile?.days[day]);
   const items = quests.map((q) => ({ ...questProgress(q.spec, q.target, metrics), id: questId(day, q.spec.kind), target: q.target }));
   const doneCount = items.filter((i) => i.done).length;
-  const all = allQuestsDone(plan, metrics);
+  const all = profile ? allQuestsDone(plan, metrics) : false;
   const chestReady = all && chestsToday === 0;
   const chestOpened = chestsToday > 0;
   const storedReward = st?.lastChest;
+
+  useEffect(() => {
+    if (doneCount >= 2 || chestReady || chestOpened) prewarmChestArt();
+  }, [doneCount, chestReady, chestOpened]);
+
+  if (!profile) return null;
 
   const claim = (id: string, gems: number) => {
     sfx.correct();
     haptic.correct();
     claimQuest(id, gems);
-    showToast({ emoji: '💎', title: `+${gems} кристаллов`, text: 'Награда за задание дня' });
+    showToast({
+      emoji: '💎',
+      title: `+${gems} ${plural(gems, 'кристалл', 'кристалла', 'кристаллов')}`,
+      text: 'Награда за задание дня',
+    });
   };
 
   const takeChest = () => {
