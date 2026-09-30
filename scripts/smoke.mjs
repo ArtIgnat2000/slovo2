@@ -39,6 +39,7 @@ await build({
   // Vite подставляет import.meta.env; в тесте задаём то же самое руками
   define: {
     'import.meta.env.BASE_URL': '"/"',
+    'import.meta.env.DEV': 'true',
     'import.meta.env.VITE_APP_VERSION': '"test"',
     'import.meta.env.VITE_BUILD_SHA': '"test"',
   },

@@ -56,6 +56,7 @@ await build({
   define: {
     'process.env.NODE_ENV': '"production"',
     'import.meta.env.BASE_URL': '"/slovo2/"',
+    'import.meta.env.DEV': 'false',
     'import.meta.env.VITE_APP_VERSION': '"boot-check"',
     'import.meta.env.VITE_BUILD_SHA': '"boot-check"',
   },
