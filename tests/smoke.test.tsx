@@ -11,6 +11,7 @@ import { body, btn, btnText, buttons, check, click, currentWord, failureCount, h
 import { runAdaptiveUiChecks } from './adaptive-ui.test';
 import { runQuestUiChecks } from './quests-ui.test';
 import { runInstallHintChecks } from './install-hint.test';
+import { runChestCeremonyChecks } from './chest-ceremony-ui.test';
 import { LESSONS, WORDS } from '../src/content/words';
 import { buildLesson, lessonCardLimit } from '../src/engine/scheduler';
 import { dayKey, dayPlan, useApp } from '../src/state/store';
@@ -234,6 +235,14 @@ async function main() {
 
   check('профиль создан, показана главная', has('Цель дня') && has('Задания дня'), body().slice(0, 200));
   check('размер урока по умолчанию короткий', useApp.getState().profiles[0].lessonSize === 'short', '');
+
+  check(
+    'тестовый предпросмотр сундука удалён перед релизом',
+    !buttons().some((button) => (button.textContent ?? '').includes('· тест')) &&
+      !has('Предпросмотр сцены') &&
+      !has('Тестовая сцена'),
+    body().slice(-220),
+  );
   const profileForSchedule = useApp.getState().profiles[0];
   const scheduleCounts = (['short', 'standard', 'full'] as const).map((size) =>
     buildLesson({
@@ -330,22 +339,42 @@ async function main() {
       (p.daily?.chestsTotal ?? 0) === 1 && p.gems === before + 15 && p.daily?.lastChest?.gems === 15,
       '',
     );
-    check('в окне видна полная награда', has('Сундук БУКа открыт!') && has('+15'), '');
-    check('кнопка открытия исчезла', !btnText('Открыть сундук БУКа'), '');
-    check('сохранён чек награды', has('Награда получена') && has('Посмотреть награду'), '');
+    check(
+      'открылась сцена праздника трёх ключей с полной наградой',
+      has('ПРАЗДНИК ТРЁХ КЛЮЧЕЙ') && has('Повернуть ключи!') && has('+15'),
+      body().slice(-280),
+    );
+    check('БУК обращается к ребёнку по имени', has('Тест, жми!'), body().slice(-220));
+    click(btnText('Повернуть ключи!'));
+    await sleep(30);
+    check('действие ребёнка запускает сцену открытия', !!document.querySelector('.chest-ceremony.is-showing'), '');
+    check('кнопка открытия исчезла после фиксации награды', !btnText('Открыть сундук БУКа'), '');
+    check('сохранён постоянный чек награды', has('Награда получена') && has('Посмотреть награду'), '');
     check('счётчик сундуков дня стоит', p.daily?.chestsToday === 1, '');
 
-    // Закрываем окно и пробуем открыть ещё раз: награда не должна выдаваться дважды.
-    click(btnText('Отлично!'));
+    // Шоу можно закончить сразу; награда уже применена и пропуск не меняет баланс.
+    click(btnText('Пропустить'));
+    await sleep(30);
+    check('пропуск сразу показывает итог и действие', has('Сундук открыт!') && has('Здорово!'), body().slice(-220));
+    click(btnText('Здорово!'));
     await sleep(40);
     const afterClose = useApp.getState().profiles[0].gems;
-    check('окно награды закрывается, чек остаётся', !has('Сундук БУКа открыт!') && has('Награда получена'), '');
+    check('окно закрывается, постоянный чек остаётся', !has('Сундук открыт!') && has('Награда получена'), '');
+    check(
+      'после закрытия фокус возвращается к кнопке чека',
+      document.activeElement === btnText('Посмотреть награду'),
+      document.activeElement?.textContent ?? '',
+    );
     click(btnText('Посмотреть награду'));
     await sleep(30);
-    check('чек можно открыть повторно', has('Сундук БУКа открыт!') && has('+15'), '');
-    click(btnText('Отлично!'));
+    check(
+      'повторно открыт чек без повторного шоу',
+      has('Сундук открыт!') && has('+15') && !btnText('Пропустить'),
+      '',
+    );
+    click(btnText('Здорово!'));
     await sleep(30);
-    check('повторное открытие не дублирует награду', useApp.getState().profiles[0].gems === afterClose, '');
+    check('повторный просмотр не дублирует награду', useApp.getState().profiles[0].gems === afterClose, '');
   }
 
   // ── Картинки к словам (пункт 6) ───────────────────────────────────────────
@@ -492,6 +521,9 @@ async function main() {
   } else {
     check('режим повторения не превышает короткий лимит', true, 'повторять нечего');
   }
+
+  // ── Церемония сундука: пропуск, фиксация чека и reduced motion ─────────────
+  await runChestCeremonyChecks();
 
   // ── Задания дня: понятность и выполнимость (обратная связь 2026-09-29) ────
   await runQuestUiChecks();
