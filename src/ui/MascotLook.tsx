@@ -82,40 +82,73 @@ export function CostumeCape({ c }: { c: Costume }) {
 /** Шлемы и головные уборы — рисуем ПОСЛЕ аксессуаров, поверх мордочки. */
 export function CostumeHead({ c }: { c: Costume }) {
   switch (c.helmet) {
-    case 'mask': // «Стальной страж»: купол, красные брови, «дыхатель» на клюве
+    case 'mask': // «Стальной страж»: тёмный штурмовик — бровка-«очки», нос-трубка, щель рта
       return (
         <g>
           <path d="M20 42 A30 31 0 0 1 80 42 Q65 33 50 38 Q35 33 20 42Z" fill={c.trim} />
           <path d="M27 32 L38 37 M73 32 L62 37" stroke={c.glow} strokeWidth="2.6" strokeLinecap="round" fill="none" />
-          <path d="M43 50 L50 58 L57 50 Q50 53.5 43 50Z" fill={c.trim} />
+          <path d="M48.3 43 H51.7 V52 H48.3Z" fill={c.trim} />
+          <path d="M43.5 55.5 H56.5" stroke={c.trim} strokeWidth="2.2" strokeLinecap="round" />
         </g>
       );
-    case 'lord-mask': // «Тёмный лорд»: полный шлем-купол со щёчными пластинами и треугольной маской-респиратором
+    case 'lord-mask': {
+      // «Тёмный лорд»: шлем по мотивам киношного оригинала — колоколообразный купол
+      // с раструбом, гребень-«мохавк», V-бровка, «черепные» скулы, серебро носа,
+      // ДВА треугольных ротовых вентиля с решёткой, «клыки»-кнопки, ворот и нагрудная панель.
+      const silver = '#cdd3e0';
       return (
         <g>
-          <path d="M20 42 A30 31 0 0 1 80 42 Q65 33 50 38 Q35 33 20 42Z" fill={c.trim} />
-          {/* блик на куполе — «полированный металл» */}
-          <path d="M31 20 A24 24 0 0 1 47 12" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" fill="none" opacity=".28" />
-          <path d="M27 32 L38 37 M73 32 L62 37" stroke={c.glow} strokeWidth="2.6" strokeLinecap="round" fill="none" />
-          {/* щёчные пластины: расходятся от шлема к маске */}
-          <path d="M27 43 L41 58 L34 62 L23 49Z" fill={c.trim} />
-          <path d="M73 43 L59 58 L66 62 L77 49Z" fill={c.trim} />
-          {/* дыхательная маска на клюве: треугольник-респиратор с решёткой */}
-          <path d="M40 46 L50 63 L60 46 Q50 52 40 46Z" fill={c.trim} />
-          <path d="M44 51 H56 M45.5 55 H54.5 M47 58.5 H53" stroke={c.body} strokeWidth="1.6" strokeLinecap="round" opacity=".95" />
-          <circle cx="39.5" cy="48.5" r="1.7" fill={c.body} opacity=".9" />
-          <circle cx="60.5" cy="48.5" r="1.7" fill={c.body} opacity=".9" />
+          {/* купол: чуть шире головы, нижний край — «юбкой» до уровня глаз */}
+          <path d="M17 44 A33 34 0 0 1 83 44 L80 47 Q50 41 20 47Z" fill={c.trim} />
+          {/* раструбы «колокола» по бокам */}
+          <path d="M17 44 L11 52 Q17 54 24 49Z" fill={c.trim} />
+          <path d="M83 44 L89 52 Q83 54 76 49Z" fill={c.trim} />
+          {/* гребень на темени + центральный шов */}
+          <path d="M44 13 Q50 2 56 13 Q50 9 44 13Z" fill={c.trim} />
+          <path d="M50 10 V28" stroke={c.body} strokeWidth="1.6" opacity=".85" />
+          {/* блик полированного металла */}
+          <path d="M28 20 A23 23 0 0 1 44 11" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" fill="none" opacity=".3" />
+          {/* V-бровка «впаяна» в нос: нахмуренный козырёк над глазами */}
+          <path d="M21 30 L38 26 L50 33 L62 26 L79 30 L62 33 L50 40 L38 33Z" fill={c.trim} />
+          <path d="M27 23 L38 27 M73 23 L62 27" stroke={c.glow} strokeWidth="2.4" strokeLinecap="round" fill="none" />
+          {/* угловатые скулы — «черепной» силуэт */}
+          <path d="M24 47 L37 58 L31 62 L20 52Z" fill={c.trim} />
+          <path d="M76 47 L63 58 L69 62 L80 52Z" fill={c.trim} />
+          {/* серебристый «нос-датчик» */}
+          <path d="M46.5 42 L50 47.5 L53.5 42 Q50 44.5 46.5 42Z" fill={silver} />
+          {/* верхний ротовой вентиль (больше) и нижний (меньше) — как в оригинале */}
+          <path d="M39 48 L50 62 L61 48 Q50 54 39 48Z" fill={c.trim} />
+          <path d="M44 52 H56 M45.5 55.5 H54.5 M47 58.5 H53" stroke={silver} strokeWidth="1.2" strokeLinecap="round" opacity=".95" />
+          <path d="M45.5 63 L50 68 L54.5 63Z" fill={c.trim} />
+          {/* «клыки» с круглыми концами по краям решётки */}
+          <circle cx="36.5" cy="53" r="2" fill={silver} />
+          <circle cx="63.5" cy="53" r="2" fill={silver} />
+          {/* ворот шлема: переход к груди */}
+          <path d="M37 62 Q50 69 63 62 L64 66 Q50 74 36 66Z" fill="#0d0b18" />
+          {/* нагрудная панель управления с «войсковыми застёжками» */}
+          <rect x="40.5" y="77" width="19" height="8" rx="2" fill="#0d0b18" />
+          <rect x="43" y="79.2" width="3.2" height="3.6" rx=".6" fill="#ff3b4d" />
+          <rect x="48.4" y="79.2" width="3.2" height="3.6" rx=".6" fill="#58b6ff" />
+          <rect x="53.8" y="79.2" width="3.2" height="3.6" rx=".6" fill="#ffd166" />
         </g>
       );
-    case 'visor': // «Белый воин»: белый шлем с «бровкой» на уровне глаз; синий визор поднят на купол
+    }
+    case 'visor': // «Белый воин»: шлем клона — Т-визор под синим тонированным стеклом (глаза видно),
+      // «таблетки» связи на висках и скуловые пластины
       return (
         <g>
-          {/* край шлема проходит над зрачками (y≈35): глаза открыты, как у штурмовика со поднятым стеклом */}
-          <path d="M20 40 A30 30 0 0 1 80 40 L80 41 Q50 28 20 41Z" fill={c.trim} />
-          {/* поднятое визорное стекло лежит на куполе */}
-          <path d="M28 19 H72 L66 27 H34Z" fill={c.glow} opacity=".92" />
-          {/* короткая «ночка» Т-визора на лбу — не дотягивается до глаз */}
-          <path d="M47 27 H53 L51.5 33 H48.5Z" fill={c.glow} opacity=".85" />
+          <path d="M20 42 A30 31 0 0 1 80 42 L80 45 Q50 40 20 45Z" fill={c.trim} />
+          {/* гребень-основание антенны на темени */}
+          <path d="M46 12 Q50 5 54 12 Q50 9 46 12Z" fill={c.wing} />
+          {/* Т-визор: полупрозрачное стекло — фирменный силуэт клона, но БУК узнаваем */}
+          <path d="M27 31 H73 L65 39 H55 L52 48 H48 L45 39 H35Z" fill={c.glow} opacity=".42" />
+          <path d="M27 31 H73 L65 39 H55 L52 48 H48 L45 39 H35Z" fill="none" stroke="#1d4ed8" strokeWidth=".9" opacity=".8" />
+          {/* коммуникаторы на висках */}
+          <circle cx="24" cy="40" r="3.1" fill={c.wing} />
+          <circle cx="76" cy="40" r="3.1" fill={c.wing} />
+          {/* скуловые/челюстные пластины */}
+          <path d="M29 46 L37 54 L32 57 L25 50Z" fill={c.wing} />
+          <path d="M71 46 L63 54 L68 57 L75 50Z" fill={c.wing} />
         </g>
       );
     case 'hood': // «Мастер Света» / «Ученик Тьмы»: капюшон-кольцо и складки по бокам
