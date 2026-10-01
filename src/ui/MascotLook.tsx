@@ -82,7 +82,7 @@ export function CostumeCape({ c }: { c: Costume }) {
 /** Шлемы и головные уборы — рисуем ПОСЛЕ аксессуаров, поверх мордочки. */
 export function CostumeHead({ c }: { c: Costume }) {
   switch (c.helmet) {
-    case 'mask': // «Тёмный лорд» / «Стальной страж»: купол, красные брови, «дыхатель» на клюве
+    case 'mask': // «Стальной страж»: купол, красные брови, «дыхатель» на клюве
       return (
         <g>
           <path d="M20 42 A30 31 0 0 1 80 42 Q65 33 50 38 Q35 33 20 42Z" fill={c.trim} />
@@ -90,11 +90,32 @@ export function CostumeHead({ c }: { c: Costume }) {
           <path d="M43 50 L50 58 L57 50 Q50 53.5 43 50Z" fill={c.trim} />
         </g>
       );
-    case 'visor': // «Белый воин»: белый шлем и синий Т-визор
+    case 'lord-mask': // «Тёмный лорд»: полный шлем-купол со щёчными пластинами и треугольной маской-респиратором
       return (
         <g>
-          <path d="M20 40 A30 30 0 0 1 80 40 L80 44 Q50 36 20 44Z" fill={c.trim} />
-          <path d="M24 38 H76 L68 47 H56 L52 58 H48 L44 47 H32Z" fill={c.glow} />
+          <path d="M20 42 A30 31 0 0 1 80 42 Q65 33 50 38 Q35 33 20 42Z" fill={c.trim} />
+          {/* блик на куполе — «полированный металл» */}
+          <path d="M31 20 A24 24 0 0 1 47 12" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" fill="none" opacity=".28" />
+          <path d="M27 32 L38 37 M73 32 L62 37" stroke={c.glow} strokeWidth="2.6" strokeLinecap="round" fill="none" />
+          {/* щёчные пластины: расходятся от шлема к маске */}
+          <path d="M27 43 L41 58 L34 62 L23 49Z" fill={c.trim} />
+          <path d="M73 43 L59 58 L66 62 L77 49Z" fill={c.trim} />
+          {/* дыхательная маска на клюве: треугольник-респиратор с решёткой */}
+          <path d="M40 46 L50 63 L60 46 Q50 52 40 46Z" fill={c.trim} />
+          <path d="M44 51 H56 M45.5 55 H54.5 M47 58.5 H53" stroke={c.body} strokeWidth="1.6" strokeLinecap="round" opacity=".95" />
+          <circle cx="39.5" cy="48.5" r="1.7" fill={c.body} opacity=".9" />
+          <circle cx="60.5" cy="48.5" r="1.7" fill={c.body} opacity=".9" />
+        </g>
+      );
+    case 'visor': // «Белый воин»: белый шлем с «бровкой» на уровне глаз; синий визор поднят на купол
+      return (
+        <g>
+          {/* край шлема проходит над зрачками (y≈35): глаза открыты, как у штурмовика со поднятым стеклом */}
+          <path d="M20 40 A30 30 0 0 1 80 40 L80 41 Q50 28 20 41Z" fill={c.trim} />
+          {/* поднятое визорное стекло лежит на куполе */}
+          <path d="M28 19 H72 L66 27 H34Z" fill={c.glow} opacity=".92" />
+          {/* короткая «ночка» Т-визора на лбу — не дотягивается до глаз */}
+          <path d="M47 27 H53 L51.5 33 H48.5Z" fill={c.glow} opacity=".85" />
         </g>
       );
     case 'hood': // «Мастер Света» / «Ученик Тьмы»: капюшон-кольцо и складки по бокам
@@ -114,11 +135,12 @@ export function CostumeHead({ c }: { c: Costume }) {
           <path d="M42 55 H58" stroke={c.trim} strokeWidth="3" strokeLinecap="round" />
         </g>
       );
-    case 'dome': // «Звёздный рейнджер»: купол с Т-щелью и антенной
+    case 'dome': // «Звёздный рейнджер»: купол с горизонтальной щелью-визором и антенной
       return (
         <g>
           <path d="M20 44 A30 30 0 0 1 80 44 L80 48 Q50 40 20 48Z" fill={c.trim} />
-          <path d="M50 26 V44 M41 39 H59" stroke={c.glow} strokeWidth="3" strokeLinecap="round" fill="none" />
+          {/* трапеция-щель вместо креста: «прищур» шлема между бровей */}
+          <path d="M40 27 H60 L56 34 H44Z" fill={c.glow} opacity=".95" />
           <line x1="74" y1="16" x2="81" y2="5" stroke={c.glow} strokeWidth="2.2" />
           <circle cx="82.5" cy="3.6" r="2.4" fill={c.glow} />
         </g>

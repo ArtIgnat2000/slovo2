@@ -31,7 +31,7 @@ export interface Costume {
   trim: string;
   /** Светящиеся детали: визор, клинок, диадема */
   glow: string;
-  helmet: 'mask' | 'visor' | 'hood' | 'bubble' | 'dome' | 'plate' | 'buns' | 'ears' | null;
+  helmet: 'mask' | 'lord-mask' | 'visor' | 'hood' | 'bubble' | 'dome' | 'plate' | 'buns' | 'ears' | null;
   prop: 'saber-red' | 'saber-blue' | 'saber-green' | 'cane' | null;
   /** Цвет плаща, если есть */
   cape?: string;
@@ -41,13 +41,13 @@ export const COSTUMES: Costume[] = [
   {
     id: 'dark-lord',
     title: 'Тёмный лорд',
-    desc: 'Чёрный шлем и красный светопосох',
+    desc: 'Шлем с дыхательной маской, красный светопосох',
     body: '#3a3352',
     belly: '#6f679a',
     wing: '#241f36',
     trim: '#141225',
     glow: '#ff3b4d',
-    helmet: 'mask',
+    helmet: 'lord-mask',
     prop: 'saber-red',
     cape: '#7a1f3c',
   },
