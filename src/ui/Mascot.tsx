@@ -1,6 +1,8 @@
 import React from 'react';
 import type { ShopSlot } from '../types';
-import { MascotAccessory, SLOT_ORDER } from './MascotLook';
+import { COSTUME_BY_ID } from '../engine/puzzles';
+import { useWornCostume } from '../state/store';
+import { CostumeCape, CostumeHead, CostumeProp, MascotAccessory, SLOT_ORDER } from './MascotLook';
 
 export type Mood = 'idle' | 'happy' | 'excited' | 'sad' | 'think' | 'dance';
 
@@ -10,6 +12,11 @@ export type Look = Partial<Record<ShopSlot, string>>;
 interface Props {
   mood: Mood;
   message?: string;
+  /**
+   * Костюм из пазлов (engine/puzzles.ts): undefined — надеть то, что выбрано
+   * в магазине; null — без костюма (превью); id — превью конкретного костюма.
+   */
+  costumeId?: string | null;
   /** Купленные и надетые аксессуары — рисуются поверх совы */
   look?: Look;
   /** Размер в пикселях (в магазине БУК крупнее — его там наряжают) */
@@ -19,9 +26,18 @@ interface Props {
 }
 
 /** БУК — сова-помощник. Крупные глаза и округлые формы → привязанность ребёнка. */
-export function Mascot({ mood, message, look, size, stage = 1 }: Props) {
+export function Mascot({ mood, message, look, size, stage = 1, costumeId }: Props) {
   // Рост читается тремя способами сразу: размер, хвост из перьев и «перья на груди»
   const scale = 0.9 + 0.035 * stage;
+  // Костюм перекрашивает сову целиком (палитра из движка), а шлем/реквизит
+  // дорисовывает MascotLook; превью в магазине может задать костюм явно.
+  const wornId = useWornCostume();
+  const costumeKey = costumeId !== undefined ? costumeId : wornId;
+  const cst = costumeKey ? COSTUME_BY_ID[costumeKey] ?? null : null;
+  const cBody = cst?.body ?? '#f4a51a';
+  const cBelly = cst?.belly ?? '#fcd768';
+  const cWing = cst?.wing ?? '#e8901a';
+  const cStripe = cst ? cst.wing : '#f0a92c';
   const eyes: Record<Mood, React.ReactNode> = {
     idle: (
       <>
@@ -98,61 +114,64 @@ export function Mascot({ mood, message, look, size, stage = 1 }: Props) {
         {/* хвост из перьев — признак взрослого БУКа (растёт со знанием слов) */}
         {stage >= 3 && (
           <>
-            <path d="M78 96 Q98 88 100 70 Q88 84 74 88Z" fill="#e8901a" />
-            <path d="M74 102 Q96 100 100 86 Q86 96 72 96Z" fill="#f4a51a" />
+            <path d="M78 96 Q98 88 100 70 Q88 84 74 88Z" fill={cWing} />
+            <path d="M74 102 Q96 100 100 86 Q86 96 72 96Z" fill={cBody} />
           </>
         )}
-        {stage === 2 && <path d="M78 98 Q96 92 97 76 Q86 88 74 90Z" fill="#e8901a" />}
-        <ellipse cx="50" cy="82" rx="36" ry="37" fill="#f4a51a" />
-        <ellipse cx="50" cy="88" rx="24" ry="27" fill="#fcd768" />
+        {stage === 2 && <path d="M78 98 Q96 92 97 76 Q86 88 74 90Z" fill={cWing} />}
+        {cst && <CostumeCape c={cst} />}
+        <ellipse cx="50" cy="82" rx="36" ry="37" fill={cBody} />
+        <ellipse cx="50" cy="88" rx="24" ry="27" fill={cBelly} />
         {mood === 'dance' ? (
           <>
-            <path d="M14 68 Q0 46 12 32 Q21 54 24 68Z" fill="#e8901a" />
-            <path d="M86 68 Q100 46 88 32 Q79 54 76 68Z" fill="#e8901a" />
+            <path d="M14 68 Q0 46 12 32 Q21 54 24 68Z" fill={cWing} />
+            <path d="M86 68 Q100 46 88 32 Q79 54 76 68Z" fill={cWing} />
           </>
         ) : (
           <>
-            <path d="M14 74 Q2 58 12 38 Q20 58 24 74Z" fill="#e8901a" />
-            <path d="M86 74 Q98 58 88 38 Q80 58 76 74Z" fill="#e8901a" />
+            <path d="M14 74 Q2 58 12 38 Q20 58 24 74Z" fill={cWing} />
+            <path d="M86 74 Q98 58 88 38 Q80 58 76 74Z" fill={cWing} />
           </>
         )}
-        <ellipse cx="50" cy="37" rx="30" ry="28" fill="#f4a51a" />
+        <ellipse cx="50" cy="37" rx="30" ry="28" fill={cBody} />
         {stage === 0 ? (
           <>
             {/* птенец: вместо ушек — пух на макушке */}
-            <path d="M42 12 Q46 2 50 10 Q54 1 58 12" stroke="#f4a51a" strokeWidth="3.4" fill="none" strokeLinecap="round" />
-            <path d="M33 30 Q50 -2 67 30" fill="#f4a51a" opacity="0.5" />
+            <path d="M42 12 Q46 2 50 10 Q54 1 58 12" stroke={cBody} strokeWidth="3.4" fill="none" strokeLinecap="round" />
+            <path d="M33 30 Q50 -2 67 30" fill={cBody} opacity="0.5" />
           </>
         ) : (
           <>
-            <path d="M24 18 L18 4 L31 13Z" fill="#e8901a" />
-            <path d="M76 18 L82 4 L69 13Z" fill="#e8901a" />
+            <path d="M24 18 L18 4 L31 13Z" fill={cWing} />
+            <path d="M76 18 L82 4 L69 13Z" fill={cWing} />
           </>
         )}
-        <circle cx="36" cy="37" r="13" fill="#fcd768" />
-        <circle cx="64" cy="37" r="13" fill="#fcd768" />
+        <circle cx="36" cy="37" r="13" fill={cBelly} />
+        <circle cx="64" cy="37" r="13" fill={cBelly} />
         {eyes[mood]}
-        <path d="M44 45 L50 53 L56 45Z" fill="#e8901a" />
+        <path d="M44 45 L50 53 L56 45Z" fill={cWing} />
         {mouths[mood]}
         {/* «перья-полоски» на груди: одна за каждую освоенную ступень */}
         {Array.from({ length: stage }).map((_, i) => (
           <path
             key={i}
             d={`M40 ${100 - i * 7} Q50 ${105 - i * 7} 60 ${100 - i * 7}`}
-            stroke="#f0a92c"
+            stroke={cStripe}
             strokeWidth="3"
             fill="none"
             strokeLinecap="round"
           />
         ))}
-        <ellipse cx="38" cy="116" rx="10" ry="5" fill="#e8901a" />
-        <ellipse cx="62" cy="116" rx="10" ry="5" fill="#e8901a" />
+        <ellipse cx="38" cy="116" rx="10" ry="5" fill={cWing} />
+        <ellipse cx="62" cy="116" rx="10" ry="5" fill={cWing} />
         {/* аксессуары поверх совы; порядок слотов — чтобы очки легли на глаза, а шарф под голову */}
         {look &&
           SLOT_ORDER.map((slot) => {
             const id = look[slot];
             return id ? <MascotAccessory key={slot} id={id} /> : null;
           })}
+        {cst && <CostumeHead c={cst} />}
+        {cst && <CostumeProp c={cst} />}
       </svg>
     </div>
   );
