@@ -13,6 +13,14 @@ import {
   wardrobeValue,
 } from '../../engine/shop';
 import { Mascot } from '../Mascot';
+import {
+  COSTUMES,
+  OVERFLOW_GEMS,
+  PUZZLE_SIZE,
+  activeCostume,
+  costumeProgress,
+  normalizePuzzle,
+} from '../../engine/puzzles';
 import { ConfirmDialog } from '../Bits';
 import { sfx } from '../../platform/sound';
 import { haptic } from '../../platform/haptics';
@@ -34,6 +42,8 @@ export function ShopScreen() {
   const look = useLook();
   const buyItem = useApp((s) => s.buyItem);
   const toggleEquip = useApp((s) => s.toggleEquip);
+  const choosePuzzleCostume = useApp((s) => s.choosePuzzleCostume);
+  const toggleCostume = useApp((s) => s.toggleCostume);
   const showToast = useApp((s) => s.showToast);
   const [ask, setAsk] = useState<ShopItem | null>(null);
   const [mood, setMood] = useState<'idle' | 'happy' | 'dance'>('idle');
@@ -46,6 +56,26 @@ export function ShopScreen() {
   const growth = growthStage(mastered);
   const next = closestItem(owned);
   const left = next ? missingGems(next, gems) : 0;
+
+  // Пазлы костюмов (engine/puzzles.ts): прогресс храним по каждому костюму,
+  // поэтому смена цели сборки безопасна — ребёнок ничего не теряет.
+  const pz = normalizePuzzle(profile.puzzle);
+  const collecting = activeCostume(pz);
+  const allCostumesDone = COSTUMES.every((c) => pz.assembled.includes(c.id));
+
+  const tapCostume = (id: string) => {
+    sfx.tap();
+    haptic.tap();
+    toggleCostume(id);
+    setMood('happy');
+    setTimeout(() => setMood('idle'), 1200);
+  };
+
+  const tapPickCostume = (id: string) => {
+    sfx.tap();
+    haptic.tap();
+    choosePuzzleCostume(id);
+  };
 
   const confirmBuy = () => {
     if (!ask) return;
@@ -110,6 +140,55 @@ export function ShopScreen() {
               : 'Весь гардероб собран ✨'}
             {' · '}куплено на {wardrobeValue(owned)} 💎
           </div>
+        </div>
+      </div>
+
+      <div className="mb">
+        <h2 className="mb">Костюмы · пазлы</h2>
+        <div className="tiny muted" style={{ marginTop: '-6px', marginBottom: 10 }}>
+          Завершённый урок — фрагмент пазла. Собери {PUZZLE_SIZE} — БУК получит новый костюм 🧩
+        </div>
+        {allCostumesDone && (
+          <div className="card tiny mb" style={{ textAlign: 'center' }}>
+            ✨ Вся коллекция собрана! Теперь за каждый урок — +{OVERFLOW_GEMS} 💎
+          </div>
+        )}
+        <div className="shop-grid costume-grid">
+          {COSTUMES.map((c) => {
+            const done = pz.assembled.includes(c.id);
+            const prog = costumeProgress(pz, c.id);
+            const isCurrent = !done && collecting === c.id;
+            const wearing = pz.worn === c.id;
+            return (
+              <div key={c.id} className={`shop-item costume-card ${done ? 'owned' : ''} ${wearing ? 'on' : ''}`}>
+                <div className={`shop-icon${done ? '' : ' pz-locked'}`}>
+                  <Mascot mood={wearing ? 'happy' : 'idle'} costumeId={c.id} size={64} stage={growth.index} />
+                </div>
+                <div className="shop-title">{c.title}</div>
+                <div className="tiny shop-desc">{c.desc}</div>
+                {!done && (
+                  <div className="pz-dots" role="img" aria-label={`${prog} из ${PUZZLE_SIZE} фрагментов`}>
+                    {Array.from({ length: PUZZLE_SIZE }, (_, i) => (
+                      <i key={i} className={`pz-dot${i < prog ? ' on' : ''}`} />
+                    ))}
+                  </div>
+                )}
+                {done ? (
+                  <button className={`btn sm wide ${wearing ? 'green' : 'ghost'}`} onClick={() => tapCostume(c.id)}>
+                    {wearing ? 'Надето ✓' : 'Надеть'}
+                  </button>
+                ) : (
+                  <button className={`btn sm wide ${isCurrent ? 'primary' : 'ghost'}`} onClick={() => tapPickCostume(c.id)}>
+                    {isCurrent
+                      ? `Собираю · ${prog}/${PUZZLE_SIZE}`
+                      : prog > 0
+                        ? `Продолжить · ${prog}/${PUZZLE_SIZE}`
+                        : 'Собирать'}
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 

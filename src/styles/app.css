@@ -2324,3 +2324,56 @@ p {
 }
 .vlabs-cta { border-color: var(--green) !important; }
 .vlabs-cta h3 { color: var(--ink); }
+
+/* ── Костюмные пазлы (engine/puzzles.ts) ─────────────────────────────────── */
+.costume-grid {
+  grid-template-columns: repeat(2, 1fr);
+}
+.pz-locked {
+  filter: grayscale(1);
+  opacity: 0.5;
+}
+.pz-dots {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  margin: 6px 0 8px;
+}
+.pz-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--primary-soft);
+  border: 1px solid rgba(124, 92, 255, 0.28);
+}
+.pz-dot.on {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+.puzzle-win {
+  border: 2px dashed rgba(124, 92, 255, 0.45);
+  text-align: center;
+}
+.puzzle-win .row {
+  margin-bottom: 2px;
+}
+/* мягкий акцент готовности: не мигаем бесконечно (WCAG 2.3.3, как у сундука) */
+@keyframes questGlint {
+  0% {
+    transform: scale(1);
+  }
+  55% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.costume-card .btn.primary:not(:disabled) {
+  animation: questGlint 0.45s ease-out 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .costume-card .btn.primary:not(:disabled) {
+    animation: none;
+  }
+}

@@ -17,6 +17,13 @@ import {
   type PlannedQuest,
 } from '../engine/quests';
 import { ITEM_BY_ID, isOwned } from '../engine/shop';
+import {
+  awardLessonPiece,
+  chooseCollecting,
+  normalizePuzzle,
+  toggleWorn,
+  type PuzzleAward,
+} from '../engine/puzzles';
 import { DEFAULT_LESSON_SIZE } from '../engine/scheduler';
 
 export { dayKey };
@@ -90,6 +97,7 @@ function newProfile(name: string, avatar: string): Profile {
     lessonSize: DEFAULT_LESSON_SIZE,
     daily: { day: dayKey(), claimed: [], chestsToday: 0, chestsTotal: 0 },
     shop: { owned: [], equipped: {} },
+    puzzle: { pieces: {}, collecting: null, assembled: [], worn: null },
   };
 }
 
@@ -124,6 +132,7 @@ function normalizeProfile(raw: Partial<Profile> | null | undefined): Profile | n
       owned: Array.isArray(raw.shop?.owned) ? raw.shop.owned.filter((x): x is string => typeof x === 'string') : [],
       equipped: raw.shop?.equipped && typeof raw.shop.equipped === 'object' ? raw.shop.equipped : {},
     },
+    puzzle: normalizePuzzle(raw.puzzle),
   };
 }
 
@@ -171,6 +180,17 @@ interface AppState {
   buyItem: (id: string) => boolean;
   /** Надеть/снять аксессуар: повторный тап по надетой вещи снимает её */
   toggleEquip: (id: string) => void;
+
+  /**
+   * Реально завершённый урок (не «Повторение» — это решает вызывающий код):
+   * +1 фрагмент пазла, а когда все костюмы собраны — перелив в кристаллы.
+   * Возвращает иток для экрана результатов; null — нет активного профиля.
+   */
+  finishPuzzleLesson: () => PuzzleAward | null;
+  /** Сменить костюм, который собираем: прогресс по каждому хранится отдельно. */
+  choosePuzzleCostume: (id: string) => void;
+  /** Надеть/снять собранный костюм (повторный тап снимает); несобранный — без изменений. */
+  toggleCostume: (id: string) => void;
 
   showToast: (t: Omit<Toast, 'id'>) => void;
   hideToast: () => void;
@@ -410,6 +430,25 @@ export const useApp = create<AppState>()(
           }),
         ),
 
+      finishPuzzleLesson: () => {
+        const s = get();
+        const prof = s.profiles.find((x) => x.id === s.activeId);
+        if (!prof) return null;
+        const { puzzle, award } = awardLessonPiece(prof.puzzle);
+        set((st) =>
+          patchActive(st, (p) => ({ ...p, puzzle, gems: p.gems + award.gems })),
+        );
+        return award;
+      },
+
+      choosePuzzleCostume: (id) =>
+        set((s) =>
+          patchActive(s, (p) => ({ ...p, puzzle: chooseCollecting(p.puzzle, id) })),
+        ),
+
+      toggleCostume: (id) =>
+        set((s) => patchActive(s, (p) => ({ ...p, puzzle: toggleWorn(p.puzzle, id) }))),
+
       showToast: (t) => set({ toast: { ...t, id: Date.now() } }),
       hideToast: () => set({ toast: null }),
 
@@ -514,6 +553,14 @@ export function useLook(): Partial<Record<ShopSlot, string>> {
   return useApp((s) => {
     const p = s.profiles.find((x) => x.id === s.activeId);
     return p?.shop?.equipped ?? NO_LOOK;
+  });
+}
+
+/** Надетый костюм активного профиля (id) — примитивный селектор, рендеров не плодит. */
+export function useWornCostume(): string | null {
+  return useApp((s) => {
+    const p = s.profiles.find((x) => x.id === s.activeId);
+    return p?.puzzle?.worn ?? null;
   });
 }
 export type { AppState };

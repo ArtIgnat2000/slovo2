@@ -15,6 +15,8 @@ import { WordLetters } from '../WordView';
 import { sfx } from '../../platform/sound';
 import { haptic } from '../../platform/haptics';
 import { XP, checkAchievements, starsFor } from '../../engine/rewards';
+import { COSTUME_BY_ID, PUZZLE_SIZE, type PuzzleAward } from '../../engine/puzzles';
+import { Mascot } from '../Mascot';
 
 interface Props {
   lessonId: string;
@@ -44,7 +46,7 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
   const profile = useActiveProfile();
   // Действия стора берём без подписки на всё состояние (ссылки стабильны):
   // подписка на весь стор заставляла бы урок перерисовываться на каждый чих.
-  const { touchDay, answer, addXp, finishLesson, grantAchievement } = useApp.getState();
+  const { touchDay, answer, addXp, finishLesson, finishPuzzleLesson, grantAchievement } = useApp.getState();
   const say = useMascot((s) => s.say);
 
   const attempts = useRef<Attempts>({ total: 0, independent: 0 });
@@ -77,6 +79,8 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
   const [confetti, setConfetti] = useState(false);
   const [xpShown, setXpShown] = useState(0);
   const [askExit, setAskExit] = useState(false);
+  // Иток пазла за этот прогон урока — карточка на экране результатов.
+  const [puzzleAward, setPuzzleAward] = useState<PuzzleAward | null>(null);
 
   // Отмечаем «сегодня занимались» только при первом реальном действии в уроке,
   // чтобы случайный вход в урок и мгновенное нажатие ✕ не тратили заморозку
@@ -165,7 +169,17 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
     const pct = answered === 0 ? 100 : Math.round((correct / answered) * 100);
     const stars = starsFor(correct, answered);
     // «Повторение» — тренировка, а не урок: короны и счётчик уроков оно не наращивает
-    if (lessonId !== REVIEW.id) finishLesson(lessonId, pct);
+    if (lessonId !== REVIEW.id) {
+      finishLesson(lessonId, pct);
+      const pz = finishPuzzleLesson();
+      setPuzzleAward(pz);
+      if (pz?.event === 'assembled') {
+        setConfetti(true);
+        say('dance', `Пазл собран — костюм «${COSTUME_BY_ID[pz.costumeId ?? '']?.title ?? ''}»! 🎭`);
+      } else if (pz?.event === 'gems') {
+        say('happy', 'Коллекция костюмов собрана — держи кристаллы!');
+      }
+    }
     const bonus = XP.lessonDone + (stars === 3 ? XP.perfectBonus : 0);
     addXp(bonus);
     stats.current.xp += bonus;
@@ -221,6 +235,7 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
           xp={xpShown}
           goal={goal}
           xpBefore={xpBefore}
+          puzzle={puzzleAward}
           onHome={onExit}
         />
         <FloatingMascot />
@@ -342,6 +357,7 @@ function Results({
   xp,
   goal,
   xpBefore,
+  puzzle,
   onHome,
 }: {
   lessonId: string;
@@ -350,8 +366,11 @@ function Results({
   xp: number;
   goal: number;
   xpBefore: number;
+  /** Иток костюмного пазла этого урока (engine/puzzles.ts); null — не за что (повторение). */
+  puzzle?: PuzzleAward | null;
   onHome: () => void;
 }) {
+  const [puzzleOpen, setPuzzleOpen] = useState(true);
   const answered = correct + wrong;
   const stars = starsFor(correct, answered);
   const profile = useActiveProfile();
@@ -385,6 +404,23 @@ function Results({
             <span>Опыт за урок</span>
             <b>⚡ +{xp}</b>
           </div>
+          {puzzle && (
+            <div className="kv">
+              <span>{puzzle.event === 'gems' ? 'Коллекция собрана ✨' : puzzle.event === 'assembled' ? 'Пазл собран 🧩' : 'Фрагмент пазла 🧩'}</span>
+              <b>
+                {puzzle.event === 'piece'
+                  ? `${puzzle.pieces} из ${PUZZLE_SIZE}`
+                  : puzzle.event === 'assembled'
+                    ? `«${COSTUME_BY_ID[puzzle.costumeId ?? '']?.title}»`
+                    : `+${puzzle.gems} 💎`}
+              </b>
+            </div>
+          )}
+          {puzzle?.event === 'piece' && (
+            <div className="tiny" style={{ textAlign: 'center', marginTop: 2 }}>
+              ещё {PUZZLE_SIZE - puzzle.pieces} {plural(PUZZLE_SIZE - puzzle.pieces, 'урок', 'урока', 'уроков')} — и костюм наденет БУК
+            </div>
+          )}
           {profile && wrong > 0 && (
             <div className="kv">
               <span>Вернёмся к ним завтра</span>
@@ -394,6 +430,34 @@ function Results({
             </div>
           )}
         </div>
+
+        {puzzle?.event === 'assembled' && puzzleOpen && (
+          <div className="card puzzle-win">
+            <div className="row" style={{ alignItems: 'center', gap: 10, textAlign: 'left' }}>
+              <Mascot mood="dance" costumeId={puzzle.costumeId} size={92} />
+              <div className="grow">
+                <h3 style={{ margin: '0 0 4px' }}>🎭 «{COSTUME_BY_ID[puzzle.costumeId ?? '']?.title}» надет!</h3>
+                <p className="tiny muted" style={{ margin: 0 }}>
+                  {COSTUME_BY_ID[puzzle.costumeId ?? '']?.desc} БУК носит его на главной и в магазине.
+                </p>
+              </div>
+            </div>
+            <div className="pz-dots" aria-hidden="true">
+              {Array.from({ length: PUZZLE_SIZE }, (_, i) => (
+                <i key={i} className="pz-dot on" />
+              ))}
+            </div>
+            <button
+              className="btn primary wide"
+              onClick={() => {
+                sfx.tap();
+                setPuzzleOpen(false);
+              }}
+            >
+              Здорово!
+            </button>
+          </div>
+        )}
 
         <div className="card">
           <div className="row" style={{ textAlign: 'left' }}>
