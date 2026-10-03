@@ -160,7 +160,9 @@ export function ShopScreen() {
             const isCurrent = !done && collecting === c.id;
             const wearing = pz.worn === c.id;
             return (
-              <div key={c.id} className={`shop-item costume-card ${done ? 'owned' : ''} ${wearing ? 'on' : ''}`}>
+              <div key={c.id} className={`shop-item costume-card ${done ? 'owned' : ''} ${wearing ? 'on' : ''} ${isCurrent ? 'current' : ''}`}>
+                {/* Несобранный костюм помечен классом pz-locked, но рисуется В ЦВЕТЕ:
+                    раньше он был серым силуэтом, и ребёнку было не выбрать «тот самый». */}
                 <div className={`shop-icon${done ? '' : ' pz-locked'}`}>
                   <Mascot mood={wearing ? 'happy' : 'idle'} costumeId={c.id} size={64} stage={growth.index} />
                 </div>
