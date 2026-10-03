@@ -73,6 +73,30 @@ export const SLOT_ORDER: ShopSlot[] = ['badge', 'neck', 'head', 'face'];
 
 import type { Costume } from '../engine/puzzles';
 
+/**
+ * Проёмы под глаза (оба — эллипсы 8.6×8.4 вокруг 36,36 и 64,36).
+ *
+ * Сплошной шлем-купол закрывал мордочку целиком: на иконке магазина (64 px,
+ * см. ShopScreen) БУК в «Тёмном лорде» выглядел тёмным пятном без глаз. Купол
+ * рисуют одним путём с fillRule="evenodd" и этими подпутями — сквозь «дырки»
+ * видны глаза, нарисованные слоем ниже, то есть они остаются живыми (mood).
+ */
+const EYE_WINDOWS =
+  'M27.4 36 A8.6 8.4 0 1 0 44.6 36 A8.6 8.4 0 1 0 27.4 36Z M55.4 36 A8.6 8.4 0 1 0 72.6 36 A8.6 8.4 0 1 0 55.4 36Z';
+
+/** Ободок проёма — «уплотнитель» шлема вокруг глаз, чтобы дырка не выглядела вырезом. */
+function EyeRim() {
+  return (
+    <path
+      d="M27.4 36 A8.6 8.4 0 1 0 44.6 36 A8.6 8.4 0 1 0 27.4 36 M55.4 36 A8.6 8.4 0 1 0 72.6 36 A8.6 8.4 0 1 0 55.4 36"
+      fill="none"
+      stroke="#7e88a6"
+      strokeWidth="1.2"
+      opacity=".85"
+    />
+  );
+}
+
 /** Плащ — рисуется ПЕРЕД телом, чтобы торчали только полы. */
 export function CostumeCape({ c }: { c: Costume }) {
   if (!c.cape) return null;
@@ -95,22 +119,36 @@ export function CostumeHead({ c }: { c: Costume }) {
       // «Тёмный лорд»: шлем по мотивам киношного оригинала — колоколообразный купол
       // с раструбом, гребень-«мохавк», V-бровка, «черепные» скулы, серебро носа,
       // ДВА треугольных ротовых вентиля с решёткой, «клыки»-кнопки, ворот и нагрудная панель.
+      // Купол рисуется с проёмами под глаза: раньше сплошная заливка съедала их, и на
+      // иконке магазина (64 px) вместо лица было тёмное пятно.
       const silver = '#cdd3e0';
       return (
         <g>
-          {/* купол: чуть шире головы, нижний край — «юбкой» до уровня глаз */}
-          <path d="M17 44 A33 34 0 0 1 83 44 L80 47 Q50 41 20 47Z" fill={c.trim} />
+          {/* купол: внешняя дуга + два внутренних подпути = окна-проёмы (fillRule evenodd) */}
+          <path
+            fillRule="evenodd"
+            d={`M17 44 A33 34 0 0 1 83 44 L80 47 Q50 41 20 47Z ${EYE_WINDOWS}`}
+            fill={c.trim}
+          />
+          <EyeRim />
+          {/* верх век тонет под краем шлема: взгляд остаётся читаемым, но не «удивлённым» */}
+          <path d="M28.6 31.4 Q36 27.6 43.4 31.4" fill="none" stroke="#0d0b18" strokeWidth="2.8" opacity=".6" strokeLinecap="round" />
+          <path d="M56.6 31.4 Q64 27.6 71.4 31.4" fill="none" stroke="#0d0b18" strokeWidth="2.8" opacity=".6" strokeLinecap="round" />
           {/* раструбы «колокола» по бокам */}
           <path d="M17 44 L11 52 Q17 54 24 49Z" fill={c.trim} />
           <path d="M83 44 L89 52 Q83 54 76 49Z" fill={c.trim} />
           {/* гребень на темени + центральный шов */}
           <path d="M44 13 Q50 2 56 13 Q50 9 44 13Z" fill={c.trim} />
-          <path d="M50 10 V28" stroke={c.body} strokeWidth="1.6" opacity=".85" />
-          {/* блик полированного металла */}
-          <path d="M28 20 A23 23 0 0 1 44 11" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" fill="none" opacity=".3" />
-          {/* V-бровка «впаяна» в нос: нахмуренный козырёк над глазами */}
-          <path d="M21 30 L38 26 L50 33 L62 26 L79 30 L62 33 L50 40 L38 33Z" fill={c.trim} />
-          <path d="M27 23 L38 27 M73 23 L62 27" stroke={c.glow} strokeWidth="2.4" strokeLinecap="round" fill="none" />
+          <path d="M50 10 V26" stroke={c.body} strokeWidth="1.6" opacity=".85" />
+          {/* глянец полированного металла: мягкая широкая полоса, тонкий блик, «зайчик» */}
+          <path d="M28 22 A23 23 0 0 1 45 12.5" stroke="#ffffff" strokeWidth="5" strokeLinecap="round" fill="none" opacity=".15" />
+          <path d="M30 24 A20 20 0 0 1 44 15" stroke="#ffffff" strokeWidth="2.4" strokeLinecap="round" fill="none" opacity=".6" />
+          <ellipse cx="62" cy="17" rx="4" ry="2.2" transform="rotate(-20 62 17)" fill="#ffffff" opacity=".28" />
+          <path d="M70 21 A27 27 0 0 1 78 30" stroke={silver} strokeWidth="2.6" strokeLinecap="round" fill="none" opacity=".4" />
+          {/* V-бровка: приподнята над проёмами (глаз — 28..44), центр опускается «клювом» между глазами */}
+          <path d="M22 29 L38 22 L50 29.5 L62 22 L78 29 L62 26.5 L50 33.5 L38 26.5Z" fill={c.trim} />
+          <path d="M23.5 28.2 L38 21.5 L50 29 L62 21.5 L76.5 28.2" stroke={silver} strokeWidth="1.1" fill="none" opacity=".45" />
+          <path d="M27 24 L38 27.5 M73 24 L62 27.5" stroke={c.glow} strokeWidth="2.4" strokeLinecap="round" fill="none" />
           {/* угловатые скулы — «черепной» силуэт */}
           <path d="M24 47 L37 58 L31 62 L20 52Z" fill={c.trim} />
           <path d="M76 47 L63 58 L69 62 L80 52Z" fill={c.trim} />
@@ -151,21 +189,43 @@ export function CostumeHead({ c }: { c: Costume }) {
           <path d="M71 46 L63 54 L68 57 L75 50Z" fill={c.wing} />
         </g>
       );
-    case 'hood': // «Мастер Света» / «Ученик Тьмы»: капюшон-кольцо и складки по бокам
+    case 'hood': // «Мастер Света» / «Ученик Тьмы»: капюшон — сплошная тулья над макушкой
+      // и «лопасти», падающие на плечи. Раньше это было тонкое кольцо-«ободок»,
+      // и голова казалась голой; нижний край тульи — аркой строго над глазами.
       return (
         <g>
-          <path d="M50 5 A32 32 0 0 0 18 37 L18 50 A32 32 0 0 1 82 50 L82 37 A32 32 0 0 0 50 5Z" fill={c.trim} />
-          <path d="M18 52 Q14 70 20 82 L29 77 Q23 66 25 52Z" fill={c.trim} />
-          <path d="M82 52 Q86 70 80 82 L71 77 Q77 66 75 52Z" fill={c.trim} />
-          <path d="M25 30 Q50 12 75 30" stroke={c.glow} strokeWidth="2" fill="none" opacity="0.55" />
+          <path d="M17 40 A33 33 0 0 1 83 40 Q70 24 50 22 Q30 24 17 40Z" fill={c.trim} />
+          {/* тень под краем тульи: лицо «утоплено» в капюшоне */}
+          <path d="M19 38 Q32 24.5 50 23 Q68 24.5 81 38" fill="none" stroke="#000000" strokeWidth="4" opacity=".14" strokeLinecap="round" />
+          {/* складки-«лопасти» */}
+          <path d="M17 40 Q7 60 13 84 L30 78 Q20 60 23 41Z" fill={c.trim} />
+          <path d="M83 40 Q93 60 87 84 L70 78 Q80 60 77 41Z" fill={c.trim} />
+          {/* светлая кайма по краю — держит силуэт на 64 px; она ВЫШЕ уровня глаз,
+              иначе на иконке она читалась как «бровь», нарисованная поверх глаз */}
+          <path d="M17 40 Q30 24 50 22 Q70 24 83 40" fill="none" stroke={c.glow} strokeWidth="1.8" opacity=".8" strokeLinecap="round" />
+          <path d="M28 19 A26 26 0 0 1 42 10" stroke="#ffffff" strokeWidth="2.4" opacity=".3" fill="none" strokeLinecap="round" />
         </g>
       );
-    case 'bubble': // «Пилот истребителя»: прозрачный купол со бликом
+    case 'bubble': // «Пилот истребителя»: шлем — светлая шапка-тулья ПОСЛЕ стекла, поэтому
+      // кольцо купола не режет уши (раньше шар выглядел обручем, надетым поверх головы),
+      // а стекло остаётся прозрачным: глаза и клюв видно.
       return (
         <g>
-          <circle cx="50" cy="38" r="31" fill="rgba(200,230,255,.18)" stroke={c.trim} strokeWidth="2.6" />
-          <path d="M27 24 A27 27 0 0 1 43 11" stroke="#ffffff" strokeWidth="3" fill="none" strokeLinecap="round" opacity=".85" />
-          <path d="M42 55 H58" stroke={c.trim} strokeWidth="3" strokeLinecap="round" />
+          {/* стекло-купол: тонировка + обод */}
+          <circle cx="50" cy="38" r="30" fill="rgba(200,230,255,.20)" />
+          <circle cx="50" cy="38" r="30" fill="none" stroke={c.glow} strokeWidth="2.4" opacity=".9" />
+          {/* блики на стекле: большой сверху и маленький снизу справа */}
+          <path d="M29 25 A25 25 0 0 1 44 12" stroke="#ffffff" strokeWidth="3.4" fill="none" strokeLinecap="round" opacity=".95" />
+          <path d="M66 55 A24 24 0 0 0 76 44" stroke="#ffffff" strokeWidth="2" fill="none" strokeLinecap="round" opacity=".5" />
+          {/* шапка шлема: перекрывает верхнюю дугу стекла, из-под неё выходят уши */}
+          <path d="M17 40 A33 33 0 0 1 83 40 Q70 26.5 50 25.5 Q30 26.5 17 40Z" fill={c.trim} />
+          <path d="M17 40 Q30 26.5 50 25.5 Q70 26.5 83 40" fill="none" stroke="#9fb0cc" strokeWidth="1.4" opacity=".8" />
+          {/* ремни и «уши» шлема у щеки + кислородный шланг */}
+          <circle cx="21" cy="46" r="4.4" fill={c.trim} stroke="#9fb0cc" strokeWidth="1.2" />
+          <circle cx="79" cy="46" r="4.4" fill={c.trim} stroke="#9fb0cc" strokeWidth="1.2" />
+          <path d="M21 50 Q16 62 22 70" stroke="#9fb0cc" strokeWidth="2" fill="none" strokeLinecap="round" opacity=".85" />
+          {/* намёк на гребень-антенну */}
+          <path d="M46 10 Q50 3 54 10" fill={c.wing} />
         </g>
       );
     case 'dome': // «Звёздный рейнджер»: купол с горизонтальной щелью-визором и антенной
@@ -178,24 +238,37 @@ export function CostumeHead({ c }: { c: Costume }) {
           <circle cx="82.5" cy="3.6" r="2.4" fill={c.glow} />
         </g>
       );
-    case 'plate': // «Храбрый дроид»: синяя шапка-купол, лицевые панели и корпус-панель
+    case 'plate': // «Храбрый дроид»: купол-шапка над глазами (раньше её плоский низ
+      // резал глаза по центру — на иконке 64 px дроид был «слепым»), симметричные
+      // vents-панели на щеках и панель корпуса ВЫШЕ «пёрышек» роста.
       return (
         <g>
-          <path d="M21 38 A29 29 0 0 1 79 38 L79 42 H21Z" fill={c.trim} />
-          <rect x="29" y="45" width="14" height="9" rx="2.5" fill={c.glow} opacity=".9" />
-          <circle cx="67" cy="49" r="3.2" fill={c.glow} />
-          <rect x="34" y="86" width="32" height="15" rx="3.5" fill="rgba(255,255,255,.55)" />
-          <rect x="38" y="89.5" width="6.5" height="8" rx="1.5" fill={c.trim} />
-          <rect x="47.5" y="89.5" width="6.5" height="8" rx="1.5" fill={c.glow} opacity=".8" />
+          <path d="M20 40 A30 30 0 0 1 80 40 Q66 26 50 25 Q34 26 20 40Z" fill={c.trim} />
+          <path d="M20 40 Q34 26 50 25 Q66 26 80 40" fill="none" stroke="#ffffff" strokeWidth="1.4" opacity=".35" />
+          <path d="M29 21 A24 24 0 0 1 43 12" stroke="#ffffff" strokeWidth="3" fill="none" strokeLinecap="round" opacity=".6" />
+          {/* «глаз-сканер» по центру лба — не задевает глаза совы */}
+          <rect x="45.5" y="31" width="9" height="6" rx="2.4" fill={c.glow} opacity=".95" />
+          {/* боковые панели-вентиляторы */}
+          <rect x="21" y="45" width="10" height="5.5" rx="2" fill={c.glow} opacity=".8" />
+          <rect x="69" y="45" width="10" height="5.5" rx="2" fill={c.glow} opacity=".8" />
+          {/* панель корпуса: «пёрышки» роста занимают y 86..105, лапы — 111..121,
+              поэтому панель ставим под шею, иначе она перекрывала рост БУКа */}
+          <rect x="36.5" y="66" width="27" height="13" rx="3.5" fill="rgba(255,255,255,.62)" stroke={c.trim} strokeWidth="1" />
+          <rect x="40" y="69.5" width="7.5" height="6.5" rx="1.5" fill={c.trim} />
+          <rect x="52" y="69.5" width="7.5" height="6.5" rx="1.5" fill={c.glow} opacity=".85" />
         </g>
       );
-    case 'buns': // «Командир звёзд»: пучки по бокам и диадема
+    case 'buns': // «Командир звёзд»: пучки по бокам и ДИАДЕМА — раньше тонкая дуга
+      // с горошиной терялась между ушами; теперь это корона с тремя зубцами.
       return (
         <g>
           <circle cx="16" cy="27" r="9" fill={c.trim} />
           <circle cx="84" cy="27" r="9" fill={c.trim} />
-          <path d="M25 17 Q50 5 75 17" stroke={c.glow} strokeWidth="3" fill="none" strokeLinecap="round" />
-          <circle cx="50" cy="9" r="3.4" fill={c.glow} />
+          <path d="M23 27 L27 12 L37 20 L50 5 L63 20 L73 12 L77 27 Q50 32 23 27Z" fill={c.glow} />
+          <path d="M24.5 26.5 Q50 31.5 75.5 26.5" stroke="#e0a92c" strokeWidth="1.6" fill="none" />
+          <circle cx="50" cy="22" r="3.2" fill="#fff8ec" />
+          <circle cx="34" cy="22.6" r="1.8" fill="#fff8ec" opacity=".85" />
+          <circle cx="66" cy="22.6" r="1.8" fill="#fff8ec" opacity=".85" />
         </g>
       );
     case 'ears': // «Лесной мудрец»: длинные уши и светлячок
@@ -212,15 +285,25 @@ export function CostumeHead({ c }: { c: Costume }) {
   }
 }
 
-/** Реквизит: светопосохи и посох-компас. Клинок цвета c.glow. */
+/** Реквизит: светопосохи и посох-компас. Клинок цвета c.glow — с мягким ореолом.
+ *  Размытие (filter) не используем: оно дорого для телефона на 60 fps и криво
+ *  переносится растером превью; три полупрозрачных слоя дают то же свечение.
+ *  Клинок сдвинут левее и наклон уменьшен (12° вместо 16°): с ореолом кончик
+ *  вылезал за viewBox 0..100 и обрезался на иконке магазина. */
 export function CostumeProp({ c }: { c: Costume }) {
   if (c.prop === 'saber-red' || c.prop === 'saber-blue' || c.prop === 'saber-green') {
     return (
-      <g transform="rotate(16 86 80)">
-        <rect x="83.4" y="26" width="5.2" height="42" rx="2.6" fill={c.glow} />
-        <rect x="84.7" y="28" width="2.6" height="38" fill="#ffffff" opacity=".85" />
-        <rect x="82.8" y="68" width="6.4" height="18" rx="2.2" fill="#241f36" />
-        <rect x="82.8" y="74" width="6.4" height="2" fill="#6b6480" />
+      <g transform="rotate(12 82 80)">
+        <rect x="76.6" y="22" width="10.8" height="48" rx="5.4" fill={c.glow} opacity=".14" />
+        <rect x="78.2" y="24" width="7.6" height="44" rx="3.8" fill={c.glow} opacity=".28" />
+        <rect x="79.2" y="25.4" width="5.6" height="41.2" rx="2.8" fill={c.glow} opacity=".55" />
+        <rect x="79.4" y="26" width="5.2" height="42" rx="2.6" fill={c.glow} />
+        <rect x="80.7" y="28" width="2.6" height="38" rx="1.3" fill="#ffffff" opacity=".9" />
+        <ellipse cx="82" cy="67.6" rx="5.4" ry="2.8" fill={c.glow} opacity=".6" />
+        <rect x="77.8" y="66.2" width="8.4" height="2.6" rx="1.3" fill="#8f9ab5" />
+        <rect x="78.8" y="68" width="6.4" height="18" rx="2.2" fill="#241f36" />
+        <rect x="78.8" y="74" width="6.4" height="2" fill="#6b6480" />
+        <rect x="78.8" y="82" width="6.4" height="2" rx="1" fill="#8f9ab5" opacity=".8" />
       </g>
     );
   }

@@ -5,6 +5,7 @@
   "description": "СЛОВО 2.0 — словарные слова, 2 класс. Mobile-first офлайн PWA.",
   "type": "module",
   "scripts": {
+    "pickup": "node scripts/pickup.mjs",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
@@ -16,6 +17,7 @@
     "test:boot": "node scripts/prod-boot-check.mjs",
     "audit:storage": "node scripts/audit-storage.mjs",
     "images": "node scripts/make-word-images.mjs",
+    "promo": "OUT_DIR=docs/promo/$(date +%F) node scripts/promo/make_costumes.mjs",
     "test:adaptive": "node scripts/adaptive-test.mjs"
   },
   "dependencies": {

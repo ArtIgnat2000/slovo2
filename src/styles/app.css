@@ -2350,9 +2350,30 @@ p {
 .costume-grid {
   grid-template-columns: repeat(2, 1fr);
 }
+/* Костюм ещё не собран. Раньше здесь стояло filter: grayscale(1) + opacity .5,
+   и ребёнок видел ряд серых силуэтов: выбрать «тот самый» костюм было нельзя,
+   цвета были видны только у уже собранного. Теперь рисунок всегда в полном цвете,
+   а «ещё не надет» показывает только замок на иконке — рамка карточки остаётся
+   обычной (пунктир пробовали, он спорит с рисунком и ничего не добавляет). */
 .pz-locked {
-  filter: grayscale(1);
-  opacity: 0.5;
+  position: relative;
+}
+.pz-locked::after {
+  content: '🔒';
+  position: absolute;
+  right: -2px;
+  bottom: 0;
+  font-size: 15px;
+  line-height: 1;
+  padding: 3px 5px;
+  border-radius: 10px;
+  background: var(--primary-soft);
+  border: 1px solid rgba(124, 92, 255, 0.28);
+}
+/* то, что собирается прямо сейчас, — подсвечено, а не приглушено */
+.costume-card.current {
+  border-color: var(--primary);
+  background: var(--primary-soft);
 }
 .pz-dots {
   display: flex;
