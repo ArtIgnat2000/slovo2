@@ -25,20 +25,13 @@ export async function runPretestAuditChecks(): Promise<void> {
   await sleep(40);
   check('аудит: открыт экран выбора ученика', has('Кто будет учиться?'), body().slice(0, 140));
 
-  const deleteBtn = btn((b) => (b.textContent ?? '').trim() === '🗑');
-  click(deleteBtn);
-  await sleep(40);
+  // Ребёнок заходит сюда с аватара в шапке: удалить профиль он не должен уметь
+  // (именно так один из тестировщиков потерял весь прогресс).
+  const childDelete = btn((b) => (b.textContent ?? '').trim() === '🗑');
   check(
-    'аудит: удаление профиля защищено ConfirmDialog («Оставить профиль»)',
-    has('Удалить профиль') && has('Оставить профиль'),
-    body().slice(-200),
-  );
-  click(btnText('Оставить профиль'));
-  await sleep(40);
-  check(
-    'аудит: отмена удаления сохраняет профиль',
-    useApp.getState().profiles.length >= 1 && !has('Оставить профиль'),
-    '',
+    'аудит: с детского пути профиль удалить нельзя (кнопки 🗑 нет)',
+    !childDelete,
+    childDelete ? 'кнопка 🗑 доступна ребёнку' : 'кнопки нет',
   );
 
   // Тап по нижней вкладке закрывает экран профилей
@@ -67,6 +60,36 @@ export async function runPretestAuditChecks(): Promise<void> {
     await sleep(40);
   }
   check('аудит: раздел родителей разблокирован', has('Размер урока'), '');
+
+  // Из родительского раздела удаление доступно — но всё равно через ConfirmDialog.
+  const childrenBtn = btnText('Дети');
+  if (childrenBtn) {
+    click(childrenBtn);
+    await sleep(40);
+    const managedDelete = btn((b) => (b.textContent ?? '').trim() === '🗑');
+    check('аудит: в родительском разделе удаление профиля доступно', !!managedDelete, '');
+    if (managedDelete) {
+      click(managedDelete);
+      await sleep(40);
+      check(
+        'аудит: удаление профиля защищено ConfirmDialog («Оставить профиль»)',
+        has('Удалить профиль') && has('Оставить профиль'),
+        body().slice(-200),
+      );
+      click(btnText('Оставить профиль'));
+      await sleep(40);
+      check(
+        'аудит: отмена удаления сохраняет профиль',
+        useApp.getState().profiles.length >= 1 && !has('Оставить профиль'),
+        '',
+      );
+      const closeProfiles = btnText('Закрыть');
+      if (closeProfiles) {
+        click(closeProfiles);
+        await sleep(40);
+      }
+    }
+  }
   click(tabHome);
   await sleep(40);
   click(tabParent);

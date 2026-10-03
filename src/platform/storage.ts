@@ -39,7 +39,29 @@ export const idbStorage: StateStorage = {
   },
 };
 
-/** Просим браузер не вытеснять наши данные (важно для iOS: кеш чистится ~через 7 дней). */
+/**
+ * Уже постоянное хранилище или нет? null — браузер не отвечает.
+ *
+ * Ответ нужен родителю: без «постоянного» режима браузер вправе вычистить
+ * данные (у WebKit — после 7 дней без взаимодействия с сайтом, если приложение
+ * не добавлено на экран).
+ */
+export async function checkPersistence(): Promise<boolean | null> {
+  try {
+    if (navigator.storage?.persisted) return await navigator.storage.persisted();
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+/**
+ * Просим браузер не вытеснять наши данные (важно для iOS: кеш чистится ~через 7 дней).
+ *
+ * Вызывать ТОЛЬКО по жесту пользователя: Safari и Chrome учитывают
+ * вовлечённость, а на iOS действенную защиту даёт установка на экран —
+ * поэтому результат показываем родителю, а не прячем в консоль.
+ */
 export async function requestPersistence(): Promise<boolean> {
   try {
     if (navigator.storage?.persist) {
