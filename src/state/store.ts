@@ -25,6 +25,29 @@ import {
   type PuzzleAward,
 } from '../engine/puzzles';
 import { DEFAULT_LESSON_SIZE } from '../engine/scheduler';
+import {
+  addTrash,
+  emptyVault,
+  nextSlot,
+  normalizeVault,
+  purgeTrash,
+  pushLog,
+  pushLogDedup,
+  readRecord,
+  snapshotMetaOf,
+  upsertSnapshot,
+  type LogKind,
+  type SnapshotMeta,
+  type VaultState,
+} from '../engine/vault';
+import {
+  broadcastChange,
+  createGuardedStorage,
+  MAIN_KEY,
+  readSnapshot,
+  writeSnapshot,
+} from '../platform/vault';
+import { useStorageHealth } from './health';
 
 export { dayKey };
 
@@ -201,11 +224,160 @@ interface AppState {
   /** Изменить размер базовой очереди урока для текущего профиля. */
   setLessonSize: (size: LessonSize) => void;
   adaptLesson: (profileId: string, ceiling: number, outcome: Outcome) => void;
+
+  /** Сейф прогресса: корзина профилей, журнал событий, метки копий, дата выгрузки. */
+  vault: VaultState;
+
+  /** Запись в журнал — его показывает родительский раздел. */
+  logEvent: (kind: LogKind, note?: string) => void;
+  /** Вернуть профиль из корзины (удалённый или сброшенный). */
+  restoreTrashed: (at: number) => void;
+  /** Убрать профиль из корзины окончательно. */
+  dropTrashed: (at: number) => void;
+  /** Вернуть состояние из резервной копии (слот 1..3). */
+  restoreSnapshot: (slot: number) => Promise<boolean>;
+  /** Отметить, что родитель сохранил файл выгрузки. */
+  noteExport: () => void;
+  /** Повторить чтение сохранённого после сбоя. */
+  retryHydration: () => Promise<void>;
+  /** Явное «начать заново»: снимает заморозку записи (старое уже в копии). */
+  freshStart: () => void;
+  /** Повторить запись, если предыдущая не удалась. */
+  retrySave: () => void;
 }
 
 function patchActive(s: AppState, fn: (p: Profile) => Profile): Partial<AppState> {
   if (!s.activeId) return {};
   return { profiles: s.profiles.map((p) => (p.id === s.activeId ? fn(p) : p)) };
+}
+
+/** Что именно мы храним в IndexedDB (и что ждём из файла выгрузки). */
+interface PersistedShape {
+  profiles: Profile[];
+  activeId: string | null;
+  settings: Settings;
+  vault: VaultState;
+}
+
+/**
+ * Санитайзер сохранённого состояния. Отличается от старого поведения в одном
+ * важном месте: невалидный профиль НЕ выбрасывается молча, а уходит в корзину —
+ * «потерять» данные можно только явно, из родительского раздела.
+ */
+function normalizePersisted(raw: unknown): PersistedShape {
+  const p = (raw ?? {}) as Partial<PersistedShape>;
+  const profiles: Profile[] = [];
+  let vault = normalizeVault(p.vault);
+  for (const item of Array.isArray(p.profiles) ? p.profiles : []) {
+    const prof = normalizeProfile(item);
+    if (prof) profiles.push(prof);
+    else vault = addTrash(vault, item as Profile, 'invalid');
+  }
+  const activeId =
+    typeof p.activeId === 'string' && profiles.some((x) => x.id === p.activeId)
+      ? p.activeId
+      : (profiles[0]?.id ?? null);
+  return { profiles, activeId, settings: normalizeSettings(p.settings), vault };
+}
+
+/** Снимаем заморозку записи — после того как убедились, что сохранённое прочитано. */
+function unfreeze() {
+  useStorageHealth.getState().patch({ frozen: false, kind: 'ok', message: null, lastError: null });
+}
+
+function errorText(e: unknown): string {
+  const err = e as { name?: string; message?: string } | null;
+  return err?.name ? `${err.name}: ${err?.message ?? ''}`.trim() : String(e);
+}
+
+/**
+ * Сторож писателя: не даёт писать, пока сохранённое не прочитано, снимает
+ * копии перед «опасной» перезаписью и сообщает о сбоях в интерфейс, а не в
+ * никуда. Подробности — src/platform/vault.ts.
+ */
+const guardedStorage = createGuardedStorage({
+  isFrozen: () => useStorageHealth.getState().frozen,
+  snapshots: () => useApp.getState().vault.snapshots,
+  report: (r) => {
+    const h = useStorageHealth.getState();
+    if (r.status === 'error') {
+      h.patch({ kind: 'write-error', message: r.message ?? 'неизвестная ошибка' });
+      // Запись в журнал — не чаще раза в минуту, и только если журнал правда
+      // изменился. Иначе получается самоподдерживающийся цикл: запись упала →
+      // пишем в журнал → журнал пишется → снова упала → и так до бесконечности.
+      // (persist оборачивает setState и пишет на каждый вызов, даже если
+      // состояние не изменилось — поэтому «ничего не менять» нельзя через setState.)
+      const current = useApp.getState();
+      const vault = pushLogDedup(current.vault, 'write-error', r.message, r.at, 60_000);
+      if (vault !== current.vault) useApp.setState({ vault });
+      return;
+    }
+    if (r.status === 'blocked') {
+      // Писать нельзя: старая запись ещё не подтверждена — считаем и молчим.
+      h.patch({ blockedWrites: h.blockedWrites + 1 });
+      return;
+    }
+    h.patch({
+      lastWriteAt: r.at,
+      lastError: null,
+      ...(h.kind === 'write-error' ? { kind: 'ok' as const, message: null } : {}),
+    });
+    broadcastChange();
+    if (r.snapshot) {
+      const meta: SnapshotMeta = r.snapshot;
+      const note = meta.profiles === null ? 'копия нечитаемой записи' : `профилей: ${meta.profiles}`;
+      useApp.setState((s) => ({
+        vault: {
+          ...pushLog(s.vault, 'snapshot', note, r.at),
+          snapshots: upsertSnapshot(s.vault.snapshots, meta),
+        },
+      }));
+    }
+  },
+});
+
+/**
+ * Разбор после чтения сохранения. Главная проверка: если в записи кто-то был,
+ * а прочиталось ноль профилей — это не «первый запуск», а сбой, и писать
+ * нельзя. Раньше приложение в этом случае молча показывало пустой экран и
+ * первое же действие стирало прогресс.
+ */
+async function afterHydration(state: AppState | undefined, error: unknown): Promise<void> {
+  const now = Date.now();
+  if (error) {
+    useStorageHealth.getState().patch({
+      kind: 'read-error',
+      message: `не удалось прочитать сохранение: ${errorText(error)}`,
+      frozen: true,
+      hydratedAt: now,
+    });
+    return;
+  }
+
+  let stored: string | null = null;
+  try {
+    stored = await idbStorage.getItem(MAIN_KEY);
+  } catch {
+    stored = null;
+  }
+  const summary = readRecord(stored);
+  const profiles = state?.profiles ?? [];
+  if (summary && summary.count > 0 && profiles.length === 0) {
+    useStorageHealth.getState().patch({
+      kind: 'read-error',
+      message: `в сохранении ${summary.count} профилей, прочитать удалось 0`,
+      frozen: true,
+      hydratedAt: now,
+    });
+    return;
+  }
+
+  useStorageHealth.getState().patch({ kind: 'ok', message: null, frozen: false, hydratedAt: now });
+  // Журнал и чистку корзины применяем только если что-то правда изменилось:
+  // лишняя запись в базу при каждом запуске ни к чему.
+  const s = useApp.getState();
+  const vault = purgeTrash(pushLogDedup(s.vault, 'boot', `профилей: ${profiles.length}`, now, 6 * 60 * 60 * 1000), now);
+  if (vault !== s.vault) useApp.setState({ vault });
 }
 
 export const useApp = create<AppState>()(
@@ -214,6 +386,7 @@ export const useApp = create<AppState>()(
       profiles: [],
       activeId: null,
       settings: DEFAULT_SETTINGS,
+      vault: emptyVault(),
       toast: null,
 
       createProfile: (name, avatar) =>
@@ -224,10 +397,21 @@ export const useApp = create<AppState>()(
 
       selectProfile: (id) => set({ activeId: id }),
 
+      /**
+       * Удаление профиля — больше не «стерлось навсегда»: профиль уходит в
+       * корзину («Родителям → Прогресс») и 30 дней его можно вернуть.
+       */
       deleteProfile: (id) =>
         set((s) => {
+          const gone = s.profiles.find((p) => p.id === id);
           const profiles = s.profiles.filter((p) => p.id !== id);
-          return { profiles, activeId: s.activeId === id ? (profiles[0]?.id ?? null) : s.activeId };
+          return {
+            profiles,
+            activeId: s.activeId === id ? (profiles[0]?.id ?? null) : s.activeId,
+            vault: gone
+              ? pushLog(addTrash(s.vault, gone, 'delete'), 'profile-delete', gone.name)
+              : s.vault,
+          };
         }),
 
       renameProfile: (id, name, avatar) =>
@@ -459,24 +643,45 @@ export const useApp = create<AppState>()(
           ),
         ),
 
+      /** Сброс тоже обратим: прежний профиль остаётся в корзине 30 дней. */
       resetProfile: (id) =>
-        set((s) => ({
-          profiles: s.profiles.map((p) =>
-            p.id === id ? { ...newProfile(p.name, p.avatar), id: p.id, createdAt: p.createdAt } : p,
-          ),
-        })),
+        set((s) => {
+          const prev = s.profiles.find((p) => p.id === id);
+          if (!prev) return {};
+          const fresh: Profile = { ...newProfile(prev.name, prev.avatar), id, createdAt: prev.createdAt };
+          const vault = pushLog(addTrash(s.vault, prev, 'reset'), 'profile-reset', prev.name);
+          return {
+            profiles: s.profiles.map((p) => (p.id === id ? fresh : p)),
+            vault,
+          };
+        }),
 
+      /**
+       * Загрузка файла. Прежние профили не исчезают: они уходят в корзину, и
+       * после неудачного импорта можно вернуть как было. Свои резервные копии
+       * на диске не трогаем — в файле лежат чужие метки.
+       */
       replaceAll: (data) =>
-        set(() => {
-          const profiles = Array.isArray(data?.profiles)
-            ? data.profiles.map((p) => normalizeProfile(p)).filter((p): p is Profile => p !== null)
-            : [];
-          const activeId =
-            typeof data?.activeId === 'string' && profiles.some((p) => p.id === data.activeId)
-              ? data.activeId
-              : (profiles[0]?.id ?? null);
-          const settings = normalizeSettings(data?.settings);
-          return { profiles, activeId, settings, toast: null };
+        set((s) => {
+          // Один и тот же санитайзер, что и для сохранения: «плохой» профиль
+          // из файла не пропадает бесследно, а уходит в корзину.
+          const incoming = normalizePersisted(data);
+
+          let vault = s.vault;
+          for (const p of s.profiles) vault = addTrash(vault, p, 'import');
+          for (const t of incoming.vault.trash) vault = addTrash(vault, t.profile, t.reason, t.at);
+          vault = pushLog(vault, 'import', `профилей: ${incoming.profiles.length}`);
+          // Заморозку снимаем: импорт — осознанное действие взрослого.
+          unfreeze();
+
+          return {
+            profiles: incoming.profiles,
+            activeId: incoming.activeId,
+            settings: incoming.settings,
+            // Копии лежат на этом устройстве — из файла метки не берём.
+            vault: { ...vault, snapshots: s.vault.snapshots },
+            toast: null,
+          };
         }),
 
       setSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
@@ -490,16 +695,102 @@ export const useApp = create<AppState>()(
       })),
       setLessonSize: (size) =>
         set((s) => patchActive(s, (p) => ({ ...p, lessonSize: size, adaptiveGood: 0 }))),
+
+      // ── Сейф прогресса ────────────────────────────────────────────────────
+
+      logEvent: (kind, note) => set((s) => ({ vault: pushLogDedup(s.vault, kind, note) })),
+
+      noteExport: () =>
+        set((s) => ({
+          vault: pushLog({ ...s.vault, lastExportAt: Date.now() }, 'export'),
+        })),
+
+      restoreTrashed: (at) =>
+        set((s) => {
+          const item = s.vault.trash.find((t) => t.at === at);
+          if (!item) return {};
+          const exists = s.profiles.some((p) => p.id === item.profile.id);
+          const vault = pushLog(
+            { ...s.vault, trash: s.vault.trash.filter((t) => t.at !== at) },
+            'profile-restore',
+            item.profile.name,
+          );
+          return {
+            profiles: exists
+              ? s.profiles.map((p) => (p.id === item.profile.id ? item.profile : p))
+              : [...s.profiles, item.profile],
+            activeId: item.profile.id,
+            vault,
+          };
+        }),
+
+      dropTrashed: (at) =>
+        set((s) => ({ vault: { ...s.vault, trash: s.vault.trash.filter((t) => t.at !== at) } })),
+
+      /**
+       * Вернуть состояние из копии. Текущее состояние перед этим тоже
+       * сохраняем в другой слот — чтобы само восстановление было отменяемым.
+       */
+      restoreSnapshot: async (slot) => {
+        const raw = await readSnapshot(slot);
+        if (!raw) return false;
+        const current = await Promise.resolve(idbStorage.getItem(MAIN_KEY)).catch(() => null);
+        if (current && current !== raw) {
+          const busy = useApp.getState().vault.snapshots.filter((s) => s.slot !== slot);
+          const spare = nextSlot(busy);
+          await writeSnapshot(spare, current).catch(() => undefined);
+          // Копия «того, что было до восстановления»: восстановление отменяемо.
+          set((st) => ({
+            vault: {
+              ...st.vault,
+              snapshots: upsertSnapshot(st.vault.snapshots, snapshotMetaOf(current, spare, Date.now())),
+            },
+          }));
+        }
+        await idbStorage.setItem(MAIN_KEY, raw);
+        unfreeze();
+        await Promise.resolve(useApp.persist.rehydrate()).catch(() => undefined);
+        const summary = readRecord(raw);
+        set((s) => ({
+          vault: pushLog(s.vault, 'restore-snapshot', summary ? `${summary.count} профилей` : 'копия'),
+        }));
+        return true;
+      },
+
+      /** Повторить чтение: снимаем заморозку и читаем заново. */
+      retryHydration: async () => {
+        unfreeze();
+        await Promise.resolve(useApp.persist.rehydrate()).catch(() => undefined);
+      },
+
+      /** Осознанное «начать заново» после сбоя чтения: старая запись уже в копии. */
+      freshStart: () => {
+        unfreeze();
+        set((s) => ({ profiles: [], activeId: null, vault: pushLog(s.vault, 'fresh-start') }));
+      },
+
+      /** Пустая запись состояния — просто способ заставить persist писать снова. */
+      retrySave: () => set((s) => ({ vault: { ...s.vault } })),
     }),
     {
-      name: 'slovo2',
+      name: MAIN_KEY,
       version: 1,
-      storage: createJSONStorage(() => idbStorage),
+      storage: createJSONStorage(() => guardedStorage),
       partialize: (s) => ({
         profiles: s.profiles,
         activeId: s.activeId,
         settings: s.settings,
+        vault: s.vault,
       }),
+      // Данные из хранилища (или из файла) проходят санитайзер: раньше
+      // невалидный профиль просто выбрасывался молча.
+      merge: (persisted, current) => ({ ...current, ...normalizePersisted(persisted) }),
+      // Без migrate любое расхождение версии означает потерю прогресса
+      // (zustand не может мигрировать и падает внутри hydrate).
+      migrate: (state) => normalizePersisted(state),
+      onRehydrateStorage: () => (state, error) => {
+        void afterHydration(state as AppState | undefined, error);
+      },
     },
   ),
 );

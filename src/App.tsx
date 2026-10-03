@@ -1,5 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { masteredCount, useActiveProfile, useApp, useLook } from './state/store';
+import { useStorageHealth } from './state/health';
+import { StorageBanner, StorageScreen } from './ui/StorageScreen';
+import { onExternalChange } from './platform/vault';
 import { useMascot } from './state/mascot';
 import { Mascot } from './ui/Mascot';
 import { HomeScreen } from './ui/screens/HomeScreen';
@@ -60,6 +63,9 @@ export function FloatingMascot() {
 export default function App() {
   const profile = useActiveProfile();
   const settings = useApp((s) => s.settings);
+  // Подписка ровно на один признак: иначе App перерисовывался бы на каждой
+  // записи прогресса (а запись идёт на каждый ответ ребёнка).
+  const storageBroken = useStorageHealth((s) => s.kind === 'read-error');
 
   const [tab, setTab] = useState<Tab>('home');
   const [lessonId, setLessonId] = useState<string | null>(null);
@@ -101,10 +107,35 @@ export default function App() {
     return () => window.removeEventListener('slovo2:update', onUpdate);
   }, []);
 
+  /**
+   * Несколько открытых копий приложения (ярлык на экране и вкладка браузера)
+   * держат в памяти своё состояние и пишут запись целиком: проснувшаяся
+   * вчерашняя копия затирала свежий прогресс. Договорились так: кто записал —
+   * тот сообщил остальным, а вернувшаяся в фокус копия сначала перечитывает
+   * сохранение. Во время урока не трогаем ничего: там своё состояние.
+   */
+  const inLesson = useRef(false);
+  inLesson.current = lessonId !== null;
+  useEffect(() => {
+    const sync = () => {
+      if (inLesson.current) return;
+      void Promise.resolve(useApp.persist.rehydrate()).catch(() => undefined);
+    };
+    const offExternal = onExternalChange(sync);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') sync();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      offExternal();
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, []);
+
   if (!profile) {
     return (
       <div className="app">
-        <ProfilesScreen />
+        {storageBroken ? <StorageScreen /> : <ProfilesScreen manage={parentUnlocked} />}
       </div>
     );
   }
@@ -147,8 +178,9 @@ export default function App() {
 
   return (
     <div className="app">
+      <StorageBanner />
       {profilesOpen ? (
-        <ProfilesScreen onClose={() => setProfilesOpen(false)} />
+        <ProfilesScreen onClose={() => setProfilesOpen(false)} manage={parentUnlocked} />
       ) : tab === 'home' ? (
         <HomeScreen
           onStartLesson={startLesson}

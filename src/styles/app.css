@@ -2072,6 +2072,27 @@ p {
   font-weight: 700;
 }
 
+/* «Прогресс не сохраняется» — сообщение о сбое записи, а не подсказка:
+   ребёнок не должен заниматься впустую, не зная, что результат не пишется. */
+.banner.danger-banner {
+  background: var(--wrong-soft, #ffe9e9);
+  border-color: var(--wrong, #e05252);
+  color: var(--wrong-strong, #a32b2b);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.banner.danger-banner .btn {
+  align-self: flex-start;
+}
+
+/* Неработающее сохранение — подпись в карточке родителя. */
+.warn {
+  color: var(--wrong-strong, #a32b2b);
+}
+
 .input {
   width: 100%;
   border: 3px solid var(--line);

@@ -28,6 +28,7 @@ npm run content:check  # проверить разметку слов
 npm run test:smoke     # смоук-тест в jsdom: пройти урок и получить награды
 SMOKE_SEED=42 npm run test:smoke  # тот же тест на другой перестановке (по умолчанию сид 1)
 npm run test:boot      # прод-бандл на первом запуске: не пустой ли экран
+npm run audit:storage  # прогон сейфа прогресса: копии, корзина, сбой записи
 npm run images         # пересобрать картинки слов из images-src/ (нужен ImageMagick)
 ```
 

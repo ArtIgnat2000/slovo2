@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import './quests.test';
 // Костюмные пазлы — тоже рядом: движок проверяется без DOM.
 import './puzzles.test';
+// Сейф прогресса (копии, корзина, журнал): правила storage-уровня без DOM.
+import './vault.test';
 import { effectiveCards, nextAdaptiveState, recordAttempt } from '../src/engine/adaptive';
 import { buildLesson } from '../src/engine/scheduler';
 import { LESSONS, WORDS } from '../src/content/words';

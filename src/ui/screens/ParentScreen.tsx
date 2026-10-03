@@ -1,8 +1,11 @@
 import { useMemo, useRef, useState } from 'react';
+import type { Profile } from '../../types';
 import { ACHIEVEMENTS } from '../../engine/rewards';
+import { agoLabel, EXPORT_REMINDER_MS, LOG_LABEL } from '../../engine/vault';
 import { WORDS, WORD_BY_ID } from '../../content/words';
 import { dayKey, masteredCount, useActiveProfile, useApp } from '../../state/store';
-import { download } from '../../platform/storage';
+import { useStorageHealth } from '../../state/health';
+import { download, requestPersistence } from '../../platform/storage';
 import { isStandalone } from '../../platform/pwa';
 import { DEFAULT_LESSON_SIZE, LESSON_SIZE_OPTIONS } from '../../engine/scheduler';
 
@@ -15,8 +18,7 @@ interface Props {
 
 export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs }: Props) {
   const profile = useActiveProfile();
-  const { settings, setSettings, replaceAll, resetProfile, setLessonSize } = useApp();
-  const fileRef = useRef<HTMLInputElement>(null);
+  const { settings, setSettings, setLessonSize } = useApp();
 
   const [a, b] = useMemo(() => [2 + Math.floor(Math.random() * 8), 2 + Math.floor(Math.random() * 8)], []);
   const [answer, setAnswer] = useState('');
@@ -63,22 +65,6 @@ export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs }
   const weak = Object.entries(profile.errors)
     .sort((x, y) => y[1] - x[1])
     .slice(0, 10);
-
-  const exportData = () => {
-    const data = JSON.stringify({ profiles: useApp.getState().profiles, activeId: useApp.getState().activeId, settings }, null, 2);
-    download(`slovo2-${dayKey()}.json`, data);
-  };
-
-  const importData = async (file: File) => {
-    try {
-      const text = await file.text();
-      const parsed = JSON.parse(text);
-      if (!Array.isArray(parsed.profiles)) throw new Error('Нет профилей');
-      if (confirm('Заменить текущий прогресс загруженным?')) replaceAll(parsed);
-    } catch (e) {
-      alert('Не удалось загрузить файл: ' + (e as Error).message);
-    }
-  };
 
   return (
     <div className="screen">
@@ -246,37 +232,216 @@ export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs }
         </div>
       )}
 
-      <div className="card mb">
-        <h3>Прогресс</h3>
-        <p className="tiny">Файл можно сохранить и перенести на другой телефон.</p>
-        <div className="row">
-          <button className="btn ghost grow" onClick={exportData}>
-            ⬇️ Сохранить
-          </button>
-          <button className="btn ghost grow" onClick={() => fileRef.current?.click()}>
-            ⬆️ Загрузить
-          </button>
-        </div>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="application/json"
-          style={{ display: 'none' }}
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) void importData(f);
-            e.target.value = '';
-          }}
-        />
-        <button
-          className="btn danger wide mt"
-          onClick={() => {
-            if (confirm(`Сбросить весь прогресс ${profile.name}?`)) resetProfile(profile.id);
-          }}
-        >
-          Сбросить прогресс
+      <ProgressCard profile={profile} />
+    </div>
+  );
+}
+
+/**
+ * Сейф прогресса: сохранение, копии, корзина и журнал.
+ *
+ * Появился после случая «у ребёнка пропал весь прогресс»: раньше у родителя
+ * не было ни способа понять, что произошло, ни возможности вернуть удалённое.
+ * Всё считается локально — наружу nothing не уходит.
+ */
+function ProgressCard({ profile }: { profile: Profile }) {
+  const settings = useApp((s) => s.settings);
+  const vault = useApp((s) => s.vault);
+  const { replaceAll, resetProfile, noteExport, restoreSnapshot, restoreTrashed, dropTrashed } = useApp();
+  // По полю, а не всем стором: иначе карточка перерисовывалась бы на каждую запись.
+  const kind = useStorageHealth((s) => s.kind);
+  const lastWriteAt = useStorageHealth((s) => s.lastWriteAt);
+  const persisted = useStorageHealth((s) => s.persisted);
+  const patchHealth = useStorageHealth((s) => s.patch);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+
+  const exportData = () => {
+    const data = JSON.stringify(
+      { profiles: useApp.getState().profiles, activeId: useApp.getState().activeId, settings },
+      null,
+      2,
+    );
+    download(`slovo2-${dayKey()}.json`, data);
+    noteExport();
+  };
+
+  const importData = async (file: File) => {
+    try {
+      const parsed = JSON.parse(await file.text());
+      if (!Array.isArray(parsed.profiles)) throw new Error('Нет профилей');
+      const was = useApp.getState().profiles.length;
+      if (
+        !confirm(
+          `Заменить текущий прогресс (профилей: ${was}) загруженным (${parsed.profiles.length})? ` +
+            `Нынешние профили останутся в корзине на 30 дней.`,
+        )
+      ) {
+        return;
+      }
+      replaceAll(parsed);
+    } catch (e) {
+      alert('Не удалось загрузить файл: ' + (e as Error).message);
+    }
+  };
+
+  const enablePersistence = async () => {
+    const ok = await requestPersistence();
+    patchHealth({ persisted: ok });
+  };
+
+  const snapshots = [...vault.snapshots].sort((a, b) => b.at - a.at);
+  const trash = [...vault.trash].sort((a, b) => b.at - a.at);
+  const journal = [...vault.log].slice(-12).reverse();
+  const exportOverdue = !vault.lastExportAt || Date.now() - vault.lastExportAt > EXPORT_REMINDER_MS;
+  const saveState = kind === 'ok' ? 'работает' : kind === 'write-error' ? 'не сохраняется' : 'не открыто';
+
+  return (
+    <div className="card mb">
+      <h3>Прогресс</h3>
+      <p className="tiny">Файл можно сохранить и перенести на другой телефон.</p>
+      <div className="row">
+        <button className="btn ghost grow" onClick={exportData}>
+          ⬇️ Сохранить
+        </button>
+        <button className="btn ghost grow" onClick={() => fileRef.current?.click()}>
+          ⬆️ Загрузить
         </button>
       </div>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="application/json"
+        style={{ display: 'none' }}
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) void importData(f);
+          e.target.value = '';
+        }}
+      />
+
+      {exportOverdue && (
+        <div className="banner mt">
+          💾 <b>Сделайте копию прогресса.</b> Прогресс живёт только в этом телефоне: без файла
+          восстановить будет нечего.
+        </div>
+      )}
+
+      <div className="kv mt">
+        <span>Сохранение</span>
+        <b className={kind === 'ok' ? '' : 'warn'}>{saveState}</b>
+      </div>
+      <div className="kv">
+        <span>Последняя запись</span>
+        <span className="tiny">{lastWriteAt ? agoLabel(lastWriteAt) : 'ещё не было'}</span>
+      </div>
+      <div className="kv">
+        <span>Защита от очистки</span>
+        {persisted === true ? (
+          <b>включена</b>
+        ) : (
+          <button className="btn ghost sm" onClick={() => void enablePersistence()}>
+            Включить
+          </button>
+        )}
+      </div>
+      {persisted !== true && (
+        <p className="tiny">
+          Браузер вправе вычистить данные телефона (на iPhone — если приложение не добавлено на экран).
+          Добавьте «СЛОВО» на главный экран и нажмите «Включить».
+        </p>
+      )}
+
+      {snapshots.length > 0 && (
+        <div className="mt">
+          <h3>Вернуть как было</h3>
+          {snapshots.map((s) => (
+            <div className="kv" key={s.slot}>
+              <span>
+                {agoLabel(s.at)}
+                <span className="tiny">
+                  {' · '}
+                  {s.profiles === null ? 'копия нечитаемой записи' : `профилей: ${s.profiles}`}
+                </span>
+              </span>
+              <button
+                className="btn ghost sm"
+                disabled={busy}
+                onClick={() => {
+                  if (!confirm('Вернуть состояние из этой копии? Нынешнее останется в копиях.')) return;
+                  setBusy(true);
+                  void restoreSnapshot(s.slot).then((ok) => {
+                    setBusy(false);
+                    if (!ok) alert('Копия не читается');
+                  });
+                }}
+              >
+                Вернуть
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {trash.length > 0 && (
+        <div className="mt">
+          <h3>Удалённые профили</h3>
+          <p className="tiny">30 дней их можно вернуть целиком — со словами, кристаллами и серией.</p>
+          {trash.map((t) => (
+            <div className="kv" key={t.at}>
+              <span>
+                {t.profile.avatar} {t.profile.name}
+                <span className="tiny">
+                  {' · '}
+                  {agoLabel(t.at)} · ⚡ {t.profile.xp}
+                </span>
+              </span>
+              <span className="row">
+                <button className="btn ghost sm" onClick={() => restoreTrashed(t.at)}>
+                  Вернуть
+                </button>
+                <button
+                  className="chip"
+                  aria-label="Удалить окончательно"
+                  onClick={() => {
+                    if (confirm(`Удалить профиль «${t.profile.name}» окончательно?`)) dropTrashed(t.at);
+                  }}
+                >
+                  🗑
+                </button>
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {journal.length > 0 && (
+        <details className="mt">
+          <summary className="tiny">Журнал (что происходило с прогрессом)</summary>
+          <div className="mt">
+            {journal.map((e, i) => (
+              <div className="kv" key={`${e.at}-${i}`}>
+                <span className="tiny">{new Date(e.at).toLocaleString('ru-RU')}</span>
+                <span className="tiny">
+                  {LOG_LABEL[e.kind] ?? e.kind}
+                  {e.note ? ` · ${e.note}` : ''}
+                </span>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+
+      <button
+        className="btn danger wide mt"
+        onClick={() => {
+          if (confirm(`Сбросить весь прогресс ${profile.name}? Прежний профиль останется в корзине на 30 дней.`)) {
+            resetProfile(profile.id);
+          }
+        }}
+      >
+        Сбросить прогресс
+      </button>
     </div>
   );
 }

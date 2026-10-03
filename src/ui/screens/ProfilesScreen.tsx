@@ -4,7 +4,12 @@ import { ConfirmDialog } from '../Bits';
 
 const AVATARS = ['🦊', '🐱', '🐼', '🦉', '🐸', '🦄', '🐨', '🐯', '🐙', '🦖'];
 
-export function ProfilesScreen({ onClose }: { onClose?: () => void }) {
+/**
+ * @param manage — разрешить удаление профилей. С детского пути (аватар в шапке)
+ *   экран открывается без этого флага: переключить ученика можно, удалить —
+ *   только из раздела «Родителям». Именно так ребёнок терял весь прогресс.
+ */
+export function ProfilesScreen({ onClose, manage = false }: { onClose?: () => void; manage?: boolean }) {
   const { profiles, activeId, createProfile, selectProfile, deleteProfile, renameProfile } = useApp();
   const [name, setName] = useState('');
   const [avatar, setAvatar] = useState(AVATARS[0]);
@@ -38,13 +43,15 @@ export function ProfilesScreen({ onClose }: { onClose?: () => void }) {
               <button className="chip" onClick={() => { setEditing(p.id); setName(p.name); setAvatar(p.avatar); }}>
                 ✏️
               </button>
-              <button
-                className="chip"
-                aria-label={`Удалить профиль ${p.name}`}
-                onClick={() => setConfirmDelete({ id: p.id, name: p.name })}
-              >
-                🗑
-              </button>
+              {manage && (
+                <button
+                  className="chip"
+                  aria-label={`Удалить профиль ${p.name}`}
+                  onClick={() => setConfirmDelete({ id: p.id, name: p.name })}
+                >
+                  🗑
+                </button>
+              )}
             </span>
           </div>
         ))}
@@ -100,7 +107,7 @@ export function ProfilesScreen({ onClose }: { onClose?: () => void }) {
         <ConfirmDialog
           emoji="🧸"
           title={`Удалить профиль «${confirmDelete.name}»?`}
-          text="Весь прогресс, серия и кристаллы этого ученика будут удалены."
+          text="Весь прогресс, серия и кристаллы этого ученика будут удалены. 30 дней профиль можно вернуть в разделе «Родителям»."
           stayLabel="Оставить профиль"
           leaveLabel="Удалить профиль"
           onStay={() => setConfirmDelete(null)}

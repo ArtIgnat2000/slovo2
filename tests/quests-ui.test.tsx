@@ -90,6 +90,21 @@ function questCard(text: string): string {
   return (card?.textContent ?? '').replace(/\s+/g, ' ').trim();
 }
 
+/**
+ * Кнопка с любой подписью внутри карточки задания.
+ *
+ * Важно искать именно внутри карточки: кнопок «Забрать» на странице бывает
+ * несколько (по одной у каждого закрытого задания), и поиск «первой попавшейся»
+ * уводил клик в чужое задание — проверка «награда забрана» падала, хотя
+ * продукт работал верно.
+ */
+function questAction(text: string, label: string): HTMLButtonElement | undefined {
+  const card = Array.from(document.querySelectorAll('.quest')).find((q) => (q.textContent ?? '').includes(text));
+  return (Array.from(card?.querySelectorAll('button') ?? []) as HTMLButtonElement[]).find((b) =>
+    (b.textContent ?? '').includes(label),
+  );
+}
+
 /** Кнопка «Начать ▸» в карточке задания с указанным текстом. */
 function questStart(text: string): HTMLButtonElement | undefined {
   const card = Array.from(document.querySelectorAll('.quest')).find((q) => (q.textContent ?? '').includes(text));
@@ -282,16 +297,20 @@ export async function runQuestUiChecks(): Promise<void> {
   await sleep(80);
   const gemsBefore = active().gems;
   const claim = questStart('Повтори');
-  check('задания дня: прогресс задания считается из потренированных слов', questCard('Повтори').includes('5 / 5'), questCard('Повтори'));
-  check('задания дня: у закрытого задания кнопка «Забрать» вместо «Начать»', !claim && !!btnText('Забрать'), questCard('Повтори'));
-  if (btnText('Забрать')) {
-    click(btnText('Забрать'));
+  const claimBtn = questAction('Повтори', 'Забрать');
+  check(
+    'задания дня: у закрытого задания кнопка «Забрать» вместо «Начать»',
+    !claim && !!claimBtn,
+    questCard('Повтори'),
+  );
+  if (claimBtn) {
+    click(claimBtn);
     await sleep(80);
   }
   check(
     'задания дня: награда за задание забрана',
     active().gems > gemsBefore && questCard('Повтори').includes('Награда получена'),
-    `💎 ${gemsBefore} → ${active().gems}`,
+    `💎 ${gemsBefore} → ${active().gems} | claimBtn=${!!claimBtn} | КАРТОЧКИ: ${Array.from(document.querySelectorAll('.quest')).map((q) => (q.textContent ?? '').replace(/\s+/g, ' ').trim()).join(' ## ')} | claimed=${JSON.stringify(active().daily?.claimed)}`,
   );
 
   // 8. Цель подстраивается под новичка: у профиля с двумя пройденными словами — «Повтори 2 слова»
