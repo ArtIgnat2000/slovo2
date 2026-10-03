@@ -1240,6 +1240,13 @@ PWA, состояние и хранилище) внесены исправлен
   `grayscale|saturate|opacity` — если кто-то вернёт обесцвечивание, смоук упадёт.
   Проверка №3 читает файл стиля регуляркой `\.pz-locked\s*\{[^}]*\}` — правило
   `.pz-locked::after` в совпадение не попадает.
+* **Чем смотреть:** правка в CSS, на листах превью её не видно. Макет «было → стало» —
+  `docs/promo/2026-10-03/shop-color-before-after.png`: рисунок настоящий
+  (`<Mascot size={64} stage={3}/>`, как в магазине, 58×64 px), «было» — тот же рисунок
+  через `feColorMatrix`+`opacity .5`, а рамка, подсветка цели и замок нарисованы от руки,
+  то есть это макет, а не скриншот. Стенд — `.tmp-art/shop-mock.tsx` + `.tmp-art/run-mock.mjs`
+  (не в git; нужен `npm ci && npm i --no-save @resvg/resvg-js`). Вживую —
+  `npm run preview:build && npm run preview:show` → вкладка «БУК».
 * **Контур зелёный:** `typecheck`, `content:check`, `test:adaptive`, `audit:storage`,
   `test:smoke`, `test:boot`.
 
