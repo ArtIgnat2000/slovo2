@@ -4,7 +4,8 @@
 //  • 9-й фрагмент собирает костюм: праздничный блок, костюм надет, сборка
 //    продолжается следующим костюмом;
 //  • магазин: сетка из 10 карточек, точки прогресса, «Собирать» меняет цель,
-//    «Надеть»/«Надето ✓» переключают костюм, несобранные — обесцвечены;
+//    «Надеть»/«Надето ✓» переключают костюм, несобранные — помечены замком, но
+//    рисуются в полном цвете (обесцвечивание убрали 2026-10-03);
 //  • перелив: вся коллекция собрана → кристаллы вместо фрагмента;
 //  • «Повторение» фрагментов не даёт (проверка привязки в LessonScreen).
 // Блок запускается из tests/smoke.test.tsx последним: сам сеет профиль и пазлы.
@@ -99,7 +100,26 @@ export async function runPuzzleUiChecks(playLesson: (second?: boolean) => Promis
   );
   const lordCard = cards().find((el) => (el.textContent ?? '').includes(COSTUMES[0].title));
   check('пазлы: собранный костюм помечен надетым', !!lordCard?.textContent?.includes('Надето ✓'));
-  check('пазлы: несобранный костюм показан силуэтом', !!snowCard?.querySelector('.pz-locked'));
+  // Несобранный костюм помечен, но РИСУНОК В ЦВЕТЕ: обесцвеченные карточки
+  // («grayscale + opacity», было до 2026-10-03) мешали ребёнку выбрать цель.
+  const lockedArt = snowCard?.querySelector('.pz-locked svg');
+  check(
+    'пазлы: несобранный костюм помечен замком, но показан в полном цвете',
+    !!snowCard?.querySelector('.pz-locked') && (lockedArt?.innerHTML ?? '').includes(`fill="${COSTUMES[1].body}"`),
+    lockedArt ? `нет цвета ${COSTUMES[1].body} в карточке` : 'в .pz-locked нет svg',
+  );
+  check(
+    'пазлы: текущая цель подсвечена, а не приглушена',
+    !!snowCard?.className.includes('current') && !lordCard?.className.includes('current'),
+    snowCard?.className ?? 'нет карточки',
+  );
+  // Страж от отката прямо в стилях: правило .pz-locked не имеет права глушить цвет.
+  const lockedRule = readFileSync('src/styles/app.css', 'utf8').match(/\.pz-locked\s*\{[^}]*\}/)?.[0] ?? '';
+  check(
+    'пазлы: стили не обесцвечивают несобранные костюмы',
+    lockedRule.length > 0 && !/grayscale|saturate|opacity/.test(lockedRule),
+    lockedRule.replace(/\s+/g, ' ').trim() || 'правило .pz-locked не найдено',
+  );
 
   // Сменить цель можно тапом — прогресс прежней цели не сгорит
   const thirdBtn = cards()
