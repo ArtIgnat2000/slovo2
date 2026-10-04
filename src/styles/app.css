@@ -1944,6 +1944,100 @@ p {
 .mascot.dance {
   animation: dance 0.6s ease-in-out 3;
 }
+
+/* ── Плавающий БУК: перетаскивание, тап и сворачивание (2026-10-04) ──────────
+   `interactive` ставится только плавающему экземпляру: в магазине, в церемонии
+   сундука и на экране результатов карточки БУК остаётся картинкой.            */
+.mascot.interactive {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  pointer-events: auto;
+  /* пока палец ведёт БУКа, страница не должна прокручиваться */
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.mascot.interactive:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 3px;
+  border-radius: 18px;
+}
+/* Во время жеста «плавание» выключено: иначе transform анимации уводит БУКа
+   от координат, которые мы пишем в left/top. */
+.mascot.is-dragging {
+  animation: none;
+  cursor: grabbing;
+}
+.mascot.is-dragging .bubble {
+  opacity: 0.6;
+}
+/* Пузырь — реплика, а не кнопка: тянуть и гладить можно только саму сову,
+   поэтому реплика не перехватывает касания по контенту под ней. */
+.mascot.interactive .bubble {
+  pointer-events: none;
+}
+/* Баннер внизу (обновление/установка) — БУК встаёт выше него, пока его не сдвинули */
+.mascot.raised {
+  bottom: calc(148px + var(--safe-b));
+}
+/* Кнопка «свернуть»: маленькая, прижата к правому краю — над пузырём и совой */
+.mascot-fold {
+  align-self: flex-end;
+  width: 28px;
+  height: 28px;
+  margin-bottom: 4px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--ink-3);
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+.mascot-fold:active {
+  transform: scale(0.94);
+}
+/* Свёрнутый БУК: маленький значок в кружке, без реплик и без «плавания» */
+.mascot.folded {
+  animation: none;
+  padding: 2px;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  box-shadow: var(--shadow);
+  opacity: 0.95;
+}
+/* «Погладили»: короткое сжатие-подпрыгивание. Перезапускается сменой класса. */
+.mascot.poke {
+  animation: poke 0.7s cubic-bezier(0.2, 1.2, 0.3, 1);
+}
+@keyframes poke {
+  0% {
+    transform: scale(1) translateY(0);
+  }
+  30% {
+    transform: scale(1.1, 0.9) translateY(3px);
+  }
+  60% {
+    transform: scale(0.95, 1.07) translateY(-6px);
+  }
+  100% {
+    transform: scale(1) translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mascot.poke {
+    animation: none;
+  }
+}
 @keyframes dance {
   0%,
   100% {

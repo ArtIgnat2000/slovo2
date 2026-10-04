@@ -5,6 +5,8 @@ import './quests.test';
 import './puzzles.test';
 // Сейф прогресса (копии, корзина, журнал): правила storage-уровня без DOM.
 import './vault.test';
+// Реплики плавающего БУКа: длина, уникальность и приоритет подсказок.
+import './mascot.test';
 import { effectiveCards, nextAdaptiveState, recordAttempt } from '../src/engine/adaptive';
 import { buildLesson } from '../src/engine/scheduler';
 import { LESSONS, WORDS } from '../src/content/words';

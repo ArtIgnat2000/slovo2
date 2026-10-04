@@ -8,7 +8,7 @@ import { pickReview, pickReviewWords } from '../../engine/srs';
 import { dayKey, dayPlan, masteredCount, todayStat, useActiveProfile, useApp } from '../../state/store';
 import { claimableQuests, dayMetrics, plural, questId } from '../../engine/quests';
 import { CHEER, PRAISE, pick, useMascot } from '../../state/mascot';
-import { FloatingMascot } from '../../App';
+import { FloatingMascot } from '../FloatingMascot';
 import { TaskView } from '../TaskView';
 import { Bar, Confetti, ConfirmDialog, Ring, Stars } from '../Bits';
 import { WordLetters } from '../WordView';
