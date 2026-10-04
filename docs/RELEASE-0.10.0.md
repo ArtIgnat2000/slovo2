@@ -34,6 +34,7 @@
 Перед PR прошли `typecheck`, `content:check` (94 слова и 94 картинки), `test:adaptive`,
 `test:smoke` (0 падений), `build` (PWA: 112 записей), `test:boot` (0 ошибок консоли) и
 `audit:storage` (ни один из 10 сценариев не приводит к безвозвратной потере прогресса).
+CI «Release checks» для PR #28 тоже прошёл.
 
 В смоук входят `tests/buk-lesson-ui.test.tsx` (панель и лестница подсказок, отказ
 «Я сам», поведение настроек) и `tests/mascot-ui.test.tsx` (перетаскивание,
