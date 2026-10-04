@@ -108,6 +108,16 @@ export async function runPuzzleUiChecks(playLesson: (second?: boolean) => Promis
     !!snowCard?.querySelector('.pz-locked') && (lockedArt?.innerHTML ?? '').includes(`fill="${COSTUMES[1].body}"`),
     lockedArt ? `нет цвета ${COSTUMES[1].body} в карточке` : 'в .pz-locked нет svg',
   );
+  const everyLockedCostumeHasItsPalette = COSTUMES.filter((costume) => !active().puzzle?.assembled.includes(costume.id)).every((costume) => {
+    const card = cards().find((el) => (el.textContent ?? '').includes(costume.title));
+    const svg = card?.querySelector('.pz-locked svg')?.innerHTML ?? '';
+    return [costume.body, costume.belly, costume.wing].every((color) => svg.includes(`fill="${color}"`));
+  });
+  check(
+    'пазлы: все несобранные карточки сохраняют цвета корпуса, живота и крыльев',
+    everyLockedCostumeHasItsPalette,
+    'у одной или нескольких карточек потерян цвет палитры',
+  );
   check(
     'пазлы: текущая цель подсвечена, а не приглушена',
     !!snowCard?.className.includes('current') && !lordCard?.className.includes('current'),

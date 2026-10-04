@@ -2346,6 +2346,50 @@ p {
 .vlabs-cta { border-color: var(--green) !important; }
 .vlabs-cta h3 { color: var(--ink); }
 
+/* ── Экран диагностики (?diag=1) ───────────────────────────────────────── */
+.diag-screen .kv {
+  gap: 12px;
+  align-items: flex-start;
+}
+.diag-screen .kv span {
+  color: var(--ink-2);
+}
+.diag-screen .kv b {
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.diag-ok { color: var(--green); }
+.diag-warn { color: var(--orange); }
+.diag-error { color: var(--red); }
+.diag-snapshots {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.diag-snapshot {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-sm);
+}
+.diag-snapshot:last-child { border-bottom: 0; }
+.diag-snapshot span:nth-child(even) { text-align: right; }
+.diag-snapshot .diag-error { grid-column: 1 / -1; text-align: left !important; }
+.diag-notice { text-align: center; margin: -4px 0 12px; }
+.diag-copy summary {
+  cursor: pointer;
+  font-weight: 800;
+}
+.diag-copy pre {
+  margin: 12px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: 12px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+  color: var(--ink-2);
+}
+
 /* ── Костюмные пазлы (engine/puzzles.ts) ─────────────────────────────────── */
 .costume-grid {
   grid-template-columns: repeat(2, 1fr);

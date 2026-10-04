@@ -14,6 +14,7 @@ import { runInstallHintChecks } from './install-hint.test';
 import { runChestCeremonyChecks } from './chest-ceremony-ui.test';
 import { runPretestAuditChecks } from './pretest-audit.test';
 import { runPuzzleUiChecks } from './puzzles-ui.test';
+import { runDiagnosticsRouteChecks } from './diagnostics-ui.test';
 import { LESSONS, WORDS } from '../src/content/words';
 import { buildLesson, lessonCardLimit } from '../src/engine/scheduler';
 import { dayKey, dayPlan, useApp } from '../src/state/store';
@@ -547,6 +548,9 @@ async function main() {
   // ── Костюмные пазлы: урок → фрагмент → костюм (идея 2026-10-01) ───────────
   // Идут последними: блок создаёт собственный профиль и сеет пазлы.
   await runPuzzleUiChecks(playLesson);
+
+  // Диагностика запускается прямой ссылкой и читает хранилище, не раскрывая профиль.
+  await runDiagnosticsRouteChecks();
 
   const failures = failureCount();
   console.log(failures ? `\n✗ ошибок: ${failures}` : '\n✓ все проверки пройдены');
