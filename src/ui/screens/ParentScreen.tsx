@@ -200,6 +200,29 @@ export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs }
             ))}
           </div>
         </div>
+        <div className="kv" style={{ alignItems: 'flex-start' }}>
+          <div>
+            <div>Подсказки в уроке</div>
+            <div className="tiny">С вопросом — ребёнок вспоминает сам, потом можно открыть букву</div>
+          </div>
+          <div className="row">
+            {(
+              [
+                ['socratic', 'с вопросом'],
+                ['direct', 'сразу буква'],
+                ['off', 'выключены'],
+              ] as const
+            ).map(([mode, label]) => (
+              <button
+                key={mode}
+                className={`chip ${settings.lessonHelp === mode ? 'on' : ''}`}
+                onClick={() => setSettings({ lessonHelp: mode })}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="kv">
           <span>Цель дня (XP)</span>
           <div className="row">

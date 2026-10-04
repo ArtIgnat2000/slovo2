@@ -16,6 +16,7 @@ import { runPretestAuditChecks } from './pretest-audit.test';
 import { runPuzzleUiChecks } from './puzzles-ui.test';
 import { runDiagnosticsRouteChecks } from './diagnostics-ui.test';
 import { runFloatingMascotChecks } from './mascot-ui.test';
+import { runBukLessonChecks } from './buk-lesson-ui.test';
 import { LESSONS, WORDS } from '../src/content/words';
 import { buildLesson, lessonCardLimit } from '../src/engine/scheduler';
 import { dayKey, dayPlan, useApp } from '../src/state/store';
@@ -561,6 +562,9 @@ async function main() {
 
   // Плавающий БУК: перетаскивание, сворачивание и тап (замечание 2026-10-04).
   await runFloatingMascotChecks();
+
+  // Помощник БУК в уроке: вопрос вместо ответа и тихое предложение помощи.
+  await runBukLessonChecks();
 
   // Диагностика запускается прямой ссылкой и читает хранилище, не раскрывая профиль.
   await runDiagnosticsRouteChecks();

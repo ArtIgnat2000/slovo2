@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { LESSONS, WORDS } from '../../content/words';
 import { useActiveProfile } from '../../state/store';
-import { Sentence, WordArt, WordLetters, dangerSummary } from '../WordView';
+import { Sentence, WordArt, WordLetters } from '../WordView';
+import { dangerSummary } from '../../engine/word-facts';
 
 /** Словарик: всё, что учим, с ударениями и «опасными» буквами. */
 export function WordsScreen() {

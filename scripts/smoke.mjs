@@ -41,6 +41,8 @@ await build({
     'import.meta.env.BASE_URL': '"/"',
     'import.meta.env.DEV': 'true',
     'import.meta.env.VITE_APP_VERSION': '"test"',
+    // Порог паузы помощника БУКа: в продукте 20 с, в тесте — 0,9 с (см. bukHelp.ts)
+    'import.meta.env.VITE_BUK_NUDGE_MS': '"900"',
     'import.meta.env.VITE_BUILD_SHA': '"test"',
   },
   alias: { 'virtual:pwa-register': path.join(root, 'tests/pwa-stub.js') },

@@ -17,6 +17,15 @@ import { haptic } from '../../platform/haptics';
 import { XP, checkAchievements, starsFor } from '../../engine/rewards';
 import { COSTUME_BY_ID, PUZZLE_SIZE, type PuzzleAward } from '../../engine/puzzles';
 import { Mascot } from '../Mascot';
+import { BukHelpOwl, BukHelpPanel, BukVerdictLine } from '../BukHelper';
+import {
+  adjustQuality,
+  helperAfterAnswer,
+  helperQuestion,
+  helperReveal,
+  shouldNudge,
+  type HelpStage,
+} from '../../state/bukHelp';
 
 interface Props {
   lessonId: string;
@@ -82,6 +91,26 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
   // Иток пазла за этот прогон урока — карточка на экране результатов.
   const [puzzleAward, setPuzzleAward] = useState<PuzzleAward | null>(null);
 
+  // ── Помощник БУК (docs/buk-in-lesson.md) ──────────────────────────────────
+  // Настройка: глобальное «Сова БУК: не показывать» сильнее урока — если совы
+  // нет в приложении, помощника в уроке тоже нет.
+  const lessonHelp = useApp((st) => st.settings.lessonHelp);
+  const mascotOff = useApp((st) => st.settings.mascot === 'off');
+  const helpMode = mascotOff ? 'off' : lessonHelp;
+  const [helpStage, setHelpStage] = useState<HelpStage>(0);
+  const [nudge, setNudge] = useState(false);
+  /** Отказ («Я сам») действует до конца урока: больше не предлагаем. */
+  const refused = useRef(false);
+  /** На этой карточке предложение уже было — второго не будет. */
+  const nudgedOnCard = useRef(false);
+  /** Последнее действие ребёнка: от него считаем паузу. */
+  const lastActivity = useRef(Date.now());
+  /** С какой ступенью помощи отвечали — для строчки в вердикте. */
+  const usedHelp = useRef<HelpStage>(0);
+  const helpStageRef = useRef<HelpStage>(0);
+  helpStageRef.current = helpStage;
+  const screenRef = useRef<HTMLDivElement>(null);
+
   // Отмечаем «сегодня занимались» только при первом реальном действии в уроке,
   // чтобы случайный вход в урок и мгновенное нажатие ✕ не тратили заморозку
   // и не продлевали серию дней без единого ответа.
@@ -93,6 +122,92 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
 
   const task = queue[index];
   const total = baseTotal;
+
+  /**
+   * Помощь не должна притворяться самостоятельным ответом: качество считаем
+   * один раз здесь, в одном месте, а не в каждом задании (`TaskView` не тронут).
+   */
+  const withHelp = (quality: number | null): number | null => {
+    usedHelp.current = helpStageRef.current;
+    return adjustQuality(quality, helpStageRef.current);
+  };
+
+  // Новая карточка — чистое состояние помощи; отказ живёт до конца урока.
+  useEffect(() => {
+    setHelpStage(0);
+    setNudge(false);
+    nudgedOnCard.current = false;
+    usedHelp.current = 0;
+    lastActivity.current = Date.now();
+  }, [task?.uid]);
+
+  // Панель уступает место вердикту: там уже есть что читать и куда нажимать.
+  useEffect(() => {
+    if (verdict) {
+      setHelpStage(0);
+      setNudge(false);
+    }
+  }, [verdict]);
+
+  // Любое действие в уроке — это «не застрял»: пауза отсчитывается заново.
+  useEffect(() => {
+    const el = screenRef.current;
+    if (!el || helpMode === 'off') return;
+    const touch = () => {
+      lastActivity.current = Date.now();
+      setNudge(false);
+    };
+    el.addEventListener('pointerdown', touch);
+    el.addEventListener('keydown', touch);
+    el.addEventListener('input', touch);
+    return () => {
+      el.removeEventListener('pointerdown', touch);
+      el.removeEventListener('keydown', touch);
+      el.removeEventListener('input', touch);
+    };
+  }, [helpMode, task?.uid]);
+
+  /**
+   * Тихая пауза: 20 с без действий и БУК в шапке предлагает помощь (без звука).
+   * Один раз на карточку, не на экране вердикта, не после отказа.
+   */
+  useEffect(() => {
+    if (helpMode === 'off' || !task || done || verdict) return;
+    const t = setInterval(() => {
+      if (!task) return;
+      const show = shouldNudge({
+        kind: task.kind,
+        idleMs: Date.now() - lastActivity.current,
+        refused: refused.current,
+        panelOpen: helpStageRef.current > 0,
+        hasVerdict: false,
+        shownOnCard: nudgedOnCard.current,
+      });
+      if (show) {
+        nudgedOnCard.current = true;
+        lastActivity.current = Date.now();
+        setNudge(true);
+      }
+    }, 700);
+    return () => clearInterval(t);
+  }, [helpMode, task, done, verdict]);
+
+  // Пузырь «Подсказать?» не висит вечно: не заинтересовался — исчез.
+  useEffect(() => {
+    if (!nudge) return;
+    const t = setTimeout(() => setNudge(false), 9000);
+    return () => clearTimeout(t);
+  }, [nudge]);
+
+  const openHelp = () => {
+    setNudge(false);
+    // «Сразу буква» — режим для тех, кого вопросы раздражают (настройка родителя).
+    setHelpStage(helpMode === 'direct' ? 2 : 1);
+  };
+  const dismissHelp = () => {
+    setHelpStage(0);
+    refused.current = true;
+  };
   useEffect(() => {
     if (done) return;
     // Look ahead only a few cards, including dynamically inserted repair tasks.
@@ -105,10 +220,11 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
     else onExit();
   };
 
-  const onSolve = (quality: number | null) => {
+  const onSolve = (rawQuality: number | null) => {
     if (!task || finalized.current || solvedTasks.current.has(task.uid)) return;
     solvedTasks.current.add(task.uid);
     ensureTouchedToday();
+    const quality = withHelp(rawQuality);
     if (quality !== null) recordAttempt(observed.current, attempts.current, task.uid, task.reason === 'repair', quality);
     if (quality === null) {
       setVerdict(null);
@@ -259,9 +375,19 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
   // Прогресс — от исходного плана и только вперёд (отработки ошибок не откатывают полоску)
   const stepsDone = Math.min(index + (verdict ? 1 : 0), total);
   const progress = (stepsDone / Math.max(1, total)) * 100;
+  const bukVerdictLine = verdict
+    ? helperAfterAnswer({
+        ok: verdict.ok,
+        // usedHelp сохраняет ступень, с которой отвечали: helpStage к моменту
+        // вердикта уже сброшен (панель уступает место вердикту).
+        stage: verdict.hint && usedHelp.current === 0 ? 2 : usedHelp.current,
+        streak,
+        reason: task.reason,
+      })
+    : null;
 
   return (
-    <div className="screen" style={{ paddingBottom: verdict ? '230px' : '110px' }}>
+    <div ref={screenRef} className="screen" style={{ paddingBottom: verdict ? '230px' : '110px' }}>
       <div className="row mb">
         <button
           className="lesson-exit"
@@ -290,16 +416,28 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
           </div>
         )}
         {streak > 1 && <div className="stat-pill fire">🔥 {streak}</div>}
+        {helpMode !== 'off' && (
+          <BukHelpOwl open={helpStage > 0} nudge={nudge} onOpen={openHelp} />
+        )}
       </div>
 
       <div className="tiny center mb">
         {lesson.emoji} {lesson.title}
       </div>
 
+      {helpMode !== 'off' && helpStage > 0 && (
+        <BukHelpPanel
+          stage={helpStage === 2 ? 2 : 1}
+          text={helpStage === 2 ? helperReveal(word) : helperQuestion(task.kind, word)}
+          onReveal={() => setHelpStage(2)}
+          onDismiss={dismissHelp}
+        />
+      )}
+
       <TaskView key={task.uid} task={task} word={word} onSolve={onSolve} onAttempt={(quality) => {
         if (!finalized.current) {
           ensureTouchedToday();
-          recordAttempt(observed.current, attempts.current, task.uid, task.reason === 'repair', quality);
+          recordAttempt(observed.current, attempts.current, task.uid, task.reason === 'repair', withHelp(quality) ?? 0);
         }
       }} />
 
@@ -321,6 +459,7 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
                 </div>
               )}
               {!verdict.ok && word.mnemonic && <div className="tiny">💡 {word.mnemonic}</div>}
+              {helpMode !== 'off' && bukVerdictLine && <BukVerdictLine text={bukVerdictLine} />}
             </div>
             <button className="btn primary" onClick={goNext}>
               Далее ▸
