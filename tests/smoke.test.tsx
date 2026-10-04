@@ -513,6 +513,15 @@ async function main() {
     await sleep(60);
   }
   check('родителям видны режимы размера урока', has('Размер урока') && has('Короткий · 12') && has('Обычный · 16') && has('Полный · 20'), '');
+  // Настройка «Сова БУК»: проверяем, что «не показывать» убирает плавающего БУКа
+  // с главной, а «везде» возвращает (замечание 2026-10-04).
+  check('родителям видна настройка «Сова БУК»', has('Сова БУК') && has('на главной') && has('не показывать'), '');
+  click(btnText('не показывать'));
+  await sleep(40);
+  check('«не показывать» убирает БУКа с главной', document.querySelectorAll('.app > .mascot').length === 0, '');
+  click(btnText('везде'));
+  await sleep(40);
+  check('«везде» возвращает БУКа', document.querySelectorAll('.app > .mascot').length === 1, '');
   const shortSize = btnText('Короткий · 12');
   if (shortSize) click(shortSize);
   await sleep(40);

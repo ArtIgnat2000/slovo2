@@ -3,6 +3,7 @@
 // pointerdown — по самому БУКу, pointermove/pointerup — по окну (обработчик
 // жеста слушает окно, иначе палец «терялся» бы, выйдя за пределы совы).
 // Проверяем результат: координаты в DOM, запись в localStorage и реплику в пузыре.
+import { SECRET_PHRASES } from '../src/state/mascot';
 import { check, click, sleep } from './ui-helpers';
 
 const POS_KEY = 'slovo2-buk-pos';
@@ -104,6 +105,23 @@ export async function runFloatingMascotChecks(): Promise<void> {
   );
   check('БУК: после тапа снова виден жест «плавания»', !owl()?.classList.contains('is-dragging'), '');
 
+  // ── Удержание: «секрет» (кружение) вместо тапа
+  pev('pointerdown', 130, 130, owl()!);
+  await sleep(650);
+  const secretText = document.querySelector('.app > .mascot .bubble')?.textContent ?? '';
+  check(
+    'БУК: удержание показывает секретную реплику',
+    SECRET_PHRASES.includes(secretText.trim()),
+    secretText || 'пузыря нет',
+  );
+  pev('pointerup', 130, 130, window);
+  await sleep(40);
+  check(
+    'БУК: после удержания обычная реплика не накладывается',
+    SECRET_PHRASES.includes((document.querySelector('.app > .mascot .bubble')?.textContent ?? '').trim()),
+    document.querySelector('.app > .mascot .bubble')?.textContent ?? 'пузырь исчез',
+  );
+
   // ── Сворачивание и разворот
   click(owl()?.querySelector('.mascot-fold') as HTMLButtonElement | null);
   await sleep(40);
@@ -126,6 +144,17 @@ export async function runFloatingMascotChecks(): Promise<void> {
   await sleep(40);
   check('БУК: тап по свёрнутому разворачивает его', !owl()?.classList.contains('folded'), owl()?.className ?? '');
   check('БУК: после разворота кнопка «свернуть» вернулась', !!owl()?.querySelector('.mascot-fold'), '');
+
+  // ── Возврат в угол: после перетаскивания появляется кнопка «в угол»
+  check('БУК: после перетаскивания есть кнопка «вернуть в угол»', !!owl()?.querySelector('.mascot-home'), '');
+  click(owl()?.querySelector('.mascot-home') as HTMLButtonElement | null);
+  await sleep(40);
+  check('БУК: «в угол» возвращает CSS-позицию (left/top очищены)', owl()?.style.left === '' && owl()?.style.top === '', owl()?.style.cssText ?? '');
+  check('БУК: «в угол» убирает собственную запись позиции', localStorage.getItem(POS_KEY) === null, String(localStorage.getItem(POS_KEY)));
+  check('БУК: кнопка «в угол» исчезает после возврата', !owl()?.querySelector('.mascot-home'), '');
+
+  // ── Автоскрытие при прокрутке в jsdom выключено (AUTO_HIDE=false) ───────────
+  check('БУК: в тестовой среде автоскрытие не включается', !owl()?.classList.contains('hidden'), owl()?.className ?? '');
 
   // ── БУК не мешает остальным экранам: во время карточек урока его нет.
   // (проверка pretest-audit «во время карточек урока плавающий БУК скрыт»)

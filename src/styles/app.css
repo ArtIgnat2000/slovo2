@@ -1983,12 +1983,18 @@ p {
 .mascot.raised {
   bottom: calc(148px + var(--safe-b));
 }
-/* Кнопка «свернуть»: маленькая, прижата к правому краю — над пузырём и совой */
-.mascot-fold {
+/* Кнопки БУКа — столбиком у правого края, над пузырём и совой */
+.mascot-actions {
   align-self: flex-end;
+  display: flex;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.mascot-fold,
+.mascot-home {
+  position: relative;
   width: 28px;
   height: 28px;
-  margin-bottom: 4px;
   padding: 0;
   display: grid;
   place-items: center;
@@ -2002,8 +2008,33 @@ p {
   box-shadow: var(--shadow);
   cursor: pointer;
 }
-.mascot-fold:active {
+/* Кнопки растянуты до 44 px в касании (WCAG 2.5.5): сам кружок остаётся 28 px */
+.mascot-fold::after,
+.mascot-home::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+}
+.mascot-fold:active,
+.mascot-home:active {
   transform: scale(0.94);
+}
+.mascot-home {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+/* Автоскрытие при прокрутке: БУК уезжает за правый край, но остаётся на экране
+   краешком — чтобы было видно, что он вернётся, и его можно было вернуть тапом. */
+.mascot.interactive.hidden {
+  transform: translateX(64%);
+  opacity: 0.45;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mascot.interactive.hidden {
+    transform: none;
+    opacity: 0.3;
+  }
 }
 /* Свёрнутый БУК: маленький значок в кружке, без реплик и без «плавания» */
 .mascot.folded {
@@ -2033,8 +2064,24 @@ p {
     transform: scale(1) translateY(0);
   }
 }
+/* Секрет удержания: сова кружится на месте */
+.mascot.spin {
+  animation: bukSpin 0.8s ease-in-out;
+}
+@keyframes bukSpin {
+  0% {
+    transform: rotate(0);
+  }
+  50% {
+    transform: rotate(360deg) scale(1.06);
+  }
+  100% {
+    transform: rotate(720deg);
+  }
+}
 @media (prefers-reduced-motion: reduce) {
-  .mascot.poke {
+  .mascot.poke,
+  .mascot.spin {
     animation: none;
   }
 }

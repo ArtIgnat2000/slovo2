@@ -2,7 +2,7 @@
 // этого пузырь разрастается или подсказка начинает врать. Файл подключается из
 // tests/adaptive.test.ts, поэтому выполняется и в `test:adaptive`, и в смоуке.
 import assert from 'node:assert/strict';
-import { POKE_PHRASES, POKE_TICKLE, statusLine } from '../src/state/mascot';
+import { POKE_PHRASES, POKE_TICKLE, SECRET_PHRASES, greetingFor, statusLine } from '../src/state/mascot';
 
 assert.ok(POKE_PHRASES.length >= 6, 'нужен запас реплик: при трёх повторах подряд отклик надоедает');
 assert.equal(new Set(POKE_PHRASES).size, POKE_PHRASES.length, 'реплики на тап не должны дублироваться');
@@ -25,4 +25,27 @@ assert.equal(statusLine(0, 120, 1, 0), 'Ты уже знаешь 1 слово!')
 assert.equal(statusLine(0, 0, 5, 0), 'Ты уже знаешь 5 слов!', 'без цели дня остаётся похвала за слова');
 assert.equal(statusLine(0, 120, 0, 0), null, 'новичку БУК не хвастается прогрессом — лучше промолчать');
 
-console.log('✓ реплики БУКа: длина, уникальность и приоритет подсказок о прогрессе');
+// Секрет удержания: реплики короче пузыря и не дублируют обычные
+assert.ok(SECRET_PHRASES.length >= 3, 'нужен запас секретных реплик');
+assert.equal(new Set(SECRET_PHRASES).size, SECRET_PHRASES.length, 'секретные реплики не должны дублироваться');
+for (const line of SECRET_PHRASES) {
+  assert.ok(line.length <= 24, `секретная реплика «${line}» не влезет в пузырь`);
+  assert.ok(!POKE_PHRASES.includes(line) && line !== POKE_TICKLE, `секретная реплика «${line}» повторяет обычную`);
+}
+
+// Приветствие по времени суток: без укора «поздно» — режим дня решает взрослый.
+assert.equal(greetingFor(5), 'Доброе утро! ☀️');
+assert.equal(greetingFor(10), 'Доброе утро! ☀️');
+assert.equal(greetingFor(11), 'Привет! 👋');
+assert.equal(greetingFor(17), 'Привет! 👋');
+assert.equal(greetingFor(18), 'Добрый вечер! 🌆');
+assert.equal(greetingFor(21), 'Добрый вечер! 🌆');
+assert.equal(greetingFor(22), 'Тсс, все спят… 🤫');
+assert.equal(greetingFor(3), 'Тсс, все спят… 🤫');
+for (let h = 0; h < 24; h++) {
+  const line = greetingFor(h);
+  assert.ok(line.length > 0 && line.length <= 24, `приветствие для ${h} ч не влезает в пузырь: «${line}»`);
+  assert.ok(!/спать|ложись|поздно/i.test(line.replace('все спят', '')), `укор о режиме дня: «${line}»`);
+}
+
+console.log('✓ реплики БУКа: длина, уникальность, приветствие по времени и приоритет подсказок');

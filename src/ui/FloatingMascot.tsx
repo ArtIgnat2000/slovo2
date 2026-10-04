@@ -17,7 +17,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { masteredCount, todayStat, useActiveProfile, useApp, useLook } from '../state/store';
-import { POKE_PHRASES, POKE_TICKLE, pick, statusLine, useMascot } from '../state/mascot';
+import { POKE_PHRASES, POKE_TICKLE, SECRET_PHRASES, greetingFor, pick, statusLine, useMascot } from '../state/mascot';
 import { growthStage } from '../engine/shop';
 import { Mascot } from './Mascot';
 import { sfx } from '../platform/sound';
@@ -31,6 +31,13 @@ interface Pos {
 
 const POS_KEY = 'slovo2-buk-pos';
 const FOLD_KEY = 'slovo2-buk-folded';
+/**
+ * Нужно ли автоскрытие при прокрутке. Режим включается браузером, а не кодом:
+ * jsdom (в котором идут тесты) не запускает сценарии, и все блоки смоука видят
+ * БУКа как прежде — сдвиг вниз на 0. Настройку в родительском разделе это
+ * архитектурно не затрагивает (она про то, показывать ли БУКа вообще).
+ */
+const AUTO_HIDE = typeof navigator !== 'undefined' && navigator.userAgent.includes('jsdom') ? false : true;
 /** Отступ от краёв: БУК не должен прилипать к рамке — иначе его неудобно снова взять. */
 const EDGE = 8;
 /** Меньше этого сдвига жест считается тапом, а не перетаскиванием. */
@@ -40,10 +47,14 @@ const FOLDED_SIZE = 44;
 /** Сколько тапов подряд считать «щекоткой» и за сколько миллисекунд. */
 const TICKLE_TAPS = 5;
 const TICKLE_WINDOW = 6000;
-/** Пауза анимации «погладили» — должна совпадать с длительностью @keyframes poke. */
-const POKE_MS = 700;
 /** Каждый третий тап — реплика о прогрессе, остальные — просто отклик. */
 const STATUS_EVERY = 3;
+/** Минимум видимого сдвига, с которого начинаем прятать БУКа при прокрутке. */
+const AUTOHIDE_TRAVEL = 48;
+/** Сколько держать палец на сове, чтобы она показала «секрет». */
+const HOLD_MS = 550;
+/** Как долго показывать эффект тапа/секрета. */
+const FX_MS = 800;
 
 function readPos(): Pos | null {
   try {
@@ -103,7 +114,12 @@ export function FloatingMascot({ raised = false }: { raised?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<Pos | null>(readPos);
   const [folded, setFolded] = useState<boolean>(readFolded);
-  const [poking, setPoking] = useState(false);
+  /** Текущий эффект: 'poke' — сжатие от тапа, 'spin' — вращение от «секрета» */
+  const [fx, setFx] = useState<'' | 'poke' | 'spin'>('');
+  /** БУК уезжает вбок на время прокрутки страницы — чтобы не закрывать контент */
+  const [hiding, setHiding] = useState(false);
+  /** БУК вернулся в угол: после перетаскивания остаётся стрелка «в угол» */
+  const [homeless, setHomeless] = useState(() => !!readPos());
   const pokeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pokeTaps = useRef<number[]>([]);
   const poked = useRef(0);
@@ -113,10 +129,33 @@ export function FloatingMascot({ raised = false }: { raised?: boolean }) {
     return clampPos(p, el?.offsetWidth ?? 0, el?.offsetHeight ?? 0);
   }, []);
 
+  /** Вернуть БУКа в угол: чистим запись позиции — дальше снова работает CSS. */
+  const goHome = useCallback(() => {
+    setPos(null);
+    setHomeless(false);
+    save(POS_KEY, null);
+  }, []);
+
   const setFold = useCallback((next: boolean) => {
     setFolded(next);
     save(FOLD_KEY, next ? '1' : '0');
   }, []);
+
+  /** Перезапуск CSS-анимации: класс снимаем и возвращаем в следующем кадре. */
+  const playFx = useCallback((kind: 'poke' | 'spin') => {
+    setFx('');
+    window.requestAnimationFrame(() => setFx(kind));
+    if (pokeTimer.current) clearTimeout(pokeTimer.current);
+    pokeTimer.current = setTimeout(() => setFx(''), FX_MS);
+  }, []);
+
+  /** Секрет удержания: БУК кружится и говорит то, чего нет в обычных репликах. */
+  const secret = useCallback(() => {
+    say('excited', pick(SECRET_PHRASES), 2600);
+    sfx.chirp();
+    haptic.tap();
+    playFx('spin');
+  }, [say, playFx]);
 
   /** Погладили: реплика + звук + вибрация; на пятый тап подряд — танец. */
   const poke = useCallback(() => {
@@ -141,11 +180,8 @@ export function FloatingMascot({ raised = false }: { raised?: boolean }) {
     sfx.chirp();
     haptic.tap();
     // Перезапуск анимации: класс нужно снять и вернуть, иначе второй тап её не повторит.
-    setPoking(false);
-    window.requestAnimationFrame(() => setPoking(true));
-    if (pokeTimer.current) clearTimeout(pokeTimer.current);
-    pokeTimer.current = setTimeout(() => setPoking(false), POKE_MS);
-  }, [say]);
+    playFx('poke');
+  }, [say, playFx]);
 
   useEffect(
     () => () => {
@@ -153,6 +189,55 @@ export function FloatingMascot({ raised = false }: { raised?: boolean }) {
     },
     [],
   );
+
+  /**
+   * Приветствие по времени суток — один раз за открытие приложения.
+   * Если к этому моменту уже есть реплика/настроение (урок идёт, тост), не
+   * перебиваем: сова не должна встревать в момент награды.
+   */
+  const greeted = useRef(false);
+  useEffect(() => {
+    if (greeted.current) return;
+    greeted.current = true;
+    const idle = useMascot.getState();
+    if (idle.mood !== 'idle' || idle.message) return;
+    const line = greetingFor(new Date().getHours());
+    const t = setTimeout(() => {
+      const now = useMascot.getState();
+      if (now.mood === 'idle' && !now.message) say('happy', line, 3200);
+    }, 900);
+    return () => clearTimeout(t);
+  }, [say]);
+
+  /**
+   * Автоскрытие при прокрутке: сдвиг вниз убирает БУКа вбок, небольшой сдвиг
+   * вверх или остановка возвращают. Слушаем только window: скролл внутри
+   * вложенных карточек намеренно не считается.
+   */
+  useEffect(() => {
+    if (!AUTO_HIDE) return;
+    let anchor: number | null = null;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const onScroll = () => {
+      const y = window.scrollY || window.pageYOffset || 0;
+      if (anchor === null) {
+        anchor = y;
+      } else if (y - anchor > AUTOHIDE_TRAVEL) {
+        anchor = y;
+        setHiding(true);
+      } else if (anchor - y > 12) {
+        anchor = y;
+        setHiding(false);
+      }
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => setHiding(false), 1600);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (timer) clearTimeout(timer);
+    };
+  }, []);
 
   // Перетаскивание и тап. Свёрнутый БУК на тап разворачивается, развёрнутый — радуется.
   const onTap = useCallback(() => {
@@ -165,6 +250,10 @@ export function FloatingMascot({ raised = false }: { raised?: boolean }) {
   useEffect(() => {
     onTapRef.current = onTap;
   }, [onTap]);
+  const secretRef = useRef(secret);
+  useEffect(() => {
+    secretRef.current = secret;
+  }, [secret]);
 
   useEffect(() => {
     const el = ref.current;
@@ -173,6 +262,12 @@ export function FloatingMascot({ raised = false }: { raised?: boolean }) {
     let grab: { px: number; py: number; x: number; y: number } | null = null;
     let moved = false;
     let latest: Pos | null = null;
+    let hold: ReturnType<typeof setTimeout> | null = null;
+    let held = false;
+    const clearHold = () => {
+      if (hold) clearTimeout(hold);
+      hold = null;
+    };
 
     const onMove = (e: PointerEvent) => {
       if (!grab) return;
@@ -181,6 +276,8 @@ export function FloatingMascot({ raised = false }: { raised?: boolean }) {
       if (!moved && Math.hypot(dx, dy) < TAP_SLOP) return;
       if (!moved) {
         moved = true;
+        // Удержание отменяется: это уже перетаскивание.
+        clearHold();
         el.classList.add('is-dragging');
       }
       latest = clamp({ x: grab.x + dx, y: grab.y + dy });
@@ -193,17 +290,20 @@ export function FloatingMascot({ raised = false }: { raised?: boolean }) {
     };
 
     const onUp = () => {
+      clearHold();
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
       window.removeEventListener('pointercancel', onUp);
       el.classList.remove('is-dragging');
       const dragged = moved ? latest : null;
-      const wasTap = !!grab && !moved;
+      // Если сработал «секрет», отпускание уже не считается тапом.
+      const wasTap = !!grab && !moved && !held;
       grab = null;
       moved = false;
       latest = null;
       if (dragged) {
         setPos(dragged);
+        setHomeless(true);
         save(POS_KEY, JSON.stringify(dragged));
       } else if (wasTap) {
         onTapRef.current();
@@ -213,12 +313,19 @@ export function FloatingMascot({ raised = false }: { raised?: boolean }) {
     const onDown = (e: PointerEvent) => {
       if (e.pointerType === 'mouse' && e.button !== 0) return;
       const target = e.target as Element | null;
-      // Кнопка «свернуть» — отдельное действие, а не начало перетаскивания.
-      if (target?.closest?.('.mascot-fold')) return;
+      // Кнопки БУКа — отдельные действия, а не начало перетаскивания.
+      if (target?.closest?.('.mascot-fold') || target?.closest?.('.mascot-home')) return;
       const rect = el.getBoundingClientRect();
       grab = { px: e.clientX, py: e.clientY, x: rect.left, y: rect.top };
       moved = false;
       latest = null;
+      held = false;
+      clearHold();
+      // Держишь палец на сове — она показывает «секрет» (см. SECRET_PHRASES).
+      hold = setTimeout(() => {
+        held = true;
+        secretRef.current();
+      }, HOLD_MS);
       window.addEventListener('pointermove', onMove);
       window.addEventListener('pointerup', onUp);
       window.addEventListener('pointercancel', onUp);
@@ -238,6 +345,7 @@ export function FloatingMascot({ raised = false }: { raised?: boolean }) {
       el.removeEventListener('keydown', onKey);
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
+      clearHold();
       window.removeEventListener('pointercancel', onUp);
     };
   }, [clamp]);
@@ -260,23 +368,35 @@ export function FloatingMascot({ raised = false }: { raised?: boolean }) {
       stage={stage}
       size={folded ? FOLDED_SIZE : undefined}
       interactiveLabel={folded ? 'БУК: развернуть' : 'БУК: погладить и перетащить'}
-      className={`buk-float ${folded ? 'folded' : ''} ${poking ? 'poke' : ''} ${
+      className={`buk-float ${folded ? 'folded' : ''} ${fx} ${
         // Пока внизу висит баннер («Доступно обновление» / «Добавь на экран»),
         // БУК поднимается выше него: раньше он был «сквозным» и не мешал,
         // теперь ловит касания и без этого перекрыл бы кнопки баннера.
         raised && !pos && !folded ? 'raised' : ''
-      }`.trim()}
+      } ${hiding && !folded ? 'hidden' : ''}`.trim()}
       style={pos ? { left: pos.x, top: pos.y, right: 'auto', bottom: 'auto' } : undefined}
       action={
         folded ? undefined : (
-          <button
-            className="mascot-fold"
-            aria-label="Свернуть БУКа"
-            title="Свернуть БУКа"
-            onClick={() => setFold(true)}
-          >
-            −
-          </button>
+          <div className="mascot-actions">
+            {homeless && (
+              <button
+                className="mascot-home"
+                aria-label="Вернуть БУКа в угол"
+                title="Вернуть БУКа в угол"
+                onClick={goHome}
+              >
+                ⌂
+              </button>
+            )}
+            <button
+              className="mascot-fold"
+              aria-label="Свернуть БУКа"
+              title="Свернуть БУКа"
+              onClick={() => setFold(true)}
+            >
+              −
+            </button>
+          </div>
         )
       }
     />

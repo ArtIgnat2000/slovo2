@@ -218,7 +218,12 @@ export default function App() {
         />
       )}
 
-      {!profilesOpen && tab !== 'shop' && <FloatingMascot raised={updateReady || installHint} />}
+      {!profilesOpen &&
+        tab !== 'shop' &&
+        settings.mascot !== 'off' &&
+        (settings.mascot !== 'home' || tab === 'home') && (
+          <FloatingMascot raised={updateReady || installHint} />
+        )}
       <Toast />
 
       {updateReady && (

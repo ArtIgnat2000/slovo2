@@ -51,14 +51,23 @@ import { useStorageHealth } from './health';
 
 export { dayKey };
 
+/**
+ * Показывать ли плавающего БУКа: `on` — на всех вкладках, `home` — только на
+ * главной, `off` — не показывать. Настройка живёт в родительском разделе и
+ * попадает в файл выгрузки: это осознанное решение взрослого, а не мелочь
+ * устройства (в отличие от позиции и «свёрнут» — они в localStorage).
+ */
+export type MascotMode = 'on' | 'home' | 'off';
+
 export interface Settings {
   sound: boolean;
   haptics: boolean;
   dailyGoal: number; // XP в день
   theme: 'auto' | 'light' | 'dark';
+  mascot: MascotMode;
 }
 
-const DEFAULT_SETTINGS: Settings = { sound: true, haptics: true, dailyGoal: 120, theme: 'auto' };
+const DEFAULT_SETTINGS: Settings = { sound: true, haptics: true, dailyGoal: 120, theme: 'auto', mascot: 'on' };
 
 /** Показываем поверх любого экрана: «+30 XP», «Сундук: 15 💎» */
 export interface Toast {
@@ -172,6 +181,11 @@ function normalizeSettings(raw: Partial<Settings> | null | undefined): Settings 
       raw.theme === 'auto' || raw.theme === 'light' || raw.theme === 'dark'
         ? raw.theme
         : DEFAULT_SETTINGS.theme,
+    // Старые выгрузки и записи без поля получают 'on': поведение не меняется.
+    mascot:
+      raw.mascot === 'on' || raw.mascot === 'home' || raw.mascot === 'off'
+        ? raw.mascot
+        : DEFAULT_SETTINGS.mascot,
   };
 }
 
