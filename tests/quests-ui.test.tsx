@@ -336,6 +336,41 @@ export async function runQuestUiChecks(): Promise<void> {
     questCard('Повтори 2 слова') !== '' || !reviewInDay,
     questCard('Повтори') || `в наборе дня нет повторения (${specFor('review').title})`,
   );
+
+  // 9. Каждый завершённый урок даёт отдельный бонусный сундук без суточного потолка
+  store().createProfile('Бонусные сундуки', '🐣');
+  await sleep(60);
+  const gemsAtStart = active().gems;
+  for (let i = 0; i < 3; i++) store().finishLesson(LESSONS[0].id, 100);
+  await sleep(80);
+  check('на главной виден недельный прогресс', has('Награды недели') && has('1 из 7'), bodyText());
+  check(
+    'три урока дают три готовых бонусных сундука',
+    active().days[dayKey()]?.lessons === 3 && has('бонусных готово: 3'),
+    bodyText(),
+  );
+  for (let i = 1; i <= 3; i++) {
+    const openBonus = btnText('Открыть бонусный сундук');
+    check(`бонусный сундук ${i} доступен без дневного лимита`, !!openBonus, bodyText());
+    if (!openBonus) break;
+    click(openBonus);
+    await sleep(50);
+    const profile = active();
+    check(
+      `бонусный сундук ${i} начисляет 5 кристаллов и учитывается отдельно`,
+      profile.gems === gemsAtStart + i * 5 &&
+        profile.daily?.chestsToday === i &&
+        profile.daily?.bonusChestsClaimed === i &&
+        profile.daily?.lastChestKind === 'bonus',
+      `💎 ${profile.gems}; открыто: ${profile.daily?.chestsToday}; бонусных: ${profile.daily?.bonusChestsClaimed}`,
+    );
+    if (i === 1) check('в бонусном сундуке написано, что это награда за урок', has('НАГРАДА ЗА УРОК'), bodyText());
+    click(btnText('Пропустить'));
+    await sleep(20);
+    click(btnText('Здорово!'));
+    await sleep(50);
+  }
+  check('после трёх бонусных сундуков каждый урок оплачен по одному разу', !btnText('Открыть бонусный сундук'), bodyText());
 }
 
 const bodyText = () => (document.body.textContent ?? '').replace(/\s+/g, ' ').slice(0, 240);

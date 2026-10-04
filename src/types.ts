@@ -111,10 +111,12 @@ export interface QuestPlanItem {
 export interface DailyState {
   day: string; // YYYY-MM-DD, к которому относятся claimed/chestsToday
   claimed: string[]; // id выполненных и забранных заданий: `<день>:<вид>`
-  chestsToday: number;
+  chestsToday: number; // все открытые сегодня сундуки, включая бонусные
+  bonusChestsClaimed?: number; // сколько сундуков за уроки уже открыто сегодня
   chestsTotal: number;
   /** Последняя награда сундука этого дня — чтобы чек не пропадал после закрытия окна. */
   lastChest?: { gems: number; xp: number; freezes: number };
+  lastChestKind?: 'daily' | 'bonus';
   /**
    * План заданий этого дня. Нужен, потому что набор дня зависит от профиля: у ребёнка,
    * которому ещё нечего повторять, «Повтори N слов» заменяется другим заданием, а цель
@@ -122,6 +124,12 @@ export interface DailyState {
    * иначе цель «уезжала» бы прямо посреди дня (см. журнал PLAN, 2026-09-29).
    */
   plan?: QuestPlanItem[];
+}
+
+/** Недельные пороги, уже оплаченные ребёнку в текущей неделе. */
+export interface WeeklyState {
+  week: string; // YYYY-MM-DD понедельника
+  claimed: number[]; // пороги активных дней: 3, 5 и 7
 }
 
 export interface Profile {
@@ -144,6 +152,7 @@ export interface Profile {
   adaptiveCards?: number;
   adaptiveGood?: number;
   daily?: DailyState; // опционально: профили, созданные до этой версии, живут без него
+  weekly?: WeeklyState; // опционально: недельные награды, появившиеся после ранних профилей
   shop?: ShopState; // опционально: появилось вместе с магазином
   puzzle?: PuzzleState; // опционально: костюмные пазлы (src/engine/puzzles.ts)
 }

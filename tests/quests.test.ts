@@ -8,14 +8,19 @@
 import assert from 'node:assert/strict';
 import {
   allQuestsDone,
+  bonusChestsReady,
   buildDayPlan,
+  dailyChestClaimed,
   dayMetrics,
+  BONUS_CHEST_GEMS,
+  CHEST_GEMS,
   MIN_REVIEW_WORDS,
   planOf,
   plannedQuests,
   questProgress,
   questsForDay,
   questTitle,
+  rollChest,
   specFor,
 } from '../src/engine/quests';
 import { pickReviewWords } from '../src/engine/srs';
@@ -166,4 +171,17 @@ function profileWith(practised: number, opts: { s?: number; dueOffsetMs?: number
   assert.deepEqual(pickReviewWords(WORDS, {}, new Set(), 12).words, []);
 }
 
-console.log('✓ задания дня: план на день, подстройка цели, выбор слов для повторения');
+// 7. За каждый законченный урок доступен бонусный сундук, число не ограничено
+{
+  assert.equal(BONUS_CHEST_GEMS, 5);
+  assert.equal(CHEST_GEMS, 15, 'основной сундук сохраняет прежнюю награду');
+  assert.equal(rollChest().gems, CHEST_GEMS);
+  assert.equal(rollChest('bonus').gems, BONUS_CHEST_GEMS);
+  assert.equal(bonusChestsReady(3, 0), 3, 'три урока открывают три бонусных сундука');
+  assert.equal(bonusChestsReady(3, 2), 1, 'каждый бонусный сундук можно забрать только один раз');
+  assert.equal(bonusChestsReady(3, 3), 0);
+  assert.equal(dailyChestClaimed({ chestsToday: 1, bonusChestsClaimed: 0 }), true);
+  assert.equal(dailyChestClaimed({ chestsToday: 3, bonusChestsClaimed: 3 }), false, 'бонусы не закрывают основной сундук');
+}
+
+console.log('✓ задания дня: план, повторение и бонусные сундуки за каждый урок');

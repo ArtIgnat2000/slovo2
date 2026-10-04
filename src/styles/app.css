@@ -2685,3 +2685,59 @@ p {
     animation: none;
   }
 }
+
+/* ── Дополнительные сундуки и недельные награды ─────────────────────────── */
+.bonus-chest-note {
+  margin: 10px 4px 0;
+}
+.weekly-reward-bar {
+  height: 10px;
+  overflow: hidden;
+  margin: -2px 0 10px;
+  border-radius: var(--r-pill);
+  background: var(--primary-soft);
+}
+.weekly-reward-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #39c9bd, #8b74ff);
+  transition: width 180ms ease-out;
+}
+.weekly-reward-milestones {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+.weekly-reward-milestone {
+  min-width: 0;
+  padding: 8px 7px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--bg-2);
+}
+.weekly-reward-milestone .row {
+  align-items: flex-start;
+  gap: 4px;
+  font-size: 12px;
+}
+.weekly-reward-milestone .tiny {
+  margin-top: 3px;
+  line-height: 1.25;
+}
+.weekly-reward-milestone.reached {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.weekly-reward-milestone.awarded {
+  border-color: var(--green);
+  background: var(--green-soft);
+}
+.weekly-reward-note {
+  margin: 10px 2px 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .weekly-reward-bar span {
+    transition: none;
+  }
+}

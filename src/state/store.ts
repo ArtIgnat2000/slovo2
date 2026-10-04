@@ -1,19 +1,24 @@
 import { nextAdaptiveState, type Outcome } from '../engine/adaptive';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { DailyState, DayStat, LessonSize, LessonState, Profile, ShopState, ShopSlot, WordState } from '../types';
+import type { DailyState, DayStat, LessonSize, LessonState, Profile, ShopState, ShopSlot, WeeklyState, WordState } from '../types';
 import { applyAnswer, initState } from '../engine/srs';
 import { idbStorage } from '../platform/storage';
 import { GEMS_PER_STREAK, levelOf } from '../engine/rewards';
 import { dayKey, prevDay } from '../engine/day';
+import { settleWeeklyRewards, weekStartKey, type WeeklyMilestone } from '../engine/weekly-rewards';
 import {
   allQuestsDone,
   buildDayPlan,
+  bonusChestsReady,
   CHEST_GEMS,
+  dailyChestClaimed,
   dayMetrics,
   plannedQuests,
   planOf,
+  rollChest,
   type Chest,
+  type ChestKind,
   type PlannedQuest,
 } from '../engine/quests';
 import { ITEM_BY_ID, isOwned } from '../engine/shop';
@@ -111,12 +116,51 @@ function readDaily(p: Profile): DailyState {
       day: today,
       claimed: [],
       chestsToday: 0,
+      bonusChestsClaimed: 0,
       chestsTotal: st?.chestsTotal ?? 0,
       plan: buildDayPlan(p, today),
     };
   }
-  if (!st.plan?.length) return { ...st, plan: buildDayPlan(p, today) };
-  return st;
+  const chestsToday = Number.isInteger(st.chestsToday) && st.chestsToday >= 0 ? st.chestsToday : 0;
+  const bonusChestsClaimed = Math.min(
+    chestsToday,
+    Number.isInteger(st.bonusChestsClaimed) && (st.bonusChestsClaimed ?? 0) >= 0
+      ? st.bonusChestsClaimed ?? 0
+      : 0,
+  );
+  const lastChestKind: DailyState['lastChestKind'] = st.lastChestKind === 'bonus' ? 'bonus' : 'daily';
+  const normalized = { ...st, chestsToday, bonusChestsClaimed, lastChestKind };
+  return st.plan?.length ? normalized : { ...normalized, plan: buildDayPlan(p, today) };
+}
+
+function readWeekly(p: Profile, today: string = dayKey()): WeeklyState {
+  const week = weekStartKey(today);
+  const current = p.weekly;
+  if (!current || current.week !== week) return { week, claimed: [] };
+  const claimed = Array.isArray(current.claimed)
+    ? [...new Set(current.claimed.filter((n) => n === 3 || n === 5 || n === 7))]
+    : [];
+  return { week, claimed };
+}
+
+function normalizeWeekly(raw: unknown, fallback: WeeklyState): WeeklyState {
+  if (!raw || typeof raw !== 'object') return fallback;
+  const value = raw as Partial<WeeklyState>;
+  return {
+    week: typeof value.week === 'string' ? value.week : fallback.week,
+    claimed: Array.isArray(value.claimed)
+      ? [...new Set(value.claimed.filter((n): n is number => n === 3 || n === 5 || n === 7))]
+      : [],
+  };
+}
+
+function weeklyEarnings(p: Profile, days: Profile['days'], today: string) {
+  const settlement = settleWeeklyRewards(days, readWeekly(p, today), today);
+  return {
+    state: settlement.state,
+    rewards: settlement.rewards,
+    gems: settlement.rewards.reduce((sum, reward) => sum + reward.gems, 0),
+  };
 }
 
 /** Гардероб БУКа; у профилей до магазина поля нет — достраиваем пустое. */
@@ -141,7 +185,8 @@ function newProfile(name: string, avatar: string): Profile {
     days: {},
     achievements: [],
     lessonSize: DEFAULT_LESSON_SIZE,
-    daily: { day: dayKey(), claimed: [], chestsToday: 0, chestsTotal: 0 },
+    daily: { day: dayKey(), claimed: [], chestsToday: 0, bonusChestsClaimed: 0, chestsTotal: 0 },
+    weekly: { week: weekStartKey(), claimed: [] },
     shop: { owned: [], equipped: {} },
     puzzle: { pieces: {}, collecting: null, assembled: [], worn: null },
   };
@@ -170,6 +215,7 @@ function normalizeProfile(raw: Partial<Profile> | null | undefined): Profile | n
     errors: raw.errors && typeof raw.errors === 'object' ? raw.errors : {},
     days: raw.days && typeof raw.days === 'object' ? raw.days : {},
     achievements: Array.isArray(raw.achievements) ? raw.achievements.filter((a): a is string => typeof a === 'string') : [],
+    weekly: normalizeWeekly(raw.weekly, base.weekly!),
     lessonSize:
       raw.lessonSize === 'short' || raw.lessonSize === 'standard' || raw.lessonSize === 'full'
         ? raw.lessonSize
@@ -220,7 +266,8 @@ interface AppState {
 
   touchDay: () => void;
   answer: (wordId: string, quality: number, review?: boolean) => void;
-  finishLesson: (lessonId: string, pct: number) => void;
+  /** Завершённый обычный урок открывает бонусный сундук и может выдать пороги недели. */
+  finishLesson: (lessonId: string, pct: number) => WeeklyMilestone[];
   addXp: (n: number) => void;
   addGems: (n: number) => void;
   addFreeze: (n: number) => void;
@@ -228,8 +275,8 @@ interface AppState {
 
   /** Забрать награду за выполненные задания дня (кристаллы) */
   claimQuest: (id: string, gems: number) => void;
-  /** Открыть сундук БУКа; возвращает false, если он уже открыт или ещё не готов */
-  openChest: (chest: Chest) => boolean;
+  /** Открыть готовый ежедневный или бонусный сундук; иначе вернуть null. */
+  openChest: (kind: ChestKind) => Chest | null;
 
   /** Купить аксессуар у БУКа. Возвращает false, если кристаллов не хватает. */
   buyItem: (id: string) => boolean;
@@ -511,23 +558,32 @@ export const useApp = create<AppState>()(
           }),
         ),
 
-      finishLesson: (lessonId, pct) =>
+      finishLesson: (lessonId, pct) => {
+        let weeklyAwards: WeeklyMilestone[] = [];
         set((s) =>
           patchActive(s, (p) => {
             const cur: LessonState = p.lessons[lessonId] ?? { level: 0, best: 0, doneAt: 0, plays: 0 };
             const today = dayKey();
             const day = readDay(p, today);
             const level = pct >= 60 ? Math.min(5, cur.level + 1) : cur.level;
+            const days = { ...p.days, [today]: { ...day, lessons: day.lessons + 1 } };
+            const weekly = weeklyEarnings(p, days, today);
+            weeklyAwards = weekly.rewards;
             return {
               ...p,
               lessons: {
                 ...p.lessons,
                 [lessonId]: { level, best: Math.max(cur.best, pct), doneAt: Date.now(), plays: cur.plays + 1 },
               },
-              days: { ...p.days, [today]: { ...day, lessons: day.lessons + 1 } },
+              days,
+              daily: readDaily(p),
+              weekly: weekly.state,
+              gems: p.gems + weekly.gems,
             };
           }),
-        ),
+        );
+        return weeklyAwards;
+      },
 
       addXp: (n) =>
         set((s) =>
@@ -565,34 +621,31 @@ export const useApp = create<AppState>()(
           }),
         ),
 
-      openChest: (chest) => {
+      openChest: (kind) => {
         const current = getActive(get());
         const today = dayKey();
-        if (!current) return false;
+        if (!current || (kind !== 'daily' && kind !== 'bonus')) return null;
         const daily = readDaily(current);
-        const ready = allQuestsDone(planOf(current, today), dayMetrics(current.days[today]));
-        // Защита от двойного тапа и от выдачи награды до трёх ключей.
-        if (
-          daily.chestsToday > 0 ||
-          !ready ||
-          !Number.isFinite(chest.gems) ||
-          !Number.isFinite(chest.xp) ||
-          !Number.isFinite(chest.freezes) ||
-          chest.gems < CHEST_GEMS ||
-          chest.xp < 0 ||
-          chest.freezes < 0
-        ) {
-          return false;
-        }
+        const metrics = dayMetrics(current.days[today]);
+        const dailyReady =
+          allQuestsDone(planOf(current, today), metrics) && !dailyChestClaimed(daily);
+        const bonusReady = bonusChestsReady(metrics.lessons, daily.bonusChestsClaimed ?? 0) > 0;
+        if (kind === 'daily' ? !dailyReady : !bonusReady) return null;
 
-        let opened = false;
+        const chest = rollChest(kind);
+        let opened: Chest | null = null;
         set((s) =>
           patchActive(s, (p) => {
             const freshDaily = readDaily(p);
+            const freshMetrics = dayMetrics(p.days[today]);
+            const freshDailyReady =
+              allQuestsDone(planOf(p, today), freshMetrics) && !dailyChestClaimed(freshDaily);
+            const freshBonusReady =
+              bonusChestsReady(freshMetrics.lessons, freshDaily.bonusChestsClaimed ?? 0) > 0;
             // Повторно проверяем внутри обновления: состояние могло измениться
             // между чтением и записью при быстром двойном тапе.
-            if (freshDaily.chestsToday > 0) return p;
-            opened = true;
+            if (kind === 'daily' ? !freshDailyReady : !freshBonusReady) return p;
+            opened = chest;
             const day = readDay(p, today);
             return {
               ...p,
@@ -602,9 +655,12 @@ export const useApp = create<AppState>()(
               xp: p.xp + chest.xp,
               daily: {
                 ...freshDaily,
-                chestsToday: 1,
+                chestsToday: freshDaily.chestsToday + 1,
+                bonusChestsClaimed:
+                  (freshDaily.bonusChestsClaimed ?? 0) + (kind === 'bonus' ? 1 : 0),
                 chestsTotal: freshDaily.chestsTotal + 1,
                 lastChest: { ...chest },
+                lastChestKind: kind,
               },
             };
           }),

@@ -9,8 +9,10 @@ import {
   questId,
   questProgress,
   questTitle,
-  rollChest,
+  bonusChestsReady,
+  dailyChestClaimed,
   type Chest,
+  type ChestKind,
   type QuestKind,
 } from '../engine/quests';
 import { Bar } from './Bits';
@@ -20,7 +22,7 @@ import { growthStage } from '../engine/shop';
 import { sfx } from '../platform/sound';
 import { haptic } from '../platform/haptics';
 
-type ChestView = { reward: Chest; celebrate: boolean };
+type ChestView = { reward: Chest; kind: ChestKind; celebrate: boolean };
 type ChestKeyItem = { id: string; done: boolean };
 
 /** Ключи анимируются только при новом выполнении, а не при каждом возврате на главную. */
@@ -120,17 +122,20 @@ export function DailyQuests({ onStart }: Props) {
   const st = profile?.daily && profile.daily.day === day ? profile.daily : null;
   const claimed = st?.claimed ?? [];
   const chestsToday = st?.chestsToday ?? 0;
+  const bonusClaimed = st?.bonusChestsClaimed ?? 0;
   const metrics = dayMetrics(profile?.days[day]);
   const items = quests.map((q) => ({ ...questProgress(q.spec, q.target, metrics), id: questId(day, q.spec.kind), target: q.target }));
   const doneCount = items.filter((i) => i.done).length;
   const all = profile ? allQuestsDone(plan, metrics) : false;
-  const chestReady = all && chestsToday === 0;
-  const chestOpened = chestsToday > 0;
+  const chestOpened = dailyChestClaimed(st ?? undefined);
+  const chestReady = all && !chestOpened;
+  const bonusReady = bonusChestsReady(metrics.lessons, bonusClaimed);
   const storedReward = st?.lastChest;
+  const storedChestKind = st?.lastChestKind ?? 'daily';
 
   useEffect(() => {
-    if (doneCount >= 2 || chestReady || chestOpened) prewarmChestArt();
-  }, [doneCount, chestReady, chestOpened]);
+    if (doneCount >= 2 || chestReady || chestOpened || bonusReady > 0) prewarmChestArt();
+  }, [doneCount, chestReady, chestOpened, bonusReady]);
 
   if (!profile) return null;
 
@@ -145,17 +150,17 @@ export function DailyQuests({ onStart }: Props) {
     });
   };
 
-  const takeChest = () => {
-    const reward = rollChest();
+  const takeChest = (kind: ChestKind) => {
     // Сначала надёжно применяем и сохраняем награду, затем начинаем сцену.
     // Анимация никогда не является условием получения кристаллов.
-    if (!openChest(reward)) return;
-    setChest({ reward, celebrate: true });
+    const reward = openChest(kind);
+    if (!reward) return;
+    setChest({ reward, kind, celebrate: true });
     sfx.tap();
   };
 
   const showStoredChest = () => {
-    if (storedReward) setChest({ reward: storedReward, celebrate: false });
+    if (storedReward) setChest({ reward: storedReward, kind: storedChestKind, celebrate: false });
   };
 
   const closeChest = () => {
@@ -168,7 +173,7 @@ export function DailyQuests({ onStart }: Props) {
       <div className="row mb">
         <div className="grow">
           <h3 style={{ margin: 0 }}>Задания дня</h3>
-          <div className="tiny">Собери 3 ключа — открой сундук БУКа</div>
+          <div className="tiny">3 ключа дают 15 💎, каждый пройденный урок — ещё один сундук на 5 💎</div>
         </div>
         <div className="stat-pill tasks">{doneCount} из {quests.length}</div>
       </div>
@@ -219,28 +224,40 @@ export function DailyQuests({ onStart }: Props) {
         })}
       </div>
 
-      <div className={`chest-progress ${chestOpened ? 'opened' : chestReady ? 'ready' : ''}`}>
+      <div className={`chest-progress ${chestReady || bonusReady > 0 ? 'ready' : chestOpened ? 'opened' : ''}`}>
         <div className="row">
           <div className="chest-glyph" aria-hidden="true">
-            <ChestGlyph state={chestOpened ? 'opened' : chestReady ? 'ready' : 'locked'} />
+            <ChestGlyph state={chestReady || bonusReady > 0 ? 'ready' : chestOpened ? 'opened' : 'locked'} />
           </div>
           <div className="grow">
             <div className="chest-title">Сундук БУКа</div>
             <div className="tiny">
               Ключи: {doneCount} из {quests.length}
-              {chestOpened ? ' · сегодня уже открыт' : chestReady ? ' · все собраны!' : ''}
+              {chestOpened ? ' · основной открыт' : chestReady ? ' · все собраны!' : ''}
+              {bonusReady > 0 ? ` · бонусных готово: ${bonusReady}` : ''}
             </div>
           </div>
         </div>
         <ChestKeyProgress items={items} />
       </div>
 
-      {chestReady ? (
-        <button className="btn green wide lg mt chest" onClick={takeChest}>
+      {chestReady && (
+        <button className="btn green wide lg mt chest" onClick={() => takeChest('daily')}>
           <ChestGlyph state="ready" />
           <span>Открыть сундук БУКа</span>
+          <span className="tiny">+15 💎</span>
         </button>
-      ) : chestOpened ? (
+      )}
+
+      {bonusReady > 0 && (
+        <button className="btn green wide lg mt chest bonus-chest" onClick={() => takeChest('bonus')}>
+          <ChestGlyph state="ready" />
+          <span>Открыть бонусный сундук</span>
+          <span className="tiny">+5 💎{bonusReady > 1 ? ` · готово: ${bonusReady}` : ''}</span>
+        </button>
+      )}
+
+      {chestsToday > 0 && (
         <div className="chest-receipt mt">
           <div className="row">
             <span className="chest-receipt-icon" aria-hidden="true">✅</span>
@@ -255,15 +272,22 @@ export function DailyQuests({ onStart }: Props) {
             </button>
           )}
         </div>
-      ) : (
+      )}
+
+      {!chestReady && !chestOpened && bonusReady === 0 && (
         <p className="tiny center" style={{ margin: '12px 0 0' }}>
           Выполни задания и собери все три ключа 🔑
         </p>
       )}
 
+      <p className="tiny center bonus-chest-note">
+        Каждый завершённый урок приносит ещё один бонусный сундук с 5 💎 — без дневного лимита.
+      </p>
+
       {chest && (
         <ChestCelebration
           reward={chest.reward}
+          kind={chest.kind}
           balance={profile.gems}
           look={look}
           stage={growthStage(masteredCount(profile)).index}

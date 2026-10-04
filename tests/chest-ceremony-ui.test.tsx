@@ -153,4 +153,29 @@ export async function runChestCeremonyChecks() {
   reducedRoot.unmount();
   reducedHost.remove();
   window.matchMedia = originalMatchMedia;
+
+  const bonusHost = document.createElement('div');
+  document.body.appendChild(bonusHost);
+  const bonusRoot = createRoot(bonusHost);
+  bonusRoot.render(
+    createElement(ChestCelebration, {
+      reward: { gems: 5, xp: 0, freezes: 0 },
+      kind: 'bonus',
+      balance: 40,
+      look: {},
+      stage: 1,
+      celebrate: true,
+      onClose: () => {},
+    }),
+  );
+  await sleep(30);
+  check(
+    'бонусный сундук показывает отдельную награду за урок и кнопку без ключей',
+    bonusHost.querySelector('.chest-ceremony-kicker')?.textContent?.includes('НАГРАДА ЗА УРОК') === true &&
+      bonusHost.textContent?.includes('+5') === true &&
+      Array.from(bonusHost.querySelectorAll('button')).some((button) => button.textContent?.includes('Открыть сундук!')),
+    bonusHost.textContent ?? '',
+  );
+  bonusRoot.unmount();
+  bonusHost.remove();
 }
