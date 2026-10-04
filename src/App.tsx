@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { masteredCount, useActiveProfile, useApp, useLook } from './state/store';
+import { useActiveProfile, useApp } from './state/store';
 import { useStorageHealth } from './state/health';
 import { StorageBanner, StorageScreen } from './ui/StorageScreen';
 import { onExternalChange } from './platform/vault';
-import { useMascot } from './state/mascot';
-import { Mascot } from './ui/Mascot';
+import { FloatingMascot } from './ui/FloatingMascot';
 import { HomeScreen } from './ui/screens/HomeScreen';
 import { WordsScreen } from './ui/screens/WordsScreen';
 import { ParentScreen } from './ui/screens/ParentScreen';
@@ -16,7 +15,6 @@ import { DiagnosticsScreen } from './ui/DiagnosticsScreen';
 import { setSoundEnabled } from './platform/sound';
 import { setHapticsEnabled } from './platform/haptics';
 import { applyUpdate, shouldSuggestInstall, markInstallHintShown } from './platform/pwa';
-import { growthStage } from './engine/shop';
 
 type Tab = 'home' | 'words' | 'shop' | 'parent';
 
@@ -49,20 +47,6 @@ function Toast() {
       </div>
     </div>
   );
-}
-
-/**
- * Плавающий БУК для главных вкладок и экрана результатов урока.
- * Подписка на useMascot изолирована здесь, чтобы смена эмоции/реплики
- * не вызывала холостую перерисовку всего дерева App и карточек урока.
- */
-export function FloatingMascot() {
-  const profile = useActiveProfile();
-  const mood = useMascot((s) => s.mood);
-  const message = useMascot((s) => s.message);
-  const look = useLook();
-  const stage = growthStage(masteredCount(profile)).index;
-  return <Mascot mood={mood} message={message} look={look} stage={stage} />;
 }
 
 export default function App() {
@@ -234,7 +218,12 @@ export default function App() {
         />
       )}
 
-      {!profilesOpen && tab !== 'shop' && <FloatingMascot />}
+      {!profilesOpen &&
+        tab !== 'shop' &&
+        settings.mascot !== 'off' &&
+        (settings.mascot !== 'home' || tab === 'home') && (
+          <FloatingMascot raised={updateReady || installHint} />
+        )}
       <Toast />
 
       {updateReady && (

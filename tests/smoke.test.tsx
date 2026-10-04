@@ -15,6 +15,8 @@ import { runChestCeremonyChecks } from './chest-ceremony-ui.test';
 import { runPretestAuditChecks } from './pretest-audit.test';
 import { runPuzzleUiChecks } from './puzzles-ui.test';
 import { runDiagnosticsRouteChecks } from './diagnostics-ui.test';
+import { runFloatingMascotChecks } from './mascot-ui.test';
+import { runBukLessonChecks } from './buk-lesson-ui.test';
 import { LESSONS, WORDS } from '../src/content/words';
 import { buildLesson, lessonCardLimit } from '../src/engine/scheduler';
 import { dayKey, dayPlan, useApp } from '../src/state/store';
@@ -512,6 +514,15 @@ async function main() {
     await sleep(60);
   }
   check('родителям видны режимы размера урока', has('Размер урока') && has('Короткий · 12') && has('Обычный · 16') && has('Полный · 20'), '');
+  // Настройка «Сова БУК»: проверяем, что «не показывать» убирает плавающего БУКа
+  // с главной, а «везде» возвращает (замечание 2026-10-04).
+  check('родителям видна настройка «Сова БУК»', has('Сова БУК') && has('на главной') && has('не показывать'), '');
+  click(btnText('не показывать'));
+  await sleep(40);
+  check('«не показывать» убирает БУКа с главной', document.querySelectorAll('.app > .mascot').length === 0, '');
+  click(btnText('везде'));
+  await sleep(40);
+  check('«везде» возвращает БУКа', document.querySelectorAll('.app > .mascot').length === 1, '');
   const shortSize = btnText('Короткий · 12');
   if (shortSize) click(shortSize);
   await sleep(40);
@@ -548,6 +559,12 @@ async function main() {
   // ── Костюмные пазлы: урок → фрагмент → костюм (идея 2026-10-01) ───────────
   // Идут последними: блок создаёт собственный профиль и сеет пазлы.
   await runPuzzleUiChecks(playLesson);
+
+  // Плавающий БУК: перетаскивание, сворачивание и тап (замечание 2026-10-04).
+  await runFloatingMascotChecks();
+
+  // Помощник БУК в уроке: вопрос вместо ответа и тихое предложение помощи.
+  await runBukLessonChecks();
 
   // Диагностика запускается прямой ссылкой и читает хранилище, не раскрывая профиль.
   await runDiagnosticsRouteChecks();

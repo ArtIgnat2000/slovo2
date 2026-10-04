@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import type { Task, Word } from '../types';
-import { Sentence, WordArt, WordClue, WordLetters, dangerSummary } from './WordView';
+import { Sentence, WordArt, WordClue, WordLetters } from './WordView';
+import { dangerSummary } from '../engine/word-facts';
 import { Keyboard } from './Keyboard';
 import { sfx } from '../platform/sound';
 import { haptic } from '../platform/haptics';

@@ -23,10 +23,29 @@ interface Props {
   size?: number;
   /** Ступень роста (0 — птенец … 3 — магистр): БУК растёт по освоенным словам */
   stage?: number;
+  /**
+   * Орган управления в углу БУКа (кнопка «свернуть» у плавающего).
+   * Живёт внутри самой совы, чтобы не заводить второй элемент-обёртку:
+   * `.app > .mascot` — это контракт тестов, и он должен остаться прежним.
+   */
+  action?: React.ReactNode;
+  /**
+   * Только для плавающего БУКа: включает тап (и Enter/Space с клавиатуры),
+   * значение — подпись для скринридера. Без него БУК в магазине и в церемонии
+   * остаётся картинкой и не перехватывает касания.
+   */
+  interactiveLabel?: string;
+  /** Дополнительный класс состояния (свёрнут, перетаскивается) */
+  className?: string;
+  /** Положение плавающего БУКа: когда его сдвинули, CSS-угол больше не работает */
+  style?: React.CSSProperties;
 }
 
 /** БУК — сова-помощник. Крупные глаза и округлые формы → привязанность ребёнка. */
-export function Mascot({ mood, message, look, size, stage = 1, costumeId }: Props) {
+export const Mascot = React.forwardRef<HTMLDivElement, Props>(function Mascot(
+  { mood, message, look, size, stage = 1, costumeId, action, interactiveLabel, className, style },
+  ref,
+) {
   // Рост читается тремя способами сразу: размер, хвост из перьев и «перья на груди»
   const scale = 0.9 + 0.035 * stage;
   // Костюм перекрашивает сову целиком (палитра из движка), а шлем/реквизит
@@ -103,7 +122,15 @@ export function Mascot({ mood, message, look, size, stage = 1, costumeId }: Prop
   };
 
   return (
-    <div className={`mascot ${mood === 'dance' ? 'dance' : ''}`}>
+    <div
+      ref={ref}
+      style={style}
+      className={`mascot ${mood === 'dance' ? 'dance' : ''} ${interactiveLabel ? 'interactive' : ''} ${className ?? ''}`.trim()}
+      {...(interactiveLabel
+        ? { role: 'button' as const, tabIndex: 0, 'aria-label': interactiveLabel }
+        : {})}
+    >
+      {action}
       {message && <div className="bubble pop">{message}</div>}
       <svg
         width={(size ?? 92) * (100 / 120) * 1.09 * scale}
@@ -175,4 +202,4 @@ export function Mascot({ mood, message, look, size, stage = 1, costumeId }: Prop
       </svg>
     </div>
   );
-}
+});

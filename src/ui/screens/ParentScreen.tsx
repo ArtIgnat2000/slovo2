@@ -177,6 +177,52 @@ export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs }
             ))}
           </div>
         </div>
+        <div className="kv" style={{ alignItems: 'flex-start' }}>
+          <div>
+            <div>Сова БУК</div>
+            <div className="tiny">Плавающий помощник: его можно и убрать</div>
+          </div>
+          <div className="row">
+            {(
+              [
+                ['on', 'везде'],
+                ['home', 'на главной'],
+                ['off', 'не показывать'],
+              ] as const
+            ).map(([mode, label]) => (
+              <button
+                key={mode}
+                className={`chip ${settings.mascot === mode ? 'on' : ''}`}
+                onClick={() => setSettings({ mascot: mode })}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="kv" style={{ alignItems: 'flex-start' }}>
+          <div>
+            <div>Подсказки в уроке</div>
+            <div className="tiny">С вопросом — ребёнок вспоминает сам, потом можно открыть букву</div>
+          </div>
+          <div className="row">
+            {(
+              [
+                ['socratic', 'с вопросом'],
+                ['direct', 'сразу буква'],
+                ['off', 'выключены'],
+              ] as const
+            ).map(([mode, label]) => (
+              <button
+                key={mode}
+                className={`chip ${settings.lessonHelp === mode ? 'on' : ''}`}
+                onClick={() => setSettings({ lessonHelp: mode })}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="kv">
           <span>Цель дня (XP)</span>
           <div className="row">

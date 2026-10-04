@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { wordImageUrl } from '../platform/word-images';
+import { plural } from '../engine/word-facts';
+// dangerSummary теперь в engine/word-facts — его читают TaskView и WordsScreen напрямую.
 import type { Word } from '../types';
-
-const VOWELS = 'аеёиоуыэюя';
 
 /**
  * Картинка слова (картинки лежат в public/words/, WebP 256×256).
@@ -87,14 +87,6 @@ export function Sentence({ word, hidden = true }: { word: Word; hidden?: boolean
   );
 }
 
-export function plural(n: number, one: string, few: string, many: string): string {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod10 === 1 && mod100 !== 11) return one;
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
-  return many;
-}
-
 /** «Слово из 5 букв» / «2 слова, 11 букв» — чтобы ребёнок знал объём ответа. */
 export function lengthLabel(word: Word): string {
   const words = word.text.trim().split(/\s+/);
@@ -102,20 +94,6 @@ export function lengthLabel(word: Word): string {
   const lettersWord = plural(letters, 'буква', 'буквы', 'букв');
   if (words.length === 1) return `Слово из ${letters} ${lettersWord}`;
   return `${words.length} ${plural(words.length, 'слово', 'слова', 'слов')}, ${letters} ${lettersWord}`;
-}
-
-/** Человеческое описание «опасных» букв — по самим буквам, а не по общему типу слова. */
-export function dangerSummary(word: Word): string {
-  if (!word.danger.length) return 'Опасных букв нет — слово пишется так, как слышится';
-  const letters = [...new Set(word.danger.map((i) => word.text[i].toUpperCase()))];
-  const vowels = word.danger.filter((i) => VOWELS.includes(word.text[i])).length;
-  const kind =
-    vowels === word.danger.length
-        ? plural(word.danger.length, 'безударная гласная', 'безударные гласные', 'безударные гласные')
-        : vowels === 0
-          ? plural(word.danger.length, 'согласная', 'согласные', 'согласные')
-          : 'буквы, которые нужно запомнить';
-  return `${word.danger.length > 1 ? 'Опасные буквы' : 'Опасная буква'}: ${letters.join(', ')} (${kind})`;
 }
 
 /**
