@@ -7,9 +7,9 @@
 //    если блок обещает N слов, урок их и показывает (раньше открывалось «Повторять нечего!»);
 //  • прогресс «Повтори N слов» растёт от потренированных слов, ошибка его не «замораживает»;
 //  • награду за задание можно забрать, а цель дня подстраивается под новичка.
-import type { Profile } from '../src/types';
+import type { Profile, QuestPlanItem } from '../src/types';
 import { LESSONS, WORDS } from '../src/content/words';
-import { useApp } from '../src/state/store';
+import { dayKey, useApp } from '../src/state/store';
 import { questsForDay, specFor } from '../src/engine/quests';
 import { btn, btnText, buttons, check, click, currentWord, has, sleep } from './ui-helpers';
 
@@ -40,6 +40,11 @@ function seedPractised(count: number, opts: { due?: boolean } = {}) {
   const school = LESSONS[0];
   const now = Date.now();
   const ids = school.wordIds.slice(0, count).map((wordId) => WORDS.find((w) => w.id === wordId)!);
+  const plan: QuestPlanItem[] = [
+    { kind: 'review', target: Math.min(5, Math.max(2, count)) },
+    { kind: 'lessons', target: 2 },
+    { kind: 'correct', target: 12 },
+  ];
   useApp.setState((s) => ({
     profiles: s.profiles.map((p) => {
       if (p.id !== id) return p;
@@ -59,7 +64,15 @@ function seedPractised(count: number, opts: { due?: boolean } = {}) {
         ...p,
         words,
         lessons: { ...p.lessons, [school.id]: { level: 1, best: 80, doneAt: now, plays: 1 } },
-        daily: undefined, // план дня пересобирается под новые слова
+        // Не зависим от того, выпал ли вид «Повтори» в сегодняшнем случайном наборе:
+        // сценарий тестирует именно прогресс повторения, поэтому фиксируем его здесь.
+        daily: {
+          day: dayKey(),
+          claimed: [],
+          chestsToday: 0,
+          chestsTotal: p.daily?.chestsTotal ?? 0,
+          plan,
+        },
       };
     }),
   }));

@@ -12,12 +12,17 @@ import { ProfilesScreen } from './ui/screens/ProfilesScreen';
 import { LessonScreen } from './ui/screens/LessonScreen';
 import { ShopScreen } from './ui/screens/ShopScreen';
 import { VlabsScreen } from './ui/screens/VlabsScreen';
+import { DiagnosticsScreen } from './ui/DiagnosticsScreen';
 import { setSoundEnabled } from './platform/sound';
 import { setHapticsEnabled } from './platform/haptics';
 import { applyUpdate, shouldSuggestInstall, markInstallHintShown } from './platform/pwa';
 import { growthStage } from './engine/shop';
 
 type Tab = 'home' | 'words' | 'shop' | 'parent';
+
+function diagnosticsRequested(): boolean {
+  return typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('diag') === '1';
+}
 
 /**
  * Всплывающая награда («+3 кристалла», «Сундук открыт»).
@@ -85,6 +90,7 @@ export default function App() {
   };
   const [profilesOpen, setProfilesOpen] = useState(false);
   const [parentUnlocked, setParentUnlocked] = useState(false);
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState(diagnosticsRequested);
   const [updateReady, setUpdateReady] = useState(false);
 
   useEffect(() => {
@@ -105,6 +111,12 @@ export default function App() {
     const onUpdate = () => setUpdateReady(true);
     window.addEventListener('slovo2:update', onUpdate);
     return () => window.removeEventListener('slovo2:update', onUpdate);
+  }, []);
+
+  useEffect(() => {
+    const syncDiagnosticsRoute = () => setDiagnosticsOpen(diagnosticsRequested());
+    window.addEventListener('popstate', syncDiagnosticsRoute);
+    return () => window.removeEventListener('popstate', syncDiagnosticsRoute);
   }, []);
 
   /**
@@ -131,6 +143,21 @@ export default function App() {
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, []);
+
+  const closeDiagnostics = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('diag');
+    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+    setDiagnosticsOpen(false);
+  };
+
+  if (diagnosticsOpen) {
+    return (
+      <div className="app">
+        <DiagnosticsScreen onClose={closeDiagnostics} />
+      </div>
+    );
+  }
 
   if (!profile) {
     return (
