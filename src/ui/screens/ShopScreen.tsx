@@ -21,6 +21,8 @@ import {
   costumeProgress,
   normalizePuzzle,
 } from '../../engine/puzzles';
+import { TINT_PRICE, type TintOption } from '../../engine/tints';
+import { TintPicker } from '../TintPicker';
 import { ConfirmDialog } from '../Bits';
 import { sfx } from '../../platform/sound';
 import { haptic } from '../../platform/haptics';
@@ -35,8 +37,21 @@ import type { ShopItem } from '../../engine/shop';
  *  • вход — отдельная вкладка внизу (на главной уже плотно: цель, задания, путь);
  *  • покупка — через тот же ConfirmDialog, что и выход из урока: промах пальцем
  *    не должен тратить кристаллы, которые ребёнок копил несколько дней;
- *  • купленное сразу надевается: лишний тап для «надеть» не нужен.
+ *  • купленное сразу надевается: лишний тап для «надеть» не нужен;
+ *  • тюнинг (2026-10-05): у купленной вещи можно открыть палитру и сменить цвет.
+ *    Новый оттенок стоит TINT_PRICE 💎 и спрашивает подтверждение, переключение
+ *    между уже открытыми — бесплатно и без диалога (правила — engine/tints.ts).
  */
+/**
+ * Что можно красить из магазина: аксессуар (id из SHOP_ITEMS) или собранный
+ * костюм (id из COSTUMES). И у того, и у другого есть id и название — этого
+ * хватает и движку, и палитре.
+ */
+interface TintTarget {
+  id: string;
+  title: string;
+}
+
 export function ShopScreen() {
   const profile = useActiveProfile();
   const look = useLook();
@@ -45,7 +60,11 @@ export function ShopScreen() {
   const choosePuzzleCostume = useApp((s) => s.choosePuzzleCostume);
   const toggleCostume = useApp((s) => s.toggleCostume);
   const showToast = useApp((s) => s.showToast);
+  const recolorItem = useApp((s) => s.recolorItem);
   const [ask, setAsk] = useState<ShopItem | null>(null);
+  // Открытая палитра (id вещи магазина или костюма) и подтверждение платного оттенка
+  const [palette, setPalette] = useState<string | null>(null);
+  const [askTint, setAskTint] = useState<{ target: TintTarget; tint: TintOption } | null>(null);
   const [mood, setMood] = useState<'idle' | 'happy' | 'dance'>('idle');
 
   if (!profile) return null;
@@ -98,6 +117,51 @@ export function ShopScreen() {
     toggleEquip(item.id);
     setMood('happy');
     setTimeout(() => setMood('idle'), 1200);
+  };
+
+  const tapTint = (target: TintTarget, tint: TintOption, unlocked: boolean) => {
+    if (unlocked) {
+      const outcome = recolorItem(target.id, tint.id);
+      if (outcome === 'switched') {
+        sfx.tap();
+        haptic.tap();
+        setMood('happy');
+        setTimeout(() => setMood('idle'), 1200);
+        showToast({ emoji: '🎨', title: `${target.title} — ${tint.title.toLowerCase()}`, text: 'Этот цвет уже открыт — меняй сколько хочешь' });
+      }
+      return;
+    }
+    if (gems < TINT_PRICE) {
+      sfx.hint();
+      showToast({
+        emoji: '💎',
+        title: `Для цвета «${tint.title.toLowerCase()}» нужен ещё 1 💎`,
+        text: 'Краски открываются за кристаллы — загляни на главную',
+      });
+      return;
+    }
+    sfx.tap();
+    setAskTint({ target, tint });
+  };
+
+  const confirmTint = () => {
+    if (!askTint) return;
+    const { target, tint } = askTint;
+    const outcome = recolorItem(target.id, tint.id);
+    setAskTint(null);
+    if (outcome === 'opened') {
+      sfx.reward();
+      haptic.correct();
+      setMood('dance');
+      setTimeout(() => setMood('idle'), 1800);
+      showToast({
+        emoji: '🎨',
+        title: `${target.title} — ${tint.title.toLowerCase()}!`,
+        text: `Краска открыта · −${TINT_PRICE} 💎`,
+      });
+    } else if (outcome === 'no-gems') {
+      showToast({ emoji: '💎', title: 'Не хватает кристаллов', text: 'Загляни на главную: там задания и сундук' });
+    }
   };
 
   return (
@@ -176,9 +240,31 @@ export function ShopScreen() {
                   </div>
                 )}
                 {done ? (
-                  <button className={`btn sm wide ${wearing ? 'green' : 'ghost'}`} onClick={() => tapCostume(c.id)}>
-                    {wearing ? 'Надето ✓' : 'Надеть'}
-                  </button>
+                  <>
+                    <button className={`btn sm wide ${wearing ? 'green' : 'ghost'}`} onClick={() => tapCostume(c.id)}>
+                      {wearing ? 'Надето ✓' : 'Надеть'}
+                    </button>
+                    {/* у собранного костюма красим только акцент: свечение и плащ */}
+                    <button
+                      className={`btn sm wide ${palette === c.id ? 'primary' : 'ghost'}`}
+                      aria-expanded={palette === c.id}
+                      onClick={() => {
+                        sfx.tap();
+                        setPalette(palette === c.id ? null : c.id);
+                      }}
+                    >
+                      {palette === c.id ? '🎨 Готово' : '🎨 Акцент'}
+                    </button>
+                    {palette === c.id && (
+                      <TintPicker
+                        caption="Акцент"
+                        targetId={c.id}
+                        title={c.title}
+                        tuning={profile.shop?.tuning}
+                        onPick={(tint, unlocked) => tapTint({ id: c.id, title: c.title }, tint, unlocked)}
+                      />
+                    )}
+                  </>
                 ) : (
                   <button className={`btn sm wide ${isCurrent ? 'primary' : 'ghost'}`} onClick={() => tapPickCostume(c.id)}>
                     {isCurrent
@@ -213,9 +299,31 @@ export function ShopScreen() {
                     <div className="shop-title">{item.title}</div>
                     <div className="tiny shop-desc">{item.desc}</div>
                     {owned_ ? (
-                      <button className={`btn sm wide ${wearing ? 'green' : 'ghost'}`} onClick={() => tapWear(item)}>
-                        {wearing ? 'Надето ✓' : 'Надеть'}
-                      </button>
+                      <>
+                        <button className={`btn sm wide ${wearing ? 'green' : 'ghost'}`} onClick={() => tapWear(item)}>
+                          {wearing ? 'Надето ✓' : 'Надеть'}
+                        </button>
+                        {/* Палитра только у купленной вещи: сначала вещь — потом краски */}
+                        <button
+                          className={`btn sm wide ${palette === item.id ? 'primary' : 'ghost'}`}
+                          aria-expanded={palette === item.id}
+                          onClick={() => {
+                            sfx.tap();
+                            setPalette(palette === item.id ? null : item.id);
+                          }}
+                        >
+                          {palette === item.id ? '🎨 Готово' : '🎨 Цвет'}
+                        </button>
+                        {palette === item.id && (
+                          <TintPicker
+                            caption="Цвет"
+                            targetId={item.id}
+                            title={item.title}
+                            tuning={profile.shop?.tuning}
+                            onPick={(tint, unlocked) => tapTint({ id: item.id, title: item.title }, tint, unlocked)}
+                          />
+                        )}
+                      </>
                     ) : (
                       <button
                         className={`btn sm wide ${affordable ? 'primary' : 'ghost'}`}
@@ -251,6 +359,18 @@ export function ShopScreen() {
           leaveLabel="Не сейчас"
           onStay={confirmBuy}
           onLeave={() => setAsk(null)}
+        />
+      )}
+
+      {askTint && (
+        <ConfirmDialog
+          emoji="🎨"
+          title={`Открыть цвет «${askTint.tint.title.toLowerCase()}»?`}
+          text={`Это ${TINT_PRICE} 💎 из ${gems}. Потом сможешь переключаться на него бесплатно.`}
+          stayLabel={`Открыть за 💎${TINT_PRICE}`}
+          leaveLabel="Не сейчас"
+          onStay={confirmTint}
+          onLeave={() => setAskTint(null)}
         />
       )}
     </div>

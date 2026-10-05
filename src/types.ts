@@ -74,6 +74,20 @@ export type LessonSize = 'short' | 'standard' | 'full';
 export interface ShopState {
   owned: string[];
   equipped: Partial<Record<ShopSlot, string>>;
+  /** Тюнинг цвета купленных вещей (см. engine/shop.ts и docs/shop-tuning.md) */
+  tuning?: ShopTuning;
+}
+
+/**
+ * Тюнинг цвета: у вещи есть базовый оттенок (бесплатный, всегда доступен) и
+ * несколько открываемых за кристаллы. Решение 2026-10-05: 1 💎 берём один раз
+ * за оттенок, дальше переключение между открытыми бесплатно.
+ */
+export interface ShopTuning {
+  /** Текущий оттенок: id вещи → id оттенка; нет записи — значит базовый цвет */
+  current: Record<string, string>;
+  /** Открытые оттенки: id вещи → id оттенков (базовый здесь не хранится) */
+  unlocked: Record<string, string[]>;
 }
 
 /**

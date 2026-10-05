@@ -1,7 +1,7 @@
 import { nextAdaptiveState, type Outcome } from '../engine/adaptive';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { DailyState, DayStat, LessonSize, LessonState, Profile, ShopState, ShopSlot, WeeklyState, WordState } from '../types';
+import type { DailyState, DayStat, LessonSize, LessonState, Profile, ShopState, ShopSlot, ShopTuning, WeeklyState, WordState } from '../types';
 import { applyAnswer, initState } from '../engine/srs';
 import { idbStorage } from '../platform/storage';
 import { GEMS_PER_STREAK, levelOf } from '../engine/rewards';
@@ -22,6 +22,7 @@ import {
   type PlannedQuest,
 } from '../engine/quests';
 import { ITEM_BY_ID, isOwned } from '../engine/shop';
+import { normalizeTuning, recolor, type RecolorOutcome } from '../engine/tints';
 import {
   awardLessonPiece,
   chooseCollecting,
@@ -163,9 +164,20 @@ function weeklyEarnings(p: Profile, days: Profile['days'], today: string) {
   };
 }
 
-/** Гардероб БУКа; у профилей до магазина поля нет — достраиваем пустое. */
+/**
+ * Гардероб БУКа; у профилей до магазина поля нет — достраиваем пустое.
+ * Красить можно купленные аксессуары и собранные костюмы, поэтому в список
+ * доступного для тюнинга идут и те, и другие (engine/tints.ts).
+ */
 function readShop(p: Profile): ShopState {
-  return { owned: p.shop?.owned ?? [], equipped: p.shop?.equipped ?? {} };
+  const owned = p.shop?.owned ?? [];
+  const assembled = p.puzzle?.assembled ?? [];
+  return {
+    owned,
+    equipped: p.shop?.equipped ?? {},
+    // краски некупленных вещей, чужие id и акценты несобранных костюмов отбрасываем
+    tuning: normalizeTuning(p.shop?.tuning, [...owned, ...assembled]),
+  };
 }
 
 function newProfile(name: string, avatar: string): Profile {
@@ -198,6 +210,10 @@ function normalizeProfile(raw: Partial<Profile> | null | undefined): Profile | n
     typeof raw.name === 'string' && raw.name.trim() ? raw.name.trim() : 'Ученик',
     typeof raw.avatar === 'string' && raw.avatar.trim() ? raw.avatar : '🦊',
   );
+  const owned = Array.isArray(raw.shop?.owned)
+    ? raw.shop.owned.filter((x): x is string => typeof x === 'string')
+    : [];
+  const puzzle = normalizePuzzle(raw.puzzle);
   return {
     ...base,
     ...raw,
@@ -221,10 +237,11 @@ function normalizeProfile(raw: Partial<Profile> | null | undefined): Profile | n
         ? raw.lessonSize
         : DEFAULT_LESSON_SIZE,
     shop: {
-      owned: Array.isArray(raw.shop?.owned) ? raw.shop.owned.filter((x): x is string => typeof x === 'string') : [],
+      owned,
       equipped: raw.shop?.equipped && typeof raw.shop.equipped === 'object' ? raw.shop.equipped : {},
+      tuning: normalizeTuning(raw.shop?.tuning, [...owned, ...puzzle.assembled]),
     },
-    puzzle: normalizePuzzle(raw.puzzle),
+    puzzle,
   };
 }
 
@@ -282,6 +299,12 @@ interface AppState {
   buyItem: (id: string) => boolean;
   /** Надеть/снять аксессуар: повторный тап по надетой вещи снимает её */
   toggleEquip: (id: string) => void;
+  /**
+   * Сменить цвет купленной вещи: новый оттенок открывается за TINT_PRICE 💎,
+   * переключение между открытыми — бесплатно (правила — engine/tints.ts).
+   * Возвращает иток, по которому интерфейс выбирает тост.
+   */
+  recolorItem: (itemId: string, tintId: string) => RecolorOutcome;
 
   /**
    * Реально завершённый урок (не «Повторение» — это решает вызывающий код):
@@ -702,6 +725,24 @@ export const useApp = create<AppState>()(
           }),
         ),
 
+      recolorItem: (itemId, tintId) => {
+        const prof = getActive(get());
+        if (!prof) return 'nothing';
+        const res = recolor(readShop(prof), prof.gems, itemId, tintId, prof.puzzle?.assembled ?? []);
+        // Меняем профиль только когда цвет действительно поменялся: «no-gems»,
+        // «not-owned» и повторный выбор того же оттенка не пишут ничего.
+        if (res.outcome === 'switched' || res.outcome === 'opened') {
+          set((s) =>
+            patchActive(s, (p) => ({
+              ...p,
+              gems: Math.max(0, p.gems - res.spend),
+              shop: res.shop,
+            })),
+          );
+        }
+        return res.outcome;
+      },
+
       finishPuzzleLesson: () => {
         const s = get();
         const prof = s.profiles.find((x) => x.id === s.activeId);
@@ -940,6 +981,20 @@ export function useWornCostume(): string | null {
   return useApp((s) => {
     const p = s.profiles.find((x) => x.id === s.activeId);
     return p?.puzzle?.worn ?? null;
+  });
+}
+
+/**
+ * Краски купленных вещей активного профиля: id вещи → оттенок (engine/tints.ts).
+ * Пустое значение — та же константа, что и у NO_LOOK: объект в селекторе zustand 5
+ * обязан быть стабильным по ссылке, иначе React уходит в бесконечные перерисовки.
+ */
+const NO_TUNING: ShopTuning = { current: {}, unlocked: {} };
+
+export function useShopTuning(): ShopTuning {
+  return useApp((s) => {
+    const p = s.profiles.find((x) => x.id === s.activeId);
+    return p?.shop?.tuning ?? NO_TUNING;
   });
 }
 export type { AppState };

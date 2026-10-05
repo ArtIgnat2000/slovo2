@@ -1278,6 +1278,7 @@ p {
 }
 .shop-mascot .mascot {
   position: static;
+  z-index: auto; /* см. пояснение у `.shop-icon .mascot`: сетка делает z-index рабочим */
   animation: none;
 }
 /* в магазине маскот не «висит» поверх экрана, а стоит в карточке */
@@ -1312,8 +1313,13 @@ p {
   display: grid;
   place-items: center;
 }
+/* БУК внутри иконки — картинка, а не плавающий элемент: снимаем и позицию, и z-index.
+   Без сброса z-index остаётся 25 из базового `.mascot`, а для элемента сетки он
+   действует даже при `position: static`. Из-за этого сова рисовалась ПОВЕРХ замка
+   у несобранного костюма (`.pz-locked::after`) и закрывала его крылом и лапкой. */
 .shop-icon .mascot {
   position: static;
+  z-index: auto;
   animation: none;
 }
 .shop-title {
@@ -2620,7 +2626,9 @@ p {
    и ребёнок видел ряд серых силуэтов: выбрать «тот самый» костюм было нельзя,
    цвета были видны только у уже собранного. Теперь рисунок всегда в полном цвете,
    а «ещё не надет» показывает только замок на иконке — рамка карточки остаётся
-   обычной (пунктир пробовали, он спорит с рисунком и ничего не добавляет). */
+   обычной (пунктир пробовали, он спорит с рисунком и ничего не добавляет).
+   Замок стоит в углу иконки ПОВЕРХ совы: подпись «ещё не собран» должна
+   читаться, а не выглядывать из-за крыла (см. сброс z-index у `.shop-icon .mascot`). */
 .pz-locked {
   position: relative;
 }
@@ -2629,13 +2637,71 @@ p {
   position: absolute;
   right: -2px;
   bottom: 0;
+  z-index: 1;
   font-size: 15px;
   line-height: 1;
   padding: 3px 5px;
   border-radius: 10px;
   background: var(--primary-soft);
   border: 1px solid rgba(124, 92, 255, 0.28);
+  /* тень отделяет плашку от разноцветного костюма под ней */
+  box-shadow: 0 1px 3px rgba(36, 31, 54, 0.2);
 }
+/* ── Палитра купленной вещи (тюнинг цвета, engine/tints.ts) ───────────────── */
+.tint-panel {
+  width: 100%;
+  margin-top: 2px;
+  text-align: center;
+}
+/* 44 px — не «на глаз»: зона касания по WCAG 2.5.5, как у кнопок БУКа */
+.tint-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 6px;
+}
+.tint-swatch {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.tint-swatch.paid {
+  border-style: dashed;
+  opacity: 0.85;
+}
+/* выбранный оттенок виден и без цвета: кольцо + галочка */
+.tint-swatch.on {
+  border-color: var(--primary);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.45),
+    0 0 0 2px var(--primary);
+}
+.tint-swatch.on::after {
+  content: '✓';
+  font-size: 16px;
+  text-shadow: 0 1px 2px rgba(20, 16, 34, 0.55);
+}
+.tint-swatch:active {
+  transform: scale(0.94);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tint-swatch:active {
+    transform: none;
+  }
+}
+
 /* то, что собирается прямо сейчас, — подсвечено, а не приглушено */
 .costume-card.current {
   border-color: var(--primary);
