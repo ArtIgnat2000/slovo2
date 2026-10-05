@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
-import { plural, type Chest } from '../engine/quests';
+import { plural, type Chest, type ChestKind } from '../engine/quests';
 import { haptic } from '../platform/haptics';
 import { sfx } from '../platform/sound';
 import { ChestIllustration, KeySymbol } from './ChestArt';
@@ -15,6 +15,7 @@ type Phase = 'waiting' | 'showing' | 'reward' | 'final';
 
 interface Props {
   reward: Chest;
+  kind?: ChestKind;
   balance: number;
   look: Look;
   stage: number;
@@ -67,7 +68,7 @@ function ExtraRewards({ reward }: { reward: Chest }) {
  * Короткая сцена открытия сундука. Состояние награды уже сохранено стором;
  * эта компонента отвечает только за представление и не выдаёт валюту.
  */
-export function ChestCelebration({ reward, balance, look, stage, learnerName, celebrate, onClose }: Props) {
+export function ChestCelebration({ reward, kind = 'daily', balance, look, stage, learnerName, celebrate, onClose }: Props) {
   const [reducedMotion, setReducedMotion] = useState(prefersReducedMotion);
   const [phase, setPhase] = useState<Phase>(() =>
     celebrate && !prefersReducedMotion() ? 'waiting' : 'final',
@@ -205,9 +206,13 @@ export function ChestCelebration({ reward, balance, look, stage, learnerName, ce
   const sceneClass = waitingForAction ? 'is-waiting' : animationActive ? 'is-showing' : 'is-final';
   const firstName = learnerName?.trim().split(/\s+/)[0];
   const title = waitingForAction
-    ? firstName ? `${firstName}, открываем?` : 'Три ключа готовы!'
+    ? kind === 'daily'
+      ? firstName ? `${firstName}, открываем?` : 'Три ключа готовы!'
+      : firstName ? `${firstName}, открываем бонусный сундук?` : 'Бонусный сундук готов!'
     : introducing
-      ? firstName ? `Все три ключа на месте, ${firstName}!` : 'Все три ключа на месте!'
+      ? kind === 'daily'
+        ? firstName ? `Все три ключа на месте, ${firstName}!` : 'Все три ключа на месте!'
+        : firstName ? `Награда за урок, ${firstName}!` : 'Награда за урок!'
       : 'Сундук открыт!';
   const bukLine = phase === 'final'
     ? firstName ? `Ура, ${firstName}!` : 'Вот это команда!'
@@ -237,7 +242,7 @@ export function ChestCelebration({ reward, balance, look, stage, learnerName, ce
         <div className="chest-ceremony-content">
           <div className="chest-ceremony-kicker">
             <span className="ceremony-kicker-rule" />
-            ПРАЗДНИК ТРЁХ КЛЮЧЕЙ
+            {kind === 'daily' ? 'ПРАЗДНИК ТРЁХ КЛЮЧЕЙ' : 'НАГРАДА ЗА УРОК'}
             <span className="ceremony-kicker-rule" />
           </div>
 
@@ -245,8 +250,12 @@ export function ChestCelebration({ reward, balance, look, stage, learnerName, ce
             <h2 id="chest-ceremony-title">{title}</h2>
             <p id="chest-ceremony-description">
               {waitingForAction
-                ? 'Нажми на кнопку — повернём ключи вместе!'
-                : introducing ? 'Ключи поворачиваются — сундук просыпается!' : 'Три задания — выполнены. Вот твоя награда:'}
+                ? kind === 'daily'
+                  ? 'Нажми на кнопку — повернём ключи вместе!'
+                  : 'Нажми на кнопку — откроем бонусный сундук!'
+                : introducing
+                  ? kind === 'daily' ? 'Ключи поворачиваются — сундук просыпается!' : 'БУК открывает награду за урок!'
+                  : kind === 'daily' ? 'Три задания — выполнены. Вот твоя награда:' : 'Урок пройден — вот твоя награда:'}
             </p>
           </div>
 
@@ -280,7 +289,7 @@ export function ChestCelebration({ reward, balance, look, stage, learnerName, ce
           {waitingForAction ? (
             <button ref={openRef} className="btn lg wide chest-ceremony-open" onClick={startSequence}>
               <KeySymbol lit />
-              <span>Повернуть ключи!</span>
+              <span>{kind === 'daily' ? 'Повернуть ключи!' : 'Открыть сундук!'}</span>
               <span className="chest-ceremony-open-spark" aria-hidden="true">✦</span>
             </button>
           ) : animationActive ? (
@@ -296,7 +305,9 @@ export function ChestCelebration({ reward, balance, look, stage, learnerName, ce
 
         <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
           {waitingForAction
-            ? `Все три ключа готовы${firstName ? `, ${firstName}` : ''}. Нажми «Повернуть ключи», чтобы открыть сундук.`
+            ? kind === 'daily'
+              ? `Все три ключа готовы${firstName ? `, ${firstName}` : ''}. Нажми «Повернуть ключи», чтобы открыть сундук.`
+              : `Бонусный сундук готов${firstName ? `, ${firstName}` : ''}. Нажми «Открыть сундук», чтобы увидеть награду.`
             : introducing
               ? 'Ключи поворачиваются, БУК открывает сундук.'
               : `Сундук открыт. Получено ${gems} ${plural(gems, 'кристалл', 'кристалла', 'кристаллов')}. Теперь у тебя ${balance} ${plural(balance, 'кристалл', 'кристалла', 'кристаллов')}.`}

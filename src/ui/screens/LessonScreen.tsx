@@ -6,7 +6,7 @@ import { LESSON_BY_ID, LESSONS, REVIEW, WORD_BY_ID, WORDS } from '../../content/
 import { buildLesson, DEFAULT_LESSON_SIZE, lessonCardLimit, makeTask, pickDanger, repairTask, shuffle } from '../../engine/scheduler';
 import { pickReview, pickReviewWords } from '../../engine/srs';
 import { dayKey, dayPlan, masteredCount, todayStat, useActiveProfile, useApp } from '../../state/store';
-import { claimableQuests, dayMetrics, plural, questId } from '../../engine/quests';
+import { BONUS_CHEST_GEMS, claimableQuests, dayMetrics, plural, questId } from '../../engine/quests';
 import { CHEER, PRAISE, pick, useMascot } from '../../state/mascot';
 import { FloatingMascot } from '../FloatingMascot';
 import { TaskView } from '../TaskView';
@@ -278,6 +278,7 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
 
   const finish = () => {
     if (finalized.current) return;
+    let weeklyAwardGems = 0;
     ensureTouchedToday();
     finalizeAdaptive('finish');
     const { correct, wrong } = stats.current;
@@ -286,7 +287,7 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
     const stars = starsFor(correct, answered);
     // «Повторение» — тренировка, а не урок: короны и счётчик уроков оно не наращивает
     if (lessonId !== REVIEW.id) {
-      finishLesson(lessonId, pct);
+      weeklyAwardGems = finishLesson(lessonId, pct).reduce((sum, reward) => sum + reward.gems, 0);
       const pz = finishPuzzleLesson();
       setPuzzleAward(pz);
       if (pz?.event === 'assembled') {
@@ -328,13 +329,23 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
       };
       checkAchievements(ctx, fresh.achievements).forEach(grantAchievement);
     }
-    // Задания дня могли закрыться прямо этим уроком — зовём забрать награду
+    // После урока могут одновременно появиться сундук, награды недели и задания дня.
     const after = claimableToday(useApp.getState().profiles.find((p) => p.id === profile?.id) ?? null);
-    if (after.length > claimableBefore.length) {
+    const newQuestRewards = after.length > claimableBefore.length;
+    const messages: string[] = [];
+    if (lessonId !== REVIEW.id) messages.push(`На главной ждёт бонусный сундук: +${BONUS_CHEST_GEMS} 💎.`);
+    if (newQuestRewards) messages.push('Награду за задания дня можно забрать на главной.');
+    if (weeklyAwardGems > 0) messages.push(`Недельная награда уже начислена: +${weeklyAwardGems} 💎.`);
+    if (messages.length) {
       useApp.getState().showToast({
         emoji: '💎',
-        title: after.length > 1 ? 'Выполнено заданий дня: ' + after.length : 'Задание дня выполнено!',
-        text: 'Забери награду на главной',
+        title:
+          weeklyAwardGems > 0
+            ? `Недельная награда +${weeklyAwardGems} 💎`
+            : newQuestRewards
+              ? after.length > 1 ? `Выполнено заданий дня: ${after.length}` : 'Задание дня выполнено!'
+              : 'Бонусный сундук готов',
+        text: messages.join(' '),
       });
     }
     setDone(true);

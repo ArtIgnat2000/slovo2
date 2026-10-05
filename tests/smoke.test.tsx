@@ -283,7 +283,7 @@ async function main() {
     plan.length === 3 && plan.every((q) => has(questTitle(q.spec, q.target))),
     plan.map((q) => questTitle(q.spec, q.target)).join(' / '),
   );
-  check('подсказка про ключи сундука видна', has('Собери 3 ключа'), '');
+  check('подсказка про награды за ключи и уроки видна', has('3 ключа дают 15 💎') && has('каждый пройденный урок'), '');
   check('сундук начинает с нулём ключей', has('Ключи: 0 из 3'), '');
   check('кристаллов пока 0', has('💎 0'), '');
 

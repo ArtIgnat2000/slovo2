@@ -5,6 +5,7 @@ import { dayKey, masteredCount, todayStat, useActiveProfile, useApp } from '../.
 import { lastDays } from '../../engine/day';
 import { Bar, Crowns, Ring } from '../Bits';
 import { DailyQuests } from '../DailyQuests';
+import { WeeklyRewards } from '../WeeklyRewards';
 import { levelOf, levelProgress, xpForLevel } from '../../engine/rewards';
 import { ACHIEVEMENTS } from '../../engine/rewards';
 import { pickReviewWords } from '../../engine/srs';
@@ -121,6 +122,7 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
       </div>
 
       <DailyQuests onStart={startQuest} />
+      <WeeklyRewards />
 
       {reviews.length > 0 && (
         <button className="card mb wide" style={{ textAlign: 'left', cursor: 'pointer' }} onClick={onStartReview}>

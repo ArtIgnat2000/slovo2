@@ -1,7 +1,8 @@
 // ── Ежедневные задания и сундук ─────────────────────────────────────────────
 //
 // Замысел (пункт 3 плана): три задания в день, разные по типу, прогресс виден
-// на главной, за каждое — кристаллы 💎, за все три — сундук.
+// на главной, за каждое — кристаллы 💎, за все три — основной сундук.
+// Отдельно за каждый завершённый обычный урок открывается бонусный сундук без суточного лимита.
 //
 // Принципы, вытекающие из принятых решений:
 //  • никаких «потеряй серию» — задания не наказывают и не истекают втихую,
@@ -17,7 +18,7 @@
 //
 // Модуль чистый: ни React, ни стора. Сторы только хранят состояние.
 
-import type { DayStat, Profile, QuestKind, QuestPlanItem } from '../types';
+import type { DailyState, DayStat, Profile, QuestKind, QuestPlanItem } from '../types';
 import { dayKey } from './day';
 
 export type { QuestKind, QuestPlanItem };
@@ -56,8 +57,24 @@ export interface QuestProgress {
 }
 
 export const GEM_PER_QUEST = QUEST_POOL[0].reward;
-/** Сундук за все три задания — заметно больше, чем сумма за задания. */
+/** Основной сундук за все три задания — заметно больше, чем сумма за задания. */
 export const CHEST_GEMS = 15;
+/** Бонусный сундук за каждый завершённый урок — без суточного потолка. */
+export const BONUS_CHEST_GEMS = 5;
+
+export type ChestKind = 'daily' | 'bonus';
+
+/** Бонусные сундуки можно открывать независимо от основного ежедневного сундука. */
+export function bonusChestsReady(lessons: number, claimed: number): number {
+  return Math.max(0, Math.floor(lessons) - Math.floor(claimed));
+}
+
+/** В общем счётчике отделяем основной сундук от уже открытых бонусных. */
+export function dailyChestClaimed(
+  daily: Pick<DailyState, 'chestsToday' | 'bonusChestsClaimed'> | undefined,
+): boolean {
+  return !!daily && daily.chestsToday > Math.max(0, daily.bonusChestsClaimed ?? 0);
+}
 
 /** Какой набор заданий у дня: детерминированно от даты — обновил страницу, и он тот же. */
 export function questsForDay(day: string): QuestSpec[] {
@@ -191,14 +208,13 @@ export interface Chest {
 }
 
 /**
- * Содержимое ежедневного сундука БУКа.
+ * Содержимое основного или бонусного сундука БУКа.
  *
- * Сейчас награда намеренно прозрачная и воспроизводимая: за три ключа ребёнок
- * всегда получает базовые 15 кристаллов. Пустых сундуков нет, а редкие бонусы
- * можно добавить позже, не заменяя гарантированную награду.
+ * Награда прозрачная и воспроизводимая: основной сундук за три ключа даёт 15,
+ * бонусный за завершённый урок — 5 кристаллов. Пустых сундуков нет.
  */
-export function rollChest(): Chest {
-  return { gems: CHEST_GEMS, xp: 0, freezes: 0 };
+export function rollChest(kind: ChestKind = 'daily'): Chest {
+  return { gems: kind === 'bonus' ? BONUS_CHEST_GEMS : CHEST_GEMS, xp: 0, freezes: 0 };
 }
 
 /**
@@ -226,7 +242,7 @@ export function chestReady(profile: Profile): boolean {
   const st = profile.daily;
   if (!st || st.day !== day) return false;
   const m = dayMetrics(profile.days[day]);
-  return allQuestsDone(planOf(profile, day), m) && st.chestsToday === 0;
+  return allQuestsDone(planOf(profile, day), m) && !dailyChestClaimed(st);
 }
 
 export function dayStatOf(profile: Profile, day: string): DayStat | undefined {
