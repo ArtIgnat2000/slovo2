@@ -21,7 +21,8 @@ import { LESSONS, WORDS } from '../src/content/words';
 import { buildLesson, lessonCardLimit } from '../src/engine/scheduler';
 import { dayKey, dayPlan, useApp } from '../src/state/store';
 import { questTitle } from '../src/engine/quests';
-import { growthStage } from '../src/engine/shop';
+import { ITEM_BY_ID, growthStage } from '../src/engine/shop';
+import { TINT_PALETTES, TINT_PRICE } from '../src/engine/tints';
 import { masteredCount } from '../src/state/store';
 
 // Общая обвязка (клики, поиск кнопок, счётчик проверок) — в tests/ui-helpers.ts:
@@ -456,6 +457,95 @@ async function main() {
     click(btnText('Надеть')!);
     await sleep(50);
     check('надевание обратно работает', Object.keys(useApp.getState().profiles[0].shop?.equipped ?? {}).length === 1, '');
+
+    // ── Тюнинг цвета купленной вещи: 1 💎 за оттенок, дальше бесплатно ────────
+    const ownedIds = useApp.getState().profiles[0].shop?.owned ?? [];
+    const itemId = ownedIds[0];
+    const itemTitle = ITEM_BY_ID[itemId].title;
+    const paids = () => Array.from(document.querySelectorAll('.tint-swatch')) as HTMLButtonElement[];
+    const cardSvg = () =>
+      Array.from(document.querySelectorAll('.shop-item'))
+        .find((el) => (el.textContent ?? '').includes(itemTitle))
+        ?.querySelector('.shop-icon svg')?.innerHTML ?? '';
+    check(
+      'тюнинг: кнопка «🎨 Цвет» есть только у купленных вещей',
+      buttons().filter((b) => (b.textContent ?? '').includes('🎨 Цвет')).length === ownedIds.length,
+      `кнопок: ${buttons().filter((b) => (b.textContent ?? '').includes('🎨 Цвет')).length}, куплено: ${ownedIds.length}`,
+    );
+    click(btnText('🎨 Цвет'));
+    await sleep(60);
+    check('тюнинг: палитра из 4 оттенков', paids().length === 4, `кружков: ${paids().length}`);
+    check(
+      'тюнинг: у трёх новых оттенков видна цена 💎1',
+      paids().filter((s) => (s.textContent ?? '').includes('💎1')).length === 3,
+      '',
+    );
+    const gemsBeforeTint = useApp.getState().profiles[0].gems;
+    click(paids()[1]); // первый платный оттенок
+    await sleep(50);
+    check('тюнинг: новый оттенок спрашивает подтверждение', has('Открыть цвет'), body().slice(0, 160));
+    click(btnText('Открыть за'));
+    await sleep(80);
+    let tuned = useApp.getState().profiles[0];
+    const extraTint = TINT_PALETTES[itemId].extra[0];
+    check(
+      `тюнинг: за новый оттенок списан ровно 1 💎 (${gemsBeforeTint} → ${tuned.gems})`,
+      tuned.gems === gemsBeforeTint - TINT_PRICE,
+      '',
+    );
+    check(
+      'тюнинг: выбранный оттенок записан в профиль',
+      tuned.shop?.tuning?.current?.[itemId] === extraTint.id,
+      JSON.stringify(tuned.shop?.tuning),
+    );
+    check(
+      'тюнинг: карточка вещи перекрашена в выбранный цвет',
+      cardSvg().includes(extraTint.colors[0]),
+      `${extraTint.colors[0]} не найден в SVG`,
+    );
+    // Повторный тап по тому же оттенку — без списания (двойной тап не стоит денег)
+    click(paids()[1]);
+    await sleep(50);
+    tuned = useApp.getState().profiles[0];
+    check('тюнинг: повторный выбор того же цвета ничего не списывает', tuned.gems === gemsBeforeTint - TINT_PRICE, '');
+    // База и уже открытые оттенки — бесплатны
+    click(paids()[0]);
+    await sleep(50);
+    tuned = useApp.getState().profiles[0];
+    check(
+      'тюнинг: возврат к базовому цвету бесплатен и не хранится',
+      tuned.gems === gemsBeforeTint - TINT_PRICE && !tuned.shop?.tuning?.current?.[itemId],
+      JSON.stringify(tuned.shop?.tuning),
+    );
+    click(paids()[1]);
+    await sleep(50);
+    tuned = useApp.getState().profiles[0];
+    check(
+      'тюнинг: переключение на открытый оттенок бесплатно',
+      tuned.gems === gemsBeforeTint - TINT_PRICE && tuned.shop?.tuning?.current?.[itemId] === extraTint.id,
+      '',
+    );
+    // Без кристаллов краска не открывается: подсказка вместо списания
+    useApp.setState((s) => ({
+      profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, gems: 0 } : p)),
+    }));
+    await sleep(30);
+    click(paids()[2]);
+    await sleep(50);
+    tuned = useApp.getState().profiles[0];
+    const unlockedNow = Object.values(tuned.shop?.tuning?.unlocked ?? {}).flat().length;
+    check(
+      'тюнинг: без кристаллов цвет не меняется и есть подсказка',
+      tuned.gems === 0 && unlockedNow === 1 && has('нужен ещё 1 💎'),
+      `кристаллов: ${tuned.gems}, открыто: ${unlockedNow}`,
+    );
+    // Возвращаем баланс как был: он нужен следующим блокам смоука
+    useApp.setState((s) => ({
+      profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, gems: gemsBeforeTint } : p)),
+    }));
+    await sleep(30);
+    click(btnText('🎨 Готово'));
+    await sleep(40);
   }
   const expensive = buttons().find((b) => (b.textContent ?? '').includes('Ещё') && b.className.includes('btn'));
   check('на дорогие вещи кнопка показывает, сколько не хватает', !!expensive, '');

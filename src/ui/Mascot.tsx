@@ -1,7 +1,8 @@
 import React from 'react';
 import type { ShopSlot } from '../types';
 import { COSTUME_BY_ID } from '../engine/puzzles';
-import { useWornCostume } from '../state/store';
+import { accessoryColors, costumeAccent } from '../engine/tints';
+import { useShopTuning, useWornCostume } from '../state/store';
 import { CostumeCape, CostumeHead, CostumeProp, MascotAccessory, SLOT_ORDER } from './MascotLook';
 
 export type Mood = 'idle' | 'happy' | 'excited' | 'sad' | 'think' | 'dance';
@@ -51,8 +52,13 @@ export const Mascot = React.forwardRef<HTMLDivElement, Props>(function Mascot(
   // Костюм перекрашивает сову целиком (палитра из движка), а шлем/реквизит
   // дорисовывает MascotLook; превью в магазине может задать костюм явно.
   const wornId = useWornCostume();
+  // Краски купленных вещей и акценты костюмов: без записи в профиле всё рисуется
+  // базовыми цветами, то есть ровно как до тюнинга.
+  const tuning = useShopTuning();
   const costumeKey = costumeId !== undefined ? costumeId : wornId;
   const cst = costumeKey ? COSTUME_BY_ID[costumeKey] ?? null : null;
+  // акцент костюма (свечение + плащ): только он меняется тюнингом, корпус — нет
+  const accent = cst ? costumeAccent(cst.id, tuning) : null;
   const cBody = cst?.body ?? '#f4a51a';
   const cBelly = cst?.belly ?? '#fcd768';
   const cWing = cst?.wing ?? '#e8901a';
@@ -146,7 +152,7 @@ export const Mascot = React.forwardRef<HTMLDivElement, Props>(function Mascot(
           </>
         )}
         {stage === 2 && <path d="M78 98 Q96 92 97 76 Q86 88 74 90Z" fill={cWing} />}
-        {cst && <CostumeCape c={cst} />}
+        {cst && <CostumeCape c={cst} accent={accent} />}
         <ellipse cx="50" cy="82" rx="36" ry="37" fill={cBody} />
         <ellipse cx="50" cy="88" rx="24" ry="27" fill={cBelly} />
         {mood === 'dance' ? (
@@ -195,10 +201,12 @@ export const Mascot = React.forwardRef<HTMLDivElement, Props>(function Mascot(
         {look &&
           SLOT_ORDER.map((slot) => {
             const id = look[slot];
-            return id ? <MascotAccessory key={slot} id={id} /> : null;
+            // рисуем готовыми цветами палитры с учётом выбранного оттенка:
+            // своя логика индексов живёт в MascotLook, здесь только выбор из профиля
+            return id ? <MascotAccessory key={slot} id={id} colors={accessoryColors(id, tuning)} /> : null;
           })}
-        {cst && <CostumeHead c={cst} />}
-        {cst && <CostumeProp c={cst} />}
+        {cst && <CostumeHead c={cst} accent={accent} />}
+        {cst && <CostumeProp c={cst} accent={accent} />}
       </svg>
     </div>
   );

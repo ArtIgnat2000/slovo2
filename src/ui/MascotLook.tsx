@@ -1,63 +1,86 @@
 import type { ShopSlot } from '../types';
+import { TINT_PALETTES } from '../engine/tints';
 
 /**
  * Аксессуары БУКа — чистая SVG-графика поверх той же системы координат (100×120),
  * что и сам маскот (голова: центр 50,37; шея ≈ y 64–78; глаза у 36 и 64).
  * Никаких картинок-файлов: работает офлайн, весит ноль, перекрашивается кодом.
+ *
+ * Цвета берутся из палитры (`engine/tints.ts`): выбранный ребёнком оттенок, а без
+ * него — базовый, то есть ровно тот, что был здесь прописан до тюнинга. Единый
+ * источник правды нужен, чтобы «база» не разъехалась между движком и картинкой.
+ * Сюда попадают только id из палитры: неизвестный id не доходит до отрисовки
+ * (switch ниже возвращает null раньше).
  */
-export function MascotAccessory({ id }: { id: string }) {
+function tintColors(itemId: string, colors?: [string, string, string] | null): [string, string, string] {
+  return colors ?? TINT_PALETTES[itemId].base.colors;
+}
+
+export function MascotAccessory({ id, colors }: { id: string; colors?: [string, string, string] | null }) {
   switch (id) {
-    case 'cap':
+    case 'cap': {
+      const [dome, band, button] = tintColors(id, colors);
       return (
         <g>
-          <path d="M20 26 A30 30 0 0 1 80 26 Q50 10 20 26 Z" fill="#3b82f6" />
-          <path d="M18 26 Q50 34 82 26 L82 31 Q50 39 18 31 Z" fill="#2b6be0" />
-          <circle cx="50" cy="13" r="3.4" fill="#ffd166" />
+          <path d="M20 26 A30 30 0 0 1 80 26 Q50 10 20 26 Z" fill={dome} />
+          <path d="M18 26 Q50 34 82 26 L82 31 Q50 39 18 31 Z" fill={band} />
+          <circle cx="50" cy="13" r="3.4" fill={button} />
         </g>
       );
-    case 'grad':
+    }
+    case 'grad': {
+      const [top, band, tassel] = tintColors(id, colors);
       return (
         <g>
-          <path d="M50 4 L88 20 L50 34 L12 20 Z" fill="#241f36" />
-          <path d="M36 26 L36 34 Q50 42 64 34 L64 26 Q50 33 36 26 Z" fill="#3a3352" />
-          <path d="M78 22 L82 44" stroke="#f4a51a" strokeWidth="2.6" strokeLinecap="round" fill="none" />
-          <circle cx="82" cy="47" r="4" fill="#f4a51a" />
+          <path d="M50 4 L88 20 L50 34 L12 20 Z" fill={top} />
+          <path d="M36 26 L36 34 Q50 42 64 34 L64 26 Q50 33 36 26 Z" fill={band} />
+          <path d="M78 22 L82 44" stroke={tassel} strokeWidth="2.6" strokeLinecap="round" fill="none" />
+          <circle cx="82" cy="47" r="4" fill={tassel} />
         </g>
       );
-    case 'glasses':
+    }
+    case 'glasses': {
+      const [frame, arms, lens] = tintColors(id, colors);
       return (
         <g>
-          <circle cx="36" cy="37" r="15" fill="rgba(120,180,255,.20)" stroke="#241f36" strokeWidth="3" />
-          <circle cx="64" cy="37" r="15" fill="rgba(120,180,255,.20)" stroke="#241f36" strokeWidth="3" />
-          <path d="M48 36 Q50 33 52 36" stroke="#241f36" strokeWidth="3" fill="none" />
-          <path d="M21 33 L12 30 M79 33 L88 30" stroke="#241f36" strokeWidth="3" strokeLinecap="round" fill="none" />
+          <circle cx="36" cy="37" r="15" fill={lens} fillOpacity="0.2" stroke={frame} strokeWidth="3" />
+          <circle cx="64" cy="37" r="15" fill={lens} fillOpacity="0.2" stroke={frame} strokeWidth="3" />
+          <path d="M48 36 Q50 33 52 36" stroke={frame} strokeWidth="3" fill="none" />
+          <path d="M21 33 L12 30 M79 33 L88 30" stroke={arms} strokeWidth="3" strokeLinecap="round" fill="none" />
         </g>
       );
-    case 'bow':
+    }
+    case 'bow': {
+      const [wings, knot] = tintColors(id, colors);
       return (
         <g>
-          <path d="M50 70 L26 60 Q20 70 26 80 Z" fill="#ff6fb5" />
-          <path d="M50 70 L74 60 Q80 70 74 80 Z" fill="#ff6fb5" />
-          <circle cx="50" cy="70" r="5.4" fill="#ff4fa0" />
+          <path d="M50 70 L26 60 Q20 70 26 80 Z" fill={wings} />
+          <path d="M50 70 L74 60 Q80 70 74 80 Z" fill={wings} />
+          <circle cx="50" cy="70" r="5.4" fill={knot} />
         </g>
       );
-    case 'scarf':
+    }
+    case 'scarf': {
+      const [main, shade, stripes] = tintColors(id, colors);
       return (
         <g>
-          <path d="M22 64 Q50 80 78 64 L80 74 Q50 90 20 74 Z" fill="#f43f5e" />
-          <path d="M30 74 Q26 88 30 100 L40 98 Q36 86 40 76 Z" fill="#e03556" />
-          <path d="M32 82 L39 81 M31 91 L38 90" stroke="#ffd166" strokeWidth="2.4" strokeLinecap="round" fill="none" />
+          <path d="M22 64 Q50 80 78 64 L80 74 Q50 90 20 74 Z" fill={main} />
+          <path d="M30 74 Q26 88 30 100 L40 98 Q36 86 40 76 Z" fill={shade} />
+          <path d="M32 82 L39 81 M31 91 L38 90" stroke={stripes} strokeWidth="2.4" strokeLinecap="round" fill="none" />
         </g>
       );
-    case 'medal':
+    }
+    case 'medal': {
+      const [ribbon, disc, rim] = tintColors(id, colors);
       // медаль ниже шеи: тогда она не спорит с бантом и шарфом (оба — слот «шея»)
       return (
         <g>
-          <path d="M42 70 L50 84 L58 70 Z" fill="#3b82f6" />
-          <circle cx="50" cy="94" r="10" fill="#f4a51a" stroke="#e8901a" strokeWidth="2" />
+          <path d="M42 70 L50 84 L58 70 Z" fill={ribbon} />
+          <circle cx="50" cy="94" r="10" fill={disc} stroke={rim} strokeWidth="2" />
           <path d="M50 88.5 L52.4 92.5 L57 93.2 L53.6 96.4 L54.5 101 L50 98.6 L45.5 101 L46.4 96.4 L43 93.2 L47.6 92.5 Z" fill="#fff8ec" />
         </g>
       );
+    }
     default:
       return null;
   }
@@ -97,20 +120,32 @@ function EyeRim() {
   );
 }
 
+/**
+ * Акцент костюма: свечение визора/глаз/клинка/диадемы и цвет плаща.
+ * Приходит из engine/tints.ts (`costumeAccent`); без него рисуется базовый —
+ * исторические `c.glow` и `c.cape`. Корпус и металл акцент не трогает.
+ */
+export interface CostumeAccent {
+  glow: string;
+  cape?: string;
+}
+
 /** Плащ — рисуется ПЕРЕД телом, чтобы торчали только полы. */
-export function CostumeCape({ c }: { c: Costume }) {
-  if (!c.cape) return null;
-  return <path d="M26 60 Q4 88 12 117 L88 117 Q96 88 74 60 Q50 74 26 60Z" fill={c.cape} opacity="0.96" />;
+export function CostumeCape({ c, accent }: { c: Costume; accent?: CostumeAccent | null }) {
+  const cape = accent?.cape ?? c.cape;
+  if (!cape) return null;
+  return <path d="M26 60 Q4 88 12 117 L88 117 Q96 88 74 60 Q50 74 26 60Z" fill={cape} opacity="0.96" />;
 }
 
 /** Шлемы и головные уборы — рисуем ПОСЛЕ аксессуаров, поверх мордочки. */
-export function CostumeHead({ c }: { c: Costume }) {
+export function CostumeHead({ c, accent }: { c: Costume; accent?: CostumeAccent | null }) {
+  const glow = accent?.glow ?? c.glow;
   switch (c.helmet) {
     case 'mask': // «Стальной страж»: тёмный штурмовик — бровка-«очки», нос-трубка, щель рта
       return (
         <g>
           <path d="M20 42 A30 31 0 0 1 80 42 Q65 33 50 38 Q35 33 20 42Z" fill={c.trim} />
-          <path d="M27 32 L38 37 M73 32 L62 37" stroke={c.glow} strokeWidth="2.6" strokeLinecap="round" fill="none" />
+          <path d="M27 32 L38 37 M73 32 L62 37" stroke={glow} strokeWidth="2.6" strokeLinecap="round" fill="none" />
           <path d="M48.3 43 H51.7 V52 H48.3Z" fill={c.trim} />
           <path d="M43.5 55.5 H56.5" stroke={c.trim} strokeWidth="2.2" strokeLinecap="round" />
         </g>
@@ -148,7 +183,7 @@ export function CostumeHead({ c }: { c: Costume }) {
           {/* V-бровка: приподнята над проёмами (глаз — 28..44), центр опускается «клювом» между глазами */}
           <path d="M22 29 L38 22 L50 29.5 L62 22 L78 29 L62 26.5 L50 33.5 L38 26.5Z" fill={c.trim} />
           <path d="M23.5 28.2 L38 21.5 L50 29 L62 21.5 L76.5 28.2" stroke={silver} strokeWidth="1.1" fill="none" opacity=".45" />
-          <path d="M27 24 L38 27.5 M73 24 L62 27.5" stroke={c.glow} strokeWidth="2.4" strokeLinecap="round" fill="none" />
+          <path d="M27 24 L38 27.5 M73 24 L62 27.5" stroke={glow} strokeWidth="2.4" strokeLinecap="round" fill="none" />
           {/* угловатые скулы — «черепной» силуэт */}
           <path d="M24 47 L37 58 L31 62 L20 52Z" fill={c.trim} />
           <path d="M76 47 L63 58 L69 62 L80 52Z" fill={c.trim} />
@@ -179,7 +214,7 @@ export function CostumeHead({ c }: { c: Costume }) {
           {/* гребень-основание антенны на темени */}
           <path d="M46 12 Q50 5 54 12 Q50 9 46 12Z" fill={c.wing} />
           {/* Т-визор: полупрозрачное стекло — фирменный силуэт клона, но БУК узнаваем */}
-          <path d="M27 31 H73 L65 39 H55 L52 48 H48 L45 39 H35Z" fill={c.glow} opacity=".42" />
+          <path d="M27 31 H73 L65 39 H55 L52 48 H48 L45 39 H35Z" fill={glow} opacity=".42" />
           <path d="M27 31 H73 L65 39 H55 L52 48 H48 L45 39 H35Z" fill="none" stroke="#1d4ed8" strokeWidth=".9" opacity=".8" />
           {/* коммуникаторы на висках */}
           <circle cx="24" cy="40" r="3.1" fill={c.wing} />
@@ -202,7 +237,7 @@ export function CostumeHead({ c }: { c: Costume }) {
           <path d="M83 40 Q93 60 87 84 L70 78 Q80 60 77 41Z" fill={c.trim} />
           {/* светлая кайма по краю — держит силуэт на 64 px; она ВЫШЕ уровня глаз,
               иначе на иконке она читалась как «бровь», нарисованная поверх глаз */}
-          <path d="M17 40 Q30 24 50 22 Q70 24 83 40" fill="none" stroke={c.glow} strokeWidth="1.8" opacity=".8" strokeLinecap="round" />
+          <path d="M17 40 Q30 24 50 22 Q70 24 83 40" fill="none" stroke={glow} strokeWidth="1.8" opacity=".8" strokeLinecap="round" />
           <path d="M28 19 A26 26 0 0 1 42 10" stroke="#ffffff" strokeWidth="2.4" opacity=".3" fill="none" strokeLinecap="round" />
         </g>
       );
@@ -213,7 +248,7 @@ export function CostumeHead({ c }: { c: Costume }) {
         <g>
           {/* стекло-купол: тонировка + обод */}
           <circle cx="50" cy="38" r="30" fill="rgba(200,230,255,.20)" />
-          <circle cx="50" cy="38" r="30" fill="none" stroke={c.glow} strokeWidth="2.4" opacity=".9" />
+          <circle cx="50" cy="38" r="30" fill="none" stroke={glow} strokeWidth="2.4" opacity=".9" />
           {/* блики на стекле: большой сверху и маленький снизу справа */}
           <path d="M29 25 A25 25 0 0 1 44 12" stroke="#ffffff" strokeWidth="3.4" fill="none" strokeLinecap="round" opacity=".95" />
           <path d="M66 55 A24 24 0 0 0 76 44" stroke="#ffffff" strokeWidth="2" fill="none" strokeLinecap="round" opacity=".5" />
@@ -233,9 +268,9 @@ export function CostumeHead({ c }: { c: Costume }) {
         <g>
           <path d="M20 44 A30 30 0 0 1 80 44 L80 48 Q50 40 20 48Z" fill={c.trim} />
           {/* трапеция-щель вместо креста: «прищур» шлема между бровей */}
-          <path d="M40 27 H60 L56 34 H44Z" fill={c.glow} opacity=".95" />
-          <line x1="74" y1="16" x2="81" y2="5" stroke={c.glow} strokeWidth="2.2" />
-          <circle cx="82.5" cy="3.6" r="2.4" fill={c.glow} />
+          <path d="M40 27 H60 L56 34 H44Z" fill={glow} opacity=".95" />
+          <line x1="74" y1="16" x2="81" y2="5" stroke={glow} strokeWidth="2.2" />
+          <circle cx="82.5" cy="3.6" r="2.4" fill={glow} />
         </g>
       );
     case 'plate': // «Храбрый дроид»: купол-шапка над глазами (раньше её плоский низ
@@ -247,15 +282,15 @@ export function CostumeHead({ c }: { c: Costume }) {
           <path d="M20 40 Q34 26 50 25 Q66 26 80 40" fill="none" stroke="#ffffff" strokeWidth="1.4" opacity=".35" />
           <path d="M29 21 A24 24 0 0 1 43 12" stroke="#ffffff" strokeWidth="3" fill="none" strokeLinecap="round" opacity=".6" />
           {/* «глаз-сканер» по центру лба — не задевает глаза совы */}
-          <rect x="45.5" y="31" width="9" height="6" rx="2.4" fill={c.glow} opacity=".95" />
+          <rect x="45.5" y="31" width="9" height="6" rx="2.4" fill={glow} opacity=".95" />
           {/* боковые панели-вентиляторы */}
-          <rect x="21" y="45" width="10" height="5.5" rx="2" fill={c.glow} opacity=".8" />
-          <rect x="69" y="45" width="10" height="5.5" rx="2" fill={c.glow} opacity=".8" />
+          <rect x="21" y="45" width="10" height="5.5" rx="2" fill={glow} opacity=".8" />
+          <rect x="69" y="45" width="10" height="5.5" rx="2" fill={glow} opacity=".8" />
           {/* панель корпуса: «пёрышки» роста занимают y 86..105, лапы — 111..121,
               поэтому панель ставим под шею, иначе она перекрывала рост БУКа */}
           <rect x="36.5" y="66" width="27" height="13" rx="3.5" fill="rgba(255,255,255,.62)" stroke={c.trim} strokeWidth="1" />
           <rect x="40" y="69.5" width="7.5" height="6.5" rx="1.5" fill={c.trim} />
-          <rect x="52" y="69.5" width="7.5" height="6.5" rx="1.5" fill={c.glow} opacity=".85" />
+          <rect x="52" y="69.5" width="7.5" height="6.5" rx="1.5" fill={glow} opacity=".85" />
         </g>
       );
     case 'buns': // «Командир звёзд»: пучки по бокам и ДИАДЕМА — раньше тонкая дуга
@@ -264,7 +299,7 @@ export function CostumeHead({ c }: { c: Costume }) {
         <g>
           <circle cx="16" cy="27" r="9" fill={c.trim} />
           <circle cx="84" cy="27" r="9" fill={c.trim} />
-          <path d="M23 27 L27 12 L37 20 L50 5 L63 20 L73 12 L77 27 Q50 32 23 27Z" fill={c.glow} />
+          <path d="M23 27 L27 12 L37 20 L50 5 L63 20 L73 12 L77 27 Q50 32 23 27Z" fill={glow} />
           <path d="M24.5 26.5 Q50 31.5 75.5 26.5" stroke="#e0a92c" strokeWidth="1.6" fill="none" />
           <circle cx="50" cy="22" r="3.2" fill="#fff8ec" />
           <circle cx="34" cy="22.6" r="1.8" fill="#fff8ec" opacity=".85" />
@@ -276,8 +311,8 @@ export function CostumeHead({ c }: { c: Costume }) {
         <g>
           <path d="M27 14 L19 2 L37 9Z" fill={c.wing} />
           <path d="M73 14 L81 2 L63 9Z" fill={c.wing} />
-          <circle cx="91" cy="66" r="2.6" fill={c.glow} />
-          <circle cx="91" cy="66" r="5" fill={c.glow} opacity=".25" />
+          <circle cx="91" cy="66" r="2.6" fill={glow} />
+          <circle cx="91" cy="66" r="5" fill={glow} opacity=".25" />
         </g>
       );
     default:
@@ -290,16 +325,17 @@ export function CostumeHead({ c }: { c: Costume }) {
  *  переносится растером превью; три полупрозрачных слоя дают то же свечение.
  *  Клинок сдвинут левее и наклон уменьшен (12° вместо 16°): с ореолом кончик
  *  вылезал за viewBox 0..100 и обрезался на иконке магазина. */
-export function CostumeProp({ c }: { c: Costume }) {
+export function CostumeProp({ c, accent }: { c: Costume; accent?: CostumeAccent | null }) {
+  const glow = accent?.glow ?? c.glow;
   if (c.prop === 'saber-red' || c.prop === 'saber-blue' || c.prop === 'saber-green') {
     return (
       <g transform="rotate(12 82 80)">
-        <rect x="76.6" y="22" width="10.8" height="48" rx="5.4" fill={c.glow} opacity=".14" />
-        <rect x="78.2" y="24" width="7.6" height="44" rx="3.8" fill={c.glow} opacity=".28" />
-        <rect x="79.2" y="25.4" width="5.6" height="41.2" rx="2.8" fill={c.glow} opacity=".55" />
-        <rect x="79.4" y="26" width="5.2" height="42" rx="2.6" fill={c.glow} />
+        <rect x="76.6" y="22" width="10.8" height="48" rx="5.4" fill={glow} opacity=".14" />
+        <rect x="78.2" y="24" width="7.6" height="44" rx="3.8" fill={glow} opacity=".28" />
+        <rect x="79.2" y="25.4" width="5.6" height="41.2" rx="2.8" fill={glow} opacity=".55" />
+        <rect x="79.4" y="26" width="5.2" height="42" rx="2.6" fill={glow} />
         <rect x="80.7" y="28" width="2.6" height="38" rx="1.3" fill="#ffffff" opacity=".9" />
-        <ellipse cx="82" cy="67.6" rx="5.4" ry="2.8" fill={c.glow} opacity=".6" />
+        <ellipse cx="82" cy="67.6" rx="5.4" ry="2.8" fill={glow} opacity=".6" />
         <rect x="77.8" y="66.2" width="8.4" height="2.6" rx="1.3" fill="#8f9ab5" />
         <rect x="78.8" y="68" width="6.4" height="18" rx="2.2" fill="#241f36" />
         <rect x="78.8" y="74" width="6.4" height="2" fill="#6b6480" />
@@ -311,7 +347,7 @@ export function CostumeProp({ c }: { c: Costume }) {
     return (
       <g transform="rotate(-12 16 82)">
         <rect x="13.6" y="48" width="4.2" height="42" rx="2" fill="#8a6a3e" />
-        <circle cx="15.7" cy="45.5" r="4.4" fill={c.glow} />
+        <circle cx="15.7" cy="45.5" r="4.4" fill={glow} />
       </g>
     );
   }

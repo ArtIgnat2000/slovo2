@@ -188,7 +188,24 @@ export async function runPretestAuditChecks(): Promise<void> {
   const savedSettings = snapshot.settings;
 
   useApp.getState().replaceAll({
-    profiles: [{ id: 'p_imported', name: 'Маша', avatar: '🐱', xp: -10, gems: 5 } as never],
+    profiles: [
+      {
+        id: 'p_imported',
+        name: 'Маша',
+        avatar: '🐱',
+        xp: -10,
+        gems: 5,
+        // Мусор в тюнинге: краска некупленной вещи, чужой оттенок и база в current —
+        // всё это должно исчезнуть, а оплаченный оттенок купленной вещи — остаться.
+        shop: {
+          owned: ['scarf'],
+          tuning: {
+            current: { scarf: 'green', cap: 'red', bow: 'base' },
+            unlocked: { scarf: ['green', 'nope'], cap: ['red'], medal: ['silver'] },
+          },
+        },
+      } as never,
+    ],
     activeId: 'non_existent_id',
     settings: { dailyGoal: -50, theme: 'invalid' as never, sound: true, haptics: false },
   });
@@ -205,6 +222,14 @@ export async function runPretestAuditChecks(): Promise<void> {
       importedState.settings.theme === 'auto' &&
       importedState.toast === null,
     JSON.stringify({ activeId: importedState.activeId, xp: imp?.xp, settings: importedState.settings }),
+  );
+  check(
+    'аудит: импорт выбрасывает краски некупленных вещей и сохраняет оплаченные',
+    imp.shop?.tuning?.current?.scarf === 'green' &&
+      !imp.shop?.tuning?.current?.cap &&
+      !imp.shop?.tuning?.current?.bow &&
+      JSON.stringify(imp.shop?.tuning?.unlocked) === JSON.stringify({ scarf: ['green'] }),
+    JSON.stringify(imp.shop?.tuning),
   );
 
   // Восстанавливаем исходный стейт

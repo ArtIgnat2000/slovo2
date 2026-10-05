@@ -12,8 +12,9 @@
 import { readFileSync } from 'node:fs';
 import type { Profile, PuzzleState } from '../src/types';
 import { COSTUMES, PUZZLE_SIZE } from '../src/engine/puzzles';
+import { COSTUME_PALETTES, TINT_PRICE } from '../src/engine/tints';
 import { useApp } from '../src/state/store';
-import { btnText, buttons, check, click, has, sleep } from './ui-helpers';
+import { body, btnText, buttons, check, click, has, sleep } from './ui-helpers';
 
 const store = () => useApp.getState();
 
@@ -124,11 +125,28 @@ export async function runPuzzleUiChecks(playLesson: (second?: boolean) => Promis
     snowCard?.className ?? 'нет карточки',
   );
   // Страж от отката прямо в стилях: правило .pz-locked не имеет права глушить цвет.
-  const lockedRule = readFileSync('src/styles/app.css', 'utf8').match(/\.pz-locked\s*\{[^}]*\}/)?.[0] ?? '';
+  const css = readFileSync('src/styles/app.css', 'utf8');
+  const lockedRule = css.match(/\.pz-locked\s*\{[^}]*\}/)?.[0] ?? '';
   check(
     'пазлы: стили не обесцвечивают несобранные костюмы',
     lockedRule.length > 0 && !/grayscale|saturate|opacity/.test(lockedRule),
     lockedRule.replace(/\s+/g, ' ').trim() || 'правило .pz-locked не найдено',
+  );
+  // Замок должен читаться ПОВЕРХ костюма. Баг был не в замке, а в сове: базовое
+  // правило `.mascot` несёт z-index: 25, а `.shop-icon` — сетка, и для элемента
+  // сетки z-index работает даже со `position: static`. Сова перекрывала замок.
+  const iconMascotRule = css.match(/\.shop-icon \.mascot\s*\{[^}]*\}/)?.[0] ?? '';
+  const lockedBadgeRule = css.match(/\.pz-locked::after\s*\{[^}]*\}/)?.[0] ?? '';
+  const badgeZ = Number(lockedBadgeRule.match(/z-index:\s*(\d+)/)?.[1] ?? 0);
+  check(
+    'пазлы: у иконки магазина снят z-index плавающего БУКа',
+    /z-index:\s*auto/.test(iconMascotRule),
+    iconMascotRule.replace(/\s+/g, ' ').trim() || 'правило .shop-icon .mascot не найдено',
+  );
+  check(
+    'пазлы: замок несобранного костюма рисуется поверх совы',
+    badgeZ > 0,
+    lockedBadgeRule.replace(/\s+/g, ' ').trim() || 'правило .pz-locked::after не найдено',
   );
 
   // Сменить цель можно тапом — прогресс прежней цели не сгорит
@@ -153,6 +171,75 @@ export async function runPuzzleUiChecks(playLesson: (second?: boolean) => Promis
   click(wearBtn(COSTUMES[0].title));
   await sleep(60);
   check('пазлы: «Надеть» возвращает костюм', active().puzzle?.worn === COSTUMES[0].id, String(active().puzzle?.worn));
+
+  // ── Акцент костюма: свечение и плащ за 1 💎 (тюнинг, engine/tints.ts) ───────
+  // Костюм COSTUMES[0] уже собран и надет; у несобранного (COSTUMES[1]) палитры быть не должно.
+  useApp.setState((s) => ({
+    profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, gems: 5 } : p)),
+  }));
+  await sleep(30);
+  const costumeCard = (id: string) =>
+    Array.from(document.querySelectorAll('.costume-card')).find((el) =>
+      (el.textContent ?? '').includes(COSTUMES.find((c) => c.id === id)!.title),
+    );
+  const cardButton = (id: string, text: string) =>
+    (Array.from(costumeCard(id)?.querySelectorAll('button') ?? []).find((b) =>
+      (b.textContent ?? '').includes(text),
+    ) ?? null) as HTMLButtonElement | null;
+  const cardSwatches = (id: string) =>
+    Array.from(costumeCard(id)?.querySelectorAll('.tint-swatch') ?? []) as HTMLButtonElement[];
+  const accentTitle = COSTUME_PALETTES[COSTUMES[0].id].extra[0];
+
+  check('акцент: у собранного костюма есть кнопка «🎨 Акцент»', !!cardButton(COSTUMES[0].id, '🎨 Акцент'), '');
+  check(
+    'акцент: у несобранного костюма палитры нет',
+    !cardButton(COSTUMES[1].id, '🎨 Акцент') && cardSwatches(COSTUMES[1].id).length === 0,
+    '',
+  );
+  click(cardButton(COSTUMES[0].id, '🎨 Акцент'));
+  await sleep(60);
+  check('акцент: палитра из 4 оттенков', cardSwatches(COSTUMES[0].id).length === 4, `кружков: ${cardSwatches(COSTUMES[0].id).length}`);
+  const gemsBeforeAccent = active().gems;
+  click(cardSwatches(COSTUMES[0].id)[1]);
+  await sleep(60);
+  check('акцент: новый оттенок спрашивает подтверждение', has('Открыть цвет'), body().slice(0, 160));
+  click(btnText('Открыть за'));
+  await sleep(80);
+  check(
+    `акцент: за новый оттенок списан ровно 1 💎 (${gemsBeforeAccent} → ${active().gems})`,
+    active().gems === gemsBeforeAccent - TINT_PRICE,
+    '',
+  );
+  check(
+    'акцент: выбранный оттенок записан в профиль',
+    active().shop?.tuning?.current?.[COSTUMES[0].id] === accentTitle.id,
+    JSON.stringify(active().shop?.tuning),
+  );
+  const accentSvg = () => costumeCard(COSTUMES[0].id)?.querySelector('.shop-icon svg')?.innerHTML ?? '';
+  check('акцент: свечение костюма перекрашено', accentSvg().includes(accentTitle.glow), accentTitle.glow);
+  if (accentTitle.cape) {
+    check('акцент: плащ перекрашен вместе со свечением', accentSvg().includes(accentTitle.cape), accentTitle.cape);
+  }
+  check(
+    'акцент: корпус и крылья костюма не тронуты',
+    accentSvg().includes(COSTUMES[0].body) && accentSvg().includes(COSTUMES[0].wing),
+    `${COSTUMES[0].body} / ${COSTUMES[0].wing}`,
+  );
+  // База и уже открытый акцент — бесплатно (та же экономика, что у аксессуаров)
+  click(cardSwatches(COSTUMES[0].id)[0]);
+  await sleep(50);
+  check(
+    'акцент: возврат к базовому бесплатен',
+    active().gems === gemsBeforeAccent - TINT_PRICE && !active().shop?.tuning?.current?.[COSTUMES[0].id],
+    JSON.stringify(active().shop?.tuning),
+  );
+  click(cardSwatches(COSTUMES[0].id)[1]);
+  await sleep(50);
+  check(
+    'акцент: переключение на открытый акцент бесплатно',
+    active().gems === gemsBeforeAccent - TINT_PRICE && active().shop?.tuning?.current?.[COSTUMES[0].id] === accentTitle.id,
+    '',
+  );
 
   // Перелив: вся коллекция собрана — урок даёт кристаллы вместо фрагментов
   const gemsBefore = active().gems;
