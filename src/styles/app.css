@@ -1505,10 +1505,21 @@ p {
   word-break: break-word;
 }
 .word-big .stress {
+  position: relative;
   color: var(--primary);
-  text-decoration: underline;
-  text-decoration-thickness: 4px;
-  text-underline-offset: 4px;
+  text-decoration: none;
+}
+.word-big .stress::after {
+  content: '';
+  position: absolute;
+  top: -0.03em;
+  left: 50%;
+  width: 0.065em;
+  height: 0.2em;
+  border-radius: 999px;
+  background: currentColor;
+  transform: translateX(-50%) rotate(30deg);
+  pointer-events: none;
 }
 .word-big .danger {
   color: var(--orange);
