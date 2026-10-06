@@ -18,6 +18,7 @@ import { runDiagnosticsRouteChecks } from './diagnostics-ui.test';
 import { runFloatingMascotChecks } from './mascot-ui.test';
 import { runBukLessonChecks } from './buk-lesson-ui.test';
 import { LESSONS, WORDS } from '../src/content/words';
+import { resolvePhotoSize, resolveWordCardVariant } from '../src/ui/WordView';
 import { buildLesson, lessonCardLimit } from '../src/engine/scheduler';
 import { dayKey, dayPlan, useApp } from '../src/state/store';
 import { questTitle } from '../src/engine/quests';
@@ -424,6 +425,42 @@ async function main() {
       'картинка и слово — отдельные блоки карточки (зазор задаёт токен)',
       !!artFrame && !!main && main.contains(document.querySelector('.sheet .word-big')),
       `блоков: ${kids.length}`,
+    );
+    // Основной вариант карточки с 2026-10-06 — B «Фотокарточка» (решение
+    // пользователя): снимок растянут по ширине паспарту, слово под линией.
+    check(
+      'основной вариант карточки — «Фотокарточка» (B)',
+      card.classList.contains('wcard-photo'),
+      card.className,
+    );
+    check(
+      'в «Фотокарточке» снимок растянут по паспарту (word-art-fill)',
+      !!artFrame && artFrame.classList.contains('word-art-fill'),
+      artFrame?.className ?? '—',
+    );
+    check(
+      'размер снимка задан токеном --art-photo',
+      (artFrame as HTMLElement | undefined)?.style.getPropertyValue('--art-size') === 'var(--art-photo)',
+      (artFrame as HTMLElement | undefined)?.getAttribute('style') ?? '—',
+    );
+    // Переключатели для дизайн-ревью читаются из адреса (и из хеша — он доезжает
+    // в предпросмотре песочницы, где параметры теряются).
+    const hrefBefore = window.location.href;
+    window.history.replaceState({}, '', '/?cards=plate');
+    check('?cards=plate возвращает вариант «Плита»', resolveWordCardVariant() === 'plate', window.location.search);
+    window.history.replaceState({}, '', '/#cards=split&art=compact');
+    check(
+      'хеш #cards=split и #art=compact читаются',
+      resolveWordCardVariant() === 'split' && resolvePhotoSize() === 'compact',
+      window.location.hash,
+    );
+    window.history.replaceState({}, '', '/?art=base');
+    check('?art=base возвращает снимок во всю карточку', resolvePhotoSize() === 'base', window.location.search);
+    window.history.replaceState({}, '', hrefBefore);
+    check(
+      'без параметров работает выбранный вариант «Фотокарточка»',
+      resolveWordCardVariant() === 'photo' && resolvePhotoSize() === 'base',
+      window.location.href,
     );
     check('приоритет карточки высокий, миниатюры ленивые', art!.getAttribute('fetchpriority') === 'high' && chips.every((c) => c.getAttribute('loading') === 'lazy'), '');
     art!.dispatchEvent(new window.Event('load'));
