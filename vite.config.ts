@@ -81,6 +81,9 @@ export default defineConfig(({ command }) => ({
       workbox: {
         // webp — картинки слов: без них офлайн-режим показывал бы пустые рамки
         globPatterns: ['**/*.{js,css,html,png,svg,webp,webmanifest}'],
+        // Витрина вариантов карточки (docs/) — служебная страница для ревью,
+        // ей нечего делать в офлайн-кэше у ребёнка.
+        globIgnores: ['docs/**'],
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,
       },
@@ -91,6 +94,18 @@ export default defineConfig(({ command }) => ({
     target: 'es2019',
     cssCodeSplit: false,
     reportCompressedSize: false,
+    /**
+     * Кроме приложения собираем витрину вариантов карточки слова: она нужна для
+     * дизайн-ревью и должна открываться по обычной ссылке в той же сборке,
+     * потому что параметры адреса в предпросмотре песочницы до приложения
+     * не доходят. Адрес витрины: /docs/word-cards/cards-demo.html
+     */
+    rollupOptions: {
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        cardsDemo: fileURLToPath(new URL('./docs/word-cards/cards-demo.html', import.meta.url)),
+      },
+    },
   },
   server: {
     host: '0.0.0.0',
