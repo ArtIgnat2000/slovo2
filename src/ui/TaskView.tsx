@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import type { Task, Word } from '../types';
-import { Sentence, WordArt, WordClue, WordLetters } from './WordView';
+import { Sentence, WordCard, WordClue, WordLetters } from './WordView';
 import { dangerSummary } from '../engine/word-facts';
 import { Keyboard } from './Keyboard';
 import { sfx } from '../platform/sound';
@@ -80,16 +80,19 @@ function Intro({ word, onSolve }: { word: Word; onSolve: SolveFn }) {
   const [showHint, setShowHint] = useState(false);
   return (
     <div className="task">
-      <WordArt word={word} size={120} />
-      <WordLetters word={word} stress markDanger blink />
-      <div className="row" style={{ flexWrap: 'wrap', justifyContent: 'center' }}>
-        {word.syllables.map((s, i) => (
-          <span key={i} className="chip">
-            {s}
-          </span>
-        ))}
-      </div>
-      <Sentence word={word} hidden={false} />
+      {/* Знакомство — это карточка слова: картинка на плите, слово, слоги,
+          предложение. Всё остальное (пояснения и кнопки) живёт вне карточки:
+          ребёнок должен видеть границу «вот слово, вот задание». */}
+      <WordCard word={word} lettersProps={{ blink: true }}>
+        <div className="row wrap-center">
+          {word.syllables.map((s, i) => (
+            <span key={i} className="chip">
+              {s}
+            </span>
+          ))}
+        </div>
+        <Sentence word={word} hidden={false} />
+      </WordCard>
       <p className="muted center">{word.hint}</p>
       {word.mnemonic && <div className="banner">💡 {word.mnemonic}</div>}
       {word.danger.length ? (

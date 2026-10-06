@@ -397,7 +397,9 @@ async function main() {
     const wordsTab = buttons().find((b) => (b.textContent ?? '').includes('Слова') && b.className.includes('tab'));
     click(wordsTab!);
     await sleep(60);
-    const chips = Array.from(document.querySelectorAll('.word-chip-art')) as HTMLImageElement[];
+    // Миниатюры живут внутри плитки .word-chip-art (плитка держит скругление и
+    // ленивую загрузку), поэтому берём именно картинки внутри неё.
+    const chips = Array.from(document.querySelectorAll('.word-chip-art img')) as HTMLImageElement[];
     check('в словарике у слов с картинками показаны картинки', chips.length >= 8, `картинок: ${chips.length}`);
     check(
       'картинки собираются из public/words/*.webp',
@@ -407,16 +409,29 @@ async function main() {
     // открываем слово, у которого точно есть картинка
     click(document.querySelector('.word-chip-art')!.closest('.word-chip'));
     await sleep(60);
-    check('в карточке слова картинка показана крупно', !!document.querySelector('.word-art'), '');
-    const art = document.querySelector('.word-art')!;
-    check('до загрузки есть эмодзи-подложка', !!document.querySelector('.word-art-placeholder') && !art.classList.contains('is-ready'), '');
-    check('приоритет карточки высокий, миниатюры ленивые', art.getAttribute('fetchpriority') === 'high' && chips.every((c) => c.getAttribute('loading') === 'lazy'), '');
-    art.dispatchEvent(new window.Event('load'));
+    const art = document.querySelector('.sheet .word-art');
+    check('в карточке слова картинка показана крупно', !!art, '');
+    check('картинка стоит на плите с безопасной зоной', !!document.querySelector('.sheet .word-art-frame'), '');
+    check('до загрузки есть эмодзи-подложка', !!document.querySelector('.sheet .word-art-placeholder') && !art!.classList.contains('is-ready'), '');
+    // Геометрию jsdom не считает, поэтому проверяем каркас: картинка и слово —
+    // разные блоки карточки, а зазор между ними задаёт токен --wcard-gap-art
+    // (пиксельные замеры — в docs/word-cards-design.md).
+    const card = document.querySelector('.sheet .wcard')!;
+    const kids = Array.from(card.children);
+    const artFrame = kids.find((el) => el.classList.contains('word-art-frame'));
+    const main = kids.find((el) => el.classList.contains('wcard-main'));
+    check(
+      'картинка и слово — отдельные блоки карточки (зазор задаёт токен)',
+      !!artFrame && !!main && main.contains(document.querySelector('.sheet .word-big')),
+      `блоков: ${kids.length}`,
+    );
+    check('приоритет карточки высокий, миниатюры ленивые', art!.getAttribute('fetchpriority') === 'high' && chips.every((c) => c.getAttribute('loading') === 'lazy'), '');
+    art!.dispatchEvent(new window.Event('load'));
     await sleep(20);
-    check('загрузка открывает картинку', art.classList.contains('is-ready'), '');
-    art.dispatchEvent(new window.Event('error'));
+    check('загрузка открывает картинку', art!.classList.contains('is-ready'), '');
+    art!.dispatchEvent(new window.Event('error'));
     await sleep(20);
-    check('ошибка картинки оставляет эмодзи', !document.querySelector('.word-art') && !!document.querySelector('.word-art-placeholder'), '');
+    check('ошибка картинки оставляет эмодзи', !document.querySelector('.sheet .word-art') && !!document.querySelector('.sheet .word-art-placeholder'), '');
 
     click(btnText('Закрыть'));
     await sleep(40);

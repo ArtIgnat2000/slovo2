@@ -1521,11 +1521,19 @@ p {
   transform: translateX(-50%) rotate(30deg);
   pointer-events: none;
 }
+/*
+ * «Опасная» буква — это чип, а не просто подкрашенная литера.
+ * padding по бокам (0.16em ≈ 6px при 38px) нужен, чтобы цветная плашка не
+ * прилипала к соседним буквам, к картинке сверху и к краю карточки. Радиус
+ * 0.22em держим кратным кеглю, чтобы на любом размере чип выглядел одинаково.
+ */
 .word-big .danger {
-  color: var(--orange);
+  color: var(--orange-ink, #b45309);
   background: var(--orange-soft);
-  border-radius: 8px;
-  padding: 0 3px;
+  border-radius: 0.22em;
+  padding: 0 0.16em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
 }
 .word-big.blink .danger {
   animation: blink 0.7s ease-in-out infinite;
@@ -1734,28 +1742,194 @@ p {
 
 /* ── Подсказка к заданию ─────────────────────────────────────────────────── */
 
+/* Подсказка к заданию: плита картинки слева, предложение справа. Зазор 12px —
+   минимум для «плита ↔ текст»: рамка плиты и рамка предложения не сливаются. */
 .clue {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--sp-3);
   width: 100%;
 }
-.word-art {
-  display: block;
-  border-radius: 22px;
+/* ── Картинка слова: плита с безопасной зоной ───────────────────────────────
+ *
+ * Было: <img> с рамкой вплотную к буквам. Картинки нарисованы «в край» квадрата,
+ * поэтому любая соседняя строка выглядела приклеенной к рисунку — особенно если
+ * над ней висел цветной чип опасной буквы.
+ *
+ * Стало: иллюстрация всегда стоит на плите (подложка + рамка + скругление) и
+ * внутри плиты имеет воздух --art-safe (12% от размера). Три вещи держат зазор:
+ *   1) padding плиты — гарантирует, что рисунок не коснётся рамки;
+ *   2) сам рисунок со скруглением читается как отдельный объект («фотография»);
+ *   3) разрыв между плитой и словом задаёт карточка (--wcard-gap-art).
+ */
+
+.word-art-frame {
+  display: grid;
+  place-items: center;
+  flex: none;
+  position: relative;
+  box-sizing: border-box;
+  width: var(--art-size);
+  height: var(--art-size);
+  padding: calc(var(--art-size) * var(--art-safe));
+  border: 2px solid var(--art-frame-line);
+  border-radius: clamp(16px, calc(var(--art-size) * 0.24), 30px);
+  background:
+    radial-gradient(120% 120% at 30% 0%, var(--art-plate-glow) 0%, transparent 62%),
+    var(--art-plate);
+  box-shadow: inset 0 -3px 0 rgba(36, 31, 54, 0.05);
+  vertical-align: middle;
+}
+.word-art-inner {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+.word-art-placeholder {
+  display: grid;
+  place-items: center;
+  line-height: 1;
+  font-size: calc(var(--art-size) * 0.46);
+}
+.word-art-frame > .word-art-inner > .word-art {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: clamp(10px, calc(var(--art-size) * 0.16), 22px);
+  background: var(--card);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+.word-art-frame > .word-art-inner > .word-art.is-ready {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .word-art-frame > .word-art-inner > .word-art {
+    transition: none;
+  }
+}
+
+/* ── Карточка слова ──────────────────────────────────────────────────────────
+ *
+ * Общий каркас: плита → слово → подпись. Вариант меняет только композицию,
+ * правила зазоров остаются одни и те же (это и есть лечение «картинка липнет
+ * к буквам»): воздух между плитой и словом = --wcard-gap-art (20px),
+ * между словом и подписью = --wcard-gap-word (16px).
+ */
+
+.wcard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--wcard-gap-art);
+  width: 100%;
+  padding: var(--wcard-pad);
   background: var(--card);
   border: 2px solid var(--line);
-  object-fit: contain;
-  flex: none;
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow);
+  box-sizing: border-box;
 }
-.clue-art {
-  border-radius: 16px;
-  border-width: 2px;
+.wcard-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--wcard-gap-word);
+  width: 100%;
+  min-width: 0;
 }
-.word-chip-art {
-  border-radius: 6px;
-  vertical-align: -5px;
-  margin-right: 2px;
+.wcard-word {
+  display: flex;
+  justify-content: center;
+  padding: 0 var(--sp-1);
+  max-width: 100%;
+}
+.wcard-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  align-items: center;
+  width: 100%;
+}
+.wcard .sentence {
+  margin: 0;
+}
+
+/* Вариант B. «Фотокарточка»: картинка и слово живут в одной рамке, как в
+   паспарту. Картинка сверху, под ней — разделительная линия и «поля» пошире,
+   в которых напечатано слово. Разделитель (--line) плюс padding-top (20px)
+   держат тот же минимальный зазор «картинка → буквы», что и в варианте A,
+   но слово при этом выглядит частью картинки, а не отдельным блоком. */
+.wcard-photo {
+  padding: var(--sp-4) var(--sp-4) var(--sp-5);
+  gap: 0;
+}
+.wcard-photo .word-art-frame {
+  border: 0;
+  box-shadow: none;
+  background: var(--art-plate);
+}
+.wcard-photo .wcard-main {
+  border-top: 2px solid var(--line);
+  padding-top: var(--wcard-gap-art);
+  gap: var(--sp-3);
+}
+.wcard-photo .wcard-body {
+  gap: var(--sp-3);
+}
+
+/* Вариант C. «Полка»: плита слева, слово и подпись справа. Компактно — для
+   словарика и карточек повторения, где важен охват, а не размер картинки.
+   Верхнее выравнивание: длинное слово переносится на вторую строку, и плита
+   не «уезжает» вниз, оставляя подпись висеть в пустоте. */
+.wcard-split {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: var(--sp-4);
+  padding: var(--sp-4);
+}
+.wcard-split .word-art-frame {
+  margin-top: 2px;
+}
+.wcard-split .wcard-main {
+  align-items: flex-start;
+  gap: var(--sp-3);
+}
+.wcard-split .wcard-word {
+  justify-content: flex-start;
+}
+.wcard-split .word-big {
+  font-size: 32px;
+  text-align: left;
+  line-height: 1.15;
+}
+.wcard-split .wcard-body {
+  align-items: flex-start;
+}
+.wcard-split .sentence {
+  text-align: left;
+  padding: var(--sp-3);
+  font-size: var(--fs-sm);
+}
+/* Миниатюра в пилюле словарика: плита тут лишняя — на 22px рамка и подложка
+   превращаются в шум, поэтому картинка идёт голой, но со скруглением. */
+.word-art-frame.word-chip-art {
+  display: inline-grid;
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+  border-radius: 8px;
+  vertical-align: -4px;
+  margin-right: var(--sp-2);
+}
+.word-art-frame.word-chip-art > .word-art-inner > .word-art {
+  border-radius: 7px;
 }
 .clue-emoji {
   font-size: 40px;
@@ -2246,6 +2420,29 @@ p {
   font-weight: 800;
 }
 
+/* Лист словарика: прокручивается, если карточка выше экрана, и не ломает
+   прокрутку страницы за собой. */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-5);
+  background: rgba(20, 16, 32, 0.5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.sheet {
+  width: 100%;
+  max-width: 420px;
+}
+.wcard-modal .word-big {
+  font-size: 34px;
+}
+
 .wordlist {
   display: flex;
   flex-wrap: wrap;
@@ -2375,32 +2572,19 @@ p {
 .mt {
   margin-top: 16px;
 }
+/* Строка чипов внутри карточки: переносится и центрируется, но не растягивает
+   слово — слоги должны читаться как отдельный слой под словом. */
+.row.wrap-center {
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--sp-2);
+}
 .mb {
   margin-bottom: 16px;
 }
 .big-emoji {
   font-size: 64px;
   line-height: 1;
-}
-
-/* Reserve geometry and keep an offline/error fallback visible until load. */
-.word-art-frame {
-  display: inline-grid;
-  position: relative;
-  flex-shrink: 0;
-  vertical-align: middle;
-}
-.word-art-placeholder { display: grid; place-items: center; line-height: 1; }
-.word-art-frame > .word-art {
-  position: absolute;
-  inset: 0;
-  margin: 0;
-  opacity: 0;
-  transition: opacity 120ms ease;
-}
-.word-art-frame > .word-art.is-ready { opacity: 1; }
-@media (prefers-reduced-motion: reduce) {
-  .word-art-frame > .word-art { transition: none; }
 }
 
 /* ── V-labs: промо-блок и внутренний раздел ────────────────────────────── */
