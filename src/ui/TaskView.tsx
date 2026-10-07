@@ -18,7 +18,7 @@ interface Props {
 export function TaskView({ task, word, onSolve, onAttempt }: Props) {
   switch (task.kind) {
     case 'intro':
-      return <Intro word={word} onSolve={onSolve} />;
+      return <Intro word={word} reason={task.reason} onSolve={onSolve} />;
     case 'syllables':
       return <Syllables word={word} onSolve={onSolve} />;
     case 'gap':
@@ -76,8 +76,18 @@ function HintCard({ word }: { word: Word }) {
 
 // ── 1. Знакомство: LOOK → SAY → увидеть опасное место ────────────────────────
 
-function Intro({ word, onSolve }: { word: Word; onSolve: SolveFn }) {
+function Intro({
+  word,
+  reason,
+  onSolve,
+}: {
+  word: Word;
+  /** В повторении эта же карточка — «напоминание»: слово уже знакомо. */
+  reason?: Task['reason'];
+  onSolve: SolveFn;
+}) {
   const [showHint, setShowHint] = useState(false);
+  const again = reason === 'review';
   return (
     <div className="task task-intro">
       {/* Знакомство — это карточка слова: снимок, слово, слоги, предложение.
@@ -88,7 +98,12 @@ function Intro({ word, onSolve }: { word: Word; onSolve: SolveFn }) {
           резиновый: он забирает всю высоту, которая осталась от слова, слогов,
           примера и кнопок (правила .lesson-intro-card в app.css). Поэтому на
           большом телефоне картинка крупная, а на коротком экране она сама
-          уменьшается — прокрутки в уроке не появляется ни при каком размере. */}
+          уменьшается — прокрутки в уроке не появляется ни при каком размере.
+
+          В режиме «Повторение» эта же карточка открывает каждое слово: раньше
+          повторение начиналось сразу с «напиши по памяти» и старой компактной
+          подсказки с маленькой плитой. Теперь повторение говорит на том же
+          языке композиции, что и урок: сначала образ — потом письмо. */}
       <WordCard
         word={word}
         variant="photo"
@@ -117,7 +132,7 @@ function Intro({ word, onSolve }: { word: Word; onSolve: SolveFn }) {
           onSolve(null);
         }}
       >
-        Запомнил! 👍
+        {again ? 'Вспомнил! 👍' : 'Запомнил! 👍'}
       </button>
     </div>
   );

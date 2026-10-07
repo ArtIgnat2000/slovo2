@@ -681,6 +681,24 @@ async function main() {
     const counter = document.querySelector('.stat-pill.tasks')?.textContent ?? '';
     const reviewLimit = Number(counter.split('/')[1]);
     check('режим повторения не превышает короткий лимит', Number.isFinite(reviewLimit) && reviewLimit <= 12, counter);
+    // Замечание с айфона (2026-10-07, слово «ученик»): повторение открывалось
+    // сразу заданием «напиши по памяти» со старой компактной подсказкой и
+    // маленькой плитой. Теперь каждое слово встречает фотокарточка-напоминание.
+    check(
+      'режим повторения открывается фотокарточкой-напоминанием',
+      !!document.querySelector('.task-intro .lesson-intro-card.wcard-photo') && !!btnText('Вспомнил'),
+      document.querySelector('.task')?.className ?? '—',
+    );
+    const remembered = btnText('Вспомнил');
+    if (remembered) {
+      click(remembered);
+      await sleep(80);
+      check(
+        'после напоминания — оцениваемое задание (слоги не отдельная карточка)',
+        !!document.querySelector('.task-write') || !!document.querySelector('.task-fix'),
+        document.querySelector('.task')?.className ?? '—',
+      );
+    }
   } else {
     check('режим повторения не превышает короткий лимит', true, 'повторять нечего');
   }

@@ -687,9 +687,18 @@ function buildQueue(profile: Profile | null, lessonId: string): Task[] {
       limit,
       new Set(profile?.days?.[dayKey()]?.reviewWords ?? []),
     );
+    // На каждое слово — фотокарточка-напоминание и одно оцениваемое задание.
+    // Раньше вторым шла карточка «Слоги», и повторение открывалось старой
+    // горизонтальной подсказкой с маленькой плитой (замечание 2026-10-07 с
+    // айфона, слово «ученик»): теперь каждое слово встречает ребёнка той же
+    // крупной композицией, что и знакомство в уроке, — образ → письмо.
+    // Карточек на слово по-прежнему две, поэтому бюджет повторения (стражи
+    // смоука и адаптации) и закрываемость «Повтори N слов» за один заход
+    // не меняются. Напоминание неоцениваемое: оно не считается «потренированным
+    // словом», оценивает только «напиши»/«исправь».
     return pick.words.flatMap((w, i) => [
+      makeTask('intro', w.id, 'review', pickDanger(w)),
       makeReviewTask(i % 2 === 0 ? 'write' : 'fix', w.id),
-      makeReviewTask('syllables', w.id),
     ]);
   }
 
@@ -706,7 +715,7 @@ function buildQueue(profile: Profile | null, lessonId: string): Task[] {
   return [...intro, ...rest, ...rev];
 }
 
-function makeReviewTask(kind: 'write' | 'fix' | 'syllables', wordId: string): Task {
+function makeReviewTask(kind: 'write' | 'fix', wordId: string): Task {
   const w = WORD_BY_ID[wordId];
   // берём самую коварную опасную букву, а не первую в списке
   return makeTask(kind, wordId, 'review', pickDanger(w));
