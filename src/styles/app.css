@@ -43,7 +43,7 @@ button {
 .screen {
   flex: 1;
   padding: calc(14px + var(--safe-t)) 16px calc(96px + var(--safe-b));
-  max-width: 620px;
+  max-width: var(--screen-max);
   width: 100%;
   margin: 0 auto;
   animation: fadeIn 0.25s ease;
@@ -3164,23 +3164,55 @@ p {
   line-height: 1.25;
 }
 
-/* Знакомство больше не использует большую «фотокарточку» во всю ширину.
-   Компактная полка оставляет образ, слово, слоги и фразу (ядро упражнения),
-   а повторяющие друг друга пояснения перенесены в явную кнопку подсказки. */
-.lesson-intro-card.wcard-split {
-  align-items: center;
-  gap: 10px;
-  padding: 10px;
+/* ── Знакомство: снимок-герой на всё свободное место ───────────────────────
+ *
+ * Было: компактная «полка» с плитой 76 px — на айфоне картинка читалась как
+ * иконка, хотя знакомство со словом держится именно на образе (dual coding).
+ * Фиксированный размер приходилось держать маленьким, потому что экран урока
+ * не прокручивается: всё, что не влезло, просто обрезалось.
+ *
+ * Стало: та же «фотокарточка», что в словарике, — снимок во всю ширину
+ * карточки (--art-lesson-cap ≈ ширина экрана минус поля). Карточка занимает
+ * всю высоту задания, а слово, слоги, пример и кнопки остаются на месте.
+ *
+ * Почему прокрутки не будет. Снимок — единственный сжимаемый блок урока:
+ *   1) высоту ему даёт aspect-ratio: 1 от ширины (как в словарике, проверенный
+ *      путь), поэтому на телефоне это ~330 px вместо 76 px;
+ *   2) min-height: var(--art-lesson-min) снимает автоминимум flex-элемента —
+ *      когда места меньше (короткий экран, раскрытая подсказка), снимок
+ *      сжимается сам, а не выталкивает кнопку «Запомнил» за край. Картинка
+ *      внутри остаётся квадратной (object-fit: contain), поля паспарту просто
+ *      становятся шире.
+ */
+.lesson-screen .task-intro {
+  width: 100%;
 }
-.lesson-intro-card.wcard-split .word-art-frame {
-  margin-top: 0;
+.lesson-intro-card.wcard-photo {
+  flex: 1 1 auto;
+  min-height: 0;
+  /* Экран высокий — остаток места делится поровну сверху и снизу, и карточка
+     не висит «шапкой» с пустым низом. */
+  justify-content: center;
+  padding: var(--sp-3) var(--sp-3) var(--sp-4);
 }
-.lesson-intro-card.wcard-split .wcard-main,
-.lesson-intro-card.wcard-split .wcard-body {
-  gap: 8px;
+.lesson-intro-card.wcard-photo > .wcard-art {
+  flex: 0 1 auto;
+  align-self: center;
+  width: min(100%, var(--art-lesson-cap));
+  height: auto;
+  min-height: var(--art-lesson-min);
+  aspect-ratio: 1;
 }
-.lesson-intro-card.wcard-split .word-big {
-  font-size: clamp(26px, 7.7vw, 30px);
+.lesson-intro-card.wcard-photo > .wcard-main {
+  flex: none;
+  padding-top: var(--sp-3);
+  gap: var(--sp-2);
+}
+.lesson-intro-card.wcard-photo .wcard-body {
+  gap: var(--sp-2);
+}
+.lesson-intro-card.wcard-photo .word-big {
+  font-size: clamp(26px, 8.4vw, 36px);
   line-height: 1.1;
   overflow-wrap: anywhere;
 }
@@ -3188,12 +3220,13 @@ p {
   gap: 6px;
 }
 .lesson-intro-card .chip {
-  min-height: 34px;
-  padding: 5px 9px;
+  min-height: 32px;
+  padding: 4px 9px;
   font-size: 14px;
 }
 .lesson-intro-card .sentence {
-  text-align: left;
+  padding: 6px 10px;
+  line-height: 1.25;
 }
 
 /* В режиме вердикта само задание размонтировано: ребёнок видит только ответ и
