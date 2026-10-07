@@ -69,6 +69,12 @@ async function toClueCard(maxSteps = 12): Promise<boolean> {
       await sleep(1400);
       continue;
     }
+    // У зрительного диктанта сначала несколько секунд видны только слово и
+    // таймер; после фазы запоминания появится обычная подсказка с картинкой.
+    if (document.querySelector('.task-visual')) {
+      await sleep(4200);
+      continue;
+    }
     return false;
   }
   return !!document.querySelector('.clue');
@@ -124,19 +130,47 @@ export async function runLessonArtChecks() {
       '',
     );
   }
+
+  // Пользователь прислал именно «Собери слово», а не знакомство: проверяем эту
+  // карточку напрямую, чтобы тест не проходил только за счёт большого intro.
+  root.render(
+    createElement(TaskView, {
+      task: makeTask('build', word.id, 'practice', word.danger[0] ?? 0),
+      word,
+      onSolve: () => {},
+    }),
+  );
+  await sleep(60);
+  const buildClue = box.querySelector('.task-build .clue') as HTMLElement | null;
+  const buildArt = buildClue?.querySelector('.word-art-frame') as HTMLElement | null;
+  check(
+    'картинка: «Собери слово» использует вертикальную hero-карточку',
+    !!buildClue?.classList.contains('clue-hero'),
+    buildClue?.className ?? '—',
+  );
+  check(
+    'картинка: в упражнении задан отдельный крупный размер --art-clue-hero',
+    buildArt?.style.getPropertyValue('--art-size').trim() === 'var(--art-clue-hero)',
+    buildArt?.getAttribute('style') ?? '—',
+  );
+
   root.unmount();
   box.remove();
 
-  // ── 2. Подсказка в заданиях с клавиатурой ────────────────────────────────
+  // ── 2. Подсказка в живом уроке ───────────────────────────────────────────
   const opened = await startLesson();
   check('картинка: урок открылся', opened, document.body.textContent?.slice(0, 160) ?? '');
   const reachedClue = opened && (await toClueCard());
   check('картинка: дошли до задания с подсказкой', reachedClue, document.querySelector('.task')?.className ?? '—');
   if (reachedClue) {
-    const clueArt = document.querySelector('.clue .word-art-frame') as HTMLElement | null;
+    const clue = document.querySelector('.clue') as HTMLElement | null;
+    const clueArt = clue?.querySelector('.word-art-frame') as HTMLElement | null;
+    const expectedSize = clue?.classList.contains('clue-hero')
+      ? 'var(--art-clue-hero)'
+      : 'var(--art-clue)';
     check(
-      'картинка: подсказка растёт от высоты экрана (--art-clue), а не 56px',
-      clueArt?.style.getPropertyValue('--art-size').trim() === 'var(--art-clue)',
+      'картинка: упражнение берёт адаптивный размер своей компоновки',
+      clueArt?.style.getPropertyValue('--art-size').trim() === expectedSize,
       clueArt?.getAttribute('style') ?? '—',
     );
   }
@@ -169,11 +203,18 @@ export async function runLessonArtChecks() {
     /\.lesson-intro-card\.wcard-photo\s*\{[^}]*flex:\s*1\s+1\s+auto[^}]*min-height:\s*0/.test(css),
     css.match(/\.lesson-intro-card\.wcard-photo\s*\{[^}]*\}/)?.[0]?.replace(/\s+/g, ' ') ?? 'правило карточки не найдено',
   );
+  const heroRule = css.match(/\.clue-hero\s*\{[^}]*\}/)?.[0] ?? '';
   check(
-    'картинка: токены размеров заданы (--art-lesson-cap / --art-lesson-min / --art-clue)',
+    'картинка: hero-подсказка ставит изображение над текстом',
+    /flex-direction:\s*column/.test(heroRule) && /width:\s*min\(100%,\s*400px\)/.test(heroRule),
+    heroRule.replace(/\s+/g, ' ') || 'правило .clue-hero не найдено',
+  );
+  check(
+    'картинка: токены размеров заданы и для знакомства, и для упражнений',
     /--art-lesson-cap:\s*calc\(min\(100vw/.test(tokens) &&
       /--art-lesson-min:/.test(tokens) &&
-      /--art-clue:\s*clamp\(56px,[^;]*svh/.test(tokens),
-    tokens.match(/--art-lesson-cap:[^;]*;/)?.[0] ?? 'токены не найдены',
+      /--art-clue:\s*clamp\(76px,[^;]*svh/.test(tokens) &&
+      /--art-clue-hero:\s*clamp\(128px,[^;]*svh/.test(tokens),
+    tokens.match(/--art-clue-hero:[^;]*;/)?.[0] ?? 'токены не найдены',
   );
 }

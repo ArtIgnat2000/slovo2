@@ -300,7 +300,10 @@ function Build({ word, task, onSolve, onAttempt }: Props) {
 
   return (
     <div className="task task-build">
-      <WordClue word={word} compact />
+      {/* В сборке нет экранной клавиатуры, поэтому образ можно сделать главным:
+          крупная картинка сверху, пример и объём ответа под ней. На коротком
+          экране CSS сам возвращает эту карточку в горизонтальную компоновку. */}
+      <WordClue word={word} compact layout="hero" />
       <p className="prompt">Собери слово из букв</p>
       <div className={`slots ${bad ? 'shake' : ''}`}>
         {placed.map((l, i) => (
@@ -544,7 +547,7 @@ function Fix({ word, task, onSolve, onAttempt }: Props) {
           </span>
         ))}
       </div>
-      <WordClue word={word} compact />
+      <WordClue word={word} compact layout="hero" />
       <div className="options" style={{ gridTemplateColumns: '1fr' }}>
         {(task.options ?? []).map((o) => {
           const cls = !chosen ? '' : o === word.text ? 'ok' : o === chosen ? 'bad' : 'dim';

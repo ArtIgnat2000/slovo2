@@ -262,14 +262,27 @@ export function lengthLabel(word: Word): string {
  * Подсказка к заданию, где слово не видно (напиши по памяти, собери из букв,
  * исправь робота). Без неё было непонятно, какое именно слово требуется.
  */
-export function WordClue({ word, compact = false }: { word: Word; compact?: boolean }) {
+export function WordClue({
+  word,
+  compact = false,
+  layout = 'inline',
+}: {
+  word: Word;
+  compact?: boolean;
+  /**
+   * inline — крупная картинка слева: экономит высоту в заданиях с клавиатурой.
+   * hero — картинка над примером: для «Собери» и «Исправь», где образ является
+   * главной подсказкой, а свободную высоту не занимает клавиатура.
+   */
+  layout?: 'inline' | 'hero';
+}) {
+  const lessonSize = layout === 'hero' ? 'var(--art-clue-hero)' : 'var(--art-clue)';
   return (
-    <div className="clue">
-      {/* В уроке (compact) размер плиты задаёт токен --art-clue: под клавиатурой
-          резинового героя не сделать, но и 56px — иконка, а в «напиши» и
-          «собери» картинка остаётся единственной подсказкой, какое это слово.
-          Поэтому плита растёт вместе с высотой экрана: 56 → 104px. */}
-      <WordArt word={word} size={compact ? 'var(--art-clue)' : 64} />
+    <div className={`clue clue-${layout}`}>
+      {/* В упражнениях картинка — не декоративная иконка, а подсказка к слову.
+          Поэтому в компактном режиме есть две шкалы: увеличенная боковая плита
+          под клавиатурой и полноценный герой в заданиях без клавиатуры. */}
+      <WordArt word={word} size={compact ? lessonSize : 64} />
       <div className="clue-body">
         <Sentence word={word} />
         <p className="clue-hint">
