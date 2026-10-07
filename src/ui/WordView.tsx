@@ -14,6 +14,10 @@ import type { Word } from '../types';
  * квадрата, и без подложки они зрительно липли к буквам и к рамке карточки.
  * Duolingo в своём арт-гайде формулирует то же правило: иллюстрация должна быть
  * «обрамлена отрицательным пространством» и никогда не мешать чтению текста.
+ *
+ * Плита умеет два состояния: обычная (квадрат --art-size) и «снимок»
+ * (класс word-art-fill) — во всю ширину паспарту, как фотокарточка. Второе
+ * включает вариант B и растягивает снимок; поля и радиусы там переопределены.
  */
 export function WordArt({
   word,
@@ -88,17 +92,51 @@ function WordImage({
 
 export type WordCardVariant = 'plate' | 'photo' | 'split';
 
-/** Вариант по умолчанию для всего приложения. */
-export const WORD_CARD_VARIANT: WordCardVariant = 'plate';
+/**
+ * Вариант по умолчанию для всего приложения.
+ *
+ * 2026-10-06: пользователь выбрал B «Фотокарточка» (картинка и слово в одной
+ * рамке, как в паспарту) — самая сильная связка «образ ↔ слово» и лучшее
+ * поведение на пёстрых исходниках. A «Плита» и C «Полка» остались как
+ * переключаемые варианты: /?cards=plate, /?cards=split.
+ */
+export const WORD_CARD_VARIANT: WordCardVariant = 'photo';
+
+/** Размер снимка в «Фотокарточке»: во всю карточку или как плита варианта A. */
+export type PhotoSize = 'compact' | 'base';
+
+/**
+ * Чтение настройки из адреса. Хеш — наравне с параметром: в предпросмотре
+ * песочницы параметры иногда теряются по дороге, а хеш доезжает.
+ */
+function addressFlag(name: string): string | null {
+  if (typeof window === 'undefined') return null;
+  const hash = window.location.hash.replace(/^#/, '');
+  return (
+    new URLSearchParams(window.location.search).get(name) ?? new URLSearchParams(hash).get(name)
+  );
+}
 
 export function resolveWordCardVariant(): WordCardVariant {
-  if (typeof window === 'undefined') return WORD_CARD_VARIANT;
-  // Хеш читаем наравне с параметром адреса: в предпросмотре песочницы параметры
-  // иногда теряются по дороге, а хеш доезжает (#cards=photo).
-  const hash = window.location.hash.replace(/^#/, '');
-  const asked =
-    new URLSearchParams(window.location.search).get('cards') ?? new URLSearchParams(hash).get('cards');
+  const asked = addressFlag('cards');
   return asked === 'plate' || asked === 'photo' || asked === 'split' ? asked : WORD_CARD_VARIANT;
+}
+
+/**
+ * Размер снимка: /?art=compact|base. Нужен, чтобы сравнить размеры прямо на
+ * своём телефоне, не пересобирая приложение: compact — снимок как плита
+ * варианта A (до 220px, квадрат по центру паспарту), base — во всю ширину
+ * карточки (по умолчанию).
+ */
+export function resolvePhotoSize(): PhotoSize {
+  const asked = addressFlag('art');
+  return asked === 'compact' || asked === 'base' ? asked : 'base';
+}
+
+/** Размер плиты по умолчанию: у каждого варианта своя шкала (см. tokens.css). */
+function defaultArtSize(mode: WordCardVariant): string {
+  if (mode !== 'photo') return 'var(--art-hero)';
+  return resolvePhotoSize() === 'compact' ? 'var(--art-photo-compact)' : 'var(--art-photo)';
 }
 
 interface LettersProps {
@@ -145,7 +183,7 @@ interface WordCardProps {
   word: Word;
   /** Композиция карточки; без параметра берётся вариант приложения (или ?cards=…). */
   variant?: WordCardVariant;
-  /** Размер плиты под картинку. По умолчанию — адаптивный --art-hero. */
+  /** Размер плиты под картинку. По умолчанию — адаптивный размер варианта. */
   artSize?: number | string;
   /** Классы для строки слова. */
   lettersClassName?: string;
@@ -158,6 +196,8 @@ interface WordCardProps {
 
 /**
  * Карточка слова: картинка на плите + слово + подпись.
+ * Основной вариант — B «Фотокарточка» (WORD_CARD_VARIANT), где снимок и слово
+ * стоят в одной рамке; A «Плита» и C «Полка» включаются через ?cards=…
  *
  * Правила, общие для всех вариантов:
  *   1. Между плитой и словом всегда не меньше --wcard-gap-art (20px).
@@ -171,7 +211,7 @@ interface WordCardProps {
 export function WordCard({
   word,
   variant,
-  artSize = 'var(--art-hero)',
+  artSize,
   lettersClassName = '',
   lettersProps,
   children,
@@ -179,10 +219,13 @@ export function WordCard({
 }: WordCardProps) {
   const mode = variant ?? resolveWordCardVariant();
   const letters = <WordLetters word={word} stress markDanger {...lettersProps} className={lettersClassName} />;
+  // В «Фотокарточке» плита растягивается по ширине паспарту (word-art-fill):
+  // снимок занимает всю карточку, а не висит квадратом по центру.
+  const artClass = `wcard-art ${mode === 'photo' ? 'word-art-fill' : ''}`.trim();
 
   return (
     <div className={`wcard wcard-${mode} ${className}`}>
-      <WordArt word={word} size={artSize} className="wcard-art" />
+      <WordArt word={word} size={artSize ?? defaultArtSize(mode)} className={artClass} />
       <div className="wcard-main">
         <div className="wcard-word">{letters}</div>
         {children && <div className="wcard-body">{children}</div>}

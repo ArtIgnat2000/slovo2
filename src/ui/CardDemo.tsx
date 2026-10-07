@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import '../styles/tokens.css';
 import '../styles/app.css';
 import { WORD_BY_ID } from '../content/words';
-import { WordCard, WordClue, Sentence, type WordCardVariant } from './WordView';
+import { WordCard, WordClue, Sentence, type PhotoSize, type WordCardVariant } from './WordView';
 
 /**
  * Страница сравнения вариантов карточки слова — витрина дизайн-ревью.
@@ -31,9 +31,9 @@ const VARIANTS: { id: WordCardVariant; title: string; note: string; pros: string
   },
   {
     id: 'photo',
-    title: 'B · Фотокарточка',
-    note: 'картинка и слово в одной рамке, как в паспарту',
-    pros: 'самая сильная связка «образ ↔ слово»',
+    title: 'B · Фотокарточка — выбрана',
+    note: 'снимок во всю ширину паспарту, слово под разделительной линией',
+    pros: 'самая сильная связка «образ ↔ слово»; паспарту отделяет пёстрые фоны картинок',
     cons: 'в тёмной теме паспарту должно остаться светлым',
   },
   {
@@ -45,11 +45,19 @@ const VARIANTS: { id: WordCardVariant; title: string; note: string; pros: string
   },
 ];
 
+/** Размеры снимка в «фотокарточке» — те же два шага, что и в /?art=… */
+const PHOTO_SIZES: { id: PhotoSize; title: string; css: number | string }[] = [
+  { id: 'base', title: 'Снимок во всю карточку', css: 'var(--art-photo)' },
+  { id: 'compact', title: 'Снимок как плита A', css: 'var(--art-photo-compact)' },
+];
+
 function Demo() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [size, setSize] = useState(390);
-  const [picked, setPicked] = useState<WordCardVariant>('plate');
+  const [picked, setPicked] = useState<WordCardVariant>('photo');
+  const [photoSize, setPhotoSize] = useState<PhotoSize>('base');
   const [word, setWord] = useState(WORDS[0]);
+  const photoCss = PHOTO_SIZES.find((s) => s.id === photoSize)!.css;
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -60,7 +68,9 @@ function Demo() {
       <h1>Карточка слова — варианты</h1>
       <p className="muted">
         Живые компоненты приложения на настоящих токенах. Пять слов подряд в каждом варианте — ниже.
-        Свой вариант в приложении: <code>/#cards=plate</code>, <code>/#cards=photo</code>, <code>/#cards=split</code>.
+        В приложении основным выбран <b>B · Фотокарточка</b>; свои вариант и размер снимка можно
+        посмотреть по ссылке: <code>/#cards=photo</code>, <code>/#cards=plate</code>,{' '}
+        <code>/#cards=split</code>, <code>/#art=base|compact</code>.
       </p>
 
       <div className="card mb">
@@ -93,9 +103,29 @@ function Demo() {
             </button>
           ))}
         </div>
+        {picked === 'photo' && (
+          <div className="row mb" style={{ flexWrap: 'wrap' }}>
+            {PHOTO_SIZES.map((s) => (
+              <button
+                key={s.id}
+                className={`chip ${photoSize === s.id ? 'on' : ''}`}
+                onClick={() => setPhotoSize(s.id)}
+              >
+                {s.title}
+              </button>
+            ))}
+            <span className="tiny" style={{ alignSelf: 'center' }}>
+              в приложении: <code>/#art={photoSize}</code>
+            </span>
+          </div>
+        )}
         <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start', flexWrap: 'wrap' }}>
           <div style={{ width: size, maxWidth: '100%', flex: 'none' }}>
-            <WordCard word={word} variant={picked} artSize={picked === 'split' ? 88 : undefined}>
+            <WordCard
+              word={word}
+              variant={picked}
+              artSize={picked === 'photo' ? photoCss : picked === 'split' ? 88 : undefined}
+            >
               <span className="tiny">Слоги: {word.syllables.join(' · ')}</span>
               <Sentence word={word} hidden={false} />
             </WordCard>
@@ -124,7 +154,12 @@ function Demo() {
             </p>
             <div className="col">
               {WORDS.slice(0, 5).map((w) => (
-                <WordCard key={w.id} word={w} variant={v.id} artSize={v.id === 'split' ? 88 : undefined}>
+                <WordCard
+                  key={w.id}
+                  word={w}
+                  variant={v.id}
+                  artSize={v.id === 'photo' ? photoCss : v.id === 'split' ? 88 : undefined}
+                >
                   <Sentence word={w} hidden={false} />
                 </WordCard>
               ))}
