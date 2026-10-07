@@ -17,6 +17,7 @@ import { runPuzzleUiChecks } from './puzzles-ui.test';
 import { runDiagnosticsRouteChecks } from './diagnostics-ui.test';
 import { runFloatingMascotChecks } from './mascot-ui.test';
 import { runBukLessonChecks } from './buk-lesson-ui.test';
+import { runLessonArtChecks } from './lesson-art-ui.test';
 import { LESSONS, WORDS } from '../src/content/words';
 import { resolvePhotoSize, resolveWordCardVariant } from '../src/ui/WordView';
 import { buildLesson, lessonCardLimit } from '../src/engine/scheduler';
@@ -707,6 +708,10 @@ async function main() {
 
   // Помощник БУК в уроке: вопрос вместо ответа и тихое предложение помощи.
   await runBukLessonChecks();
+
+  // Картинка в уроке: крупный резиновый снимок в знакомстве и адаптивная
+  // подсказка в заданиях с клавиатурой — при сохранённом «экран не прокручивается».
+  await runLessonArtChecks();
 
   // Диагностика запускается прямой ссылкой и читает хранилище, не раскрывая профиль.
   await runDiagnosticsRouteChecks();

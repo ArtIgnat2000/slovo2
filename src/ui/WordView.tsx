@@ -265,7 +265,11 @@ export function lengthLabel(word: Word): string {
 export function WordClue({ word, compact = false }: { word: Word; compact?: boolean }) {
   return (
     <div className="clue">
-      <WordArt word={word} size={compact ? 56 : 64} />
+      {/* В уроке (compact) размер плиты задаёт токен --art-clue: под клавиатурой
+          резинового героя не сделать, но и 56px — иконка, а в «напиши» и
+          «собери» картинка остаётся единственной подсказкой, какое это слово.
+          Поэтому плита растёт вместе с высотой экрана: 56 → 104px. */}
+      <WordArt word={word} size={compact ? 'var(--art-clue)' : 64} />
       <div className="clue-body">
         <Sentence word={word} />
         <p className="clue-hint">
