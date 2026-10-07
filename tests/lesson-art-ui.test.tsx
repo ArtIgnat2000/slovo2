@@ -1,13 +1,11 @@
-// Картинка в уроке (замечание 2026-10-07: «картинка в уроке на айфоне очень
-// маленькая»). Блок стережёт две вещи сразу:
-//
-//   1) «Знакомство» собрано как «фотокарточка» с резиновым снимком — он забирает
-//      всю высоту, оставшуюся от слова, слогов, примера и кнопок;
-//   2) экран урока при этом по-прежнему не прокручивается (100svh + overflow:
-//      hidden), то есть картинка не может вытолкнуть кнопку за край.
+// Картинка в уроке: страж от регрессии «широкая рамка, маленький рисунок».
+// Раньше flex-shrink сжимал только высоту фотокарточки, оставляя ширину полной;
+// object-fit: contain ужимал квадратную иллюстрацию в узкую полоску.
+// Теперь картинка получает общий адаптивный размер по ширине И высоте, остаётся
+// квадратной, а на коротких экранах размер уменьшается заранее.
 //
 // Геометрию jsdom не считает, поэтому проверяем контракт: классы и структуру в
-// живом DOM плюс сами правила в app.css / tokens.css (тот же приём, что в
+// живом DOM плюс правила в app.css / tokens.css (тот же приём, что в
 // tests/puzzles-ui.test.tsx — «страж от отката прямо в стилях»).
 import { readFileSync } from 'node:fs';
 import { createElement } from 'react';
@@ -218,14 +216,22 @@ export async function runLessonArtChecks() {
 
   const artRule = css.match(/\.lesson-intro-card\.wcard-photo\s*>\s*\.wcard-art\s*\{[^}]*\}/)?.[0] ?? '';
   check(
-    'картинка: снимок знакомства — во всю ширину карточки и квадратный',
-    /width:\s*min\(100%,\s*var\(--art-lesson-cap\)\)/.test(artRule) && /aspect-ratio:\s*1/.test(artRule),
+    'картинка: фотокарточка сохраняет квадрат (один адаптивный размер по ширине и высоте)',
+    /width:\s*min\(100%,\s*var\(--art-lesson-size\)\)/.test(artRule) &&
+      /height:\s*var\(--art-lesson-size\)/.test(artRule) &&
+      /aspect-ratio:\s*1/.test(artRule),
     artRule.replace(/\s+/g, ' ') || 'правило снимка не найдено',
   );
   check(
-    'картинка: на коротком экране снимок сжимается сам (пол + flex-shrink)',
-    /min-height:\s*var\(--art-lesson-min\)/.test(artRule) && /flex:\s*0\s+1\s+auto/.test(artRule),
+    'картинка: flex не сплющивает изображение по одной только высоте',
+    /flex:\s*0\s+0\s+var\(--art-lesson-size\)/.test(artRule),
     artRule.replace(/\s+/g, ' ') || 'правило снимка не найдено',
+  );
+  const shortScreenRule = css.match(/@media\s*\(max-height:\s*680px\)\s*\{\s*:root\s*\{[^}]*\}/)?.[0] ?? '';
+  check(
+    'картинка: на коротком экране квадрат уменьшается заранее, а не сжимается в полоску',
+    /--art-lesson-size:\s*min\(var\(--art-lesson-cap\),\s*34svh\)/.test(shortScreenRule),
+    shortScreenRule.replace(/\s+/g, ' ') || 'правило короткого экрана не найдено',
   );
   check(
     'картинка: карточка знакомства сама занимает высоту задания',
@@ -239,10 +245,14 @@ export async function runLessonArtChecks() {
     heroRule.replace(/\s+/g, ' ') || 'правило .clue-hero не найдено',
   );
   check(
-    'картинка: токены размеров заданы и для знакомства, и для упражнений',
-    /--art-lesson-cap:\s*calc\(min\(100vw/.test(tokens) &&
-      /--art-lesson-min:/.test(tokens) &&
-      /--art-clue:\s*clamp\(76px,[^;]*svh/.test(tokens) &&
+    'картинка: токены ограничивают квадрат по ширине и высоте viewport',
+    /--art-lesson-cap:\s*calc\(min\(100vw,\s*var\(--screen-max\)\)\s*-\s*60px\)/.test(tokens) &&
+      /--art-lesson-size:\s*min\(var\(--art-lesson-cap\),\s*40svh\)/.test(tokens),
+    tokens.match(/--art-lesson-(?:cap|size):[^;]*;/g)?.join(' · ') ?? 'токены не найдены',
+  );
+  check(
+    'картинка: прежние адаптивные размеры подсказок в упражнениях сохранены',
+    /--art-clue:\s*clamp\(76px,[^;]*svh/.test(tokens) &&
       /--art-clue-hero:\s*clamp\(128px,[^;]*svh/.test(tokens),
     tokens.match(/--art-clue-hero:[^;]*;/)?.[0] ?? 'токены не найдены',
   );
