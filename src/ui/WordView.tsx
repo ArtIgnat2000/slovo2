@@ -262,10 +262,10 @@ export function lengthLabel(word: Word): string {
  * Подсказка к заданию, где слово не видно (напиши по памяти, собери из букв,
  * исправь робота). Без неё было непонятно, какое именно слово требуется.
  */
-export function WordClue({ word }: { word: Word }) {
+export function WordClue({ word, compact = false }: { word: Word; compact?: boolean }) {
   return (
     <div className="clue">
-      <WordArt word={word} size={64} />
+      <WordArt word={word} size={compact ? 56 : 64} />
       <div className="clue-body">
         <Sentence word={word} />
         <p className="clue-hint">

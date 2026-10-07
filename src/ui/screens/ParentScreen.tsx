@@ -67,11 +67,11 @@ export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs }
     .slice(0, 10);
 
   return (
-    <div className="screen">
+    <div className="screen parent-screen">
       <h1 className="mb">Родителям 👨‍👩‍👧</h1>
 
       <div className="card mb">
-        <div className="row">
+        <div className="row parent-profile-row">
           <div className="avatar" style={{ cursor: 'default' }}>
             {profile.avatar}
           </div>
@@ -85,7 +85,7 @@ export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs }
         </div>
       </div>
 
-      <div className="grid-3 mb">
+      <div className="grid-3 parent-stats mb">
         <Stat label="Освоено слов" value={`${masteredCount(profile)}/${WORDS.length}`} />
         <Stat label="Точность" value={`${accuracy}%`} />
         <Stat label="Серия" value={`${profile.streak} дн.`} />
@@ -150,15 +150,15 @@ export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs }
         </div>
       </div>
 
-      <div className="card mb">
+      <div className="card mb parent-settings">
         <h3>Настройки</h3>
-        <div className="kv">
+        <div className="kv parent-setting">
           <span>Звук</span>
           <button className={`chip ${settings.sound ? 'on' : ''}`} onClick={() => setSettings({ sound: !settings.sound })}>
             {settings.sound ? 'вкл' : 'выкл'}
           </button>
         </div>
-        <div className="kv">
+        <div className="kv parent-setting">
           <span>Вибрация</span>
           <button
             className={`chip ${settings.haptics ? 'on' : ''}`}
@@ -167,9 +167,9 @@ export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs }
             {settings.haptics ? 'вкл' : 'выкл'}
           </button>
         </div>
-        <div className="kv">
+        <div className="kv parent-setting">
           <span>Тема</span>
-          <div className="row">
+          <div className="row setting-control">
             {(['auto', 'light', 'dark'] as const).map((t) => (
               <button key={t} className={`chip ${settings.theme === t ? 'on' : ''}`} onClick={() => setSettings({ theme: t })}>
                 {t === 'auto' ? 'авто' : t === 'light' ? 'светлая' : 'тёмная'}
@@ -177,12 +177,12 @@ export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs }
             ))}
           </div>
         </div>
-        <div className="kv" style={{ alignItems: 'flex-start' }}>
-          <div>
+        <div className="kv parent-setting detailed">
+          <div className="setting-copy">
             <div>Сова БУК</div>
             <div className="tiny">Плавающий помощник: его можно и убрать</div>
           </div>
-          <div className="row">
+          <div className="row setting-control">
             {(
               [
                 ['on', 'везде'],
@@ -200,12 +200,12 @@ export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs }
             ))}
           </div>
         </div>
-        <div className="kv" style={{ alignItems: 'flex-start' }}>
-          <div>
+        <div className="kv parent-setting detailed">
+          <div className="setting-copy">
             <div>Подсказки в уроке</div>
             <div className="tiny">С вопросом — ребёнок вспоминает сам, потом можно открыть букву</div>
           </div>
-          <div className="row">
+          <div className="row setting-control">
             {(
               [
                 ['socratic', 'с вопросом'],
@@ -223,9 +223,9 @@ export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs }
             ))}
           </div>
         </div>
-        <div className="kv">
+        <div className="kv parent-setting">
           <span>Цель дня (XP)</span>
-          <div className="row">
+          <div className="row setting-control">
             {[60, 120, 200].map((g) => (
               <button key={g} className={`chip ${settings.dailyGoal === g ? 'on' : ''}`} onClick={() => setSettings({ dailyGoal: g })}>
                 {g}
@@ -233,12 +233,12 @@ export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs }
             ))}
           </div>
         </div>
-        <div className="kv" style={{ alignItems: 'flex-start' }}>
-          <div>
+        <div className="kv parent-setting detailed">
+          <div className="setting-copy">
             <div>Размер урока</div>
             <div className="tiny">Меняется со следующего запуска урока</div>
           </div>
-          <div className="row" style={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <div className="row setting-control">
             {LESSON_SIZE_OPTIONS.map((option) => (
               <button
                 key={option.id}
@@ -251,7 +251,7 @@ export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs }
             ))}
           </div>
         </div>
-        <div className="kv">
+        <div className="kv parent-setting">
           <span>Версия</span>
           <span className="tiny" title="SHA коммита, из которого собрана эта версия — сверяйте с git в разработке">
             v{import.meta.env.VITE_APP_VERSION} ·{' '}

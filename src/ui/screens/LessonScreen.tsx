@@ -398,8 +398,8 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
     : null;
 
   return (
-    <div ref={screenRef} className="screen" style={{ paddingBottom: verdict ? '230px' : '110px' }}>
-      <div className="row mb">
+    <div ref={screenRef} className={`screen lesson-screen ${verdict ? 'has-verdict' : ''}`}>
+      <div className="row mb lesson-header">
         <button
           className="lesson-exit"
           type="button"
@@ -432,9 +432,7 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
         )}
       </div>
 
-      <div className="tiny center mb">
-        {lesson.emoji} {lesson.title}
-      </div>
+      <span className="sr-only">{lesson.emoji} {lesson.title}</span>
 
       {helpMode !== 'off' && helpStage > 0 && (
         <BukHelpPanel
@@ -445,12 +443,14 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
         />
       )}
 
-      <TaskView key={task.uid} task={task} word={word} onSolve={onSolve} onAttempt={(quality) => {
+      {!verdict && (
+        <TaskView key={task.uid} task={task} word={word} onSolve={onSolve} onAttempt={(quality) => {
         if (!finalized.current) {
           ensureTouchedToday();
           recordAttempt(observed.current, attempts.current, task.uid, task.reason === 'repair', withHelp(quality) ?? 0);
         }
       }} />
+      )}
 
       {verdict && (
         <div className={`footer-bar ${verdict.ok ? 'ok' : 'bad'}`}>

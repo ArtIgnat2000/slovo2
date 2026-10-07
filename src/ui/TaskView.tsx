@@ -79,12 +79,18 @@ function HintCard({ word }: { word: Word }) {
 function Intro({ word, onSolve }: { word: Word; onSolve: SolveFn }) {
   const [showHint, setShowHint] = useState(false);
   return (
-    <div className="task">
+    <div className="task task-intro">
       {/* Знакомство — это карточка слова: картинка на плите, слово, слоги,
           предложение. Всё остальное (пояснения и кнопки) живёт вне карточки:
           ребёнок должен видеть границу «вот слово, вот задание». */}
-      <WordCard word={word} lettersProps={{ blink: true }}>
-        <div className="row wrap-center">
+      <WordCard
+        word={word}
+        variant="split"
+        artSize={76}
+        className="lesson-intro-card"
+        lettersProps={{ blink: true }}
+      >
+        <div className="row wrap-center intro-syllables">
           {word.syllables.map((s, i) => (
             <span key={i} className="chip">
               {s}
@@ -93,19 +99,6 @@ function Intro({ word, onSolve }: { word: Word; onSolve: SolveFn }) {
         </div>
         <Sentence word={word} hidden={false} />
       </WordCard>
-      <p className="muted center">{word.hint}</p>
-      {word.mnemonic && <div className="banner">💡 {word.mnemonic}</div>}
-      {word.danger.length ? (
-        <p className="tiny center">
-          Оранжевая — «опасная» буква. Посмотри на слово, проговори его так, как пишется, и закрой глаза —
-          представь эту букву.
-        </p>
-      ) : (
-        <p className="tiny center">
-          Здесь нет «опасных» букв — слово пишется так, как слышится. Посмотри на слово, проговори его и
-          закрой глаза — представь все буквы.
-        </p>
-      )}
       {showHint ? (
         <div className="banner">🔎 {dangerSummary(word)}</div>
       ) : (
@@ -132,7 +125,7 @@ function Syllables({ word, onSolve }: { word: Word; onSolve: SolveFn }) {
   const [step, setStep] = useState(0);
   const [showHint, setShowHint] = useState(false);
   return (
-    <div className="task">
+    <div className="task task-syllables">
       <WordLetters word={word} stress markDanger={showHint} />
       <p className="prompt">Прочитай по слогам — как пишется 👇</p>
       <div className="syllables">
@@ -194,7 +187,7 @@ function Gap({ word, task, onSolve, onAttempt }: Props) {
   };
 
   return (
-    <div className="task">
+    <div className="task task-gap">
       <p className="prompt">Какая буква спряталась?</p>
       <WordLetters word={word} stress markDanger hide={[task.dangerIdx]} />
       <Sentence word={word} />
@@ -301,8 +294,8 @@ function Build({ word, task, onSolve, onAttempt }: Props) {
   };
 
   return (
-    <div className="task">
-      <WordClue word={word} />
+    <div className="task task-build">
+      <WordClue word={word} compact />
       <p className="prompt">Собери слово из букв</p>
       <div className={`slots ${bad ? 'shake' : ''}`}>
         {placed.map((l, i) => (
@@ -363,8 +356,8 @@ function Write({ word, task, onSolve, onAttempt }: Props) {
   const hideAll = word.text.split('').map((_, i) => i).filter((i) => i !== task.dangerIdx);
 
   return (
-    <div className="task">
-      <WordClue word={word} />
+    <div className="task task-write">
+      <WordClue word={word} compact />
       <p className="prompt">Напиши слово ✍️</p>
       {hintUsed && (
         <div style={{ textAlign: 'center', width: '100%' }}>
@@ -447,7 +440,7 @@ function Visual({ word, task, onSolve, onAttempt }: Props) {
 
   if (phase === 'show') {
     return (
-      <div className="task">
+      <div className="task task-visual">
         <p className="prompt">Запомни слово! 👀</p>
         <WordLetters word={word} stress />
         <div className="bar orange" style={{ width: '100%' }}>
@@ -459,8 +452,8 @@ function Visual({ word, task, onSolve, onAttempt }: Props) {
   }
 
   return (
-    <div className="task">
-      <WordClue word={word} />
+    <div className="task task-visual">
+      <WordClue word={word} compact />
       <p className="prompt">Напиши слово ✍️</p>
       {peek && (
         <div className="banner center">
@@ -537,7 +530,7 @@ function Fix({ word, task, onSolve, onAttempt }: Props) {
   };
 
   return (
-    <div className="task">
+    <div className="task task-fix">
       <p className="prompt">🤖 Робот ошибся! Выбери верное слово</p>
       <div className="word-big">
         {wrong.split('').map((c, i) => (
@@ -546,7 +539,7 @@ function Fix({ word, task, onSolve, onAttempt }: Props) {
           </span>
         ))}
       </div>
-      <WordClue word={word} />
+      <WordClue word={word} compact />
       <div className="options" style={{ gridTemplateColumns: '1fr' }}>
         {(task.options ?? []).map((o) => {
           const cls = !chosen ? '' : o === word.text ? 'ok' : o === chosen ? 'bad' : 'dim';

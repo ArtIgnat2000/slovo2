@@ -3030,3 +3030,303 @@ p {
     transition: none;
   }
 }
+
+/* ── Узкие Android-экраны: родительский раздел и карточки урока ─────────────
+   У родителя допустима вертикальная прокрутка, но ни один контрол не должен
+   расширять viewport по X. В уроке наоборот: это один шаг с одним действием,
+   поэтому весь шаг остаётся в динамической высоте экрана без прокрутки. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.grow {
+  min-width: 0;
+}
+
+/* Урок — это отдельный «экран действия», а не длинная страница. Сначала
+   задаём обычный vh для старых iOS, затем svh — минимальную стабильную видимую
+   высоту. Это важнее dvh: при появлении адресной строки Safari ни кнопка, ни
+   клавиатура не должны оказаться за нижним краем. */
+.lesson-screen {
+  height: 100vh;
+  min-height: 100vh;
+  max-height: 100vh;
+  height: 100svh;
+  min-height: 100svh;
+  max-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  overscroll-behavior: none;
+  padding: calc(10px + var(--safe-t)) 16px calc(12px + var(--safe-b));
+}
+.lesson-header {
+  flex: none;
+  min-width: 0;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.lesson-header .grow {
+  min-width: 28px;
+}
+.lesson-header .stat-pill {
+  flex: none;
+  padding: 5px 8px;
+  white-space: nowrap;
+}
+.lesson-screen > .buk-panel {
+  flex: none;
+  margin: 0 0 8px;
+  padding: 8px 10px;
+}
+.lesson-screen > .buk-panel .buk-panel-text {
+  margin-bottom: 6px;
+}
+.lesson-screen .task {
+  flex: 1 1 auto;
+  min-height: 0;
+  justify-content: center;
+  gap: clamp(8px, 1.7dvh, 14px);
+  padding-bottom: 2px;
+}
+.lesson-screen .prompt {
+  margin: 0;
+  font-size: clamp(18px, 5.6vw, 22px);
+  line-height: 1.25;
+}
+.lesson-screen .word-big {
+  font-size: clamp(30px, 9vw, 38px);
+}
+.lesson-screen .sentence {
+  padding: 8px 10px;
+  font-size: var(--fs-sm);
+  line-height: 1.3;
+}
+.lesson-screen .task .banner {
+  padding: 8px 10px;
+  font-size: var(--fs-xs);
+  line-height: 1.3;
+}
+.lesson-screen .task > .row {
+  min-width: 0;
+}
+.lesson-screen .task > .row .btn.wide {
+  min-width: 0;
+  padding-right: 12px;
+  padding-left: 12px;
+}
+.lesson-screen .syllable {
+  min-width: 54px;
+  padding: 8px 10px;
+  font-size: 24px;
+}
+.lesson-screen .options {
+  gap: 8px;
+}
+.lesson-screen .option {
+  min-height: 54px;
+  font-size: 20px;
+}
+.lesson-screen .slot,
+.lesson-screen .letter {
+  width: 44px;
+  height: 52px;
+  font-size: 23px;
+}
+.lesson-screen .keyboard {
+  gap: 6px;
+  padding-bottom: 0;
+}
+.lesson-screen .kb-row {
+  gap: 4px;
+}
+.lesson-screen .key {
+  height: 46px;
+  font-size: 19px;
+}
+.lesson-screen .clue {
+  gap: 8px;
+}
+.lesson-screen .clue .sentence {
+  text-align: left;
+}
+.lesson-screen .clue-hint {
+  margin-top: 4px;
+  font-size: var(--fs-xs);
+  line-height: 1.25;
+}
+
+/* Знакомство больше не использует большую «фотокарточку» во всю ширину.
+   Компактная полка оставляет образ, слово, слоги и фразу (ядро упражнения),
+   а повторяющие друг друга пояснения перенесены в явную кнопку подсказки. */
+.lesson-intro-card.wcard-split {
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+}
+.lesson-intro-card.wcard-split .word-art-frame {
+  margin-top: 0;
+}
+.lesson-intro-card.wcard-split .wcard-main,
+.lesson-intro-card.wcard-split .wcard-body {
+  gap: 8px;
+}
+.lesson-intro-card.wcard-split .word-big {
+  font-size: clamp(26px, 7.7vw, 30px);
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+.lesson-intro-card .intro-syllables {
+  gap: 6px;
+}
+.lesson-intro-card .chip {
+  min-height: 34px;
+  padding: 5px 9px;
+  font-size: 14px;
+}
+.lesson-intro-card .sentence {
+  text-align: left;
+}
+
+/* В режиме вердикта само задание размонтировано: ребёнок видит только ответ и
+   «Далее», а клавиатура/старые варианты не создают фальшивую прокрутку под
+   нижней панелью. */
+.lesson-screen.has-verdict {
+  padding-bottom: calc(12px + var(--safe-b));
+}
+
+/* Родительский экран: строки настроек теперь содержат переносимые значения,
+   а на телефоне становятся вертикальными. Это предотвращает horizontal scroll
+   для длинных чипов («не показывать», «Короткий · 12» и т. п.). */
+.parent-screen {
+  /* fallback for older Android WebView; clip avoids creating a horizontal scroll container */
+  overflow-x: hidden;
+  overflow-x: clip;
+}
+.parent-screen .card,
+.parent-screen .row,
+.parent-screen .kv,
+.parent-screen .setting-copy {
+  min-width: 0;
+}
+.parent-screen .kv {
+  gap: 12px;
+}
+.parent-screen .kv > :first-child {
+  min-width: 0;
+}
+.parent-screen .kv > :last-child:not(button) {
+  overflow-wrap: anywhere;
+}
+.parent-settings .parent-setting {
+  align-items: center;
+}
+.parent-settings .parent-setting.detailed {
+  align-items: flex-start;
+}
+.parent-settings .setting-control {
+  min-width: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.parent-settings .chip {
+  white-space: normal;
+}
+.parent-screen .word-chip {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.parent-screen .cal-day {
+  min-width: 0;
+}
+
+@media (max-width: 480px) {
+  .parent-profile-row {
+    gap: 8px;
+  }
+  .parent-profile-row .btn {
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+  .parent-stats {
+    gap: 6px;
+  }
+  .parent-stats .card {
+    padding: 10px 4px;
+  }
+  .parent-stats .tiny {
+    overflow-wrap: anywhere;
+  }
+  .parent-screen .calendar {
+    gap: 4px;
+  }
+  .parent-screen .cal-dot {
+    height: 30px;
+    border-radius: 10px;
+  }
+  .parent-settings .parent-setting {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+    gap: 8px;
+    padding: 10px 0;
+  }
+  .parent-settings .setting-control {
+    justify-content: flex-start;
+  }
+  .parent-settings .parent-setting > .chip {
+    justify-self: start;
+  }
+}
+
+@media (max-height: 680px) {
+  .lesson-screen {
+    padding-top: calc(8px + var(--safe-t));
+    padding-bottom: calc(8px + var(--safe-b));
+  }
+  .lesson-header {
+    margin-bottom: 4px;
+  }
+  .lesson-screen .task {
+    gap: 8px;
+  }
+  .lesson-screen .task .banner {
+    padding: 6px 8px;
+  }
+  .lesson-screen .key {
+    height: 44px;
+  }
+  .lesson-screen .clue-hint {
+    display: none;
+  }
+}
+
+@media (max-width: 360px) {
+  .lesson-screen {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+  .lesson-header {
+    gap: 6px;
+  }
+  .lesson-header .stat-pill {
+    padding-right: 6px;
+    padding-left: 6px;
+    font-size: 13px;
+  }
+  .lesson-screen .syllables {
+    gap: 6px;
+  }
+  .lesson-screen .syllable {
+    min-width: 50px;
+  }
+}
