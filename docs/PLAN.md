@@ -2090,6 +2090,9 @@ A «Плита» и C «Полка» остались переключаемым
 * **Регрессия:** `tests/lesson-art-ui.test.tsx` проверяет одинаковый адаптивный
   размер для обеих осей, отсутствие shrink и отдельный размер короткого экрана.
   Ранее smoke-тест не измерял геометрию flex.
-* **Проверки:** `typecheck`, `test:smoke`, `build`, `git diff --check` — зелёные.
-* **Не опубликовано:** версия и `docs/RELEASE-*.md` не менялись; публикация,
-  коммит, push и PR — только после явного разрешения пользователя.
+* **Проверки:** `typecheck`, `content:check` (94/94), `test:adaptive`,
+  `test:smoke`, `build`, `test:boot`, `audit:storage`, `git diff --check` — зелёные.
+* **Релиз 0.11.5 подготовлен по запросу пользователя «PR и Деплой»:** версия
+  `package.json`/`package-lock.json` поднята, состав и post-deploy чек-лист —
+  [`docs/RELEASE-0.11.5.md`](./RELEASE-0.11.5.md). PR — из ветки этой Arena-сессии;
+  после разрешённого слияния проверить Pages deployment и `?diag=1` (`v0.11.5`).
