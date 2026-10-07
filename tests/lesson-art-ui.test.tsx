@@ -131,6 +131,35 @@ export async function runLessonArtChecks() {
     );
   }
 
+  // Режим «Повторение» открывается той же фотокарточкой, но как напоминание:
+  // слово уже знакомо, поэтому кнопка приглашает вспомнить (замечание с айфона
+  // 2026-10-07: повторение встречало слово старой компактной подсказкой).
+  root.render(
+    createElement(TaskView, {
+      task: makeTask('intro', word.id, 'review', word.danger[0] ?? 0),
+      word,
+      onSolve: () => {},
+    }),
+  );
+  await sleep(60);
+  const reminder = box.querySelector('.task-intro .wcard') as HTMLElement | null;
+  check(
+    'картинка: напоминание в повторении — та же «фотокарточка»',
+    !!reminder && reminder.classList.contains('wcard-photo') && reminder.classList.contains('lesson-intro-card'),
+    reminder?.className ?? '—',
+  );
+  check(
+    'картинка: у напоминания кнопка «Вспомнил», а не «Запомнил»',
+    !!Array.from(box.querySelectorAll('button')).find((b) => (b.textContent ?? '').includes('Вспомнил')) &&
+      !Array.from(box.querySelectorAll('button')).find((b) => (b.textContent ?? '').includes('Запомнил')),
+    Array.from(box.querySelectorAll('button')).map((b) => b.textContent).join(' | '),
+  );
+  check(
+    'картинка: на напоминании остались слово, слоги и пример',
+    !!reminder?.querySelector('.word-big') && !!reminder.querySelector('.intro-syllables') && !!reminder.querySelector('.sentence'),
+    reminder?.textContent?.slice(0, 80) ?? '',
+  );
+
   // Пользователь прислал именно «Собери слово», а не знакомство: проверяем эту
   // карточку напрямую, чтобы тест не проходил только за счёт большого intro.
   root.render(

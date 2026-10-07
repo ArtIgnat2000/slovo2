@@ -126,8 +126,21 @@ function questStart(text: string): HTMLButtonElement | undefined {
   );
 }
 
+/** Пролистать неоцениваемые карточки-напоминания («Вспомнил! 👍») до задания. */
+async function skipReminders(): Promise<void> {
+  for (let i = 0; i < 4; i++) {
+    const reminder = Array.from(document.querySelectorAll('.task button')).find((b) =>
+      (b.textContent ?? '').includes('Вспомнил'),
+    );
+    if (!reminder) return;
+    click(reminder);
+    await sleep(60);
+  }
+}
+
 /** Ответить на текущую карточку повторения заведомо неверно (оценка 0). */
 async function answerWrong(): Promise<boolean> {
+  await skipReminders();
   const task = document.querySelector('.task');
   if (!task) return false;
   const syllable = Array.from(task.querySelectorAll('button')).find(
@@ -166,6 +179,7 @@ async function answerWrong(): Promise<boolean> {
 
 /** Ответить на текущую карточку повторения верно. */
 async function answerRight(): Promise<boolean> {
+  await skipReminders();
   const task = document.querySelector('.task');
   if (!task) return false;
   const syllable = Array.from(task.querySelectorAll('button')).find(
@@ -277,6 +291,13 @@ export async function runQuestUiChecks(): Promise<void> {
     bodyText().slice(0, 160),
   );
   check('задания дня: в шапке именно «Повторение»', has('Повторение'), bodyText().slice(0, 80));
+  // Повторение открывается крупной карточкой-напоминанием, а не сразу заданием
+  // со старой компактной подсказкой (замечание с айфона 2026-10-07).
+  check(
+    'задания дня: повторение открывается фотокарточкой-напоминанием',
+    !!document.querySelector('.task-intro .lesson-intro-card.wcard-photo'),
+    document.querySelector('.task')?.className ?? '—',
+  );
 
   // 5. Ошибка в повторении не «замораживает» прогресс задания
   const wrongAnswered = await answerWrong();

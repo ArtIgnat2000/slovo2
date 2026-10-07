@@ -193,8 +193,8 @@ function solveStep(mode: Mode): boolean {
     return true;
   }
 
-  // 2. Знакомство
-  const intro = taskButton((b) => (b.textContent ?? '').includes('Запомнил'));
+  // 2. Знакомство и напоминание в повторении («Запомнил» / «Вспомнил»)
+  const intro = taskButton((b) => /Запомнил|Вспомнил/.test(b.textContent ?? ''));
   if (intro) {
     click(intro);
     return true;
