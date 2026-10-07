@@ -1742,12 +1742,30 @@ p {
 
 /* ── Подсказка к заданию ─────────────────────────────────────────────────── */
 
-/* Подсказка к заданию: плита картинки слева, предложение справа. Зазор 12px —
-   минимум для «плита ↔ текст»: рамка плиты и рамка предложения не сливаются. */
+/* Подсказка к заданию: в плотных упражнениях плита стоит слева от текста.
+   Вариант hero используется без экранной клавиатуры: образ становится главным,
+   а пример переезжает под него. */
 .clue {
   display: flex;
   align-items: center;
   gap: var(--sp-3);
+  width: 100%;
+}
+.clue-hero {
+  flex-direction: column;
+  gap: var(--sp-2);
+  width: min(100%, 400px);
+  margin-inline: auto;
+  padding: var(--sp-3);
+  border: 2px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+.clue-hero > .word-art-frame {
+  max-width: 100%;
+}
+.clue-hero .clue-body {
   width: 100%;
 }
 /* ── Картинка слова: плита с безопасной зоной ───────────────────────────────
@@ -3164,6 +3182,25 @@ p {
   line-height: 1.25;
 }
 
+/* «Собери» и «Исправь»: вместо маленькой иконки слева — карточка образа.
+   Плита занимает до 220px и стоит над примером. Она может сжиматься первой,
+   если открылась помощь БУКа или экран ниже обычного; текст и действия при
+   этом остаются целиком. */
+.lesson-screen .clue-hero {
+  flex: 0 1 auto;
+  min-height: 0;
+}
+.lesson-screen .clue-hero > .word-art-frame {
+  flex: 0 1 auto;
+  width: min(100%, var(--art-clue-hero));
+  height: auto;
+  min-height: 96px;
+  aspect-ratio: 1;
+}
+.lesson-screen .clue-hero > .clue-body {
+  flex: none;
+}
+
 /* ── Знакомство: снимок-герой на всё свободное место ───────────────────────
  *
  * Было: компактная «полка» с плитой 76 px — на айфоне картинка читалась как
@@ -3322,6 +3359,10 @@ p {
 }
 
 @media (max-height: 680px) {
+  :root {
+    /* На iPhone SE две строки слотов и букв важнее вертикального hero-вида. */
+    --art-clue-hero: 96px;
+  }
   .lesson-screen {
     padding-top: calc(8px + var(--safe-t));
     padding-bottom: calc(8px + var(--safe-b));
@@ -3337,6 +3378,17 @@ p {
   }
   .lesson-screen .key {
     height: 44px;
+  }
+  .lesson-screen .clue-hero {
+    flex-direction: row;
+    width: 100%;
+    padding: var(--sp-2);
+  }
+  .lesson-screen .clue-hero > .word-art-frame {
+    flex: none;
+    width: var(--art-clue-hero);
+    height: var(--art-clue-hero);
+    min-height: 0;
   }
   .lesson-screen .clue-hint {
     display: none;
