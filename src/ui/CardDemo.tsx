@@ -14,7 +14,7 @@ import { WordCard, WordClue, Sentence, type PhotoSize, type WordCardVariant } fr
  *
  * Свой вариант можно посмотреть в приложении через хеш (переживает любые
  * прокси, в отличие от параметра ?cards=):
- *   /#cards=plate   |   /#cards=photo   |   /#cards=split
+ *   /#cards=plate   |   /#cards=photo   (картинка всегда сверху, текст снизу)
  */
 
 const WORDS = ['класс', 'здравствуйте', 'до свидания', 'рисунок', 'картина', 'Москва', 'ворона', 'молоко', 'алфавит']
@@ -35,13 +35,6 @@ const VARIANTS: { id: WordCardVariant; title: string; note: string; pros: string
     note: 'снимок во всю ширину паспарту, слово под разделительной линией',
     pros: 'самая сильная связка «образ ↔ слово»; паспарту отделяет пёстрые фоны картинок',
     cons: 'в тёмной теме паспарту должно остаться светлым',
-  },
-  {
-    id: 'split',
-    title: 'C · Полка',
-    note: 'картинка слева, слово и подпись справа',
-    pros: 'компактно: 6–8 слов на экран, длинные слова переносятся',
-    cons: 'картинка мелкая — слабее для запоминания',
   },
 ];
 
@@ -70,7 +63,8 @@ function Demo() {
         Живые компоненты приложения на настоящих токенах. Пять слов подряд в каждом варианте — ниже.
         В приложении основным выбран <b>B · Фотокарточка</b>; свои вариант и размер снимка можно
         посмотреть по ссылке: <code>/#cards=photo</code>, <code>/#cards=plate</code>,{' '}
-        <code>/#cards=split</code>, <code>/#art=base|compact</code>.
+        <code>/#art=base|compact</code>. Порядок у всех вариантов один: картинка сверху,
+        текст снизу, по центру.
       </p>
 
       <div className="card mb">
@@ -124,7 +118,7 @@ function Demo() {
             <WordCard
               word={word}
               variant={picked}
-              artSize={picked === 'photo' ? photoCss : picked === 'split' ? 88 : undefined}
+              artSize={picked === 'photo' ? photoCss : undefined}
             >
               <span className="tiny">Слоги: {word.syllables.join(' · ')}</span>
               <Sentence word={word} hidden={false} />
@@ -144,7 +138,7 @@ function Demo() {
         </div>
       </div>
 
-      <h2>Все три варианта рядом</h2>
+      <h2>Оба варианта рядом</h2>
       <div className="row" style={{ alignItems: 'flex-start', gap: 24, flexWrap: 'wrap' }}>
         {VARIANTS.map((v) => (
           <div key={v.id} style={{ width: size, maxWidth: '100%', flex: 'none' }}>
@@ -158,7 +152,7 @@ function Demo() {
                   key={w.id}
                   word={w}
                   variant={v.id}
-                  artSize={v.id === 'photo' ? photoCss : v.id === 'split' ? 88 : undefined}
+                  artSize={v.id === 'photo' ? photoCss : undefined}
                 >
                   <Sentence word={w} hidden={false} />
                 </WordCard>

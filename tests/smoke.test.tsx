@@ -449,10 +449,12 @@ async function main() {
     const hrefBefore = window.location.href;
     window.history.replaceState({}, '', '/?cards=plate');
     check('?cards=plate возвращает вариант «Плита»', resolveWordCardVariant() === 'plate', window.location.search);
+    // «Полка» (картинка слева) удалена: неизвестный или старый ?cards=split
+    // возвращает основной вариант, а не строку с картинкой слева.
     window.history.replaceState({}, '', '/#cards=split&art=compact');
     check(
-      'хеш #cards=split и #art=compact читаются',
-      resolveWordCardVariant() === 'split' && resolvePhotoSize() === 'compact',
+      'хеш #cards=split (удалённый вариант) откатывается к «Фотокарточке», #art=compact читается',
+      resolveWordCardVariant() === 'photo' && resolvePhotoSize() === 'compact',
       window.location.hash,
     );
     window.history.replaceState({}, '', '/?art=base');
