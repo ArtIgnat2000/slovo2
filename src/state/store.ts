@@ -702,6 +702,7 @@ export const useApp = create<AppState>()(
               ...prof,
               gems: prof.gems - item.price,
               shop: {
+                ...shop, // новая покупка не должна стирать уже открытые оттенки
                 owned: [...shop.owned, id],
                 // купленное сразу надевается — ребёнку не нужно ещё раз тапать
                 equipped: { ...shop.equipped, [item.slot]: id },
