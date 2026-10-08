@@ -15,6 +15,7 @@ import {
   BONUS_CHEST_GEMS,
   CHEST_GEMS,
   MIN_REVIEW_WORDS,
+  nextRun,
   planOf,
   plannedQuests,
   questProgress,
@@ -182,6 +183,23 @@ function profileWith(practised: number, opts: { s?: number; dueOffsetMs?: number
   assert.equal(bonusChestsReady(3, 3), 0);
   assert.equal(dailyChestClaimed({ chestsToday: 1, bonusChestsClaimed: 0 }), true);
   assert.equal(dailyChestClaimed({ chestsToday: 3, bonusChestsClaimed: 3 }), false, 'бонусы не закрывают основной сундук');
+}
+
+// Серия «без ошибок»: лучшая серия за день не сбрасывается ошибкой, текущая — сбрасывается.
+{
+  let d: { flawless: number; streak?: number } = { flawless: 0 };
+  const run = (ok: boolean) => {
+    d = { ...d, ...nextRun(d, ok) };
+    return d.flawless;
+  };
+  for (let i = 0; i < 12; i++) run(true);
+  assert.equal(d.flawless, 12);
+  assert.equal(run(false), 12, 'ошибка не должна уменьшать лучшую серию');
+  assert.equal(d.streak, 0, 'после ошибки текущая серия обнулена');
+  for (let i = 0; i < 3; i++) run(true);
+  assert.equal(d.flawless, 12, 'новая серия из 3 не побила рекорд 12');
+  assert.equal(d.streak, 3);
+  assert.equal(dayMetrics({ ...d, xp: 0, correct: 15, wrong: 1, lessons: 0, reviewCorrect: 0, reviewWords: [] }).flawless, 12);
 }
 
 console.log('✓ задания дня: план, повторение и бонусные сундуки за каждый урок');

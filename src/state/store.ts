@@ -14,6 +14,7 @@ import {
   CHEST_GEMS,
   dailyChestClaimed,
   dayMetrics,
+  nextRun,
   plannedQuests,
   planOf,
   rollChest,
@@ -571,8 +572,8 @@ export const useApp = create<AppState>()(
                   ...day,
                   correct: day.correct + (ok ? 1 : 0),
                   wrong: day.wrong + (ok ? 0 : 1),
-                  // задание «без ошибок»: считаем лучшую серию за день
-                  flawless: ok ? day.flawless + 1 : 0,
+                  // задание «без ошибок»: лучшая серия за день; текущая хранится отдельно
+                  ...nextRun(day, ok),
                   reviewCorrect: day.reviewCorrect + (ok && review ? 1 : 0),
                   reviewWords,
                 },
