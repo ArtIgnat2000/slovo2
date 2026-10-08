@@ -42,6 +42,15 @@ export const QUEST_POOL: QuestSpec[] = [
   { kind: 'review', target: 5, title: 'Повтори 5 слов', emoji: '🔁', reward: 3 },
 ];
 
+/**
+ * Серия «без ошибок» после очередного ответа: текущая серия растёт на верном ответе и
+ * обнуляется на ошибке, а лучшая серия за день (`flawless`) при этом не уменьшается.
+ */
+export function nextRun(day: Pick<DayStat, 'flawless' | 'streak'>, ok: boolean): { flawless: number; streak: number } {
+  const streak = ok ? (day.streak ?? 0) + 1 : 0;
+  return { flawless: Math.max(day.flawless ?? 0, streak), streak };
+}
+
 /** Ежедневные метрики — считаются из данных дня, хранить их отдельно не нужно. */
 export interface DayMetrics {
   lessons: number; // уроков пройдено за день

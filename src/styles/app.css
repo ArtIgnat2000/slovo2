@@ -3181,6 +3181,24 @@ p {
   font-size: var(--fs-xs);
   line-height: 1.25;
 }
+/* Картинка и текст в одной строке должны начинаться с одной верхней линии:
+   раньше текстовая колонка центрировалась по высоте картинки, и пузырь с
+   подсказкой «висел» посреди рисунка, а строка подсказки — по центру под ним.
+   Теперь колонка прижата к верху, а подсказка выровнена по левому краю пузыря. */
+.lesson-screen .clue-inline {
+  align-items: flex-start;
+}
+.lesson-screen .clue-inline > .clue-body {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 8px;
+}
+.lesson-screen .clue-inline .clue-hint {
+  margin: 0;
+  text-align: left;
+}
 
 /* «Напиши» и «Зрительный диктант»: снизу экранная клавиатура, поэтому подсказка
    остаётся горизонтальной (снимок слева от примера) — вертикальную композицию
