@@ -241,6 +241,60 @@ export async function runPuzzleUiChecks(playLesson: (second?: boolean) => Promis
     '',
   );
 
+  // Открываем второй цвет и имитируем повторный вход: оба оплаченных акцента
+  // и выбранный цвет должны пережить загрузку профиля из IndexedDB.
+  const costumeId = COSTUMES[0].id;
+  const secondAccent = COSTUME_PALETTES[costumeId].extra[1];
+  click(cardSwatches(costumeId)[2]);
+  await sleep(60);
+  check('акцент: покупка второго оттенка просит подтверждение', has('Открыть цвет'), body().slice(0, 160));
+  click(btnText('Открыть за'));
+  await sleep(100);
+  check(
+    'акцент: два купленных оттенка остаются открытыми',
+    active().shop?.tuning?.current?.[costumeId] === secondAccent.id &&
+      secondAccent.id !== accentTitle.id &&
+      (active().shop?.tuning?.unlocked?.[costumeId] ?? []).includes(accentTitle.id) &&
+      (active().shop?.tuning?.unlocked?.[costumeId] ?? []).includes(secondAccent.id),
+    JSON.stringify(active().shop?.tuning),
+  );
+  await sleep(100);
+  await useApp.persist.rehydrate();
+  await sleep(50);
+  check(
+    'акцент: оплаченные цвета и выбор сохраняются после повторного входа',
+    active().puzzle?.assembled.includes(costumeId) === true &&
+      active().shop?.tuning?.current?.[costumeId] === secondAccent.id &&
+      (active().shop?.tuning?.unlocked?.[costumeId] ?? []).includes(accentTitle.id) &&
+      (active().shop?.tuning?.unlocked?.[costumeId] ?? []).includes(secondAccent.id),
+    JSON.stringify({ puzzle: active().puzzle, tuning: active().shop?.tuning }),
+  );
+
+  // Покупка новой вещи не должна перезаписывать гардероб без уже открытых красок.
+  useApp.setState((s) => ({
+    profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, gems: 50 } : p)),
+  }));
+  await sleep(30);
+  check('акцент: тестовая покупка аксессуара доступна', useApp.getState().buyItem('cap'), '');
+  check(
+    'акцент: покупка аксессуара не стирает ранее открытые цвета',
+    active().shop?.tuning?.current?.[costumeId] === secondAccent.id &&
+      (active().shop?.tuning?.unlocked?.[costumeId] ?? []).includes(accentTitle.id) &&
+      (active().shop?.tuning?.unlocked?.[costumeId] ?? []).includes(secondAccent.id),
+    JSON.stringify(active().shop?.tuning),
+  );
+  await sleep(100);
+  await useApp.persist.rehydrate();
+  await sleep(50);
+  check(
+    'акцент: краски сохраняются после покупки аксессуара и повторной загрузки',
+    active().shop?.owned.includes('cap') === true &&
+      active().shop?.tuning?.current?.[costumeId] === secondAccent.id &&
+      (active().shop?.tuning?.unlocked?.[costumeId] ?? []).includes(accentTitle.id) &&
+      (active().shop?.tuning?.unlocked?.[costumeId] ?? []).includes(secondAccent.id),
+    JSON.stringify(active().shop),
+  );
+
   // Перелив: вся коллекция собрана — урок даёт кристаллы вместо фрагментов
   const gemsBefore = active().gems;
   seedPuzzle({
