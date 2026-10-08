@@ -181,6 +181,36 @@ export async function runLessonArtChecks() {
     buildArt?.getAttribute('style') ?? '—',
   );
 
+  // «Напиши слово» — второй шаг повторения (замечание с айфона 2026-10-07:
+  // после крупной фотокарточки снимок в упражнении снова выглядел иконкой).
+  // Компоновка здесь горизонтальная — снизу клавиатура, — но размер снимка
+  // больше не прибит числом: его считает flex от остатка высоты задания.
+  root.render(
+    createElement(TaskView, {
+      task: makeTask('write', word.id, 'review', word.danger[0] ?? 0),
+      word,
+      onSolve: () => {},
+    }),
+  );
+  await sleep(60);
+  const writeClue = box.querySelector('.task-write .clue') as HTMLElement | null;
+  const writeArt = writeClue?.querySelector('.word-art-frame') as HTMLElement | null;
+  check(
+    'картинка: «Напиши слово» оставляет подсказку слева от примера (снизу клавиатура)',
+    !!writeClue && !writeClue.classList.contains('clue-hero'),
+    writeClue?.className ?? '—',
+  );
+  check(
+    'картинка: «Напиши слово» берёт потолок --art-clue, а не число пикселей',
+    writeArt?.style.getPropertyValue('--art-size').trim() === 'var(--art-clue)',
+    writeArt?.getAttribute('style') ?? '—',
+  );
+  check(
+    'картинка: в «Напиши слово» остались пример и подпись про длину слова',
+    !!writeClue?.querySelector('.sentence') && !!writeClue?.querySelector('.clue-hint'),
+    writeClue?.textContent?.slice(0, 80) ?? '—',
+  );
+
   root.unmount();
   box.remove();
 
@@ -251,9 +281,49 @@ export async function runLessonArtChecks() {
     tokens.match(/--art-lesson-(?:cap|size):[^;]*;/g)?.join(' · ') ?? 'токены не найдены',
   );
   check(
-    'картинка: прежние адаптивные размеры подсказок в упражнениях сохранены',
-    /--art-clue:\s*clamp\(76px,[^;]*svh/.test(tokens) &&
+    'картинка: токены подсказок задают потолок, а не прибитый размер',
+    /--art-clue:\s*clamp\(104px,[^;]*svh/.test(tokens) &&
       /--art-clue-hero:\s*clamp\(128px,[^;]*svh/.test(tokens),
-    tokens.match(/--art-clue-hero:[^;]*;/)?.[0] ?? 'токены не найдены',
+    tokens.match(/--art-clue(?:-hero)?:[^;]*;/g)?.join(' · ') ?? 'токены не найдены',
+  );
+  check(
+    'картинка: на коротком экране потолок подсказки под клавиатурой снижается',
+    /--art-clue:\s*104px/.test(shortScreenRule),
+    shortScreenRule.replace(/\s+/g, ' ') || 'правило короткого экрана не найдено',
+  );
+
+  // ── 4. Подсказка в упражнении: размер считает flex, а не число ────────────
+  // Замечание с айфона 2026-10-07 (повтор 26): после крупной фотокарточки
+  // снимок во втором шаге («Напиши слово») снова читался иконкой — плита была
+  // прибита к 144px, а flex к тому же мог сплющить hero-снимок в полоску.
+  const clueRowRule =
+    css.match(/\.lesson-screen \.task-write > \.clue,[^{]*\{[^}]*\}/)?.[0] ?? '';
+  check(
+    'картинка: строка подсказки под клавиатурой забирает остаток высоты задания',
+    /flex:\s*1\s+1\s+auto/.test(clueRowRule) && /min-height:\s*0/.test(clueRowRule),
+    clueRowRule.replace(/\s+/g, ' ') || 'правило строки подсказки не найдено',
+  );
+  const clueArtRule =
+    css.match(/\.lesson-screen \.task-write > \.clue > \.word-art-frame,[^{]*\{[^}]*\}/)?.[0] ?? '';
+  check(
+    'картинка: снимок под клавиатурой тянется на эту высоту и держит квадрат',
+    /align-self:\s*stretch/.test(clueArtRule) &&
+      /height:\s*auto/.test(clueArtRule) &&
+      /aspect-ratio:\s*1/.test(clueArtRule),
+    clueArtRule.replace(/\s+/g, ' ') || 'правило снимка подсказки не найдено',
+  );
+  check(
+    'картинка: размер снимка под клавиатурой ограничен токеном, а не числом',
+    /max-height:\s*var\(--art-clue\)/.test(clueArtRule) && !/\b\d+px\s*;/.test(clueArtRule.replace(/min-height:[^;]*;/, '')),
+    clueArtRule.replace(/\s+/g, ' ') || 'правило снимка подсказки не найдено',
+  );
+  const lessonHeroArtRule =
+    css.match(/\.lesson-screen \.clue-hero\s*>\s*\.word-art-frame\s*\{[^}]*\}/)?.[0] ?? '';
+  check(
+    'картинка: hero-снимок не сплющивается по высоте (база 0 + grow + квадрат)',
+    /flex:\s*1\s+1\s+0%/.test(lessonHeroArtRule) &&
+      /aspect-ratio:\s*1/.test(lessonHeroArtRule) &&
+      /max-height:\s*var\(--art-clue-hero\)/.test(lessonHeroArtRule),
+    lessonHeroArtRule.replace(/\s+/g, ' ') || 'правило hero-снимка не найдено',
   );
 }
