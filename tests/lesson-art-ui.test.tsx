@@ -183,8 +183,8 @@ export async function runLessonArtChecks() {
 
   // «Напиши слово» — второй шаг повторения (замечание с айфона 2026-10-07:
   // после крупной фотокарточки снимок в упражнении снова выглядел иконкой).
-  // Компоновка здесь горизонтальная — снизу клавиатура, — но размер снимка
-  // больше не прибит числом: его считает flex от остатка высоты задания.
+  // Порядок тот же, что у карточки: картинка сверху, пример под ней, — даже
+  // при клавиатуре снизу. Картинка слева с текстом справа больше не допускается.
   root.render(
     createElement(TaskView, {
       task: makeTask('write', word.id, 'review', word.danger[0] ?? 0),
@@ -196,9 +196,16 @@ export async function runLessonArtChecks() {
   const writeClue = box.querySelector('.task-write .clue') as HTMLElement | null;
   const writeArt = writeClue?.querySelector('.word-art-frame') as HTMLElement | null;
   check(
-    'картинка: «Напиши слово» оставляет подсказку слева от примера (снизу клавиатура)',
+    'картинка: «Напиши слово» — картинка сверху, пример под ней (не в строке)',
     !!writeClue && !writeClue.classList.contains('clue-hero'),
     writeClue?.className ?? '—',
+  );
+  check(
+    'картинка: «Напиши слово» — снимок стоит первым, текст идёт после него',
+    !!writeClue &&
+      writeClue.firstElementChild?.classList.contains('word-art-frame') === true &&
+      writeClue.lastElementChild?.classList.contains('clue-body') === true,
+    writeClue ? Array.from(writeClue.children).map((c) => c.className).join(' | ') : '—',
   );
   check(
     'картинка: «Напиши слово» берёт потолок --art-clue, а не число пикселей',
@@ -306,15 +313,15 @@ export async function runLessonArtChecks() {
   const clueArtRule =
     css.match(/\.lesson-screen \.task-write > \.clue > \.word-art-frame,[^{]*\{[^}]*\}/)?.[0] ?? '';
   check(
-    'картинка: снимок под клавиатурой тянется на эту высоту и держит квадрат',
-    /align-self:\s*stretch/.test(clueArtRule) &&
-      /height:\s*auto/.test(clueArtRule) &&
-      /aspect-ratio:\s*1/.test(clueArtRule),
+    'картинка: снимок под клавиатурой стоит по центру сверху и держит квадрат',
+    /align-self:\s*center/.test(clueArtRule) &&
+      /width:\s*var\(--art-clue\)/.test(clueArtRule) &&
+      /height:\s*var\(--art-clue\)/.test(clueArtRule),
     clueArtRule.replace(/\s+/g, ' ') || 'правило снимка подсказки не найдено',
   );
   check(
     'картинка: размер снимка под клавиатурой ограничен токеном, а не числом',
-    /max-height:\s*var\(--art-clue\)/.test(clueArtRule) && !/\b\d+px\s*;/.test(clueArtRule.replace(/min-height:[^;]*;/, '')),
+    !/\b\d+px\s*;/.test(clueArtRule.replace(/min-height:[^;]*;/, '')),
     clueArtRule.replace(/\s+/g, ' ') || 'правило снимка подсказки не найдено',
   );
   const lessonHeroArtRule =
@@ -325,5 +332,36 @@ export async function runLessonArtChecks() {
       /aspect-ratio:\s*1/.test(lessonHeroArtRule) &&
       /max-height:\s*var\(--art-clue-hero\)/.test(lessonHeroArtRule),
     lessonHeroArtRule.replace(/\s+/g, ' ') || 'правило hero-снимка не найдено',
+  );
+
+  // ── 5. Правило «картинка сверху, текст снизу, по центру» ─────────────────
+  // Картинка слева с текстом справа возвращалась несколько раз: каждый раз
+  // чинили одно место (строка подсказки, вариант «Полка», медиа-запрос
+  // короткого экрана), а остальные оставались. Поэтому страж смотрит на все
+  // правила, которые могут поставить картинку рядом с текстом.
+  const clueBase = css.match(/(?:^|\n)\.clue\s*\{[^}]*\}/)?.[0] ?? '';
+  check(
+    'картинка: подсказка собрана колонкой (картинка сверху, текст снизу)',
+    /flex-direction:\s*column/.test(clueBase) && /align-items:\s*center/.test(clueBase),
+    clueBase.replace(/\s+/g, ' ') || 'правило .clue не найдено',
+  );
+  const rowRules = Array.from(css.matchAll(/([^{}]+)\{([^}]*)\}/g))
+    .filter(([, sel, body]) => /\bclue|wcard/.test(sel) && /flex-direction:\s*row/.test(body))
+    .map(([, sel]) => sel.trim());
+  check(
+    'картинка: ни одно правило подсказки или карточки не ставит картинку в строку',
+    rowRules.length === 0,
+    rowRules.join(' · ') || 'строчных правил нет',
+  );
+  check(
+    'картинка: вариант «картинка слева» (wcard-split) удалён из стилей',
+    !/wcard-split/.test(css),
+    '.wcard-split в app.css',
+  );
+  check(
+    'картинка: текст подсказки выровнен по центру, а не по левому краю',
+    !/\.lesson-screen \.clue \.sentence\s*\{[^}]*text-align:\s*left/.test(css) &&
+      !/\.clue-inline[^{]*\{[^}]*text-align:\s*left/.test(css),
+    'левое выравнивание в подсказке',
   );
 }
