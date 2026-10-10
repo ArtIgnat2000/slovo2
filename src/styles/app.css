@@ -3401,3 +3401,64 @@ p {
     min-width: 50px;
   }
 }
+
+/* ── «Бродилка БУКа» — главная игра ───────────────────────────────────────── */
+/* Вход на главной: заметная, но не первая — урок и задания дня по-прежнему
+   выше, игра не должна вытеснять учёбу. */
+.game-promo {
+  background: linear-gradient(180deg, var(--card), var(--primary-soft));
+}
+.game-promo h3 { margin: 0; }
+
+.game-screen { padding-bottom: calc(24px + var(--safe-b)); }
+
+/* Кубик: сетка 3×3, точки включаются по значению. Тряска при броске — та же
+   анимация, что у слотов, чтобы движение читалось одинаково. */
+.game-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-4);
+  margin: var(--sp-4) 0;
+}
+.game-dice {
+  width: 68px;
+  height: 68px;
+  flex: 0 0 auto;
+  border-radius: var(--r-sm);
+  background: var(--card);
+  box-shadow: inset 0 0 0 2px var(--line), 0 4px 0 rgba(36, 31, 54, 0.08);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  padding: 9px;
+  gap: 3px;
+}
+.game-dice i { border-radius: 50%; background: transparent; }
+.game-dice i.on { background: var(--primary); }
+
+/* Маршрут: клетки-станции с привалами; текущая клетка подсвечена, пройденные
+   приглушены — видно «сколько уже прошёл», без цифр и давления. */
+.game-board { display: flex; flex-direction: column; gap: var(--sp-2); }
+.game-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+.game-cell b { display: block; font-size: 16px; }
+.game-cell .game-cell-emoji { font-size: 24px; flex: 0 0 auto; }
+.game-cell.prival { background: var(--orange-soft); }
+.game-cell.passed { opacity: 0.72; }
+.game-cell.here {
+  box-shadow: 0 0 0 3px var(--primary), var(--shadow);
+  opacity: 1;
+}
+.game-mark { color: var(--green); font-weight: 800; flex: 0 0 auto; }
+
+/* Буква-шпион: видно, что это особенная плитка, но не «красная ошибка». */
+.letter.spy { box-shadow: inset 0 0 0 2px var(--orange); }
+.spy-banner { background: var(--orange-soft); color: var(--orange-ink); }
