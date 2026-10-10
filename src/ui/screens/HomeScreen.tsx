@@ -9,6 +9,7 @@ import { WeeklyRewards } from '../WeeklyRewards';
 import { levelOf, levelProgress, xpForLevel } from '../../engine/rewards';
 import { ACHIEVEMENTS } from '../../engine/rewards';
 import { pickReviewWords } from '../../engine/srs';
+import { BOARD, stationsOpened } from '../../engine/board';
 import { plural, type QuestKind } from '../../engine/quests';
 
 interface Props {
@@ -17,6 +18,8 @@ interface Props {
   /** «Пора повторить» — отдельный режим тренировки, id урока не нужен */
   onStartReview: () => void;
   onOpenVlabs: () => void;
+  /** «Бродилка БУКа» — главная игра приложения. */
+  onOpenGame: () => void;
 }
 
 /** «1 день / 3 дня / 8 дней» — чтобы «Серия: 1 дней» не резало глаз. */
@@ -28,7 +31,7 @@ function dayWord(n: number): string {
   return 'дней';
 }
 
-export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpenVlabs }: Props) {
+export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpenVlabs, onOpenGame }: Props) {
   const profile = useActiveProfile();
   const settings = useApp((s) => s.settings);
   const nextLesson = LESSONS.find((l) => (profile?.lessons[l.id]?.level ?? 0) < 5) ?? LESSONS[LESSONS.length - 1];
@@ -45,6 +48,8 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
   };
 
   const today = todayStat(profile);
+  const opened = stationsOpened(profile.game);
+  const cells = BOARD.length;
   const goal = settings.dailyGoal;
   const goalPct = Math.min(100, (today.xp / Math.max(1, goal)) * 100);
   const goalDone = today.xp >= goal;
@@ -120,6 +125,23 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
           </div>
         </div>
       </div>
+
+      {/* Главная игра: вход рядом с целью дня, чтобы ребёнок видел её сразу,
+          но урок оставался первым делом (игра ниже цели и заданий дня). */}
+      <button className="card mb wide game-promo" onClick={onOpenGame} style={{ textAlign: 'left', cursor: 'pointer' }}>
+        <div className="row">
+          <span style={{ fontSize: 30 }}>🎲</span>
+          <div className="grow">
+            <h3 style={{ margin: 0 }}>Бродилка БУКа</h3>
+            <p className="muted" style={{ margin: 0 }}>
+              {opened >= LESSONS.length
+                ? 'Маршрут пройден — можно пройти дорогу заново'
+                : `Кубик, привалы и ${LESSONS.length} станций: открыто ${opened} из ${LESSONS.length}`}
+            </p>
+          </div>
+          <span style={{ fontSize: 22 }}>▸</span>
+        </div>
+      </button>
 
       <DailyQuests onStart={startQuest} />
       <WeeklyRewards />
@@ -198,7 +220,7 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
         </div>
       </button>
 
-      <p className="tiny center mt">Слов в курсе: {WORDS.length}</p>
+      <p className="tiny center mt">Слов в курсе: {WORDS.length} · клеток в бродилке: {cells}</p>
     </div>
   );
 }

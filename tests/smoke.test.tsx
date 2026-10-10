@@ -18,6 +18,8 @@ import { runDiagnosticsRouteChecks } from './diagnostics-ui.test';
 import { runFloatingMascotChecks } from './mascot-ui.test';
 import { runBukLessonChecks } from './buk-lesson-ui.test';
 import { runLessonArtChecks } from './lesson-art-ui.test';
+import { runBoardEngineChecks } from './board.test';
+import { runBoardGameChecks } from './board-ui.test';
 import { LESSONS, WORDS } from '../src/content/words';
 import { resolvePhotoSize, resolveWordCardVariant } from '../src/ui/WordView';
 import { buildLesson, lessonCardLimit } from '../src/engine/scheduler';
@@ -732,6 +734,12 @@ async function main() {
   // Картинка в уроке: крупный резиновый снимок в знакомстве и адаптивная
   // подсказка в заданиях с клавиатурой — при сохранённом «экран не прокручивается».
   await runLessonArtChecks();
+
+  // «Бродилка БУКа»: сначала чистые правила движка (кубик не отбрасывает назад,
+  // станция — это тема урока, шпионы не дают собрать чужое слово), затем то же
+  // в живом интерфейсе: бросок, станция со шпионами, награды, привал, финиш.
+  runBoardEngineChecks();
+  await runBoardGameChecks();
 
   // Диагностика запускается прямой ссылкой и читает хранилище, не раскрывая профиль.
   await runDiagnosticsRouteChecks();

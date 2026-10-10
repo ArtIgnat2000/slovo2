@@ -240,10 +240,14 @@ function Gap({ word, task, onSolve, onAttempt }: Props) {
 function Build({ word, task, onSolve, onAttempt }: Props) {
   const later = useTaskTimeout();
   const letters = task.letters ?? [];
+  // Буквы-«шпионы» (игра «Бродилка БУКа»): их в слове нет — тап по такой букве
+  // ничего не ставит и объясняет правило. Это не ошибка: попытка не сгорает.
+  const spies = new Set(task.spies ?? []);
   const [placed, setPlaced] = useState<(string | null)[]>(Array(word.text.length).fill(null));
   const [used, setUsed] = useState<boolean[]>(letters.map(() => false));
   const [hintUsed, setHintUsed] = useState(false);
   const [bad, setBad] = useState(false);
+  const [spy, setSpy] = useState<number | null>(null);
   const solved = useRef(false);
 
   // usedHint передаём явно: подсказка может поставить последнюю букву и завершить
@@ -270,6 +274,13 @@ function Build({ word, task, onSolve, onAttempt }: Props) {
 
   const tapLetter = (i: number) => {
     if (solved.current || used[i] || bad) return;
+    if (spies.has(i)) {
+      sfx.tap();
+      haptic.tap();
+      setSpy(i);
+      later(() => setSpy((cur) => (cur === i ? null : cur)), 1800);
+      return;
+    }
     const slot = placed.findIndex((p) => p === null);
     if (slot < 0) return;
     sfx.tap();
@@ -333,11 +344,19 @@ function Build({ word, task, onSolve, onAttempt }: Props) {
       </div>
       <div className="letters">
         {letters.map((l, i) => (
-          <button key={i} className={`letter ${used[i] ? 'used' : ''}`} onClick={() => tapLetter(i)}>
+          <button
+            key={i}
+            className={`letter ${used[i] ? 'used' : ''} ${spy === i ? 'spy' : ''}`}
+            data-spy={spies.has(i) ? '1' : undefined}
+            onClick={() => tapLetter(i)}
+          >
             {l}
           </button>
         ))}
       </div>
+      {spy !== null && (
+        <div className="banner spy-banner">🕵️ Это буква-шпион. В слово она не встаёт — попробуй другую!</div>
+      )}
       {!bad && placed.includes(null) && (
         <HintBtn onClick={hint} label={hintUsed ? 'Ещё букву' : 'Подставить букву'} />
       )}

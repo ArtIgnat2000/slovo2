@@ -11,6 +11,7 @@ import { ProfilesScreen } from './ui/screens/ProfilesScreen';
 import { LessonScreen } from './ui/screens/LessonScreen';
 import { ShopScreen } from './ui/screens/ShopScreen';
 import { VlabsScreen } from './ui/screens/VlabsScreen';
+import { GameScreen } from './ui/screens/GameScreen';
 import { DiagnosticsScreen } from './ui/DiagnosticsScreen';
 import { setSoundEnabled } from './platform/sound';
 import { setHapticsEnabled } from './platform/haptics';
@@ -62,6 +63,8 @@ export default function App() {
   // а не с текущей настройкой: «Родители» могут поменять цель прямо во время урока.
   const [lessonGoal, setLessonGoal] = useState(settings.dailyGoal);
   const [vlabsOpen, setVlabsOpen] = useState(false);
+  /** «Бродилка БУКа» — главная игра: полноэкранный режим, как урок. */
+  const [gameOpen, setGameOpen] = useState(false);
   /**
    * Подсказка «добавь на экран». Читаем флаг один раз при старте и держим в состоянии:
    * раньше `markInstallHintShown()` писал в localStorage, но React об этом не знал —
@@ -178,6 +181,15 @@ export default function App() {
     );
   }
 
+  if (gameOpen) {
+    return (
+      <div className="app">
+        <GameScreen onExit={() => setGameOpen(false)} />
+        <Toast />
+      </div>
+    );
+  }
+
   if (vlabsOpen) {
     return (
       <div className="app">
@@ -197,6 +209,10 @@ export default function App() {
           onStartLesson={startLesson}
           onOpenProfiles={() => setProfilesOpen(true)}
           onStartReview={() => startLesson('review')}
+          onOpenGame={() => {
+            setParentUnlocked(false);
+            setGameOpen(true);
+          }}
           onOpenVlabs={() => {
             setParentUnlocked(false);
             setVlabsOpen(true);

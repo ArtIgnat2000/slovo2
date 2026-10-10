@@ -1,7 +1,19 @@
 import { nextAdaptiveState, type Outcome } from '../engine/adaptive';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { DailyState, DayStat, LessonSize, LessonState, Profile, ShopState, ShopSlot, ShopTuning, WeeklyState, WordState } from '../types';
+import type {
+  BoardGameState,
+  DailyState,
+  DayStat,
+  LessonSize,
+  LessonState,
+  Profile,
+  ShopState,
+  ShopSlot,
+  ShopTuning,
+  WeeklyState,
+  WordState,
+} from '../types';
 import { applyAnswer, initState } from '../engine/srs';
 import { idbStorage } from '../platform/storage';
 import { GEMS_PER_STREAK, levelOf } from '../engine/rewards';
@@ -32,6 +44,14 @@ import {
   type PuzzleAward,
 } from '../engine/puzzles';
 import { DEFAULT_LESSON_SIZE } from '../engine/scheduler';
+import {
+  advance,
+  BOARD,
+  BOARD_REWARDS,
+  cellAt,
+  normalizeGame,
+  type RollOutcome,
+} from '../engine/board';
 import {
   addTrash,
   emptyVault,
@@ -181,6 +201,14 @@ function readShop(p: Profile): ShopState {
   };
 }
 
+/**
+ * Состояние игры «Бродилка БУКа»; у профилей до игры поля нет — достраиваем
+ * пустую партию, поэтому старые сохранения читаются без изменений.
+ */
+function readGame(p: Profile): BoardGameState {
+  return normalizeGame(p.game);
+}
+
 function newProfile(name: string, avatar: string): Profile {
   return {
     id: `p_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
@@ -202,6 +230,7 @@ function newProfile(name: string, avatar: string): Profile {
     weekly: { week: weekStartKey(), claimed: [] },
     shop: { owned: [], equipped: {} },
     puzzle: { pieces: {}, collecting: null, assembled: [], worn: null },
+    game: { pos: 0, claimed: [], rolls: 0 },
   };
 }
 
@@ -243,6 +272,7 @@ function normalizeProfile(raw: Partial<Profile> | null | undefined): Profile | n
       tuning: normalizeTuning(raw.shop?.tuning, [...owned, ...puzzle.assembled]),
     },
     puzzle,
+    game: normalizeGame(raw.game),
   };
 }
 
@@ -313,6 +343,17 @@ interface AppState {
    * Возвращает иток для экрана результатов; null — нет активного профиля.
    */
   finishPuzzleLesson: () => PuzzleAward | null;
+
+  /**
+   * «Бродилка БУКа»: бросок кубика. Кубик ведёт только вперёд, привал и финиш
+   * начисляют кристаллы здесь же — позиция и награда сохраняются одной записью,
+   * поэтому перезагрузка посреди хода не может «съесть» награду или повторить её.
+   */
+  gameRoll: (dice: number) => RollOutcome;
+  /** Станция взята: слово собрано. Повторный визит приносит меньше кристаллов. */
+  gameClaim: (lessonId: string) => { first: boolean; gems: number };
+  /** Пройти маршрут заново: станции остаются открытыми, кубик снова в начале. */
+  gameRestart: () => void;
   /** Сменить костюм, который собираем: прогресс по каждому хранится отдельно. */
   choosePuzzleCostume: (id: string) => void;
   /** Надеть/снять собранный костюм (повторный тап снимает); несобранный — без изменений. */
@@ -608,6 +649,68 @@ export const useApp = create<AppState>()(
         );
         return weeklyAwards;
       },
+
+      gameRoll: (dice) => {
+        let out: RollOutcome = { pos: 0, cell: null, finished: false, gems: 0 };
+        set((s) =>
+          patchActive(s, (p) => {
+            const game = readGame(p);
+            const pos = advance(game.pos, dice, BOARD.length);
+            const cell = cellAt(pos);
+            // БУК не сдвинулся (маршрут уже пройден) — хода нет: ни награды,
+            // ни счётчика бросков. Иначе последний привал платил бы бесконечно.
+            const moved = pos > game.pos;
+            const finished = moved && pos >= BOARD.length && !game.finishedAt;
+            // Финиш важнее привала: последняя клетка — привал, но маршрут пройден.
+            const gems = !moved
+              ? 0
+              : finished
+                ? BOARD_REWARDS.finish
+                : cell?.kind === 'prival'
+                  ? BOARD_REWARDS.prival
+                  : 0;
+            out = { pos, cell, finished, gems };
+            return {
+              ...p,
+              gems: p.gems + gems,
+              game: {
+                ...game,
+                pos,
+                rolls: moved ? game.rolls + 1 : game.rolls,
+                ...(finished ? { finishedAt: Date.now() } : {}),
+              },
+            };
+          }),
+        );
+        return out;
+      },
+
+      gameClaim: (lessonId) => {
+        let first = false;
+        let gems = 0;
+        set((s) =>
+          patchActive(s, (p) => {
+            const game = readGame(p);
+            first = !game.claimed.includes(lessonId);
+            gems = first ? BOARD_REWARDS.station : BOARD_REWARDS.replay;
+            return {
+              ...p,
+              gems: p.gems + gems,
+              game: { ...game, claimed: first ? [...game.claimed, lessonId] : game.claimed },
+            };
+          }),
+        );
+        return { first, gems };
+      },
+
+      gameRestart: () =>
+        set((s) =>
+          patchActive(s, (p) => {
+            const game = readGame(p);
+            // Станции и история финиша остаются: заново проходится только дорога.
+            return { ...p, game: { ...game, pos: 0, rolls: 0 } };
+          }),
+        ),
 
       addXp: (n) =>
         set((s) =>

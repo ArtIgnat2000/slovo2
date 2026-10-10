@@ -32,6 +32,9 @@ npm run test:boot      # прод-бандл на первом запуске: �
 npm run audit:storage  # прогон сейфа прогресса: копии, корзина, сбой записи
 npm run images         # пересобрать картинки слов из images-src/ (нужен ImageMagick)
 npm run promo          # лист превью костюмов в docs/promo/<сегодня>/ (нужен @resvg/resvg-js)
+
+npm run proto:serve    # прототип игровых механик: http://localhost:8099/docs/game-mechanics/prototype/
+npm run proto:check    # автопроверки прототипа и игр (jsdom, 67 шт.)
 ```
 
 ## Структура
