@@ -1,8 +1,35 @@
 import './setup';
-import { createElement } from 'react';
+import { createElement, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ChestCelebration } from '../src/ui/ChestCelebration';
-import { check, click, sleep } from './ui-helpers';
+import { CHEST_WAKE_TAPS, chestPreview, chestWakeBonus, countWakeTap } from '../src/engine/quests';
+import { check, click, has, sleep } from './ui-helpers';
+
+/**
+ * Обвязка «Разбуди сундук»: состоянием тапов владеет карточка заданий, поэтому
+ * в тесте её заменяет маленький хост — он же считает награду, как это делает стор.
+ */
+function WakeHost({ available = true }: { available?: boolean }) {
+  const [taps, setTaps] = useState(0);
+  const bonus = chestWakeBonus('daily');
+  const awake = taps >= CHEST_WAKE_TAPS;
+  const gems = chestPreview('daily', awake).gems;
+  return createElement(ChestCelebration, {
+    reward: { gems, xp: 0, freezes: 0, ...(awake ? { wakeBonus: bonus } : {}) },
+    balance: 35 + (awake ? bonus : 0),
+    look: {},
+    stage: 1,
+    celebrate: true,
+    onClose: () => {},
+    wake: {
+      taps,
+      target: CHEST_WAKE_TAPS,
+      bonus,
+      available,
+      onTap: () => setTaps((current) => countWakeTap(current)),
+    },
+  });
+}
 
 const reward = { gems: 15, xp: 0, freezes: 0 };
 
@@ -178,4 +205,87 @@ export async function runChestCeremonyChecks() {
   );
   bonusRoot.unmount();
   bonusHost.remove();
+
+  // ── «Разбуди сундук»: тапы по закрытому сундуку (обратная связь 2026-10-14) ──
+  {
+    const wakeHost = document.createElement('div');
+    document.body.appendChild(wakeHost);
+    const wakeRoot = createRoot(wakeHost);
+    wakeRoot.render(createElement(WakeHost, {}));
+    await sleep(30);
+
+    const wakeButton = (): HTMLButtonElement | null => wakeHost.querySelector('.chest-wake-tap');
+    check(
+      'сундук можно будить: по закрытому сундуку есть кнопка-тап',
+      !!wakeButton() && (wakeButton()?.getAttribute('aria-label') ?? '').includes('Разбудить сундук'),
+      wakeHost.textContent ?? '',
+    );
+    check(
+      'до тапов сундук спит и обещает надбавку',
+      has('Тапни по сундуку 5 раз') && wakeHost.querySelectorAll('.chest-wake-dot.on').length === 0,
+      wakeHost.querySelector('.chest-wake-caption')?.textContent ?? '',
+    );
+
+    click(wakeButton());
+    await sleep(20);
+    click(wakeButton());
+    await sleep(20);
+    click(wakeButton());
+    await sleep(20);
+    check(
+      'тапы видно: три из пяти зажглись в счётчике',
+      wakeHost.querySelectorAll('.chest-wake-dot.on').length === 3 &&
+        has('3 из 5'),
+      wakeHost.querySelector('.chest-wake-caption')?.textContent ?? '',
+    );
+    check(
+      'до пятого тапа сундук ещё не разбужен: надбавка не начислена',
+      !wakeHost.querySelector('.chest-wake-panel.awake') && !has('+17'),
+      wakeHost.textContent ?? '',
+    );
+
+    click(wakeButton());
+    await sleep(20);
+    click(wakeButton());
+    await sleep(20);
+    check(
+      'пять тапов будят сундук: он светится и говорит про надбавку',
+      !!wakeHost.querySelector('.chest-ceremony.is-awake') &&
+        !!wakeHost.querySelector('.chest-wake-panel.awake') &&
+        has('Сундук проснулся') &&
+        has('+2'),
+      wakeHost.querySelector('.chest-wake-caption')?.textContent ?? '',
+    );
+    check(
+      'разбуженный сундук больше не просит тапов',
+      !wakeButton(),
+      wakeHost.textContent ?? '',
+    );
+
+    click(wakeHost.querySelector('.chest-ceremony-open'));
+    await sleep(20);
+    click(wakeHost.querySelector('.chest-ceremony-skip'));
+    await sleep(20);
+    check(
+      'в награде видно и надбавку за разогрев: +17 и подпись',
+      has('+17') && has('разбудил сундук'),
+      wakeHost.querySelector('.chest-ceremony-result')?.textContent ?? '',
+    );
+    wakeRoot.unmount();
+    wakeHost.remove();
+
+    // Если надбавку за этот сундук уже платили, будить нечего: кнопки-тапа нет.
+    const paidHost = document.createElement('div');
+    document.body.appendChild(paidHost);
+    const paidRoot = createRoot(paidHost);
+    paidRoot.render(createElement(WakeHost, { available: false }));
+    await sleep(30);
+    check(
+      'оплаченный разогрев не предлагают второй раз',
+      !paidHost.querySelector('.chest-wake-tap'),
+      paidHost.textContent ?? '',
+    );
+    paidRoot.unmount();
+    paidHost.remove();
+  }
 }

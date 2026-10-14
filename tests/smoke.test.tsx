@@ -15,6 +15,7 @@ import { runChestCeremonyChecks } from './chest-ceremony-ui.test';
 import { runPretestAuditChecks } from './pretest-audit.test';
 import { runPuzzleUiChecks } from './puzzles-ui.test';
 import { runDiagnosticsRouteChecks } from './diagnostics-ui.test';
+import { runShareAppChecks } from './share-ui.test';
 import { runFloatingMascotChecks } from './mascot-ui.test';
 import { runBukLessonChecks } from './buk-lesson-ui.test';
 import { runLessonArtChecks } from './lesson-art-ui.test';
@@ -732,6 +733,9 @@ async function main() {
   // Картинка в уроке: крупный резиновый снимок в знакомстве и адаптивная
   // подсказка в заданиях с клавиатурой — при сохранённом «экран не прокручивается».
   await runLessonArtChecks();
+
+  // «Передать приложение»: QR и ссылка для нового ученика (замечание 2026-10-14).
+  await runShareAppChecks();
 
   // Диагностика запускается прямой ссылкой и читает хранилище, не раскрывая профиль.
   await runDiagnosticsRouteChecks();

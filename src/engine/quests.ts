@@ -73,6 +73,50 @@ export const BONUS_CHEST_GEMS = 5;
 
 export type ChestKind = 'daily' | 'bonus';
 
+/**
+ * «Разбуди сундук» (обратная связь 2026-10-14).
+ *
+ * Наблюдение тестирования: пока сундук закрыт, ребёнок всё равно тапает по нему
+ * пальцем и ждёт, что это на что-то повлияет. Раньше тапы не делали ничего:
+ * картинка была декоративной (`aria-hidden`, `pointer-events: none`), и жест
+ * уходил в пустоту.
+ *
+ * Решение: сундук можно разбудить — пять тапов, и он просыпается (дрожит,
+ * искрит, светится), а за разбуженный сундук награда чуть больше. Платим
+ * ОДИН раз за сундук, а не за каждый тап: иначе тап превращается в автомат
+ * с призами и в обязательную «работу» перед наградой (см. решение 4 плана:
+ * никаких механик, которые наказывают или принуждают).
+ */
+export const CHEST_WAKE_TAPS = 5;
+
+/** Сколько кристаллов добавляет разбуженный сундук: 2 за основной, 1 за бонусный. */
+export const CHEST_WAKE_GEMS: Record<ChestKind, number> = { daily: 2, bonus: 1 };
+
+export function chestWakeBonus(kind: ChestKind): number {
+  return CHEST_WAKE_GEMS[kind] ?? CHEST_WAKE_GEMS.daily;
+}
+
+/**
+ * Награда сундука до открытия: `base` — обычная, `wake` — надбавка за разогрев,
+ * `gems` — итог. Одна функция на все экраны, чтобы подпись кнопки, сцена и
+ * зачисление кристаллов не разъезжались.
+ */
+export function chestPreview(kind: ChestKind, awake: boolean): { base: number; wake: number; gems: number } {
+  const base = kind === 'bonus' ? BONUS_CHEST_GEMS : CHEST_GEMS;
+  const wake = awake ? chestWakeBonus(kind) : 0;
+  return { base, wake, gems: base + wake };
+}
+
+/** Разбудить сундук можно ровно пятью тапами: считаем и не даём уйти в минус. */
+export function countWakeTap(taps: number): number {
+  if (!Number.isFinite(taps) || taps < 0) return 0;
+  return Math.min(CHEST_WAKE_TAPS, Math.floor(taps) + 1);
+}
+
+export function chestAwake(taps: number): boolean {
+  return taps >= CHEST_WAKE_TAPS;
+}
+
 /** Бонусные сундуки можно открывать независимо от основного ежедневного сундука. */
 export function bonusChestsReady(lessons: number, claimed: number): number {
   return Math.max(0, Math.floor(lessons) - Math.floor(claimed));
@@ -214,6 +258,8 @@ export interface Chest {
   gems: number;
   xp: number;
   freezes: number;
+  /** Сколько из `gems` добавлено за разогрев сундука («Разбуди сундук»); нет — обычная награда. */
+  wakeBonus?: number;
 }
 
 /**
@@ -221,9 +267,11 @@ export interface Chest {
  *
  * Награда прозрачная и воспроизводимая: основной сундук за три ключа даёт 15,
  * бонусный за завершённый урок — 5 кристаллов. Пустых сундуков нет.
+ * Разбуженный сундук (`awake`) добавляет небольшую надбавку — см. `CHEST_WAKE_GEMS`.
  */
-export function rollChest(kind: ChestKind = 'daily'): Chest {
-  return { gems: kind === 'bonus' ? BONUS_CHEST_GEMS : CHEST_GEMS, xp: 0, freezes: 0 };
+export function rollChest(kind: ChestKind = 'daily', options: { awake?: boolean } = {}): Chest {
+  const { gems, wake } = chestPreview(kind, !!options.awake);
+  return { gems, xp: 0, freezes: 0, ...(wake > 0 ? { wakeBonus: wake } : {}) };
 }
 
 /**

@@ -3,6 +3,10 @@ import type { CSSProperties } from 'react';
 import { dayKey, dayPlan, masteredCount, useActiveProfile, useApp, useLook } from '../state/store';
 import {
   allQuestsDone,
+  chestAwake,
+  chestPreview,
+  chestWakeBonus,
+  countWakeTap,
   dayMetrics,
   planOf,
   plural,
@@ -10,6 +14,7 @@ import {
   questProgress,
   questTitle,
   bonusChestsReady,
+  CHEST_WAKE_TAPS,
   dailyChestClaimed,
   type Chest,
   type ChestKind,
@@ -18,6 +23,7 @@ import {
 import { Bar } from './Bits';
 import { ChestCelebration } from './ChestCelebration';
 import { ChestGlyph, KeySymbol, prewarmChestArt } from './ChestArt';
+import { nudge } from './motion';
 import { growthStage } from '../engine/shop';
 import { sfx } from '../platform/sound';
 import { haptic } from '../platform/haptics';
@@ -75,9 +81,11 @@ function ChestKeyProgress({ items }: { items: ChestKeyItem[] }) {
 }
 
 function ChestRewards({ reward }: { reward: Chest }) {
+  const wake = reward.wakeBonus ?? 0;
   return (
     <div className="chest-rewards" aria-label="Награда сундука">
       {reward.gems > 0 && <span className="chest-reward">💎 +{reward.gems}</span>}
+      {wake > 0 && <span className="chest-reward wake">🌟 разбудил сундук · +{wake}</span>}
       {reward.xp > 0 && <span className="chest-reward">⚡ +{reward.xp} XP</span>}
       {reward.freezes > 0 && (
         <span className="chest-reward">
@@ -112,8 +120,17 @@ export function DailyQuests({ onStart }: Props) {
   const look = useLook();
   const claimQuest = useApp((s) => s.claimQuest);
   const openChest = useApp((s) => s.openChest);
+  const wakeChest = useApp((s) => s.wakeChest);
   const showToast = useApp((s) => s.showToast);
   const [chest, setChest] = useState<ChestView | null>(null);
+  /**
+   * «Разбуди сундук»: сколько раз ребёнок тапнул по закрытому сундуку.
+   * Состояние одно на карточку и на сцену: будить можно и на главной, и в
+   * сцене, а награда одна. Обнуляется, когда сцена закрыта, — следующий сундук
+   * начинается со «спящего» состояния.
+   */
+  const [wakeTaps, setWakeTaps] = useState(0);
+  const tapsRef = useRef(0);
   const receiptButtonRef = useRef<HTMLButtonElement>(null);
 
   const day = dayKey();
@@ -132,6 +149,11 @@ export function DailyQuests({ onStart }: Props) {
   const bonusReady = bonusChestsReady(metrics.lessons, bonusClaimed);
   const storedReward = st?.lastChest;
   const storedChestKind = st?.lastChestKind ?? 'daily';
+  /** Какой сундук ребёнок видит закрытым прямо сейчас (основной в приоритете). */
+  const nextChestKind: ChestKind | null = chestReady ? 'daily' : bonusReady > 0 ? 'bonus' : null;
+  const wakeAwake = chestAwake(wakeTaps);
+  /** Надбавку за текущий сундук ещё не платили — значит, будить есть смысл. */
+  const wakeAvailable = (st?.wakePaid ?? 0) < chestsToday;
 
   useEffect(() => {
     if (doneCount >= 2 || chestReady || chestOpened || bonusReady > 0) prewarmChestArt();
@@ -150,10 +172,30 @@ export function DailyQuests({ onStart }: Props) {
     });
   };
 
+  /**
+   * Тап по сундуку — ребёнок его будит. Пять тапов, и сундук просыпается:
+   * надбавка к награде. Платим за разбуженный сундук, а не за каждый тап
+   * (см. `CHEST_WAKE_GEMS` в engine/quests.ts).
+   */
+  const tapChest = (onWoken?: () => void) => {
+    const next = countWakeTap(tapsRef.current);
+    if (next === tapsRef.current) return;
+    tapsRef.current = next;
+    setWakeTaps(next);
+    if (next >= CHEST_WAKE_TAPS) {
+      sfx.chestWake();
+      haptic.chestWake();
+      onWoken?.();
+    } else {
+      sfx.chestKnock();
+      haptic.chestKnock();
+    }
+  };
+
   const takeChest = (kind: ChestKind) => {
     // Сначала надёжно применяем и сохраняем награду, затем начинаем сцену.
     // Анимация никогда не является условием получения кристаллов.
-    const reward = openChest(kind);
+    const reward = openChest(kind, chestAwake(tapsRef.current));
     if (!reward) return;
     setChest({ reward, kind, celebrate: true });
     sfx.tap();
@@ -165,7 +207,31 @@ export function DailyQuests({ onStart }: Props) {
 
   const closeChest = () => {
     setChest(null);
+    // Сундук открыт и закрыт — следующий начнём будить заново.
+    tapsRef.current = 0;
+    setWakeTaps(0);
     window.requestAnimationFrame(() => receiptButtonRef.current?.focus());
+  };
+
+  /**
+   * Сундук разбудили уже в сцене (награду стор выдал до шоу, поэтому надбавку
+   * доплачиваем отдельно и один раз на сундук).
+   */
+  const payWake = (kind: ChestKind) => {
+    const paid = wakeChest(kind);
+    if (paid <= 0) return;
+    setChest((current) =>
+      current
+        ? {
+            ...current,
+            reward: {
+              ...current.reward,
+              gems: current.reward.gems + paid,
+              wakeBonus: (current.reward.wakeBonus ?? 0) + paid,
+            },
+          }
+        : current,
+    );
   };
 
   return (
@@ -226,9 +292,27 @@ export function DailyQuests({ onStart }: Props) {
 
       <div className={`chest-progress ${chestReady || bonusReady > 0 ? 'ready' : chestOpened ? 'opened' : ''}`}>
         <div className="row">
-          <div className="chest-glyph" aria-hidden="true">
-            <ChestGlyph state={chestReady || bonusReady > 0 ? 'ready' : chestOpened ? 'opened' : 'locked'} />
-          </div>
+          {nextChestKind ? (
+            <button
+              type="button"
+              className={`chest-glyph wake ${wakeAwake ? 'awake' : ''} ${wakeTaps > 0 ? 'waking' : ''}`}
+              onClick={(event) => {
+                nudge(event.currentTarget, { amplitude: 3 + wakeTaps, awake: wakeTaps + 1 >= CHEST_WAKE_TAPS });
+                tapChest();
+              }}
+              aria-label={
+                wakeAwake
+                  ? 'Сундук проснулся'
+                  : `Разбудить сундук: тап ${Math.min(wakeTaps + 1, CHEST_WAKE_TAPS)} из ${CHEST_WAKE_TAPS}`
+              }
+            >
+              <ChestGlyph state="ready" />
+            </button>
+          ) : (
+            <div className="chest-glyph" aria-hidden="true">
+              <ChestGlyph state={chestOpened ? 'opened' : 'locked'} />
+            </div>
+          )}
           <div className="grow">
             <div className="chest-title">Сундук БУКа</div>
             <div className="tiny">
@@ -238,6 +322,26 @@ export function DailyQuests({ onStart }: Props) {
             </div>
           </div>
         </div>
+
+        {/* «Разбуди сундук»: пока сундук закрыт, по нему можно тапать. Ребёнок
+            ждёт от тапа смысла — даём его: пять тапов, и награда больше. */}
+        {nextChestKind && (
+          <div className={`chest-wake ${wakeAwake ? 'awake' : ''}`}>
+            <div className="chest-wake-dots" aria-hidden="true">
+              {Array.from({ length: CHEST_WAKE_TAPS }, (_, index) => (
+                <span key={index} className={`chest-wake-dot ${index < wakeTaps ? 'on' : ''}`} />
+              ))}
+            </div>
+            <div className="tiny">
+              {wakeAwake
+                ? `Сундук проснулся! +${chestWakeBonus(nextChestKind)} 💎 к награде 🌟`
+                : wakeTaps > 0
+                  ? `Сундук просыпается: ${wakeTaps} из ${CHEST_WAKE_TAPS}. Тапни ещё!`
+                  : `Сундук спит. Тапни его ${CHEST_WAKE_TAPS} раз — проснётся и даст +${chestWakeBonus(nextChestKind)} 💎`}
+            </div>
+          </div>
+        )}
+
         <ChestKeyProgress items={items} />
       </div>
 
@@ -245,7 +349,10 @@ export function DailyQuests({ onStart }: Props) {
         <button className="btn green wide lg mt chest" onClick={() => takeChest('daily')}>
           <ChestGlyph state="ready" />
           <span>Открыть сундук БУКа</span>
-          <span className="tiny">+15 💎</span>
+          <span className="tiny">
+            +{chestPreview('daily', wakeAwake).gems} 💎
+            {wakeAwake ? ` · разогрет +${chestWakeBonus('daily')}` : ''}
+          </span>
         </button>
       )}
 
@@ -253,7 +360,11 @@ export function DailyQuests({ onStart }: Props) {
         <button className="btn green wide lg mt chest bonus-chest" onClick={() => takeChest('bonus')}>
           <ChestGlyph state="ready" />
           <span>Открыть бонусный сундук</span>
-          <span className="tiny">+5 💎{bonusReady > 1 ? ` · готово: ${bonusReady}` : ''}</span>
+          <span className="tiny">
+            +{chestPreview('bonus', wakeAwake).gems} 💎
+            {wakeAwake ? ` · разогрет +${chestWakeBonus('bonus')}` : ''}
+            {bonusReady > 1 ? ` · готово: ${bonusReady}` : ''}
+          </span>
         </button>
       )}
 
@@ -294,6 +405,18 @@ export function DailyQuests({ onStart }: Props) {
           learnerName={profile.name}
           celebrate={chest.celebrate}
           onClose={closeChest}
+          /* В чеке (повторный просмотр) будить нечего: награда уже зачислена. */
+          wake={
+            chest.celebrate
+              ? {
+                  taps: wakeTaps,
+                  target: CHEST_WAKE_TAPS,
+                  bonus: chestWakeBonus(chest.kind),
+                  available: wakeAvailable,
+                  onTap: () => tapChest(() => payWake(chest.kind)),
+                }
+              : undefined
+          }
         />
       )}
     </div>
