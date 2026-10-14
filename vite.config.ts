@@ -16,7 +16,7 @@ const REPO_BASE = '/slovo2/';
  */
 const buildBase = process.env.VITE_BASE ?? REPO_BASE;
 
-/** Номер релиза из package.json — поднимайте его перед каждым релизом. */
+/** Номер релиза из package.json — поднимайте его в каждом PR в main, включая документацию. */
 const pkg = JSON.parse(
   readFileSync(fileURLToPath(new URL('./package.json', import.meta.url)), 'utf8'),
 ) as { version: string };
