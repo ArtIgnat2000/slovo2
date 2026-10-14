@@ -12,6 +12,7 @@ import {
   buildDayPlan,
   bonusChestsReady,
   CHEST_GEMS,
+  chestWakeBonus,
   dailyChestClaimed,
   dayMetrics,
   nextRun,
@@ -131,7 +132,11 @@ function readDaily(p: Profile): DailyState {
       : 0,
   );
   const lastChestKind: DailyState['lastChestKind'] = st.lastChestKind === 'bonus' ? 'bonus' : 'daily';
-  const normalized = { ...st, chestsToday, bonusChestsClaimed, lastChestKind };
+  const wakePaid = Math.min(
+    chestsToday,
+    Number.isInteger(st.wakePaid) && (st.wakePaid ?? 0) >= 0 ? st.wakePaid ?? 0 : 0,
+  );
+  const normalized = { ...st, chestsToday, bonusChestsClaimed, lastChestKind, wakePaid };
   return st.plan?.length ? normalized : { ...normalized, plan: buildDayPlan(p, today) };
 }
 
@@ -293,8 +298,17 @@ interface AppState {
 
   /** Забрать награду за выполненные задания дня (кристаллы) */
   claimQuest: (id: string, gems: number) => void;
-  /** Открыть готовый ежедневный или бонусный сундук; иначе вернуть null. */
-  openChest: (kind: ChestKind) => Chest | null;
+  /**
+   * Открыть готовый ежедневный или бонусный сундук; иначе вернуть null.
+   * `awake` — ребёнок разбудил сундук тапами («Разбуди сундук»): надбавка к награде.
+   */
+  openChest: (kind: ChestKind, awake?: boolean) => Chest | null;
+  /**
+   * Доплатить за сундук, разбуженный уже в сцене открытия (тапы по закрытому
+   * сундуку). Один раз на сундук: сколько сундуков открыто сегодня, столько
+   * надбавок максимум. Возвращает, сколько кристаллов доплатили (0 — нечего).
+   */
+  wakeChest: (kind: ChestKind) => number;
 
   /** Купить аксессуар у БУКа. Возвращает false, если кристаллов не хватает. */
   buyItem: (id: string) => boolean;
@@ -645,7 +659,7 @@ export const useApp = create<AppState>()(
           }),
         ),
 
-      openChest: (kind) => {
+      openChest: (kind, awake = false) => {
         const current = getActive(get());
         const today = dayKey();
         if (!current || (kind !== 'daily' && kind !== 'bonus')) return null;
@@ -656,7 +670,7 @@ export const useApp = create<AppState>()(
         const bonusReady = bonusChestsReady(metrics.lessons, daily.bonusChestsClaimed ?? 0) > 0;
         if (kind === 'daily' ? !dailyReady : !bonusReady) return null;
 
-        const chest = rollChest(kind);
+        const chest = rollChest(kind, { awake });
         let opened: Chest | null = null;
         set((s) =>
           patchActive(s, (p) => {
@@ -685,11 +699,50 @@ export const useApp = create<AppState>()(
                 chestsTotal: freshDaily.chestsTotal + 1,
                 lastChest: { ...chest },
                 lastChestKind: kind,
+                // Разбуженный сундук уже получил надбавку — второй раз не платим.
+                wakePaid: (freshDaily.wakePaid ?? 0) + (chest.wakeBonus ? 1 : 0),
               },
             };
           }),
         );
         return opened;
+      },
+
+      wakeChest: (kind) => {
+        const current = getActive(get());
+        if (!current || (kind !== 'daily' && kind !== 'bonus')) return 0;
+        const daily = readDaily(current);
+        const opened = kind === 'daily'
+          ? dailyChestClaimed(daily)
+          : (daily.bonusChestsClaimed ?? 0) > 0;
+        if (!opened || (daily.wakePaid ?? 0) >= daily.chestsToday) return 0;
+
+        const bonus = chestWakeBonus(kind);
+        let paid = 0;
+        set((s) =>
+          patchActive(s, (p) => {
+            const fresh = readDaily(p);
+            const freshOpened = kind === 'daily'
+              ? dailyChestClaimed(fresh)
+              : (fresh.bonusChestsClaimed ?? 0) > 0;
+            // Повторная проверка внутри обновления: быстрые тапы не должны платить дважды.
+            if (!freshOpened || (fresh.wakePaid ?? 0) >= fresh.chestsToday) return p;
+            paid = bonus;
+            const lastChest = fresh.lastChest
+              ? {
+                  ...fresh.lastChest,
+                  gems: fresh.lastChest.gems + bonus,
+                  wakeBonus: (fresh.lastChest.wakeBonus ?? 0) + bonus,
+                }
+              : { gems: bonus, xp: 0, freezes: 0, wakeBonus: bonus };
+            return {
+              ...p,
+              gems: p.gems + bonus,
+              daily: { ...fresh, wakePaid: (fresh.wakePaid ?? 0) + 1, lastChest },
+            };
+          }),
+        );
+        return paid;
       },
 
       buyItem: (id) => {

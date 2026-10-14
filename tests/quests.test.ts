@@ -14,6 +14,12 @@ import {
   dayMetrics,
   BONUS_CHEST_GEMS,
   CHEST_GEMS,
+  CHEST_WAKE_GEMS,
+  CHEST_WAKE_TAPS,
+  chestAwake,
+  chestPreview,
+  chestWakeBonus,
+  countWakeTap,
   MIN_REVIEW_WORDS,
   nextRun,
   planOf,
@@ -183,6 +189,40 @@ function profileWith(practised: number, opts: { s?: number; dueOffsetMs?: number
   assert.equal(bonusChestsReady(3, 3), 0);
   assert.equal(dailyChestClaimed({ chestsToday: 1, bonusChestsClaimed: 0 }), true);
   assert.equal(dailyChestClaimed({ chestsToday: 3, bonusChestsClaimed: 3 }), false, 'бонусы не закрывают основной сундук');
+}
+
+// 8. «Разбуди сундук»: тапы по закрытому сундуку будят его и дают надбавку.
+//    Платим за сам факт пробуждения, а не за каждый тап, и один раз на сундук.
+{
+  assert.equal(CHEST_WAKE_TAPS, 5, 'сундук будится пятью тапами');
+  assert.deepEqual(CHEST_WAKE_GEMS, { daily: 2, bonus: 1 });
+  assert.equal(chestWakeBonus('daily'), 2);
+  assert.equal(chestWakeBonus('bonus'), 1);
+
+  // Обычный сундук ничего не теряет: без разогрева награда прежняя.
+  assert.deepEqual(rollChest('daily'), { gems: 15, xp: 0, freezes: 0 });
+  assert.deepEqual(rollChest('bonus'), { gems: 5, xp: 0, freezes: 0 });
+  assert.deepEqual(rollChest('daily', { awake: true }), { gems: 17, xp: 0, freezes: 0, wakeBonus: 2 });
+  assert.deepEqual(rollChest('bonus', { awake: true }), { gems: 6, xp: 0, freezes: 0, wakeBonus: 1 });
+
+  // Превью до открытия совпадает с тем, что реально начислит rollChest.
+  for (const kind of ['daily', 'bonus'] as const) {
+    const preview = chestPreview(kind, true);
+    assert.equal(preview.wake, chestWakeBonus(kind));
+    assert.equal(preview.base, kind === 'daily' ? CHEST_GEMS : BONUS_CHEST_GEMS);
+    assert.equal(rollChest(kind, { awake: true }).gems, preview.gems, 'подпись кнопки и начисление не разъезжаются');
+  }
+
+  // Счётчик тапов: растёт по одному и упирается в порог (лишние тапы ничего не дают).
+  let taps = 0;
+  for (let i = 0; i < 9; i++) taps = countWakeTap(taps);
+  assert.equal(taps, CHEST_WAKE_TAPS, 'лишние тапы не копятся сверх порога');
+  assert.equal(chestAwake(taps), true);
+  assert.equal(chestAwake(CHEST_WAKE_TAPS - 1), false, 'недобуженный сундук надбавку не даёт');
+  // Битое значение считаем за «тапов ещё не было»: сломанный счётчик не должен
+  // сам по себе выдавать надбавку.
+  assert.equal(countWakeTap(-3), 0);
+  assert.equal(countWakeTap(Number.NaN), 0);
 }
 
 // Серия «без ошибок»: лучшая серия за день не сбрасывается ошибкой, текущая — сбрасывается.

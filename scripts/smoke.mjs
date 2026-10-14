@@ -36,14 +36,22 @@ await build({
   outfile: entry,
   logLevel: 'warning',
   external: ['jsdom', 'fake-indexeddb'],
-  // Vite подставляет import.meta.env; в тесте задаём то же самое руками
+  // Vite подставляет import.meta.env целиком; в тесте задаём тот же объект руками,
+  // чтобы код читал его так же, как в настоящей сборке (без сюрпризов в `define` по ключам).
   define: {
-    'import.meta.env.BASE_URL': '"/"',
-    'import.meta.env.DEV': 'true',
-    'import.meta.env.VITE_APP_VERSION': '"test"',
-    // Порог паузы помощника БУКа: в продукте 20 с, в тесте — 0,9 с (см. bukHelp.ts)
-    'import.meta.env.VITE_BUK_NUDGE_MS': '"900"',
-    'import.meta.env.VITE_BUILD_SHA': '"test"',
+    'import.meta.env': JSON.stringify({
+      BASE_URL: '/',
+      MODE: 'test',
+      DEV: true,
+      PROD: false,
+      VITE_APP_VERSION: 'test',
+      VITE_BUILD_SHA: 'test',
+      // Порог паузы помощника БУКа: в продукте 20 с, в тесте — 0,9 с (см. bukHelp.ts)
+      VITE_BUK_NUDGE_MS: '900',
+      // Адрес приложения закреплён, как в сборке на Pages: QR и подпись ссылки
+      // не должны зависеть от `localhost` внутри jsdom.
+      VITE_PUBLIC_URL: 'https://artignat2000.github.io/slovo2/',
+    }),
   },
   alias: { 'virtual:pwa-register': path.join(root, 'tests/pwa-stub.js') },
 });

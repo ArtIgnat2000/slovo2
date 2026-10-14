@@ -58,12 +58,18 @@ await build({
   minify: true, // как в `vite build` — именно минификация даёт «error #185»
   outfile,
   logLevel: 'warning',
+  // Как в настоящей сборке: `import.meta.env` — целый объект. VITE_PUBLIC_URL здесь
+  // намеренно не задан (в прод-сборке его тоже нет) — адрес берётся из `location`.
   define: {
     'process.env.NODE_ENV': '"production"',
-    'import.meta.env.BASE_URL': '"/slovo2/"',
-    'import.meta.env.DEV': 'false',
-    'import.meta.env.VITE_APP_VERSION': '"boot-check"',
-    'import.meta.env.VITE_BUILD_SHA': '"boot-check"',
+    'import.meta.env': JSON.stringify({
+      BASE_URL: '/slovo2/',
+      MODE: 'production',
+      DEV: false,
+      PROD: true,
+      VITE_APP_VERSION: 'boot-check',
+      VITE_BUILD_SHA: 'boot-check',
+    }),
   },
   alias: { 'virtual:pwa-register': path.join(root, 'tests/pwa-stub.js') },
   plugins: [

@@ -10,7 +10,7 @@
 import type { Profile, QuestPlanItem } from '../src/types';
 import { LESSONS, WORDS } from '../src/content/words';
 import { dayKey, useApp } from '../src/state/store';
-import { questsForDay, specFor } from '../src/engine/quests';
+import { CHEST_WAKE_TAPS, planOf, questsForDay, specFor } from '../src/engine/quests';
 import { btn, btnText, buttons, check, click, currentWord, has, sleep } from './ui-helpers';
 
 const store = () => useApp.getState();
@@ -392,6 +392,57 @@ export async function runQuestUiChecks(): Promise<void> {
     await sleep(50);
   }
   check('после трёх бонусных сундуков каждый урок оплачен по одному разу', !btnText('Открыть бонусный сундук'), bodyText());
+
+  // 10. «Разбуди сундук»: тапы по закрытому сундуку на главной дают надбавку.
+  // Замечание с тестирования 2026-10-14: ребёнок тапает по сундуку, пока тот не
+  // открылся, и ждёт, что это на что-то повлияет. Теперь пять тапов будят сундук.
+  store().createProfile('Будим сундук', '🐣');
+  await sleep(60);
+  for (const item of planOf(active())) {
+    if (item.kind === 'lessons') {
+      for (let i = 0; i < item.target; i++) store().finishLesson(LESSONS[0].id, 100);
+    } else if (item.kind === 'review') {
+      for (let i = 0; i < item.target; i++) store().answer(WORDS[i].id, 5, true);
+    } else {
+      for (let i = 0; i < item.target; i++) store().answer(WORDS[i].id, 5, false);
+    }
+  }
+  await sleep(80);
+  check('разогрев: задания закрыты, сундук готов', has('Ключи: 3 из 3'), bodyText());
+
+  const wakeGlyph = document.querySelector('.chest-glyph.wake') as HTMLButtonElement | null;
+  check('разогрев: по сундуку на главной можно тапать', !!wakeGlyph, bodyText());
+  const gemsBeforeWake = active().gems;
+  for (let i = 0; i < CHEST_WAKE_TAPS; i++) {
+    click(wakeGlyph);
+    await sleep(20);
+  }
+  check(
+    'разогрев: пять тапов будят сундук и обещают надбавку в кнопке',
+    has('Сундук проснулся') && has('разогрет'),
+    bodyText(),
+  );
+
+  click(btnText('Открыть сундук БУКа'));
+  await sleep(60);
+  const woken = active();
+  check(
+    'разогрев: разбуженный сундук даёт 15 + 2 кристалла',
+    woken.gems === gemsBeforeWake + 17 && woken.daily?.lastChest?.wakeBonus === 2,
+    `💎 ${gemsBeforeWake} → ${woken.gems}; чек: ${JSON.stringify(woken.daily?.lastChest)}`,
+  );
+  click(btnText('Пропустить'));
+  await sleep(30);
+  check('разогрев: в награде видно надбавку', has('разбудил сундук'), bodyText());
+  click(btnText('Здорово!'));
+  await sleep(40);
+  check(
+    'разогрев: следующий сундук начинается со «спящего» состояния',
+    has('Сундук спит') && !has('Сундук проснулся!'),
+    bodyText(),
+  );
+  resetDay();
+  await sleep(40);
 }
 
 const bodyText = () => (document.body.textContent ?? '').replace(/\s+/g, ' ').slice(0, 240);

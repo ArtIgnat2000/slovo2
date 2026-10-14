@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useApp } from '../../state/store';
 import { ConfirmDialog } from '../Bits';
+import { ShareApp } from '../ShareApp';
 
 const AVATARS = ['🦊', '🐱', '🐼', '🦉', '🐸', '🦄', '🐨', '🐯', '🐙', '🦖'];
 
@@ -96,6 +97,9 @@ export function ProfilesScreen({ onClose, manage = false }: { onClose?: () => vo
           </button>
         )}
       </div>
+
+      {/* Новому ученику нужна ссылка: её и передают отсюда (замечание 2026-10-14). */}
+      <ShareApp compact />
 
       {onClose && profiles.length > 0 && (
         <button className="btn ghost wide mt" onClick={onClose}>

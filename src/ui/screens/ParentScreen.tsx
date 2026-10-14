@@ -7,6 +7,7 @@ import { dayKey, masteredCount, useActiveProfile, useApp } from '../../state/sto
 import { useStorageHealth } from '../../state/health';
 import { download, requestPersistence } from '../../platform/storage';
 import { isStandalone } from '../../platform/pwa';
+import { ShareApp } from '../ShareApp';
 import { DEFAULT_LESSON_SIZE, LESSON_SIZE_OPTIONS } from '../../engine/scheduler';
 
 interface Props {
@@ -271,6 +272,9 @@ export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs }
         </div>
       </button>
 
+      {/* «Как передать ссылку новому ученику» — вопрос из обратной связи 2026-10-14. */}
+      <ShareApp />
+
       {!isStandalone() && (
         <div className="banner mb">
           📲 <b>Добавить на экран телефона:</b> в браузере «Поделиться» → «На экран Домой». После этого приложение
@@ -433,8 +437,10 @@ function ProgressCard({ profile }: { profile: Profile }) {
         <div className="mt">
           <h3>Удалённые профили</h3>
           <p className="tiny">30 дней их можно вернуть целиком — со словами, кристаллами и серией.</p>
-          {trash.map((t) => (
-            <div className="kv" key={t.at}>
+          {/* Ключ с индексом: два профиля могут попасть в корзину в одну миллисекунду,
+              и тогда одинаковые ключи в списке ломали бы перерисовку. */}
+          {trash.map((t, index) => (
+            <div className="kv" key={`${t.at}-${index}`}>
               <span>
                 {t.profile.avatar} {t.profile.name}
                 <span className="tiny">
