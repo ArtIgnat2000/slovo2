@@ -10,7 +10,7 @@
 //  • платформенные функции честно сообщают о своих возможностях.
 import { appUrl, canNativeShare, copyAppLink, linkLabel, shareApp, SHARE_TITLE } from '../src/platform/share';
 import { qrEncode } from '../src/engine/qr';
-import { buttons, check, click, has, sleep } from './ui-helpers';
+import { buttons, check, click, has, openParentSection, sleep } from './ui-helpers';
 
 const linkText = () => appUrl();
 
@@ -70,7 +70,9 @@ export async function runShareAppChecks(): Promise<void> {
     click(buttons().find((b) => (b.textContent ?? '').trim() === 'Войти'));
     await sleep(60);
   }
-  check('раздел «Родителям» открыт', has('Размер урока'), document.body.textContent?.slice(0, 160) ?? '');
+  check('раздел «Родителям» открыт на обзоре', has('XP за сегодня'), document.body.textContent?.slice(0, 160) ?? '');
+  // Ссылка для нового ученика — про приложение, поэтому живёт в разделе «Приложение».
+  await openParentSection('Приложение');
   check('в «Родителям» есть карточка «Передать приложение»', !!shareCard(), document.body.textContent?.slice(0, 200) ?? '');
   check('в карточке видна ссылка на приложение', has(linkLabel()), document.body.textContent?.slice(0, 200) ?? '');
   const qrArt = document.querySelector('.share-qr-art');
@@ -109,7 +111,7 @@ export async function runShareAppChecks(): Promise<void> {
 
   // Экран «Кто будет учиться?» — вторая точка, где ищут ссылку для нового ученика.
   // Идём туда через «Дети» в родительском разделе (это тот же экран профилей).
-  click(buttons().find((b) => (b.textContent ?? '').trim() === 'Дети'));
+  click(buttons().find((b) => (b.textContent ?? '').includes('Дети') && !b.className.includes('tab')));
   await sleep(80);
   check(
     'на экране «Кто будет учиться?» тоже есть ссылка для нового ученика',

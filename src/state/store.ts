@@ -32,6 +32,7 @@ import {
   toggleWorn,
   type PuzzleAward,
 } from '../engine/puzzles';
+import { activeChestSkin, skinById, skinState, type ChestSkinId } from '../engine/chests';
 import { DEFAULT_LESSON_SIZE } from '../engine/scheduler';
 import {
   addTrash,
@@ -331,6 +332,17 @@ interface AppState {
   choosePuzzleCostume: (id: string) => void;
   /** Надеть/снять собранный костюм (повторный тап снимает); несобранный — без изменений. */
   toggleCostume: (id: string) => void;
+
+  /**
+   * Выбрать облик сундука (src/engine/chests.ts). Запертый облик не выбирается:
+   * проверку делает движок, стор только хранит решение ребёнка.
+   */
+  chooseChestSkin: (id: ChestSkinId) => void;
+  /**
+   * Записать облики как открытые: это и объявление («новый сундук»), и гарантия,
+   * что открытое не отберётся, если условие перестанет выполняться.
+   */
+  recordChestSkins: (ids: ChestSkinId[]) => void;
 
   showToast: (t: Omit<Toast, 'id'>) => void;
   hideToast: () => void;
@@ -817,6 +829,28 @@ export const useApp = create<AppState>()(
       toggleCostume: (id) =>
         set((s) => patchActive(s, (p) => ({ ...p, puzzle: toggleWorn(p.puzzle, id) }))),
 
+      chooseChestSkin: (id) =>
+        set((s) =>
+          patchActive(s, (p) => {
+            // Запертый облик игнорируем молча: выбраться из «чужого» состояния
+            // (например, из загруженного файла) можно всегда — активный облик
+            // всё равно считается от прогресса (activeChestSkin).
+            const { unlocked } = skinState(skinById(id), p);
+            if (!unlocked) return p;
+            return p.chestSkin === id ? p : { ...p, chestSkin: id };
+          }),
+        ),
+
+      recordChestSkins: (ids) =>
+        set((s) =>
+          patchActive(s, (p) => {
+            const have = new Set(p.chestSkins ?? []);
+            const add = ids.filter((id) => !have.has(id));
+            if (!add.length) return p;
+            return { ...p, chestSkins: [...have, ...add] };
+          }),
+        ),
+
       showToast: (t) => set({ toast: { ...t, id: Date.now() } }),
       hideToast: () => set({ toast: null }),
 
@@ -1029,6 +1063,15 @@ export function useLook(): Partial<Record<ShopSlot, string>> {
     const p = s.profiles.find((x) => x.id === s.activeId);
     return p?.shop?.equipped ?? NO_LOOK;
   });
+}
+
+/**
+ * Облик сундука, который ребёнок увидит сегодня (id) — примитивный селектор,
+ * лишних перерисовок не создаёт. Считается от прогресса: если выбранный облик
+ * почему-то заперт (старый файл, чужая версия), возвращается базовый.
+ */
+export function useChestSkin(): ChestSkinId {
+  return useApp((s) => activeChestSkin(s.profiles.find((x) => x.id === s.activeId) ?? null));
 }
 
 /** Надетый костюм активного профиля (id) — примитивный селектор, рендеров не плодит. */

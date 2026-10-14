@@ -596,6 +596,159 @@ p {
   100% { filter: drop-shadow(0 0 0 rgba(255, 177, 49, 0)); }
 }
 
+/* ── Облики сундука ──────────────────────────────────────────────────────
+   Полка выбора внешнего вида (src/ui/ChestSkins.tsx) и вход в неё из карточки
+   заданий. Сетка 2×N: карточка облика — это превью сундука, название и либо
+   кнопка «Выбрать», либо прогресс до открытия. */
+.chest-skin-hint {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--line);
+  text-align: center;
+}
+.chest-skin-line {
+  padding: 6px 10px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: none;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--fs-xs);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.chest-skin-line b {
+  color: var(--ink);
+}
+.chest-skin-line:active {
+  transform: translateY(1px);
+}
+.chest-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chest-skin-link {
+  padding: 4px 10px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--bg-2);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.chest-skin-link:active {
+  transform: translateY(1px);
+}
+
+.skin-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--bg);
+  animation: fadeIn 0.2s ease;
+}
+.skin-sheet-inner {
+  max-width: var(--screen-max);
+  margin: 0 auto;
+  padding: calc(16px + var(--safe-t)) 16px calc(28px + var(--safe-b));
+}
+.skin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.skin-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  padding: 12px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: border-color 140ms ease, transform 140ms ease;
+}
+.skin-card:active {
+  transform: translateY(1px);
+}
+.skin-card.on {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px var(--green-soft);
+}
+.skin-card.locked {
+  cursor: default;
+  opacity: .92;
+}
+.skin-preview {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 104px;
+}
+.skin-preview img {
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 8px rgba(36, 31, 54, .18));
+}
+/* Запертый облик показываем силуэтом: видно форму, но не выданы краски —
+   ребёнок понимает, ЧТО он открывает, и не путает с уже собранным. */
+.skin-card.locked .skin-preview img {
+  opacity: .35;
+  filter: grayscale(1) drop-shadow(0 6px 8px rgba(36, 31, 54, .14));
+}
+.skin-lock {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  font-size: 20px;
+}
+.skin-title {
+  font-weight: 800;
+}
+.skin-new {
+  color: var(--orange-ink);
+  font-size: var(--fs-xs);
+  font-weight: 800;
+  white-space: nowrap;
+}
+.skin-state {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border-radius: var(--r-pill);
+  background: var(--primary-soft);
+  color: var(--ink);
+  font-weight: 800;
+}
+.skin-state.chosen {
+  background: var(--green-soft);
+  color: var(--ink);
+}
+.skin-how,
+.skin-left {
+  color: var(--ink-3);
+  font-size: var(--fs-xs);
+}
+.skin-card .bar,
+.skin-card [role='progressbar'] {
+  min-height: 8px;
+}
+
 /* ── Церемония открытия сундука БУКа ───────────────────────────────────── */
 .chest-ceremony {
   position: fixed;
@@ -761,7 +914,9 @@ p {
   z-index: 0;
   inset: 13% 8% 8%;
   border-radius: 50%;
-  background: radial-gradient(ellipse, rgba(255, 225, 126, .68), rgba(66, 214, 236, .22) 43%, rgba(154, 91, 255, .12) 63%, transparent 78%);
+  /* Цвет ауры задаёт облик сундука (--chest-aura из engine/chests.ts), форма и
+     затухание — общие: свечение должно узнаваться, чем бы сундук ни был. */
+  background: radial-gradient(ellipse, var(--chest-aura, rgba(255, 225, 126, .68)), rgba(154, 91, 255, .12) 63%, transparent 78%);
   filter: blur(10px);
   opacity: .08;
 }
@@ -852,6 +1007,12 @@ p {
 .chest-ceremony-result.revealed .chest-ceremony-balance strong {
   display: inline-block;
   animation: ceremonyBalanceHighlight .62s ease-out both;
+}
+.chest-ceremony-skin {
+  margin-top: 10px;
+  color: rgba(255, 250, 240, .78);
+  font-size: var(--fs-xs);
+  font-weight: 700;
 }
 .chest-ceremony-result-label {
   color: #ffdc91;
@@ -2670,11 +2831,6 @@ p {
   grid-template-columns: repeat(2, 1fr);
   gap: 10px;
 }
-.grid-3 {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-}
 .kv {
   display: flex;
   justify-content: space-between;
@@ -2740,32 +2896,6 @@ p {
   border-color: var(--green);
   color: #12a04a;
   background: var(--green-soft);
-}
-
-.calendar {
-  display: flex;
-  gap: 6px;
-  justify-content: space-between;
-}
-.cal-day {
-  flex: 1;
-  text-align: center;
-  font-size: 11px;
-  color: var(--ink-3);
-  font-weight: 700;
-}
-.cal-dot {
-  height: 34px;
-  border-radius: 12px;
-  background: var(--primary-soft);
-  margin-top: 4px;
-  border: 2px solid transparent;
-}
-.cal-dot.on {
-  background: var(--orange);
-}
-.cal-dot.today {
-  border-color: var(--primary);
 }
 
 .banner {
@@ -3516,19 +3646,382 @@ p {
   padding-bottom: calc(12px + var(--safe-b));
 }
 
-/* Родительский экран: строки настроек теперь содержат переносимые значения,
-   а на телефоне становятся вертикальными. Это предотвращает horizontal scroll
-   для длинных чипов («не показывать», «Короткий · 12» и т. п.). */
+/* ── Раздел «Родителям» ───────────────────────────────────────────────────
+   Перестроен 2026-10-14: вместо одной длинной простыни — четыре раздела
+   (обзор, прогресс, настройки, приложение). Обоснование и правила —
+   docs/parent-section-redesign.md. Здесь только оформление.
+
+   Особенности, которые важно не потерять:
+   • это текст для взрослых: базовые 15 px и подписи 13.5 px вместо 11–12 px —
+     мелкий шрифт в разделе для родителей читать некому;
+   • ничего не переносится за край экрана: горизонтальной прокрутки в разделе
+     нет ни на одном чипе или строке;
+   • разрушительное действие («Сбросить прогресс») визуально отделено. */
 .parent-screen {
-  /* fallback for older Android WebView; clip avoids creating a horizontal scroll container */
   overflow-x: hidden;
   overflow-x: clip;
+  font-size: var(--fs-sm);
 }
 .parent-screen .card,
 .parent-screen .row,
 .parent-screen .kv,
 .parent-screen .setting-copy {
   min-width: 0;
+}
+
+.parent-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.parent-head h1 {
+  margin: 0;
+}
+
+/* Кто именно занимается: профиль крупно и без кнопок «переключить» —
+   дети переключаются в отдельном экране «Дети», чтобы не промахнуться. */
+.parent-child {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--card);
+}
+.parent-child-name {
+  font-weight: 800;
+  font-size: var(--fs-md);
+}
+
+/* Вкладки разделов: липкая полоса, чтобы после длинного отчёта не искать
+   переключатель в самом низу. */
+.seg-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 4px;
+  margin: 0 -16px 12px;
+  padding: 8px 16px;
+  background: var(--bg);
+  border-bottom: 2px solid var(--line);
+}
+.seg-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 6px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--card);
+  color: var(--ink-2);
+  font: inherit;
+  font-weight: 800;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.seg-tab-emoji {
+  font-size: 17px;
+  line-height: 1;
+}
+.seg-tab.on {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--ink);
+}
+.seg-tab:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.parent-panel {
+  animation: fadeIn 0.2s ease;
+}
+.parent-panel:focus {
+  outline: none;
+}
+.parent-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Крупные цифры: сначала главное, потом пояснение. */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.stat-tile {
+  padding: 10px 8px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg-2);
+  text-align: center;
+}
+.stat-tile.good {
+  border-color: var(--green);
+  background: var(--green-soft);
+}
+.stat-tile.warn {
+  border-color: var(--orange);
+  background: var(--orange-soft);
+}
+.stat-tile-value {
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.stat-tile-label {
+  margin-top: 2px;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+}
+.stat-tile-hint {
+  margin-top: 4px;
+  color: var(--ink-3);
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+/* Календарь недели: столбик на день, высота — XP относительно лучшего дня. */
+.week-chart {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+.week-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.week-bar-track {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  height: 74px;
+  border-radius: 10px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+.week-bar {
+  width: 100%;
+  min-height: 3px;
+  border-radius: 8px 8px 0 0;
+  background: var(--primary-soft);
+  transition: height 220ms ease;
+}
+.week-bar.filled {
+  background: linear-gradient(180deg, var(--primary-2), var(--primary));
+}
+.week-day {
+  color: var(--ink-3);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.week-xp {
+  font-size: 13px;
+  font-weight: 700;
+}
+.week-col.today .week-day {
+  color: var(--primary);
+}
+.week-col.today .week-xp {
+  color: var(--primary);
+}
+
+/* Достижения: сетка карточек, у неполученных — приглушение и описание цели. */
+.ach-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 10px;
+}
+.ach {
+  padding: 10px 8px;
+  border: 2px dashed var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg-2);
+  text-align: center;
+}
+.ach.on {
+  border-style: solid;
+  border-color: var(--green);
+  background: var(--green-soft);
+}
+.ach-emoji {
+  font-size: 26px;
+  line-height: 1.1;
+  filter: grayscale(0.9);
+  opacity: .55;
+}
+.ach.on .ach-emoji {
+  filter: none;
+  opacity: 1;
+}
+.ach-title {
+  margin-top: 2px;
+  font-weight: 800;
+  font-size: var(--fs-sm);
+}
+
+/* Строка настройки: подпись с объяснением + управление. */
+.setting-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.setting-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.setting-row:first-of-type {
+  padding-top: 4px;
+}
+.setting-title {
+  font-weight: 700;
+  font-size: var(--fs-sm);
+}
+.setting-hint {
+  margin-top: 3px;
+  color: var(--ink-3);
+  font-size: 13.5px;
+  line-height: 1.4;
+}
+.setting-copy {
+  flex: 1 1 55%;
+}
+.setting-control {
+  flex: 0 1 auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+.group-title {
+  margin-bottom: 6px;
+}
+.group-title h3 {
+  margin: 0;
+}
+.group-title .setting-hint {
+  margin-top: 2px;
+}
+
+/* Выбор варианта: сегменты прижимаются вправо и переносятся, а не режутся. */
+.choice {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.choice-item {
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--card);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.choice-item.on {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+}
+.choice-item:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Переключатель вкл/выкл: видно состояние, а не «какая из двух кнопок нажата». */
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 4px 12px 4px 4px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--card);
+  color: var(--ink-3);
+  font: inherit;
+  font-weight: 800;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.switch-knob {
+  width: 44px;
+  height: 26px;
+  border-radius: var(--r-pill);
+  background: var(--line);
+  position: relative;
+  transition: background 160ms ease;
+}
+.switch-knob::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(36, 31, 54, .35);
+  transition: transform 160ms ease;
+}
+.switch.on {
+  border-color: var(--green);
+  color: var(--ink);
+}
+.switch.on .switch-knob {
+  background: var(--green);
+}
+.switch.on .switch-knob::after {
+  transform: translateX(18px);
+}
+
+/* Частые дела из обзора: короткий путь к копии и ссылке вместо поисков
+   по разделам (принцип «распознавание вместо припоминания»). */
+.quick-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Опасная зона: сброс прогресса отделён от рабочих кнопок. */
+.danger-zone {
+  border-color: var(--red);
+  background: var(--red-soft);
+}
+
+.parent-summary {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+}
+.parent-screen .word-chip {
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 .parent-screen .kv {
   gap: 12px;
@@ -3538,68 +4031,63 @@ p {
 }
 .parent-screen .kv > :last-child:not(button) {
   overflow-wrap: anywhere;
+  text-align: right;
 }
-.parent-settings .parent-setting {
-  align-items: center;
+
+/* Замок «только для взрослых»: пример читается сразу, ошибка — на месте. */
+.unlock-task {
+  margin: 12px 0;
+  font-size: 38px;
+  font-weight: 800;
+  letter-spacing: .02em;
 }
-.parent-settings .parent-setting.detailed {
-  align-items: flex-start;
+.unlock-error {
+  margin-top: 8px;
+  color: var(--red);
+  font-weight: 700;
 }
-.parent-settings .setting-control {
-  min-width: 0;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
-}
-.parent-settings .chip {
-  white-space: normal;
-}
-.parent-screen .word-chip {
-  max-width: 100%;
-  overflow-wrap: anywhere;
-}
-.parent-screen .cal-day {
-  min-width: 0;
+.input-error {
+  border-color: var(--red);
 }
 
 @media (max-width: 480px) {
-  .parent-profile-row {
-    gap: 8px;
+  .parent-head {
+    align-items: center;
   }
-  .parent-profile-row .btn {
-    padding-right: 10px;
-    padding-left: 10px;
+  .seg-tab {
+    flex-direction: column;
+    gap: 1px;
+    font-size: 12.5px;
+    padding: 6px 2px;
   }
-  .parent-stats {
+  .stat-grid {
     gap: 6px;
   }
-  .parent-stats .card {
-    padding: 10px 4px;
+  .stat-tile {
+    padding: 8px 4px;
   }
-  .parent-stats .tiny {
-    overflow-wrap: anywhere;
+  .stat-tile-value {
+    font-size: 21px;
   }
-  .parent-screen .calendar {
-    gap: 4px;
+  .stat-tile-hint {
+    font-size: 12px;
   }
-  .parent-screen .cal-dot {
-    height: 30px;
-    border-radius: 10px;
+  /* На узком экране управление уходит под подпись: подписи не сжимаются в столбик
+     в две буквы, а сегменты получают всю ширину. */
+  .setting-row {
+    display: block;
   }
-  .parent-settings .parent-setting {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    justify-items: start;
-    gap: 8px;
-    padding: 10px 0;
-  }
-  .parent-settings .setting-control {
+  .setting-control,
+  .choice {
     justify-content: flex-start;
+    margin-top: 8px;
   }
-  .parent-settings .parent-setting > .chip {
-    justify-self: start;
+  .choice-item {
+    padding: 7px 10px;
+    font-size: 14px;
   }
 }
+
 
 @media (max-height: 680px) {
   :root {

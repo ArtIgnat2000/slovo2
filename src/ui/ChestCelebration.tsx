@@ -4,6 +4,7 @@ import { plural, type Chest, type ChestKind } from '../engine/quests';
 import { haptic } from '../platform/haptics';
 import { sfx } from '../platform/sound';
 import { ChestIllustration, KeySymbol } from './ChestArt';
+import { skinById, type ChestSkinId } from '../engine/chests';
 import { Mascot, type Look } from './Mascot';
 import { nudge, prefersReducedMotion } from './motion';
 
@@ -39,6 +40,10 @@ export interface ChestWake {
 interface Props {
   reward: Chest;
   kind?: ChestKind;
+  /** Облик сундука, который выбрал ребёнок (src/engine/chests.ts). */
+  skinId?: ChestSkinId;
+  /** Ближайший неоткрытый облик — строка «что дальше» в чеке награды. */
+  nextSkin?: { title: string; left: number } | null;
   balance: number;
   look: Look;
   stage: number;
@@ -100,7 +105,20 @@ const WAKE_LINES = [
  * Короткая сцена открытия сундука. Состояние награды уже сохранено стором;
  * эта компонента отвечает только за представление и не выдаёт валюту.
  */
-export function ChestCelebration({ reward, kind = 'daily', balance, look, stage, learnerName, celebrate, onClose, wake }: Props) {
+export function ChestCelebration({
+  reward,
+  kind = 'daily',
+  skinId = 'travel',
+  nextSkin = null,
+  balance,
+  look,
+  stage,
+  learnerName,
+  celebrate,
+  onClose,
+  wake,
+}: Props) {
+  const skin = skinById(skinId);
   const [reducedMotion, setReducedMotion] = useState(prefersReducedMotion);
   const [phase, setPhase] = useState<Phase>(() =>
     celebrate && !prefersReducedMotion() ? 'waiting' : 'final',
@@ -358,7 +376,7 @@ export function ChestCelebration({ reward, kind = 'daily', balance, look, stage,
               <Mascot mood={celebrate ? (phase === 'final' ? 'dance' : 'excited') : 'happy'} look={look} stage={stage} size={118} />
             </div>
             <div className="chest-wake-shaker" ref={shakerRef}>
-              <ChestIllustration />
+              <ChestIllustration skinId={skin.id} />
             </div>
             {canWake && (
               <button
@@ -404,6 +422,12 @@ export function ChestCelebration({ reward, kind = 'daily', balance, look, stage,
               {plural(displayBalance, 'кристалл', 'кристалла', 'кристаллов')}
             </div>
             <ExtraRewards reward={reward} />
+            {/* Облик — часть награды: ребёнок видит, какой сундук открыл и что
+                ждёт его в коллекции дальше. */}
+            <div className="chest-ceremony-skin">
+              🎨 {skin.title}
+              {nextSkin ? ` · до «${nextSkin.title}» — ${nextSkin.left}` : ' · вся полка открыта ✨'}
+            </div>
           </div>
 
           {waitingForAction ? (

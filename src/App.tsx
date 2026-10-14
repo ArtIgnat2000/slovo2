@@ -215,6 +215,7 @@ export default function App() {
             setParentUnlocked(false);
             setVlabsOpen(true);
           }}
+          onOpenWords={() => switchTab('words')}
         />
       )}
 

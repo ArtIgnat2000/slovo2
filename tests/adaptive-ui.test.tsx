@@ -17,7 +17,7 @@ import type { LessonSize, Profile, WordState } from '../src/types';
 import { LESSONS, WORDS } from '../src/content/words';
 import { DAY, initState } from '../src/engine/srs';
 import { useApp } from '../src/state/store';
-import { btn, btnText, buttons, check, click, currentWord, has, sleep } from './ui-helpers';
+import { btn, btnText, buttons, check, click, currentWord, has, openParentSection, sleep } from './ui-helpers';
 
 type Mode = 'clean' | 'hint';
 
@@ -134,6 +134,8 @@ async function setPresetViaUi(label: string): Promise<boolean> {
     click(btnText('Войти'));
     await sleep(60);
   }
+  // Настройки живут в отдельном разделе родительского экрана.
+  await openParentSection('Настройки');
   const option = btnText(label);
   if (!option) return false;
   click(option);

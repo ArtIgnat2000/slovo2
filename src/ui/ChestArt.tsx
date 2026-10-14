@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import type { CSSProperties } from 'react';
+import { skinById, type ChestSkin, type ChestSkinId } from '../engine/chests';
 
 interface KeySymbolProps {
   lit?: boolean;
@@ -6,12 +8,24 @@ interface KeySymbolProps {
 
 const prewarmedChestUrls = new Set<string>();
 
-/** Предзагрузка спрайтов сундука до открытия торжественной сцены. */
-export function prewarmChestArt(): void {
+/**
+ * Адрес спрайта облика. Облики лежат в public/illustrations/chests/ и собраны
+ * скриптом `node scripts/process-chest-art.mjs` из images-src/*.png: один холст
+ * 512×512 на все облики, поэтому при переключении сундук не «прыгает».
+ */
+export function chestArtUrl(skinId: ChestSkinId, state: 'closed' | 'open'): string {
+  return `${import.meta.env.BASE_URL}illustrations/chests/${skinId}-${state}.webp`;
+}
+
+/**
+ * Предзагрузка спрайтов сундука до открытия торжественной сцены.
+ * Грузим только тот облик, который ребёнок выбрал: восемь картинок впустую —
+ * лишний трафик и лишний кэш (приложение обещает работу офлайн).
+ */
+export function prewarmChestArt(skin: ChestSkinId = 'travel'): void {
   if (typeof Image === 'undefined') return;
-  const base = import.meta.env.BASE_URL;
-  for (const file of ['illustrations/chest-closed.webp', 'illustrations/chest-open.webp']) {
-    const url = `${base}${file}`;
+  for (const state of ['closed', 'open'] as const) {
+    const url = chestArtUrl(skin, state);
     if (prewarmedChestUrls.has(url)) continue;
     prewarmedChestUrls.add(url);
     const img = new Image();
@@ -38,8 +52,13 @@ export function KeySymbol({ lit = false }: KeySymbolProps) {
 
 export type ChestGlyphState = 'locked' | 'ready' | 'opened';
 
-/** Компактная версия сундука для карточки заданий дня. */
-export function ChestGlyph({ state }: { state: ChestGlyphState }) {
+/**
+ * Компактная версия сундука для карточки заданий. Рисуется кодом (ноль веса,
+ * работает офлайн), но перекрашивается в цвета выбранного облика: ребёнок видит
+ * свой выбор и там, где большая картинка не помещается.
+ */
+export function ChestGlyph({ state, skin }: { state: ChestGlyphState; skin?: ChestSkin }) {
+  const palette = (skin ?? skinById('travel')).palette;
   if (state === 'locked') {
     return (
       <svg className="chest-mini-glyph locked" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
@@ -53,46 +72,61 @@ export function ChestGlyph({ state }: { state: ChestGlyphState }) {
 
   return (
     <svg className={`chest-mini-glyph ${state}`} viewBox="0 0 48 48" aria-hidden="true" focusable="false">
-      <path d="M9 19c0-6 4-10 10-10h10c6 0 10 4 10 10v4H9z" fill="#b97028" stroke="#75401f" strokeWidth="2.5" />
-      <path d="M8 22h32v18c0 2-2 4-4 4H12c-2 0-4-2-4-4z" fill="#d98a35" stroke="#75401f" strokeWidth="2.5" />
-      <path d="M11 27h26M11 36h26" stroke="#f3bd63" strokeWidth="2" opacity=".8" />
-      <path d="M20 21v22m8-22v22" stroke="#f8d68c" strokeWidth="3" />
-      <rect x="20" y="25" width="8" height="9" rx="2" fill="#6a3d62" stroke="#f7cc67" strokeWidth="1.5" />
-      {state === 'opened' && <path d="M11 16 7 8m30 8 4-8M24 7V2" stroke="#ffd36b" strokeWidth="2.5" strokeLinecap="round" />}
+      <path d="M9 19c0-6 4-10 10-10h10c6 0 10 4 10 10v4H9z" fill={palette.lid} stroke="#75401f" strokeWidth="2.5" />
+      <path d="M8 22h32v18c0 2-2 4-4 4H12c-2 0-4-2-4-4z" fill={palette.body} stroke="#75401f" strokeWidth="2.5" />
+      <path d="M11 27h26M11 36h26" stroke={palette.band} strokeWidth="2" opacity=".8" />
+      <path d="M20 21v22m8-22v22" stroke={palette.band} strokeWidth="3" />
+      <rect x="20" y="25" width="8" height="9" rx="2" fill={palette.lock} stroke={palette.band} strokeWidth="1.5" />
+      {state === 'opened' && (
+        <path d="M11 16 7 8m30 8 4-8M24 7V2" stroke={palette.band} strokeWidth="2.5" strokeLinecap="round" />
+      )}
     </svg>
   );
 }
 
-/** Иллюстрация сундука БУКа. Открытая и закрытая версии — локальные WebP-спрайты. */
-export function ChestIllustration() {
-  const base = import.meta.env.BASE_URL;
+interface IllustrationProps {
+  /** Выбранный облик (src/engine/chests.ts) */
+  skinId?: ChestSkinId;
+  /** Подпись для скринридера: описывает именно этот облик */
+  label?: string;
+}
+
+/**
+ * Иллюстрация сундука БУКа. Закрытая и открытая версии — локальные WebP-спрайты
+ * того облика, который выбрал ребёнок; ключи, искры и свечение общие для всех,
+ * меняется только цвет ауры (он у каждого облика свой).
+ */
+export function ChestIllustration({ skinId = 'travel', label }: IllustrationProps) {
+  const skin = skinById(skinId);
   const [imgFailed, setImgFailed] = useState(false);
+  const caption =
+    label ?? `${skin.title}: ${skin.how}. Внутри сияют разноцветные кристаллы`;
   return (
-    <div
-      className="chest-illustration"
-      role="img"
-      aria-label="Бирюзовый сундук с золотой отделкой; внутри сияют разноцветные кристаллы"
-    >
-      <div className="chest-aura" aria-hidden="true" />
+    <div className="chest-illustration" role="img" aria-label={caption}>
+      <div
+        className="chest-aura"
+        aria-hidden="true"
+        style={{ '--chest-aura': skin.palette.aura } as CSSProperties}
+      />
       {imgFailed ? (
         <div
           className="chest-art-image chest-art-open"
           style={{ display: 'grid', placeItems: 'center', opacity: 1, transform: 'scale(1)' }}
         >
-          <ChestGlyph state="opened" />
+          <ChestGlyph state="opened" skin={skin} />
         </div>
       ) : (
         <>
           <img
             className="chest-art-image chest-art-closed"
-            src={`${base}illustrations/chest-closed.webp`}
+            src={chestArtUrl(skin.id, 'closed')}
             alt=""
             draggable={false}
             onError={() => setImgFailed(true)}
           />
           <img
             className="chest-art-image chest-art-open"
-            src={`${base}illustrations/chest-open.webp`}
+            src={chestArtUrl(skin.id, 'open')}
             alt=""
             draggable={false}
             onError={() => setImgFailed(true)}

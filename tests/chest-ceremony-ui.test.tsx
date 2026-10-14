@@ -69,8 +69,8 @@ export async function runChestCeremonyChecks() {
   check(
     'для закрытия и открытия используются локальные WebP-арты, а задания представлены тремя ключами',
     chestImageSources.length === 2 &&
-      chestImageSources.some((source) => source.endsWith('/illustrations/chest-closed.webp')) &&
-      chestImageSources.some((source) => source.endsWith('/illustrations/chest-open.webp')) &&
+      chestImageSources.some((source) => source.endsWith('/illustrations/chests/travel-closed.webp')) &&
+      chestImageSources.some((source) => source.endsWith('/illustrations/chests/travel-open.webp')) &&
       host.querySelectorAll('.scene-key').length === 3,
     `${chestImageSources.join(', ')}; ключей: ${host.querySelectorAll('.scene-key').length}`,
   );
