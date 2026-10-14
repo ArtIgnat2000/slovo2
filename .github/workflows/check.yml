@@ -3,6 +3,7 @@ name: Release checks
 on:
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, edited]
 
 permissions:
   contents: read
@@ -16,6 +17,13 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - name: Fetch current main for version comparison
+        run: git fetch --no-tags --depth=1 origin main:refs/remotes/origin/main
+      - run: npm run test:release
+      - name: Require a new release for every PR
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: npm run release:check
       - run: npm ci
       - run: npm run typecheck
       - run: npm run content:check
