@@ -7,11 +7,13 @@ import './adaptive.test';
 import { createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from '../src/App';
-import { body, btn, btnText, buttons, check, click, currentWord, failureCount, has, sleep } from './ui-helpers';
+import { body, btn, btnText, buttons, check, click, currentWord, failureCount, has, openParentSection, sleep } from './ui-helpers';
 import { runAdaptiveUiChecks } from './adaptive-ui.test';
 import { runQuestUiChecks } from './quests-ui.test';
 import { runInstallHintChecks } from './install-hint.test';
 import { runChestCeremonyChecks } from './chest-ceremony-ui.test';
+import { runChestSkinsUiChecks } from './chest-skins-ui.test';
+import { runParentUiChecks } from './parent-ui.test';
 import { runPretestAuditChecks } from './pretest-audit.test';
 import { runPuzzleUiChecks } from './puzzles-ui.test';
 import { runDiagnosticsRouteChecks } from './diagnostics-ui.test';
@@ -659,6 +661,9 @@ async function main() {
     click(btnText('Войти'));
     await sleep(60);
   }
+  // Разделы разложены по вкладкам: занятия и вид — в «Настройках».
+  check('родительский раздел открывается на обзоре', has('XP за сегодня') && has('Что подтянуть'), body().slice(0, 160));
+  await openParentSection('Настройки');
   check('родителям видны режимы размера урока', has('Размер урока') && has('Короткий · 12') && has('Обычный · 16') && has('Полный · 20'), '');
   // Настройка «Сова БУК»: проверяем, что «не показывать» убирает плавающего БУКа
   // с главной, а «везде» возвращает (замечание 2026-10-04).
@@ -708,6 +713,8 @@ async function main() {
 
   // ── Церемония сундука: пропуск, фиксация чека и reduced motion ─────────────
   await runChestCeremonyChecks();
+  await runChestSkinsUiChecks();
+  await runParentUiChecks();
 
   // ── Задания дня: понятность и выполнимость (обратная связь 2026-09-29) ────
   await runQuestUiChecks();

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { dayKey, dayPlan, masteredCount, useActiveProfile, useApp, useLook } from '../state/store';
+import { dayKey, dayPlan, masteredCount, useActiveProfile, useApp, useChestSkin, useLook } from '../state/store';
 import {
   allQuestsDone,
   chestAwake,
@@ -23,6 +23,14 @@ import {
 import { Bar } from './Bits';
 import { ChestCelebration } from './ChestCelebration';
 import { ChestGlyph, KeySymbol, prewarmChestArt } from './ChestArt';
+import { ChestSkins } from './ChestSkins';
+import {
+  nextSkinState,
+  newlyUnlockedSkins,
+  skinById,
+  skinUnlockMessage,
+  type ChestSkinId,
+} from '../engine/chests';
 import { nudge } from './motion';
 import { growthStage } from '../engine/shop';
 import { sfx } from '../platform/sound';
@@ -130,6 +138,14 @@ export function DailyQuests({ onStart }: Props) {
    * начинается со «спящего» состояния.
    */
   const [wakeTaps, setWakeTaps] = useState(0);
+  /** Открыта ли полка «Облики сундука» (выбор внешнего вида). */
+  const [shelfOpen, setShelfOpen] = useState(false);
+  /** Облики, открывшиеся в этом заходе: на полке они помечены «новый». */
+  const [sessionFresh, setSessionFresh] = useState<ChestSkinId[]>([]);
+  const skinId = useChestSkin();
+  const skin = skinById(skinId);
+  const chooseChestSkin = useApp((s) => s.chooseChestSkin);
+  const recordChestSkins = useApp((s) => s.recordChestSkins);
   const tapsRef = useRef(0);
   const receiptButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -154,10 +170,30 @@ export function DailyQuests({ onStart }: Props) {
   const wakeAwake = chestAwake(wakeTaps);
   /** Надбавку за текущий сундук ещё не платили — значит, будить есть смысл. */
   const wakeAvailable = (st?.wakePaid ?? 0) < chestsToday;
+  /** До какого облика ребёнок «добирает» — для подписи в карточке и в чеке. */
+  const next = profile ? nextSkinState(profile) : null;
 
   useEffect(() => {
-    if (doneCount >= 2 || chestReady || chestOpened || bonusReady > 0) prewarmChestArt();
-  }, [doneCount, chestReady, chestOpened, bonusReady]);
+    if (doneCount >= 2 || chestReady || chestOpened || bonusReady > 0) prewarmChestArt(skinId);
+  }, [doneCount, chestReady, chestOpened, bonusReady, skinId]);
+
+  /**
+   * Новый облик открылся — записываем и говорим об этом один раз. Запись живёт
+   * в профиле, а не в телефоне: перенос прогресса файлом должен переносить и
+   * коллекцию (и не повторять тост на новом устройстве).
+   *
+   * `sessionFresh` — отдельно от профиля: бейдж «новый» на полке должен
+   * продержаться до конца этого захода, хотя тост и запись случаются сразу.
+   */
+  useEffect(() => {
+    if (!profile) return;
+    const fresh = newlyUnlockedSkins(profile);
+    if (!fresh.length) return;
+    const message = skinUnlockMessage(fresh);
+    recordChestSkins(fresh);
+    setSessionFresh((current) => [...new Set([...current, ...fresh])]);
+    if (message) showToast({ emoji: '🎁', title: message.title, text: message.text });
+  }, [profile, recordChestSkins, showToast]);
 
   if (!profile) return null;
 
@@ -306,15 +342,20 @@ export function DailyQuests({ onStart }: Props) {
                   : `Разбудить сундук: тап ${Math.min(wakeTaps + 1, CHEST_WAKE_TAPS)} из ${CHEST_WAKE_TAPS}`
               }
             >
-              <ChestGlyph state="ready" />
+              <ChestGlyph state="ready" skin={skin} />
             </button>
           ) : (
             <div className="chest-glyph" aria-hidden="true">
-              <ChestGlyph state={chestOpened ? 'opened' : 'locked'} />
+              <ChestGlyph state={chestOpened ? 'opened' : 'locked'} skin={skin} />
             </div>
           )}
           <div className="grow">
-            <div className="chest-title">Сундук БУКа</div>
+            <div className="chest-title">
+              Сундук БУКа
+              <button className="chest-skin-link" onClick={() => setShelfOpen(true)}>
+                🎨 {skin.title}
+              </button>
+            </div>
             <div className="tiny">
               Ключи: {doneCount} из {quests.length}
               {chestOpened ? ' · основной открыт' : chestReady ? ' · все собраны!' : ''}
@@ -343,11 +384,20 @@ export function DailyQuests({ onStart }: Props) {
         )}
 
         <ChestKeyProgress items={items} />
+
+        {/* «Облики» — коллекция: ребёнок видит, что сундук уже может выглядеть
+            иначе и сколько осталось до следующего. */}
+        <div className="chest-skin-hint tiny">
+          <button className="chest-skin-line" onClick={() => setShelfOpen(true)}>
+            🎨 Облик: <b>{skin.title}</b>
+            {next ? ` · до «${next.skin.title}» — ${next.left}` : ' · вся полка открыта ✨'}
+          </button>
+        </div>
       </div>
 
       {chestReady && (
         <button className="btn green wide lg mt chest" onClick={() => takeChest('daily')}>
-          <ChestGlyph state="ready" />
+          <ChestGlyph state="ready" skin={skin} />
           <span>Открыть сундук БУКа</span>
           <span className="tiny">
             +{chestPreview('daily', wakeAwake).gems} 💎
@@ -358,7 +408,7 @@ export function DailyQuests({ onStart }: Props) {
 
       {bonusReady > 0 && (
         <button className="btn green wide lg mt chest bonus-chest" onClick={() => takeChest('bonus')}>
-          <ChestGlyph state="ready" />
+          <ChestGlyph state="ready" skin={skin} />
           <span>Открыть бонусный сундук</span>
           <span className="tiny">
             +{chestPreview('bonus', wakeAwake).gems} 💎
@@ -395,10 +445,27 @@ export function DailyQuests({ onStart }: Props) {
         Каждый завершённый урок приносит ещё один бонусный сундук с 5 💎 — без дневного лимита.
       </p>
 
+      {shelfOpen && (
+        <ChestSkins
+          profile={profile}
+          active={skinId}
+          fresh={sessionFresh}
+          onPick={(id: ChestSkinId) => {
+            // Выбрал — значит открыл: записываем сразу, чтобы облик остался
+            // даже если условие (серия дней) к следующему заходу перестанет выполняться.
+            recordChestSkins([id]);
+            chooseChestSkin(id);
+          }}
+          onClose={() => setShelfOpen(false)}
+        />
+      )}
+
       {chest && (
         <ChestCelebration
           reward={chest.reward}
           kind={chest.kind}
+          skinId={skinId}
+          nextSkin={next ? { title: next.skin.title, left: next.left } : null}
           balance={profile.gems}
           look={look}
           stage={growthStage(masteredCount(profile)).index}

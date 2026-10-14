@@ -27,6 +27,24 @@ export const failureCount = () => failures;
 
 export const byHint = new Map(WORDS.map((w) => [w.hint, w]));
 
+/**
+ * Переключить раздел в «Родителям».
+ *
+ * Раздел переделан в четыре раздела-вкладки (обзор, прогресс, настройки,
+ * приложение), поэтому тестам нужно сначала открыть нужный — иначе проверка
+ * «родителям видно…» ловила бы контент соседней вкладки.
+ */
+export async function openParentSection(title: string): Promise<HTMLButtonElement | undefined> {
+  const tab = buttons().find(
+    (b) => b.getAttribute('role') === 'tab' && (b.textContent ?? '').includes(title),
+  );
+  if (tab) {
+    click(tab);
+    await sleep(50);
+  }
+  return tab;
+}
+
 /** Какое слово сейчас в задании — по подсказке в блоке clue. */
 export function currentWord() {
   const clue = document.querySelector('.clue-hint');
