@@ -21,6 +21,7 @@ import { runShareAppChecks } from './share-ui.test';
 import { runFloatingMascotChecks } from './mascot-ui.test';
 import { runBukLessonChecks } from './buk-lesson-ui.test';
 import { runLessonArtChecks } from './lesson-art-ui.test';
+import { runVerdictChecks } from './verdict-ui.test';
 import { LESSONS, WORDS } from '../src/content/words';
 import { resolvePhotoSize, resolveWordCardVariant } from '../src/ui/WordView';
 import { buildLesson, lessonCardLimit } from '../src/engine/scheduler';
@@ -740,6 +741,10 @@ async function main() {
   // Картинка в уроке: крупный резиновый снимок в знакомстве и адаптивная
   // подсказка в заданиях с клавиатурой — при сохранённом «экран не прокручивается».
   await runLessonArtChecks();
+
+  // Пауза после ответа: отвеченная карточка остаётся на экране, полоса вердикта
+  // показывает результат, награду и написание слова (замечание 2026-10-15).
+  await runVerdictChecks();
 
   // «Передать приложение»: QR и ссылка для нового ученика (замечание 2026-10-14).
   await runShareAppChecks();

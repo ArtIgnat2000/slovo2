@@ -12,6 +12,7 @@ import { FloatingMascot } from '../FloatingMascot';
 import { TaskView } from '../TaskView';
 import { Bar, Confetti, ConfirmDialog, Ring, Stars } from '../Bits';
 import { WordLetters } from '../WordView';
+import { dangerSummary } from '../../engine/word-facts';
 import { sfx } from '../../platform/sound';
 import { haptic } from '../../platform/haptics';
 import { XP, checkAchievements, starsFor } from '../../engine/rewards';
@@ -88,6 +89,9 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
   const [confetti, setConfetti] = useState(false);
   const [xpShown, setXpShown] = useState(0);
   const [askExit, setAskExit] = useState(false);
+  // Сколько XP принесла именно эта карточка — показываем в полосе вердикта
+  // рядом с «✓ Правильно!»: награда должна быть видна там, куда смотрит ребёнок.
+  const [lastGain, setLastGain] = useState(0);
   // Иток пазла за этот прогон урока — карточка на экране результатов.
   const [puzzleAward, setPuzzleAward] = useState<PuzzleAward | null>(null);
 
@@ -110,6 +114,8 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
   const helpStageRef = useRef<HelpStage>(0);
   helpStageRef.current = helpStage;
   const screenRef = useRef<HTMLDivElement>(null);
+  /** Обёртка отвеченного задания: её содержимое «замораживается» на вердикте. */
+  const taskRef = useRef<HTMLDivElement>(null);
 
   // Отмечаем «сегодня занимались» только при первом реальном действии в уроке,
   // чтобы случайный вход в урок и мгновенное нажатие ✕ не тратили заморозку
@@ -148,6 +154,44 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
       setNudge(false);
     }
   }, [verdict]);
+
+  /**
+   * Отвеченное задание остаётся на экране до «Далее», но становится неживым:
+   * тапы и фокус в него не попадают (`inert` + `pointer-events: none`),
+   * скринридер читает только полосу вердикта. Раньше карточка в этот момент
+   * просто исчезала, и ребёнок видел пустой экран — проверить себя было нечем.
+   */
+  useEffect(() => {
+    const card = taskRef.current?.querySelector<HTMLElement>('.task');
+    if (!card) return;
+    if (!verdict) {
+      card.removeAttribute('inert');
+      card.removeAttribute('aria-hidden');
+      return;
+    }
+    const active = document.activeElement as HTMLElement | null;
+    if (active && card.contains(active)) active.blur();
+    card.setAttribute('inert', '');
+    card.setAttribute('aria-hidden', 'true');
+  }, [verdict, task?.uid]);
+
+  /**
+   * Enter/Пробел продолжают урок с вердикта — на планшете с клавиатурой и в
+   * предпросмотре на компьютере это быстрее, чем целиться пальцем. Кнопка в
+   * фокусе обрабатывает свои клавиши сама (иначе «Далее» срабатывала бы дважды).
+   */
+  useEffect(() => {
+    if (!verdict || askExit) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const t = e.target as HTMLElement | null;
+      if (t?.closest?.('button, input, textarea, select, [contenteditable]')) return;
+      e.preventDefault();
+      goNext();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [verdict, askExit, index, queue.length]);
 
   // Любое действие в уроке — это «не застрял»: пауза отсчитывается заново.
   useEffect(() => {
@@ -242,6 +286,7 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
       stats.current.correct += 1;
       stats.current.xp += gain;
       setXpShown((v) => v + gain);
+      setLastGain(gain);
       const st = streak + 1;
       setStreak(st);
       if (st > 0 && st % 3 === 0) {
@@ -443,36 +488,60 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
         />
       )}
 
-      {!verdict && (
+      {/* Отвеченное задание остаётся на экране под полосой вердикта: пауза после
+          ответа нужна для самопроверки («сравни с образцом»), а не для того,
+          чтобы показать пустое поле. На вердикте карточка заморожена — см.
+          `.lesson-task.is-frozen`, состояние внутри неё не сбрасывается, так что
+          ребёнок видит свой ответ и подсветку «верно/неверно». */}
+      <div ref={taskRef} className={`lesson-task ${verdict ? 'is-frozen' : ''}`}>
         <TaskView key={task.uid} task={task} word={word} onSolve={onSolve} onAttempt={(quality) => {
         if (!finalized.current) {
           ensureTouchedToday();
           recordAttempt(observed.current, attempts.current, task.uid, task.reason === 'repair', withHelp(quality) ?? 0);
         }
       }} />
-      )}
+      </div>
 
       {verdict && (
-        <div className={`footer-bar ${verdict.ok ? 'ok' : 'bad'}`}>
+        <div className={`footer-bar verdict-bar ${verdict.ok ? 'ok' : 'bad'}`}>
           <div className="footer-inner">
-            <div className="grow">
-              <div className="verdict">
-                {verdict.ok ? (verdict.hint ? '✓ Верно, но с подсказкой' : '✓ Правильно!') : '✗ Ошибка'}
-                {!verdict.ok && (
-                  <small>
-                    Правильно: <b>{word.text}</b>
-                  </small>
+            {/* Результат объявляется скринридеру (role=status + aria-live),
+                но кнопка «Далее» в живую область не входит: внутри неё должны
+                быть только текст и подписи. */}
+            <div className="verdict-status" role="status" aria-live="polite">
+              <div className="verdict-head">
+                <div className="verdict">
+                  {verdict.ok ? (verdict.hint ? '✓ Верно, но с подсказкой' : '✓ Правильно!') : '✗ Ошибка'}
+                </div>
+                {verdict.ok
+                  ? lastGain > 0 && <span className="stat-pill xp">⚡ +{lastGain}</span>
+                  : (
+                    // Отдельный класс от бейджа «🔧 ещё раз» в шапке: там он про
+                    // тип текущего задания, здесь — про то, что слово вернётся.
+                    <span className="stat-pill again">🔧 повторим в уроке</span>
+                  )}
+              </div>
+
+              {/* Образец написания показываем и после верного ответа: так работает
+                  самопроверка (сверить написанное с образцом), а подсвеченная
+                  опасная буква закрепляет то самое «трудное место» слова. */}
+              {!verdict.ok && <div className="verdict-label">Правильно:</div>}
+              <div className="verdict-word">
+                <WordLetters word={word} stress markDanger small />
+              </div>
+              <div className="tiny verdict-note">
+                {verdict.ok ? (
+                  dangerSummary(word)
+                ) : word.mnemonic ? (
+                  <>💡 {word.mnemonic}</>
+                ) : (
+                  dangerSummary(word)
                 )}
               </div>
-              {!verdict.ok && (
-                <div style={{ marginTop: 10 }}>
-                  <WordLetters word={word} stress markDanger small />
-                </div>
-              )}
-              {!verdict.ok && word.mnemonic && <div className="tiny">💡 {word.mnemonic}</div>}
               {helpMode !== 'off' && bukVerdictLine && <BukVerdictLine text={bukVerdictLine} />}
             </div>
-            <button className="btn primary" onClick={goNext}>
+
+            <button className="btn primary wide lg verdict-next" onClick={goNext}>
               Далее ▸
             </button>
           </div>

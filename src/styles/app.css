@@ -377,6 +377,15 @@ p {
   color: var(--ink-2);
   font-variant-numeric: tabular-nums;
 }
+/* Ошибка в полосе вердикта: слово вернётся в этом уроке — это не наказание,
+   поэтому мягкий оранжевый и без счётчика. Класс отдельный от .repair в шапке
+   (тот бейдж — про тип текущего задания), чтобы смыслы не смешивались. */
+.stat-pill.again {
+  color: var(--orange-ink);
+  border-color: var(--orange);
+  background: var(--orange-soft);
+  white-space: nowrap;
+}
 
 /* ── Задания дня ─────────────────────────────────────────────────────────── */
 
@@ -2468,6 +2477,92 @@ p {
   color: var(--ink-2);
 }
 
+/* ── Полоса вердикта в уроке (2026-10-15) ──────────────────────────────────
+   Пауза после ответа — не пустой экран, а «экран результата»: что ответил
+   ребёнок (замороженная карточка выше), верно или нет, сколько XP, как слово
+   пишется и что дальше. Полоса стоит В ПОТОКЕ, а не поверх задания: место под
+   неё браузер считает сам, а разметка ответа не уезжает под кнопку.
+   Класс .footer-bar оставлен — по нему полосу находят тесты и общие стили
+   баннеров приложения (там позиционирование fixed остаётся нужным). */
+.lesson-screen > .footer-bar.verdict-bar {
+  position: static;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  z-index: auto;
+  flex: none;
+  /* Потолок высоты: длинное слово/мнемоника не съедают задание целиком —
+     полоса в этом случае прокручивается сама. */
+  max-height: 58svh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: 10px calc(var(--lesson-pad-x) * -1) calc(var(--lesson-pad-b) * -1);
+  padding: 12px var(--lesson-pad-x) var(--lesson-pad-b);
+  border-radius: var(--r-md) var(--r-md) 0 0;
+  box-shadow: 0 -6px 18px rgba(36, 31, 54, 0.08);
+}
+.verdict-bar .footer-inner {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+/* Живая область для скринридера: только текст результата, без кнопки. */
+.verdict-status {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.verdict-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+.verdict-head .verdict {
+  margin-right: auto;
+}
+.verdict-label {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  text-align: center;
+  color: var(--ink-2);
+}
+/* Образец написания: буквы с ударением и подсвеченным опасным местом. */
+.verdict-word {
+  display: flex;
+  justify-content: center;
+  text-align: center;
+}
+.verdict-bar .verdict-word .word-big {
+  font-size: clamp(26px, 8vw, 30px);
+}
+.verdict-note {
+  text-align: center;
+  line-height: 1.3;
+}
+.verdict-bar .buk-verdict {
+  margin-top: 0;
+  text-align: center;
+}
+.verdict-next {
+  margin-top: 2px;
+}
+/* На коротком экране полоса компактнее: буквы меньше, отступы теснее — иначе
+   задание над ней сжимается до полоски. */
+@media (max-height: 680px) {
+  .lesson-screen > .footer-bar.verdict-bar {
+    padding-top: 10px;
+  }
+  .verdict-bar .footer-inner,
+  .verdict-bar .verdict-status {
+    gap: 6px;
+  }
+  .verdict-bar .verdict-word .word-big {
+    font-size: 24px;
+  }
+}
+
 .fix-card {
   width: 100%;
   border-radius: var(--r-md);
@@ -3427,6 +3522,12 @@ p {
    высоту. Это важнее dvh: при появлении адресной строки Safari ни кнопка, ни
    клавиатура не должны оказаться за нижним краем. */
 .lesson-screen {
+  /* Горизонтальный отступ экрана и отступ до нижнего края — переменными:
+     их же использует полоса вердикта, которая теперь стоит в потоке и
+     «достаёт» до краёв экрана (раньше она была fixed и перекрывала задание,
+     ради чего приходилось резервировать место отступом-заглушкой). */
+  --lesson-pad-x: 16px;
+  --lesson-pad-b: calc(12px + var(--safe-b));
   height: 100vh;
   min-height: 100vh;
   max-height: 100vh;
@@ -3437,7 +3538,7 @@ p {
   flex-direction: column;
   overflow: hidden;
   overscroll-behavior: none;
-  padding: calc(10px + var(--safe-t)) 16px calc(12px + var(--safe-b));
+  padding: calc(10px + var(--safe-t)) var(--lesson-pad-x) var(--lesson-pad-b);
 }
 .lesson-header {
   flex: none;
@@ -3461,6 +3562,40 @@ p {
 .lesson-screen > .buk-panel .buk-panel-text {
   margin-bottom: 6px;
 }
+/* Обёртка задания. В обычном режиме её нет как коробки (display: contents):
+   .task остаётся прямым флекс-элементом экрана ровно так же, как раньше —
+   ни один из отлаженных размеров картинок и клавиатуры не меняется. */
+.lesson-task {
+  display: contents;
+}
+/* Вердикт: задание остаётся на экране, но перестаёт быть живым. */
+.lesson-task.is-frozen {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  opacity: 0.75;
+  transition: opacity 0.2s ease;
+}
+/* Внутрь «замороженной» карточки тап не проходит. Именно у самого задания, а
+   не у обёртки: обёртка остаётся прокручиваемой — на коротком экране ответ
+   можно докрутить, но случайным касанием ничего не нажимается. */
+.lesson-task.is-frozen > .task {
+  flex: 1 0 auto;
+  pointer-events: none;
+}
+/* Мёртвая клавиатура под полосой вердикта только занимает место. */
+.lesson-task.is-frozen .keyboard {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .lesson-task.is-frozen {
+    transition: none;
+  }
+}
+
 .lesson-screen .task {
   flex: 1 1 auto;
   min-height: 0;
@@ -3639,11 +3774,12 @@ p {
   line-height: 1.25;
 }
 
-/* В режиме вердикта само задание размонтировано: ребёнок видит только ответ и
-   «Далее», а клавиатура/старые варианты не создают фальшивую прокрутку под
-   нижней панелью. */
-.lesson-screen.has-verdict {
-  padding-bottom: calc(12px + var(--safe-b));
+/* В режиме вердикта задание остаётся на экране, но заморожено
+   (.lesson-task.is-frozen), а полоса вердикта стоит в потоке — резервировать
+   место под неё отступом-заглушкой больше не нужно. Класс .has-verdict
+   оставлен как явная метка состояния экрана. */
+.lesson-screen.has-verdict .lesson-header {
+  margin-bottom: 4px;
 }
 
 /* ── Раздел «Родителям» ───────────────────────────────────────────────────
@@ -4100,8 +4236,10 @@ p {
     --art-clue: 104px;
   }
   .lesson-screen {
+    /* Через переменную: по ней же считается отрицательный отступ полосы
+       вердикта, иначе она «уезжала» бы за нижний край экрана. */
+    --lesson-pad-b: calc(8px + var(--safe-b));
     padding-top: calc(8px + var(--safe-t));
-    padding-bottom: calc(8px + var(--safe-b));
   }
   .lesson-header {
     margin-bottom: 4px;
@@ -4122,8 +4260,7 @@ p {
 
 @media (max-width: 360px) {
   .lesson-screen {
-    padding-right: 12px;
-    padding-left: 12px;
+    --lesson-pad-x: 12px;
   }
   .lesson-header {
     gap: 6px;
