@@ -1,8 +1,10 @@
 // Задания дня глазами ребёнка (обратная связь 2026-09-29: «нажимаю — ничего не происходит»).
+// Главная с 2026-10-15: герой «Сегодня» — единственная кнопка «Начать»; строка задания
+// сама открывает урок / повторение (класс .quest-main), без второй кнопки и подписи «куда идти».
 //
 // Проверяем весь путь, а не только правила:
-//  • у незакрытого задания есть подпись «куда идти» и кнопка «Начать ▸»;
-//  • «Начать ▸» действительно открывает урок (и режим «Повторение» для задания повторения);
+//  • на главной есть герой «Сегодня» с «Начать»;
+//  • незакрытое задание — это кнопка (.quest-main), тап открывает урок / «Повторение»;
 //  • блок «Пора повторить» на главной и урок повторения больше не расходятся:
 //    если блок обещает N слов, урок их и показывает (раньше открывалось «Повторять нечего!»);
 //  • прогресс «Повтори N слов» растёт от потренированных слов, ошибка его не «замораживает»;
@@ -11,7 +13,7 @@ import type { Profile, QuestPlanItem } from '../src/types';
 import { LESSONS, WORDS } from '../src/content/words';
 import { dayKey, useApp } from '../src/state/store';
 import { CHEST_WAKE_TAPS, planOf, questsForDay, specFor } from '../src/engine/quests';
-import { btn, btnText, buttons, check, click, currentWord, has, sleep } from './ui-helpers';
+import { btn, btnText, buttons, check, click, currentWord, has, openRewardsSheet, sleep } from './ui-helpers';
 
 const store = () => useApp.getState();
 const DAY = 86_400_000;
@@ -97,6 +99,10 @@ async function toHome() {
   await sleep(80);
 }
 
+async function showRewards() {
+  await openRewardsSheet();
+}
+
 /** Текст карточки задания, в которой встречается подстрока. */
 function questCard(text: string): string {
   const card = Array.from(document.querySelectorAll('.quest')).find((q) => (q.textContent ?? '').includes(text));
@@ -118,12 +124,10 @@ function questAction(text: string, label: string): HTMLButtonElement | undefined
   );
 }
 
-/** Кнопка «Начать ▸» в карточке задания с указанным текстом. */
+/** Кнопка запуска внутри карточки задания (строка .quest-main, без второй «Начать»). */
 function questStart(text: string): HTMLButtonElement | undefined {
   const card = Array.from(document.querySelectorAll('.quest')).find((q) => (q.textContent ?? '').includes(text));
-  return (Array.from(card?.querySelectorAll('button') ?? []) as HTMLButtonElement[]).find((b) =>
-    (b.textContent ?? '').includes('Начать'),
-  );
+  return (card?.querySelector('.quest-main') as HTMLButtonElement | null) ?? undefined;
 }
 
 /** Пролистать неоцениваемые карточки-напоминания («Вспомнил! 👍») до задания. */
@@ -243,18 +247,24 @@ export async function runQuestUiChecks(): Promise<void> {
   const daySet = questsForDay(new Date().toISOString().slice(0, 10));
   const reviewInDay = daySet.some((q) => q.kind === 'review');
 
-  // 1. У каждого незакрытого задания есть подпись и кнопка запуска
-  const cards = Array.from(document.querySelectorAll('.quest'));
-  check('задания дня: три карточки на главной', cards.length === 3, String(cards.length));
+  // 1. Герой «Сегодня» — главный удар; задания живут в листе 🎁
   check(
-    'задания дня: у каждого незакрытого задания есть кнопка «Начать ▸»',
-    cards.every((c) => Array.from(c.querySelectorAll('button')).some((b) => (b.textContent ?? '').includes('Начать'))),
-    cards.map((c) => (c.textContent ?? '').replace(/\s+/g, ' ').slice(0, 40)).join(' | '),
-  );
-  check(
-    'задания дня: подпись объясняет, где выполнять задание',
-    has('Верные ответы считаются в уроках') || has('Уроки ждут на карте'),
+    'главная: герой «Сегодня» с кнопкой «Начать»',
+    !!document.querySelector('.home-hero') && has('Сегодня') && !!btnText('Начать'),
     bodyText(),
+  );
+  check('главная: на доме нет карточки заданий — они за 🎁', !document.querySelector('.quest'), bodyText());
+  click(document.querySelector('.home-hero'));
+  await sleep(100);
+  check('главная: «Начать» у героя открывает урок', !!document.querySelector('.task'), bodyText().slice(0, 120));
+  await toHome();
+  await showRewards();
+  const cards = Array.from(document.querySelectorAll('.quest'));
+  check('задания дня: три карточки в листе наград', cards.length === 3, String(cards.length));
+  check(
+    'задания дня: у каждого незакрытого задания строка запускает (.quest-main)',
+    cards.every((c) => !!c.querySelector('.quest-main')),
+    cards.map((c) => (c.textContent ?? '').replace(/\s+/g, ' ').slice(0, 40)).join(' | '),
   );
 
   // 2. Новичку повторять нечего — задание повторения не выдаём (иначе оно «висит» весь день)
@@ -264,25 +274,31 @@ export async function runQuestUiChecks(): Promise<void> {
     questCard('Повтори') || 'повторения в наборе нет',
   );
 
-  // 3. «Начать ▸» у обычного задания открывает урок
+  // 3. Тап по строке задания открывает урок (герой — тот же старт, проверяем строку)
   const startLessonBtn = questStart('верных ответов') ?? questStart('Пройди') ?? questStart('Повтори');
   click(startLessonBtn);
   await sleep(100);
-  check('задания дня: «Начать ▸» открывает урок', !!document.querySelector('.task'), bodyText().slice(0, 120));
+  check('задания дня: тап по строке задания открывает урок', !!document.querySelector('.task'), bodyText().slice(0, 120));
   await toHome();
+  await showRewards();
 
-  // 4. Слова пройдены, но срок повторения ещё не истёк: блок «Пора повторить» всё равно
-  //    должен вести в тренировку (раньше блок пропадал или открывал «Повторять нечего!»)
+  // 4. Слова пройдены, но срок повторения ещё не истёк: задание «Повтори» в листе
+  //    всё равно ведёт в тренировку (раньше блок пропадал или открывал «Повторять нечего!»)
   seedPractised(6, { due: false });
   await sleep(80);
-  check('задания дня: после урока «Пора повторить» предлагает тренировку', has('Пора повторить'), bodyText().slice(0, 200));
+  await showRewards();
+  check(
+    'задания дня: после урока повтор доступен как задание',
+    questCard('Повтори') !== '',
+    bodyText().slice(0, 200),
+  );
   check(
     'задания дня: цель повторения подстроена под пройденные слова (5 из 6)',
     questCard('Повтори 5 слов') !== '',
     questCard('Повтори'),
   );
 
-  const reviewStart = btnText('Пора повторить');
+  const reviewStart = questStart('Повтори');
   click(reviewStart);
   await sleep(100);
   check(
@@ -305,6 +321,7 @@ export async function runQuestUiChecks(): Promise<void> {
   check('задания дня: в повторении можно ошибиться (промах засчитан)', wrongAnswered, '');
   await sleep(60);
   await toHome();
+  await showRewards();
   const afterOne = questCard('Повтори');
   check(
     'задания дня: после одного слова прогресс 1 / 5, несмотря на ошибку',
@@ -315,11 +332,12 @@ export async function runQuestUiChecks(): Promise<void> {
   // 6. Кнопка задания ведёт в повторение и оттуда можно продолжить
   click(questStart('Повтори'));
   await sleep(100);
-  check('задания дня: «Начать ▸» у задания повторения открывает повторение', !!document.querySelector('.task') && has('Повторение'), bodyText().slice(0, 120));
+  check('задания дня: тап по заданию повторения открывает повторение', !!document.querySelector('.task') && has('Повторение'), bodyText().slice(0, 120));
   await answerRight();
   await nextCard();
   await sleep(60);
   await toHome();
+  await showRewards();
   check(
     'задания дня: прогресс вырос после верного ответа (2 / 5)',
     questCard('Повтори').includes('2 / 5'),
@@ -329,11 +347,12 @@ export async function runQuestUiChecks(): Promise<void> {
   // 7. Добираем оставшиеся слова и забираем награду
   for (const wordId of LESSONS[0].wordIds) store().answer(wordId, 5, true);
   await sleep(80);
+  await showRewards();
   const gemsBefore = active().gems;
   const claim = questStart('Повтори');
   const claimBtn = questAction('Повтори', 'Забрать');
   check(
-    'задания дня: у закрытого задания кнопка «Забрать» вместо «Начать»',
+    'задания дня: у закрытого задания кнопка «Забрать» вместо строки запуска',
     !claim && !!claimBtn,
     questCard('Повтори'),
   );
@@ -352,6 +371,7 @@ export async function runQuestUiChecks(): Promise<void> {
   await sleep(60);
   seedPractised(2, { due: false });
   await sleep(80);
+  await showRewards();
   check(
     'задания дня: новичку с двумя словами цель — «Повтори 2 слова»',
     questCard('Повтори 2 слова') !== '' || !reviewInDay,
@@ -364,7 +384,8 @@ export async function runQuestUiChecks(): Promise<void> {
   const gemsAtStart = active().gems;
   for (let i = 0; i < 3; i++) store().finishLesson(LESSONS[0].id, 100);
   await sleep(80);
-  check('на главной виден недельный прогресс', has('Награды недели') && has('1 из 7'), bodyText());
+  await showRewards();
+  check('в наградах виден недельный прогресс', has('Награды недели') && has('1 из 7'), bodyText());
   check(
     'три урока дают три готовых бонусных сундука',
     active().days[dayKey()]?.lessons === 3 && has('бонусных готово: 3'),
@@ -408,6 +429,7 @@ export async function runQuestUiChecks(): Promise<void> {
     }
   }
   await sleep(80);
+  await showRewards();
   check('разогрев: задания закрыты, сундук готов', has('Ключи: 3 из 3'), bodyText());
 
   const wakeGlyph = document.querySelector('.chest-glyph.wake') as HTMLButtonElement | null;

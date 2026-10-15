@@ -13,7 +13,7 @@ import { CHEST_SKINS, skinById } from '../src/engine/chests';
 import { ChestGlyph } from '../src/ui/ChestArt';
 import { LESSONS } from '../src/content/words';
 import { dayKey, useApp } from '../src/state/store';
-import { btnText, buttons, check, click, has, sleep } from './ui-helpers';
+import { btnText, buttons, check, click, has, openRewardsSheet, sleep } from './ui-helpers';
 import type { Profile } from '../src/types';
 
 const store = () => useApp.getState();
@@ -80,10 +80,11 @@ export async function runChestSkinsUiChecks(): Promise<void> {
   await toHome();
   store().createProfile('Облики', '🎨');
   await sleep(80);
+  await openRewardsSheet();
 
-  // Полка доступна прямо из карточки заданий и у новичка полна смысла.
+  // Полка доступна из листа наград и у новичка полна смысла.
   check(
-    'у сундука на главной есть вход в облики с названием текущего',
+    'у сундука в наградах есть вход в облики с названием текущего',
     has('Облик:') && has('Сундук путника'),
     document.body.textContent?.slice(0, 200) ?? '',
   );

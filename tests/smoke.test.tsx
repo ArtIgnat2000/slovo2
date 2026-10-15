@@ -7,7 +7,7 @@ import './adaptive.test';
 import { createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from '../src/App';
-import { body, btn, btnText, buttons, check, click, currentWord, failureCount, has, openParentSection, sleep } from './ui-helpers';
+import { body, btn, btnText, buttons, check, click, currentWord, failureCount, has, openParentSection, openRewardsSheet, sleep } from './ui-helpers';
 import { runAdaptiveUiChecks } from './adaptive-ui.test';
 import { runQuestUiChecks } from './quests-ui.test';
 import { runInstallHintChecks } from './install-hint.test';
@@ -249,7 +249,7 @@ async function main() {
   useApp.getState().createProfile('Тест', '🦊');
   await sleep(60);
 
-  check('профиль создан, показана главная', has('Цель дня') && has('Задания дня'), body().slice(0, 200));
+  check('профиль создан, показана главная', has('Сегодня') && has('Мой путь') && !!document.querySelector('.home-hero'), body().slice(0, 200));
   check('размер урока по умолчанию короткий', useApp.getState().profiles[0].lessonSize === 'short', '');
 
   check(
@@ -285,14 +285,17 @@ async function main() {
   // Задания дня берём из плана профиля — того же источника, что и интерфейс:
   // новичку «Повтори N слов» заменяется другим заданием дня.
   const plan = dayPlan(useApp.getState().profiles[0]);
+  check('на главной виден герой «Сегодня» с кнопкой старта', has('Сегодня') && !!btnText('Начать') && !!document.querySelector('.home-hero'), '');
+  await openRewardsSheet();
   check(
     'три задания дня в карточке',
     plan.length === 3 && plan.every((q) => has(questTitle(q.spec, q.target))),
     plan.map((q) => questTitle(q.spec, q.target)).join(' / '),
   );
-  check('подсказка про награды за ключи и уроки видна', has('3 ключа дают 15 💎') && has('каждый пройденный урок'), '');
   check('сундук начинает с нулём ключей', has('Ключи: 0 из 3'), '');
   check('кристаллов пока 0', has('💎 0'), '');
+  click(btn((b) => (b.getAttribute('aria-label') ?? '') === 'Закрыть'));
+  await sleep(40);
 
   // ── Подсказка «Добавь приложение на экран» ─────────────────────────────────
   await runInstallHintChecks();
@@ -331,6 +334,7 @@ async function main() {
   if (kinds.includes('flawless')) for (let i = 0; i < 6; i++) st.answer(WORDS[i].id, 5, false);
   await sleep(80);
 
+  await openRewardsSheet();
   const gemsBefore = useApp.getState().profiles[0].gems;
   let claims = 0;
   for (let i = 0; i < 8; i++) {
@@ -633,16 +637,14 @@ async function main() {
   const homeTab = buttons().find((b) => (b.textContent ?? '').includes('Уроки') && b.className.includes('tab'));
   click(homeTab!);
   await sleep(80);
-  check('на главной есть серия дней', /Серия|Серия дней/.test(body()), body().slice(0, 200));
-  check('полоска серии из 7 клеток', document.querySelectorAll('.streak-dot').length === 7, '');
   check(
-    'сегодняшний день отмечен как сегодняшний',
-    document.querySelectorAll('.streak-dot.today').length === 1,
-    '',
+    'на главной есть серия дней',
+    has('🔥') && !!document.querySelector('.stat-pill.fire'),
+    body().slice(0, 200),
   );
   check(
-    'дни занятий закрашены',
-    document.querySelectorAll('.streak-dot.on').length >= 1,
+    'на главной награды за иконкой 🎁, а не полотном',
+    !!btn((b) => (b.getAttribute('aria-label') ?? '').startsWith('Награды')) && !document.querySelector('.quest'),
     '',
   );
 

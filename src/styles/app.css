@@ -125,6 +125,8 @@ p {
 }
 .card.flat {
   box-shadow: none;
+  border-color: transparent;
+  background: var(--bg-2);
 }
 
 /* ── Кнопки ──────────────────────────────────────────────────────────────── */
@@ -283,6 +285,265 @@ p {
 }
 .stat-pill.xp {
   color: var(--primary);
+}
+.topbar-name {
+  font-weight: 800;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+/* ── Главная «Уроки»: герой «Сегодня» и спокойные мета-блоки (2026-10-15) ─
+   Один главный удар на первый экран. Цель, квесты, неделя остаются, но
+   без рамки-на-рамке и без второго CTA. Путь — отдельная глава ниже. */
+
+.rewards-btn {
+  position: relative;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+.rewards-btn.wait {
+  border-color: var(--orange);
+}
+.rewards-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--orange);
+  box-shadow: 0 0 0 2px var(--card);
+}
+.rewards-backdrop {
+  justify-content: flex-end;
+  padding: 0;
+}
+.rewards-sheet {
+  width: 100%;
+  max-width: var(--screen-max);
+  max-height: min(88dvh, 740px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--bg);
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  padding: 16px 16px calc(20px + var(--safe-b));
+  box-shadow: var(--shadow-lg);
+}
+
+.home-hero {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  border-radius: var(--r-lg);
+  padding: 16px 16px 14px;
+  background: var(--primary-soft);
+  color: var(--ink);
+  box-shadow: 0 6px 0 var(--primary);
+  cursor: pointer;
+  font: inherit;
+}
+.home-hero:active {
+  transform: translateY(3px);
+  box-shadow: 0 3px 0 var(--primary);
+}
+.home-hero:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 3px;
+}
+.home-hero-kicker {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--primary);
+  margin-bottom: 8px;
+}
+.home-hero-body {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.home-hero-emoji {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  font-size: 32px;
+  background: var(--card);
+  flex: none;
+}
+.home-hero-title {
+  display: block;
+  font-size: var(--fs-lg);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+.home-hero-meta {
+  display: block;
+  margin-top: 4px;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.home-hero-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 52px;
+  border-radius: var(--r-md);
+  background: var(--primary);
+  color: #fff;
+  font-size: var(--fs-md);
+  font-weight: 800;
+  box-shadow: 0 4px 0 #5b3ede;
+}
+.home-hero:active .home-hero-cta {
+  box-shadow: 0 2px 0 #5b3ede;
+}
+
+.home-goal .streak-days {
+  margin-top: 2px;
+}
+
+.quest-list {
+  gap: 8px;
+}
+.quest-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  padding: 0;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.quest-main:focus-visible {
+  outline: 3px solid var(--primary);
+  border-radius: 8px;
+}
+.quest-main .grow {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+.quest-go {
+  color: var(--ink-3);
+  font-size: 18px;
+  flex: none;
+}
+.quest-bar {
+  margin-top: 6px;
+}
+
+.home-review {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  border: 0;
+  background: var(--card);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+.home-review:active {
+  transform: translateY(1px);
+}
+.home-review-emoji {
+  font-size: 26px;
+  flex: none;
+}
+.home-review-title {
+  display: block;
+  font-weight: 800;
+  font-size: var(--fs-md);
+}
+
+.home-path-title {
+  margin: 20px 0 12px;
+}
+.node-btn.quiet {
+  box-shadow: 0 2px 0 var(--line);
+}
+.node-btn.quiet .node-emoji {
+  width: 44px;
+  height: 44px;
+  font-size: 24px;
+  background: var(--bg-2);
+}
+.node-btn.quiet .crowns {
+  transform: scale(0.85);
+  transform-origin: left center;
+}
+
+.home-achievements {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 8px 0 16px;
+}
+.home-achievement {
+  width: 72px;
+  text-align: center;
+}
+.home-achievement-emoji {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.home-vlabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin: 4px 0 0;
+  padding: 8px 2px;
+  border: 0;
+  background: none;
+  color: var(--ink-3);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+}
+.home-vlabs:active {
+  color: var(--ink-2);
+}
+
+.weekly-marks {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 8px;
+}
+.weekly-mark {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--ink-3);
+}
+.weekly-mark.reached {
+  color: var(--primary);
+}
+.weekly-mark.awarded {
+  color: var(--green);
 }
 
 /* ── Прогресс ────────────────────────────────────────────────────────────── */

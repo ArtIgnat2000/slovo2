@@ -105,19 +105,11 @@ function ChestRewards({ reward }: { reward: Chest }) {
 }
 
 /**
- * Карточка «Задания дня» на главной.
+ * Карточка «Задания дня» в листе наград с главной.
  *
  * Три задания — это три ключа сундука БУКа. Ключи считаются по прогрессу
  * заданий и поэтому переживают перезагрузку без отдельного счётчика.
  */
-/** Что делать ребёнку для каждого задания — короткая подпись рядом с кнопкой «Начать». */
-const QUEST_HINT: Record<QuestKind, string> = {
-  review: 'Откроется режим 🔁 Повторение',
-  lessons: 'Уроки ждут на карте «Мой путь»',
-  correct: 'Верные ответы считаются в уроках',
-  flawless: 'Отвечай верно один за другим',
-};
-
 interface Props {
   /** Запустить задание: «Повтори N слов» открывает повторение, остальные — урок. */
   onStart: (kind: QuestKind) => void;
@@ -271,31 +263,44 @@ export function DailyQuests({ onStart }: Props) {
   };
 
   return (
-    <div className="card mb">
+    <div className="card flat mb home-quests">
       <div className="row mb">
         <div className="grow">
           <h3 style={{ margin: 0 }}>Задания дня</h3>
-          <div className="tiny">3 ключа дают 15 💎, каждый пройденный урок — ещё один сундук на 5 💎</div>
         </div>
         <div className="stat-pill tasks">{doneCount} из {quests.length}</div>
       </div>
 
-      <div className="col" style={{ gap: 10 }}>
+      <div className="col quest-list">
         {items.map(({ spec, progress, done, id, target }) => {
           const isClaimed = claimed.includes(id);
           const canClaim = done && !isClaimed;
           return (
             <div key={id} className={`quest ${done ? 'done' : ''}`}>
               <div className="row">
-                <span className="quest-emoji" aria-hidden="true">
-                  {done ? '✅' : spec.emoji}
-                </span>
-                <div className="grow">
-                  <div className="quest-title">{questTitle(spec, target)}</div>
-                  <div className="tiny">
-                    {isClaimed ? 'Награда получена' : `${progress} / ${target}`}
+                {done ? (
+                  <span className="quest-emoji" aria-hidden="true">
+                    ✅
+                  </span>
+                ) : null}
+                {done ? (
+                  <div className="grow">
+                    <div className="quest-title">{questTitle(spec, target)}</div>
+                    <div className="tiny">{isClaimed ? 'Награда получена' : `${progress} / ${target}`}</div>
                   </div>
-                </div>
+                ) : (
+                  <button type="button" className="quest-main" onClick={() => onStart(spec.kind)}>
+                    <span className="quest-emoji" aria-hidden="true">
+                      {spec.emoji}
+                    </span>
+                    <span className="grow">
+                      <span className="quest-title">{questTitle(spec, target)}</span>
+                      <span className="tiny">
+                        {progress} / {target}
+                      </span>
+                    </span>
+                  </button>
+                )}
                 {canClaim ? (
                   <button className="btn green sm" onClick={() => claim(id, spec.reward)}>
                     Забрать 💎{spec.reward}
@@ -307,19 +312,9 @@ export function DailyQuests({ onStart }: Props) {
                 )}
               </div>
               {!done && (
-                <>
-                  <div style={{ marginTop: 6 }}>
-                    <Bar value={(progress / target) * 100} tone="orange" />
-                  </div>
-                  {/* Раньше карточка была «мёртвой»: непонятно, что делать и где.
-                      Теперь у каждого задания есть действие и подпись, куда оно приведёт. */}
-                  <div className="row quest-action">
-                    <span className="tiny grow">{QUEST_HINT[spec.kind]}</span>
-                    <button className="btn primary sm" onClick={() => onStart(spec.kind)}>
-                      Начать ▸
-                    </button>
-                  </div>
-                </>
+                <div className="quest-bar">
+                  <Bar value={(progress / target) * 100} tone="orange" />
+                </div>
               )}
             </div>
           );
@@ -352,8 +347,8 @@ export function DailyQuests({ onStart }: Props) {
           <div className="grow">
             <div className="chest-title">
               Сундук БУКа
-              <button className="chest-skin-link" onClick={() => setShelfOpen(true)}>
-                🎨 {skin.title}
+              <button type="button" className="chest-skin-line" onClick={() => setShelfOpen(true)}>
+                Облик: <b>{skin.title}</b>
               </button>
             </div>
             <div className="tiny">
@@ -384,15 +379,6 @@ export function DailyQuests({ onStart }: Props) {
         )}
 
         <ChestKeyProgress items={items} />
-
-        {/* «Облики» — коллекция: ребёнок видит, что сундук уже может выглядеть
-            иначе и сколько осталось до следующего. */}
-        <div className="chest-skin-hint tiny">
-          <button className="chest-skin-line" onClick={() => setShelfOpen(true)}>
-            🎨 Облик: <b>{skin.title}</b>
-            {next ? ` · до «${next.skin.title}» — ${next.left}` : ' · вся полка открыта ✨'}
-          </button>
-        </div>
       </div>
 
       {chestReady && (
@@ -434,16 +420,6 @@ export function DailyQuests({ onStart }: Props) {
           )}
         </div>
       )}
-
-      {!chestReady && !chestOpened && bonusReady === 0 && (
-        <p className="tiny center" style={{ margin: '12px 0 0' }}>
-          Выполни задания и собери все три ключа 🔑
-        </p>
-      )}
-
-      <p className="tiny center bonus-chest-note">
-        Каждый завершённый урок приносит ещё один бонусный сундук с 5 💎 — без дневного лимита.
-      </p>
 
       {shelfOpen && (
         <ChestSkins
