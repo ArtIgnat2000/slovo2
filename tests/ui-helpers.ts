@@ -15,6 +15,16 @@ export const btn = (pred: (b: HTMLButtonElement) => boolean) => buttons().find(p
 export const btnText = (t: string) => btn((b) => (b.textContent ?? '').includes(t));
 export const has = (t: string) => body().includes(t);
 
+/** Лист наград на главной: квесты, сундук, неделя. Идемпотентно, если уже открыт. */
+export async function openRewardsSheet(): Promise<void> {
+  if (document.querySelector('.rewards-sheet')) return;
+  const tab = buttons().find((b) => (b.getAttribute('aria-label') ?? '').startsWith('Награды'));
+  if (tab) {
+    click(tab);
+    await sleep(60);
+  }
+}
+
 let failures = 0;
 
 export function check(name: string, cond: boolean, extra = '') {

@@ -197,10 +197,6 @@ export default function App() {
           onStartLesson={startLesson}
           onOpenProfiles={() => setProfilesOpen(true)}
           onStartReview={() => startLesson('review')}
-          onOpenVlabs={() => {
-            setParentUnlocked(false);
-            setVlabsOpen(true);
-          }}
         />
       ) : tab === 'words' ? (
         <WordsScreen />

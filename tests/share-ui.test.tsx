@@ -132,5 +132,5 @@ export async function runShareAppChecks(): Promise<void> {
   // нужен обычный экран ученика.
   click(buttons().find((b) => (b.textContent ?? '').includes('Уроки') && b.className.includes('tab')));
   await sleep(60);
-  check('после проверок снова виден экран ученика', has('Задания дня'), document.body.textContent?.slice(0, 160) ?? '');
+  check('после проверок снова виден экран ученика', has('Мой путь') && has('Сегодня'), document.body.textContent?.slice(0, 160) ?? '');
 }

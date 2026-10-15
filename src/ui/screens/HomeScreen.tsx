@@ -1,38 +1,56 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { scheduleWordImages } from '../../platform/word-images';
 import { LESSONS, WORDS } from '../../content/words';
-import { dayKey, masteredCount, todayStat, useActiveProfile, useApp } from '../../state/store';
-import { lastDays } from '../../engine/day';
-import { Bar, Crowns, Ring } from '../Bits';
+import { dayKey, useActiveProfile } from '../../state/store';
+import { Crowns } from '../Bits';
 import { DailyQuests } from '../DailyQuests';
 import { WeeklyRewards } from '../WeeklyRewards';
-import { levelOf, levelProgress, xpForLevel } from '../../engine/rewards';
-import { ACHIEVEMENTS } from '../../engine/rewards';
+import { levelOf } from '../../engine/rewards';
 import { pickReviewWords } from '../../engine/srs';
-import { plural, type QuestKind } from '../../engine/quests';
+import {
+  allQuestsDone,
+  bonusChestsReady,
+  claimableQuests,
+  dailyChestClaimed,
+  dayMetrics,
+  planOf,
+  plannedQuests,
+  plural,
+  type QuestKind,
+} from '../../engine/quests';
+import type { Profile } from '../../types';
 
 interface Props {
   onStartLesson: (lessonId: string) => void;
   onOpenProfiles: () => void;
   /** «Пора повторить» — отдельный режим тренировки, id урока не нужен */
   onStartReview: () => void;
-  onOpenVlabs: () => void;
 }
 
-/** «1 день / 3 дня / 8 дней» — чтобы «Серия: 1 дней» не резало глаз. */
-function dayWord(n: number): string {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod10 === 1 && mod100 !== 11) return 'день';
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return 'дня';
-  return 'дней';
+/** Есть ли в листе наград что забрать: квест, сундук или бонусный сундук. */
+function rewardsWaiting(profile: Profile): boolean {
+  const day = dayKey();
+  const plan = planOf(profile, day);
+  const st = profile.daily && profile.daily.day === day ? profile.daily : null;
+  const metrics = dayMetrics(profile.days[day]);
+  if (claimableQuests(plannedQuests(plan), metrics, st?.claimed ?? [], day).length) return true;
+  if (allQuestsDone(plan, metrics) && !dailyChestClaimed(st ?? undefined)) return true;
+  return bonusChestsReady(metrics.lessons, st?.bonusChestsClaimed ?? 0) > 0;
 }
 
-export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpenVlabs }: Props) {
+export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview }: Props) {
   const profile = useActiveProfile();
-  const settings = useApp((s) => s.settings);
-  const nextLesson = LESSONS.find((l) => (profile?.lessons[l.id]?.level ?? 0) < 5) ?? LESSONS[LESSONS.length - 1];
-  useEffect(() => scheduleWordImages(WORDS.filter((w) => nextLesson.wordIds.includes(w.id))), [nextLesson]);
+  const [rewardsOpen, setRewardsOpen] = useState(false);
+  const current = LESSONS.find((l) => (profile?.lessons[l.id]?.level ?? 0) < 5) ?? LESSONS[LESSONS.length - 1];
+  useEffect(() => scheduleWordImages(WORDS.filter((w) => current.wordIds.includes(w.id))), [current]);
+  useEffect(() => {
+    if (!rewardsOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setRewardsOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [rewardsOpen]);
   if (!profile) return null;
 
   /**
@@ -40,20 +58,13 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
    * выполняются в уроке — открываем текущий урок с карты пути.
    */
   const startQuest = (kind: QuestKind) => {
+    setRewardsOpen(false);
     if (kind === 'review') onStartReview();
     else onStartLesson(current.id);
   };
 
-  const today = todayStat(profile);
-  const goal = settings.dailyGoal;
-  const goalPct = Math.min(100, (today.xp / Math.max(1, goal)) * 100);
-  const goalDone = today.xp >= goal;
-  const over = Math.max(0, today.xp - goal);
   const lvl = levelOf(profile.xp);
-  const lvlPct = levelProgress(profile.xp) * 100;
 
-  // Первый урок, который ещё не пройден полностью
-  const current = LESSONS.find((l) => (profile.lessons[l.id]?.level ?? 0) < 5) ?? LESSONS[LESSONS.length - 1];
   // «Пора повторить» считает слова тем же правилом, что и сам урок повторения:
   // раньше блок обещал слова, которых урок не показывал, и открывалось «Повторять нечего!».
   const review = pickReviewWords(
@@ -64,6 +75,14 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
     new Set(profile.days[dayKey()]?.reviewWords ?? []),
   );
   const reviews = review.words;
+  const reviewDue = reviews.length > 0 && review.kind === 'due';
+  const currentDone = current.wordIds.filter((id) => (profile.words[id]?.s ?? 0) > 0).length;
+  const waiting = rewardsWaiting(profile);
+
+  const startHero = () => {
+    if (reviewDue) onStartReview();
+    else onStartLesson(current.id);
+  };
 
   return (
     <div className="screen">
@@ -72,85 +91,56 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
           {profile.avatar}
         </button>
         <div className="grow">
-          <div style={{ fontWeight: 800, fontSize: 18 }}>{profile.name}</div>
-          <div className="tiny">
-            Уровень {lvl} · освоено {masteredCount(profile)} из {WORDS.length}
-          </div>
+          <div className="topbar-name">{profile.name}</div>
         </div>
         <div className="stat-pill fire">🔥 {profile.streak}</div>
-        <div className="stat-pill xp">⚡ {profile.xp}</div>
         <div className="stat-pill gems">💎 {profile.gems}</div>
-      </div>
-
-      <div className="card mb">
-        <div className="row">
-          <Ring value={goalPct} main={String(today.xp)} sub={`цель ${goal}`} done={goalDone} />
-          <div className="grow">
-            <h3>Цель дня</h3>
-            <div className="row" style={{ flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
-              <p className="muted" style={{ margin: 0 }}>
-                {goalDone ? 'Цель выполнена — молодец! 🎉' : `Ещё ${goal - today.xp} XP до цели`}
-              </p>
-              {over > 0 && <span className="goal-over">+{over} сверх цели</span>}
-            </div>
-            <Bar value={lvlPct} />
-            <div className="tiny" style={{ marginTop: 4 }}>
-              До уровня {lvl + 1}: {Math.max(0, xpForLevel(lvl + 1) - profile.xp)} XP
-            </div>
-
-            {/* Серия дней как «коллекция»: закрашенные дни — то, что ребёнок копит.
-                Внутри карточки цели дня, чтобы не плодить блоки на главной. */}
-            <div className="streak-label">
-              {profile.streak > 0 ? `Серия: ${profile.streak} ${dayWord(profile.streak)} 🔥` : 'Серия дней'}
-              {profile.freezes > 0 && <span className="tiny"> · 🧊 {profile.freezes}</span>}
-            </div>
-            <div className="streak-days">
-              {lastDays(7).map((d) => {
-                const st = profile.days[d];
-                const busy = !!st && (st.lessons > 0 || st.correct > 0);
-                return (
-                  <span
-                    key={d}
-                    className={`streak-dot ${busy ? 'on' : ''} ${d === dayKey() ? 'today' : ''}`}
-                    title={d}
-                  />
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <DailyQuests onStart={startQuest} />
-      <WeeklyRewards />
-
-      {reviews.length > 0 && (
-        <button className="card mb wide" style={{ textAlign: 'left', cursor: 'pointer' }} onClick={onStartReview}>
-          <div className="row">
-            <span style={{ fontSize: 30 }}>🔁</span>
-            <div className="grow">
-              <h3 style={{ margin: 0 }}>Пора повторить</h3>
-              <p className="muted" style={{ margin: 0 }}>
-                {review.kind === 'due'
-                  ? `${reviews.length} ${plural(reviews.length, 'слово готово', 'слова готовы', 'слов готовы')} забыться — освежим память`
-                  : `Потренируем ${reviews.length} ${plural(reviews.length, 'слово', 'слова', 'слов')} — станут крепче`}
-              </p>
-            </div>
-            <span style={{ fontSize: 22 }}>▸</span>
-          </div>
+        <button
+          type="button"
+          className={`stat-pill rewards-btn ${waiting ? 'wait' : ''}`}
+          aria-label={waiting ? 'Награды, есть что забрать' : 'Награды'}
+          aria-expanded={rewardsOpen}
+          onClick={() => setRewardsOpen(true)}
+        >
+          🎁
+          {waiting && <span className="rewards-dot" aria-hidden="true" />}
         </button>
-      )}
+      </div>
 
-      <h2 className="mb">Мой путь</h2>
+      <button
+        type="button"
+        className="home-hero mb"
+        onClick={startHero}
+        aria-label={reviewDue ? 'Начать: Пора повторить' : `Начать: ${current.title}`}
+      >
+        <div className="home-hero-kicker">Сегодня</div>
+        <div className="home-hero-body">
+          <span className="home-hero-emoji" aria-hidden="true">
+            {reviewDue ? '🔁' : current.emoji}
+          </span>
+          <span className="grow">
+            <span className="home-hero-title">{reviewDue ? 'Пора повторить' : current.title}</span>
+            <span className="home-hero-meta">
+              {reviewDue
+                ? `${reviews.length} ${plural(reviews.length, 'слово готово', 'слова готовы', 'слов готовы')} забыться`
+                : `${currentDone} из ${current.wordIds.length} слов · ур. ${lvl}`}
+            </span>
+          </span>
+        </div>
+        <span className="home-hero-cta">Начать ▶</span>
+      </button>
+
+      <h2 className="home-path-title">Мой путь</h2>
       <div className="path">
         {LESSONS.map((l) => {
           const st = profile.lessons[l.id];
           const level = st?.level ?? 0;
           const doneWords = l.wordIds.filter((id) => (profile.words[id]?.s ?? 0) > 0).length;
+          const isCurrent = l.id === current.id;
           return (
-            <div className={`node ${l.id === current.id ? '' : ''}`} key={l.id}>
+            <div className="node" key={l.id}>
               <button
-                className={`node-btn ${l.id === current.id ? 'current' : ''}`}
+                className={`node-btn ${isCurrent ? 'current' : 'quiet'}`}
                 onClick={() => onStartLesson(l.id)}
               >
                 <span className="node-emoji">{l.emoji}</span>
@@ -161,44 +151,35 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
                     {doneWords} / {l.wordIds.length} слов
                   </div>
                 </span>
-                <span style={{ fontSize: 22 }}>{l.id === current.id ? '▶' : '▸'}</span>
+                <span style={{ fontSize: 22 }}>{isCurrent ? '▶' : '▸'}</span>
               </button>
             </div>
           );
         })}
       </div>
 
-      {profile.achievements.length > 0 && (
-        <>
-          <h2 className="mt mb">Достижения</h2>
-          <div className="card">
-            <div className="row" style={{ flexWrap: 'wrap', gap: 12 }}>
-              {profile.achievements.map((id) => {
-                const a = ACHIEVEMENTS.find((x) => x.id === id);
-                return a ? (
-                  <div key={id} className="center" style={{ width: 76 }}>
-                    <div style={{ fontSize: 30 }}>{a.emoji}</div>
-                    <div className="tiny">{a.title}</div>
-                  </div>
-                ) : null;
-              })}
+      {rewardsOpen && (
+        <div className="sheet-backdrop rewards-backdrop" onClick={() => setRewardsOpen(false)}>
+          <div
+            className="rewards-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Награды"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="row mb">
+              <h2 className="grow" style={{ margin: 0 }}>
+                Награды
+              </h2>
+              <button type="button" className="lesson-exit" aria-label="Закрыть" onClick={() => setRewardsOpen(false)}>
+                ✕
+              </button>
             </div>
+            <DailyQuests onStart={startQuest} />
+            <WeeklyRewards />
           </div>
-        </>
-      )}
-
-      <button className="vlabs-promo card mb wide" onClick={onOpenVlabs} style={{ textAlign: 'left', cursor: 'pointer' }}>
-        <div className="row">
-          <span className="vlabs-promo-icon">🧪</span>
-          <div className="grow">
-            <div className="vlabs-promo-title">Слово2 сделали в V-labs</div>
-            <div className="tiny">Хочешь делать такие игры сам? Начни с Scratch — покажем школу →</div>
-          </div>
-          <span style={{ fontSize: 22, color: 'var(--primary)', flex: 'none' }}>▸</span>
         </div>
-      </button>
-
-      <p className="tiny center mt">Слов в курсе: {WORDS.length}</p>
+      )}
     </div>
   );
 }
