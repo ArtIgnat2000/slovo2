@@ -23,6 +23,7 @@ import { runBukLessonChecks } from './buk-lesson-ui.test';
 import { runLessonArtChecks } from './lesson-art-ui.test';
 import { runVerdictChecks } from './verdict-ui.test';
 import { LESSONS, WORDS } from '../src/content/words';
+import { MUSIC_TRACKS } from '../src/engine/music';
 import { resolvePhotoSize, resolveWordCardVariant } from '../src/ui/WordView';
 import { buildLesson, lessonCardLimit } from '../src/engine/scheduler';
 import { dayKey, dayPlan, useApp } from '../src/state/store';
@@ -493,7 +494,9 @@ async function main() {
   check('магазин открылся', has('Магазин БУКа'), body().slice(0, 200));
   check('видны разделы гардероба', has('Головные уборы') && has('На шею'), '');
   check('показан баланс кристаллов', has(`💎 ${useApp.getState().profiles[0].gems}`), '');
-  check('в музыкальном магазине много мелодий', document.querySelectorAll('.music-item').length === 14, String(document.querySelectorAll('.music-item').length));
+  check('в музыкальном магазине много мелодий', document.querySelectorAll('.music-item').length === MUSIC_TRACKS.length, String(document.querySelectorAll('.music-item').length));
+  check('полка «Тренд 2026» показана отдельно', has('Тренд 2026') && document.querySelectorAll('.music-tag').length >= 6, '');
+  check('у тренда есть пояснение для взрослых', has('шестая и седьмая ступень'), '');
   click(document.querySelector('.shop-mascot') as HTMLButtonElement);
   await sleep(30);
   check('тап по БУКу открывает выбор своей музыки', !!document.querySelector('.music-picker'), '');

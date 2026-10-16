@@ -4593,6 +4593,29 @@ p {
   font-size: var(--fs-xs);
   line-height: 1.4;
 }
+/* Полки музыкального магазина: «Тренд 2026» показываем отдельно от базовой
+   коллекции — ребёнку важно «то, что сейчас у всех», взрослому — что это
+   своя музыка, а не чужая песня (docs/music-trends-2026.md). */
+.music-shelf + .music-shelf { margin-top: var(--sp-5); }
+.music-shelf-title { margin: 0; font-size: var(--fs-sm); }
+.music-shelf-note { margin: 2px 0 var(--sp-2); }
+.music-tag {
+  align-self: center;
+  margin-top: 6px;
+  padding: 2px 10px;
+  border-radius: var(--r-pill);
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: .02em;
+}
+.music-about {
+  min-height: 46px;
+  color: var(--ink-3);
+  font-size: var(--fs-xs);
+  line-height: 1.35;
+}
 .music-grid {
   align-items: stretch;
 }
