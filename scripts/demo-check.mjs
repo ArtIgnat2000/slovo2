@@ -12,7 +12,8 @@ class P { value=0; setValueAtTime(){return this} linearRampToValueAtTime(){retur
 class N {
   type='sine'; detune=new P(); frequency=new P(); gain=new P(); delayTime=new P(); pan=new P(); playbackRate=new P(); Q=new P();
   threshold=new P(); knee=new P(); ratio=new P(); attack=new P(); release=new P();
-  curve=null; oversample='none'; buffer=null; loop=false;
+  curve=null; oversample='none'; buffer=null; loop=false; fftSize=1024;
+  setPeriodicWave(w){ this.wave=w } getFloatTimeDomainData(a){ a.fill(0) }
   connect(t){ if(!t) throw new Error('connect в никуда'); return this }
   start(t){ if(!Number.isFinite(t)||t<0) throw new Error('bad t '+t); scheduled++ }
   stop(t){ if(!Number.isFinite(t)||t<0) throw new Error('bad stop '+t) }
@@ -23,7 +24,10 @@ class Ctx {
   createOscillator(){return new N()} createGain(){return new N()} createBiquadFilter(){return new N()}
   createStereoPanner(){return new N()} createWaveShaper(){return new N()} createConvolver(){return new N()}
   createDynamicsCompressor(){return new N()} createDelay(){return new N()} createBufferSource(){return new N()}
-  createBuffer(c,l,r){return new Buf(c,l,r)} resume(){return Promise.resolve()}
+  createBuffer(c,l,r){return new Buf(c,l,r)}
+  createAnalyser(){return new N()}
+  createPeriodicWave(real,imag){ if(real.length!==imag.length) throw new Error('fft rows'); return new N() }
+  resume(){return Promise.resolve()}
 }
 let ctx=null; let tick=null;
 const sandbox = {

@@ -25,18 +25,18 @@ const EIGHTH_HAT = K(0, 2, 4, 6, 8, 10, 12, 14);
 
 /** Грувы волн 2–5 и полок «Для урока» / «Сезон»: только данные, звук даёт движок. */
 const EXTRA_GROOVES: Record<string, GrooveSpec> = {
-  house: { kick: K(0, 4, 8, 12), snare: [], hat: K(2, 6, 10, 14), clap: K(4, 12), openHat: K(2, 6, 10, 14), bass: 'offbeat', chord: 'stab', chordIntervals: [0, 4, 7], lead: 'epiano', leadBase: 66, motif: [0, 2, 4, 2, 5, 4, 2, 0], swing: 0.06, sidechain: 0.55, rev: 0.3, dly: 0.25, crash: [0], fill: true },
+  house: { kick: K(0, 4, 8, 12), snare: [], hat: K(2, 6, 10, 14), clap: K(4, 12), openHat: K(2, 6, 10, 14), bass: 'offbeat', chord: 'keys', chordIntervals: [0, 4, 7], lead: 'epiano', leadBase: 66, motif: [0, 2, 4, 2, 5, 4, 2, 0], swing: 0.06, sidechain: 0.55, rev: 0.3, dly: 0.25, crash: [0], fill: true },
   postpunk: { kick: K(0, 8), snare: K(4, 12), hat: EIGHTH_HAT, clap: [], bass: 'eighth', chord: 'power', chordIntervals: [0, 7], lead: 'pluck', leadBase: 66, blip: true, motif: [0, 2, 4, 7, 4, 2, 0, 2], rev: 0.35, dly: 0.3, crash: [0, 4], fill: true },
-  tarantella: { kick: K(0, 6, 8, 14), snare: K(4, 12), hat: EIGHTH_HAT, clap: [], bass: 'quarter', chord: 'stab', chordIntervals: [0, 4, 7], lead: 'pluck', leadBase: 72, motif: [0, 2, 4, 5, 4, 2, 0, 2], swing: 0.24, rev: 0.3, dly: 0.2, fill: true },
+  tarantella: { kick: K(0, 6, 8, 14), snare: K(4, 12), hat: EIGHTH_HAT, clap: [], bass: 'quarter', chord: 'keys', chordIntervals: [0, 4, 7], lead: 'pluck', leadBase: 72, motif: [0, 2, 4, 5, 4, 2, 0, 2], swing: 0.24, rev: 0.3, dly: 0.2, fill: true },
   funkbr: { kick: K(0, 6, 8, 14), snare: K(4, 12), hat: K(2, 3, 6, 7, 10, 11, 14, 15), clap: [], bass: 'slide', chord: 'none', chordIntervals: [], lead: 'cowbell', leadBase: 78, motif: [0, 0, 3, 0, 5, 0, 7, 0], swing: 0.05, sidechain: 0.5, rev: 0.12, dly: 0.1, crash: [0, 4], fill: true },
-  twostep: { kick: K(0, 10), snare: K(4, 12), hat: K(2, 5, 6, 10, 13, 14), clap: K(4, 12), bass: 'slide', chord: 'stab', chordIntervals: [0, 4, 7], lead: 'epiano', leadBase: 66, motif: [0, 2, 3, 4, 3, 2, 0, 2], swing: 0.12, sidechain: 0.3, rev: 0.25, dly: 0.2, fill: true },
+  twostep: { kick: K(0, 10), snare: K(4, 12), hat: K(2, 5, 6, 10, 13, 14), clap: K(4, 12), bass: 'slide', chord: 'keys', chordIntervals: [0, 4, 7], lead: 'epiano', leadBase: 66, motif: [0, 2, 3, 4, 3, 2, 0, 2], swing: 0.12, sidechain: 0.3, rev: 0.25, dly: 0.2, fill: true },
   hardstyle: { kick: K(0, 4, 8, 12), snare: [], hat: K(2, 6, 10, 14), clap: [], bass: 'offbeat', chord: 'power', chordIntervals: [0, 7], lead: 'supersaw', leadBase: 66, motif: [0, 0, 7, 0, 5, 5, 3, 3], sidechain: 0.6, rev: 0.14, dly: 0.12, crash: [0, 2, 4, 6], fill: true, riser: true },
-  classical: { kick: [], snare: [], hat: [], clap: [], bass: 'quarter', chord: 'pad', chordIntervals: [0, 4, 7, 12], lead: 'epiano', leadBase: 72, motif: [0, 2, 4, 7, 9, 7, 4, 2], padAttack: 0.08, rev: 0.55, dly: 0.2 },
-  pulse60: { kick: K(0, 8), snare: [], hat: [], clap: [], bass: 'quarter', chord: 'pad', chordIntervals: [0, 4, 7], lead: 'epiano', leadBase: 65, motif: [0, 4, 2, 5, 4, 2, 0, 2], rev: 0.5, dly: 0.3 },
-  lofirain: { kick: K(0), snare: [], hat: [], clap: [], bass: 'quarter', chord: 'pad', chordIntervals: [0, 4, 7], lead: 'epiano', leadBase: 65, blip: true, motif: [0, 2, 4, 2, 3, 2, 0, 1], cutoff: 1500, swing: 0.08, rev: 0.5, dly: 0.35 },
-  ambient: { kick: [], snare: [], hat: [], clap: [], bass: 'drone', chord: 'pad', chordIntervals: [0, 4, 7, 11], lead: 'bell', leadBase: 72, padAttack: 0.12, motif: [0, 4, 7, 4, 2, 7, 4, 0], rev: 0.7, dly: 0.4 },
-  musicbox: { kick: [], snare: [], hat: [], clap: [], bass: 'quarter', chord: 'pad', chordIntervals: [0, 7], lead: 'bell', leadBase: 84, padAttack: 0.05, motif: [0, 2, 4, 2, 5, 4, 2, 0], rev: 0.5, dly: 0.3 },
-  bellpop: { kick: K(0, 8), snare: K(4, 12), hat: EIGHTH_HAT, clap: K(4, 12), bass: 'quarter', chord: 'stab', chordIntervals: [0, 4, 7], lead: 'bell', leadBase: 72, motif: [0, 2, 4, 4, 2, 2, 0, 0], rev: 0.3, dly: 0.2, crash: [0], fill: true },
+  classical: { kick: [], snare: [], hat: [], clap: [], bass: 'quarter', chord: 'strings', chordIntervals: [0, 4, 7, 12], lead: 'piano', leadBase: 72, motif: [0, 2, 4, 7, 9, 7, 4, 2], padAttack: 0.08, rev: 0.55, dly: 0.2 },
+  pulse60: { kick: K(0, 8), snare: [], hat: [], clap: [], bass: 'quarter', chord: 'strings', chordIntervals: [0, 4, 7], lead: 'piano', leadBase: 65, motif: [0, 4, 2, 5, 4, 2, 0, 2], rev: 0.5, dly: 0.3 },
+  lofirain: { kick: K(0), snare: [], hat: [], clap: [], bass: 'quarter', chord: 'keys', chordIntervals: [0, 4, 7], lead: 'piano', leadBase: 65, blip: true, motif: [0, 2, 4, 2, 3, 2, 0, 1], cutoff: 1500, swing: 0.08, rev: 0.5, dly: 0.35 },
+  ambient: { kick: [], snare: [], hat: [], clap: [], bass: 'drone', chord: 'strings', chordIntervals: [0, 4, 7, 11], lead: 'flute', leadBase: 72, padAttack: 0.12, motif: [0, 4, 7, 4, 2, 7, 4, 0], rev: 0.7, dly: 0.4 },
+  musicbox: { kick: [], snare: [], hat: [], clap: [], bass: 'quarter', chord: 'strings', chordIntervals: [0, 7], lead: 'bell', leadBase: 84, padAttack: 0.05, motif: [0, 2, 4, 2, 5, 4, 2, 0], rev: 0.5, dly: 0.3 },
+  bellpop: { kick: K(0, 8), snare: K(4, 12), hat: EIGHTH_HAT, clap: K(4, 12), bass: 'quarter', chord: 'keys', chordIntervals: [0, 4, 7], lead: 'bell', leadBase: 72, motif: [0, 2, 4, 4, 2, 2, 0, 0], rev: 0.3, dly: 0.2, crash: [0], fill: true },
 };
 
 registerGrooves(EXTRA_GROOVES);

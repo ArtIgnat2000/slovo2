@@ -43,6 +43,10 @@ class FakeNode {
   oversample = 'none';
   buffer: unknown = null;
   loop = false;
+  fftSize = 1024;
+  periodicWave: unknown = null;
+  setPeriodicWave(w: unknown) { this.periodicWave = w; }
+  getFloatTimeDomainData(target: Float32Array) { target.fill(0); }
   connect(target: unknown) { assert.ok(target, 'connect() в никуда'); return this; }
   start(t: number) { scheduled++; check(0, t); }
   stop(t: number) { check(0, t); }
@@ -72,6 +76,12 @@ class FakeCtx {
   createBuffer(channels: number, length: number, sampleRate: number) {
     assert.ok(length > 0 && sampleRate > 0, 'буфер ненулевой');
     return new FakeBuffer(channels, length, sampleRate);
+  }
+  createAnalyser() { return new FakeNode(); }
+  createPeriodicWave(real: Float32Array, imag: Float32Array) {
+    assert.equal(real.length, imag.length, 'ряды Фурье одной длины');
+    assert.ok(imag.some((v) => v > 0), 'спектр не пустой');
+    return new FakeNode();
   }
   resume() { return Promise.resolve(); }
 }
