@@ -17,7 +17,8 @@ export type Groove =
   // а тип разрешает каталогу расти без правок движка.
   | 'pop' | 'lofi' | 'arcade' | 'dance' | 'tropical' | 'cinematic'
   | 'house' | 'postpunk' | 'tarantella' | 'funkbr' | 'twostep' | 'hardstyle'
-  | 'pulse60' | 'lofirain' | 'ambient' | 'musicbox' | 'bellpop';
+  | 'pulse60' | 'lofirain' | 'ambient' | 'musicbox' | 'bellpop'
+  | 'beboplab' | 'baroquelab';
 
 /** Полка в витрине магазина: базовая коллекция или «Тренд 2026». */
 export type MusicShelf = 'core' | 'trend';

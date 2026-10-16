@@ -329,6 +329,24 @@ function wave(ctx: AudioContext, name: string): PeriodicWave {
   return w;
 }
 
+// ── Джазовая теория для импровиза над changes ────────────────────────────────
+// Лады и расширенные состава — по алгоритмическому подходу из предложения
+// (docs/proposals/jazz-classical-generation.md): на доле — тоны аккорда,
+// между долями — взвешенные ходы по ладу, approach и enclosure.
+const JAZZ_SCALES: Record<'dorian' | 'mixo' | 'major', number[]> = {
+  dorian: [0, 2, 3, 5, 7, 9, 10],
+  mixo: [0, 2, 4, 5, 7, 9, 10],
+  major: [0, 2, 4, 5, 7, 9, 11],
+};
+const CHORD_EXT: Record<'M' | 'm' | '7', number[]> = {
+  M: [0, 4, 7, 11, 14],
+  m: [0, 3, 7, 10, 14],
+  '7': [0, 4, 7, 10, 14],
+};
+const scaleForQ = (q: 'M' | 'm' | '7') => (q === 'm' ? JAZZ_SCALES.dorian : q === '7' ? JAZZ_SCALES.mixo : JAZZ_SCALES.major);
+/** Последняя нота импровиза на трек: взвешенный выбор шага требует памяти. */
+const improvPrev: Record<string, number> = {};
+
 // ── Детерминированная «человечность» ─────────────────────────────────────────
 
 function hashString(text: string): number {
@@ -1414,6 +1432,76 @@ function drumHit(ctx: AudioContext, at: number, type: DrumHit, level: number, br
     noise.connect(hp);
     hp.connect(g);
     g.connect(out(0.28, 0.06));
+  } else if (type === 'ride') {
+    // тарелка райд: негармонический стек частичек + шелест 6–16 кГц,
+    // длинный хвост 1.2 с — «цик-цик-а-цик» джазовой пульсации
+    const freqs = [680, 1050, 1480, 2200, 3400];
+    freqs.forEach((f, i) => {
+      const osc = ctx.createOscillator();
+      osc.type = 'square';
+      osc.frequency.value = f;
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.value = f;
+      bp.Q.value = 10;
+      const g = ctx.createGain();
+      const amp = (level * 0.03) / (i + 1);
+      g.gain.setValueAtTime(amp, at);
+      g.gain.exponentialRampToValueAtTime(Math.max(amp * 0.5, 0.0001), at + 0.05);
+      g.gain.exponentialRampToValueAtTime(0.0001, at + 1.2);
+      osc.connect(bp);
+      bp.connect(g);
+      g.connect(out(0.15, 0.25));
+      osc.start(at);
+      osc.stop(at + 1.3);
+    });
+    const shimmer = noiseSource(ctx, at, 0.5);
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 6000;
+    const ng = ctx.createGain();
+    ng.gain.setValueAtTime(level * 0.05, at);
+    ng.gain.exponentialRampToValueAtTime(0.0001, at + 0.5);
+    shimmer.connect(hp);
+    hp.connect(ng);
+    ng.connect(out(0.15, 0.25));
+  } else if (type === 'crossstick') {
+    // римSHOT покруче щелчка: короткий тон 1.75 кГц + клик
+    const osc = ctx.createOscillator();
+    osc.type = 'triangle';
+    osc.frequency.value = 1750;
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 1800;
+    bp.Q.value = 8;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(level * 0.09, at);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + 0.04);
+    osc.connect(bp);
+    bp.connect(g);
+    g.connect(out(-0.1, 0.12));
+    osc.start(at);
+    osc.stop(at + 0.06);
+    const click = noiseSource(ctx, at, 0.012);
+    const cg = ctx.createGain();
+    cg.gain.setValueAtTime(level * 0.05, at);
+    cg.gain.exponentialRampToValueAtTime(0.0001, at + 0.012);
+    click.connect(cg);
+    cg.connect(out(-0.1));
+  } else if (type === 'brush') {
+    // щётка: размашистый шумовой свелл 0.5 с вокруг 1.8 кГц
+    const noise = noiseSource(ctx, at, 0.5);
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 1800;
+    bp.Q.value = 0.7;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.linearRampToValueAtTime(level * 0.05, at + 0.18);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + 0.5);
+    noise.connect(bp);
+    bp.connect(g);
+    g.connect(out(0.1, 0.3));
   } else if (type === 'conga') {
     const osc = ctx.createOscillator();
     osc.type = 'sine';
@@ -1474,7 +1562,7 @@ function drumHit(ctx: AudioContext, at: number, type: DrumHit, level: number, br
 
 type DrumHit =
   | 'kick' | 'snare' | 'hat' | 'openhat' | 'clap' | 'cowbell' | 'tom' | 'crash' | 'riser'
-  | 'cajon' | 'rim' | 'shaker' | 'conga' | 'tambourine';
+  | 'cajon' | 'rim' | 'shaker' | 'conga' | 'tambourine' | 'ride' | 'crossstick' | 'brush';
 
 // ── Таблица грувов ──────────────────────────────────────────────────────────
 //
@@ -1550,6 +1638,14 @@ export interface GrooveSpec {
   fallthrough?: boolean;
   /** Длина формы в тактах (по умолчанию 8; блюз — 12). */
   bars?: number;
+  /** Джазовый комплект: ride с триольной пропуской и компингом / босса-паттерн. */
+  jazzKit?: 'swing' | 'bossa';
+  /** Синкопированные подклады боссы (антаментация на 3.5 и 4.5 долях). */
+  bossaComp?: boolean;
+  /** Импровиз над changes в классической манере (контур+квантизация в лад). */
+  improvStyle?: 'classical';
+  /** Альбертиев бас [0,2,1,2] по тонам аккорда — барочная опора вместо шага. */
+  alberti?: boolean;
 }
 
 /** Природный слой саундскейпа: подушки на такт и редкие события на круг. */
@@ -1606,7 +1702,7 @@ const GROOVES: Record<string, GrooveSpec> = {
   kalimba: { kick: [], snare: [], hat: K(2, 6, 10, 14), clap: K(4, 12), acousticDrums: true, bass: 'quarter', chord: 'none', chordIntervals: [], lead: 'kalimba', leadBase: 72, leadEveryBeat: true, motif: [0, 2, 4, 7, 4, 2, 0, 2], nature: { beds: ['stream'], dropletsPerBar: 2 }, rev: 0.4, dly: 0.22, uprightBass: true },
   meadow: { kick: [], snare: [], hat: K(2, 6, 10, 14), clap: [], acousticDrums: true, bass: 'quarter', chord: 'strum', chordIntervals: [0, 4, 7], lead: 'panflute', leadBase: 69, motif: [0, 2, 4, 5, 4, 2, 0, 1], swing: 0.05, nature: { beds: ['wind'], birdsPerBar: 3 }, rev: 0.45, dly: 0.25, uprightBass: true },
   bossa: {
-    kick: K(0, 8), snare: K(4, 12), hat: EIGHTH_HAT, clap: [], acousticDrums: true,
+    kick: [], snare: [], hat: [], clap: [], acousticDrums: true, jazzKit: 'bossa', bossaComp: true,
     bass: 'quarter', chord: 'strum', chordIntervals: [0, 4, 7, 10], lead: 'none', duoLead: 'guitar',
     leadBase: 66, motif: [0, 2, 3, 4, 3, 2, 0, 2], swing: 0.12, rev: 0.3, dly: 0.18, uprightBass: true,
     // «House of the Rising Sun» (традиционный фолк-блюз, PD) в минорной
@@ -1671,7 +1767,7 @@ const GROOVES: Record<string, GrooveSpec> = {
     ],
   },
   blues: {
-    kick: K(0, 8, 10), snare: K(4, 12), hat: K(2, 6, 10, 14), clap: [], acousticDrums: true,
+    kick: [], snare: [], hat: [], clap: [], acousticDrums: true, jazzKit: 'swing',
     bass: 'none', chord: 'none', chordIntervals: [], lead: 'none', duoLead: 'harp',
     pompeFlag: true, walkFlag: true, fallthrough: true, bars: 12,
     leadBase: 66, motif: [0, 3, 0, 3, 4, 3, 0, 2], swing: 0.2, rev: 0.25, dly: 0.15, uprightBass: true,
@@ -1849,6 +1945,16 @@ function scheduleStep(track: MusicTrack, spec: GrooveSpec, state: ReturnType<typ
       }),
     );
   }
+  if (spec.bossaComp && (s16 === 6 || s16 === 13) && mulberry(hashString(`${track.id}:bc:${step}`))() < 0.8) {
+    iv.forEach((interval, i) =>
+      ksVoice(ctx, {
+        at: t + i * 0.012, freq: hz(root + 12 + interval), dur: beatSeconds * 0.6,
+        gain: 0.014 * hum.gv, bright: 0.5, body: 'guitar', chop: 0.3, sustain: 0.993,
+        cutoff: Math.min(5000, state.cutoff || 5000), bus: 'chord', pan: i % 2 === 0 ? -0.2 : 0.2,
+        rev: (spec.rev ?? 0.25) * 0.6,
+      }),
+    );
+  }
   if (spec.chord === 'strum' && s16 === 0) {
     iv.forEach((interval, i) =>
       ksVoice(ctx, {
@@ -1938,7 +2044,7 @@ function scheduleStep(track: MusicTrack, spec: GrooveSpec, state: ReturnType<typ
   // ла-помпе на долях с акцентом на 2 и 4, шагающий бас с хроматическим
   // подходом, колл-респонс фразами по 2 такта с отдыхами и синкопами,
   // конец фразы — аккордовый стаб (chord melody). Всё seeded: детерминированно.
-  if ((spec.pompeFlag || spec.duo || spec.stride || spec.melody || spec.walkFlag) && spec.changes) {
+  if ((spec.pompeFlag || spec.duo || spec.stride || spec.melody || spec.walkFlag || spec.improvStyle || spec.alberti) && spec.changes) {
     const lesson = scene === 'lesson';
     // динамическая волна формы: 8 тактов от тихого входа к пику на 7-м и
     // выдоху в обороте — луп перестаёт быть ровной «пилой» громкости
@@ -1979,14 +2085,26 @@ function scheduleStep(track: MusicTrack, spec: GrooveSpec, state: ReturnType<typ
           bus: 'chord', pan: -0.22 + i * 0.2, rev: 0.16,
         }),
       );
-      // шагающий бас: корень/терция/квинта, на 4-ю долю — подход к следующему
-      const walk = spec.walkFlag && beat < 3 ? [0, tones[1], tones[2]][beat]
-        : spec.walkFlag ? ((next.r - ch.r + 12) % 12) - 1
-        : beat < 3 ? [0, tones[1], tones[2]][beat] : ((next.r - ch.r + 12) % 12) - 1;
+      // шагающий бас: корень/терция-квинта/passing/подход; passing — хроматика
+      // к следующей тонике или ближайший тон аккорда (walking bass по предложению)
+      const target = (next.r - ch.r + 12) % 12;
+      const walk = beat === 0 ? 0
+        : beat === 3 ? target - 1
+        : beat === 1 ? (rnd() < 0.5 ? tones[1] : tones[2])
+        : rnd() < 0.5 ? target - 2 : tones[Math.floor(rnd() * 3)];
       ksVoice(ctx, {
         at: t + (rnd() - 0.5) * 0.008, freq: hz(cRoot + walk - 12),
         dur: beatSeconds * 0.95, gain: 0.07 * (0.85 + rnd() * 0.3) * (lesson ? 0.8 : 1) * wave,
         bright: 0.3, sustain: 0.9978, body: 'upright', bus: 'bass', rev: 0.05,
+      });
+    }
+    if (spec.alberti && s16 % (lesson ? 4 : 2) === 0) {
+      // альбертиев бас: [0,2,1,2] по тонам аккорда, восьмыми, мягко
+      const idx = [0, 2, 1, 2][(s16 >> 1) % 4];
+      ksVoice(ctx, {
+        at: t + (rnd() - 0.5) * 0.006, freq: hz(cRoot - 12 + tones[idx % tones.length]),
+        dur: beatSeconds * 0.45, gain: 0.055 * (0.9 + rnd() * 0.2) * (lesson ? 0.8 : 1) * wave,
+        bright: 0.32, sustain: 0.9972, body: 'upright', bus: 'bass', rev: 0.08,
       });
     }
     // Мелодия стандарта: чётные круги — тема (head), нечётные — вариация
@@ -2019,8 +2137,79 @@ function scheduleStep(track: MusicTrack, spec: GrooveSpec, state: ReturnType<typ
         }
       }
     }
-    // колл-респонс: фразы по 2 такта; чётные фразы — «зов» ниже, нечётные — «ответ» октавой выше
-    if (spec.duo && (!spec.melody || loopCycle % 2 === 1) && step % 2 === 0) {
+    // Импровиз над changes: head → improv → head. Нечётные круги (или грувы
+    // без темы) играют генеративную линию: на доле тоны аккорда (с 9/11-й как
+    // краской), между — взвешенные ходы по ладу; фразы по 2 такта чередуют
+    // панораму и октаву, как колл-респонс; конец формы — стаб с рубато.
+    if (spec.changes && step % 2 === 0 && (loopCycle % 2 === 1 || !spec.melody)) {
+      const e = step >> 1;
+      const formE = (spec.bars ?? 8) * 8;
+      const r = mulberry(hashString(`${track.id}:imp:${loopCycle}:${step}`));
+      const onBeat = step % 4 === 0;
+      const phrase = Math.floor((bar % (spec.bars ?? 8)) / 2);
+      const pan = phrase % 2 === 0 ? -0.25 : 0.25;
+      const oct = phrase % 2 === 0 ? 12 : 24;
+      const pool = CHORD_EXT[ch.q];
+      const scl = scaleForQ(ch.q);
+      const leadSpec = { ...spec, lead: spec.duoLead ?? spec.lead };
+      const cutoff = Math.min(state.cutoff || 6500, 6500);
+      if (e === formE - 2) {
+        const late = t + 0.04 + r() * 0.035;
+        [0, 4, 7].forEach((semi, i) =>
+          leadVoice(ctx, leadSpec, state, {
+            midi: cRoot + oct + semi - 12, at: late + i * 0.013, dur: 0.8,
+            gain: 0.04 * wave * (lesson ? 0.8 : 1), pan: pan + (i - 1) * 0.12,
+          }),
+        );
+        improvPrev[track.id] = 0;
+      } else if (lesson
+        ? onBeat && r() < 0.7
+        : spec.improvStyle === 'classical'
+          ? onBeat
+          : r() < (onBeat ? 0.85 : step % 4 === 2 ? 0.55 : 0.4)) {
+        let semi: number;
+        if (spec.improvStyle === 'classical') {
+          // контур-арка + квантизация в лад (классический генератор)
+          const tt = e / formE;
+          const contour = Math.sin(tt * Math.PI) * 10 + 4;
+          const pc = Math.round(contour) % 12;
+          semi = scl.reduce((best, n) => (Math.abs(n - pc) < Math.abs(best - pc) ? n : best), scl[0]);
+        } else if (onBeat && r() < 0.7) {
+          semi = pool[Math.floor(r() * (r() < 0.15 ? 5 : 4))];
+        } else {
+          const cand = r() < 0.5 ? scl : pool;
+          const prev = improvPrev[track.id] ?? 4;
+          const weights = cand.map((n) => {
+            const d = Math.abs(n - prev);
+            return d === 0 ? 0.1 : d <= 2 ? 3 : d <= 4 ? 2 : d <= 7 ? 1 : 0.3;
+          });
+          const sum = weights.reduce((a, b) => a + b, 0);
+          let pick = r() * sum;
+          semi = cand[cand.length - 1];
+          for (let i = 0; i < cand.length; i++) {
+            pick -= weights[i];
+            if (pick <= 0) { semi = cand[i]; break; }
+          }
+          // enclosure: подход к цели через полутон сверху
+          if (!onBeat && r() < 0.2) semi += 1;
+        }
+        improvPrev[track.id] = semi;
+        const durE = spec.improvStyle === 'classical' ? 2 : [1, 1, 2, 2, 3][Math.floor(r() * 5)];
+        const gI = 0.045 * wave * (lesson ? 0.8 : 1) * (0.85 + r() * 0.3);
+        if (!lesson && r() < 0.12) {
+          leadVoice(ctx, leadSpec, state, {
+            midi: cRoot + oct + semi - 1, at: t - 0.035, dur: 0.1, gain: gI * 0.5, pan,
+          });
+        }
+        leadVoice(ctx, leadSpec, state, {
+          midi: cRoot + oct + semi, at: t + (r() - 0.5) * 0.012,
+          dur: durE * beatSeconds * 0.5 * 0.95, gain: gI, pan,
+        });
+      }
+      void cutoff;
+    }
+    // колл-респонс-шаблоны остались запасной грамматикой для грувов без changes
+    if (spec.duo && !spec.changes && loopCycle % 2 === 1 && step % 2 === 0) {
       const phStep = step % 32;
       const phrase = Math.floor((bar % 8) / 2);
       const call = phrase % 2 === 0;
@@ -2106,7 +2295,38 @@ function scheduleStep(track: MusicTrack, spec: GrooveSpec, state: ReturnType<typ
     }
     // джаз-блок заменил аккорды/бас/лид — но перкуссию грува можно оставить;
     // грувы только с мелодией (босса, сказка) продолжают общие ветви
-    if ((spec.pompeFlag || spec.walkFlag || spec.duo || spec.stride) && !spec.fallthrough) return;
+    if ((spec.pompeFlag || spec.walkFlag || spec.duo || spec.stride || spec.alberti || spec.improvStyle) && !spec.fallthrough) return;
+  }
+
+  // Джазовый комплект: ride с триольной «пропуской» (0.67 доли), фут-хэт на 2 и 4,
+  // компинг-бомбы римшотом и перо-бочка; босса — восьмовой райд, кроссстик, кик 1 и 3
+  if (spec.jazzKit) {
+    // в уроке комплект редеет по-настоящему (меньше голосов, а не только тише):
+    // райд на долях остаётся, а «пропуска», бомбы, кроссстик и щётки пропадают
+    const inLesson = scene === 'lesson';
+    const jk = inLesson ? 0.5 : 1;
+    if (spec.jazzKit === 'swing') {
+      if (s16 % 4 === 0) {
+        drumHit(ctx, t, 'ride', state.drums * 0.55 * jk * (beat === 1 || beat === 3 ? 1.15 : 0.9), true);
+        if (!inLesson) {
+          drumHit(ctx, t + beatSeconds * 0.667, 'ride', state.drums * 0.3 * jk, true);
+          if (mulberry(hashString(`${track.id}:kb:${step}`))() < 0.25) {
+            drumHit(ctx, t, 'cajon', state.drums * 0.22 * jk, false);
+          }
+        }
+      }
+      if ((s16 === 4 || s16 === 12) && !inLesson) drumHit(ctx, t, 'hat', state.drums * 0.45 * jk, true);
+      if (!inLesson && (s16 === 6 || s16 === 10 || s16 === 14) && mulberry(hashString(`${track.id}:cp:${step}`))() < 0.3) {
+        drumHit(ctx, t, 'rim', state.drums * 0.3 * jk, false);
+      }
+    } else {
+      const bossaRide: Record<number, number> = { 0: 0.6, 2: 0.4, 6: 0.5, 8: 0.6, 10: 0.4, 12: 0.5, 14: 0.4 };
+      if (bossaRide[s16] !== undefined && (bossaRide[s16] >= 0.5 || !inLesson)) {
+        drumHit(ctx, t, 'ride', state.drums * bossaRide[s16] * 0.5 * jk, true);
+      }
+      if ((s16 === 4 || s16 === 12) && !inLesson) drumHit(ctx, t, 'crossstick', state.drums * 0.5 * jk, false);
+      if (s16 === 0 || s16 === 8) drumHit(ctx, t, 'cajon', state.drums * 0.4 * jk, false);
+    }
   }
 
   // Перкуссия: в уроке тише, а яркие тембры (хэт, хлопок, ковбелл, крэш) молчат.
@@ -2231,7 +2451,10 @@ export function playMusic(track: MusicTrack | null, sceneName: MusicContext = sc
       const offset = offStep ? stepSeconds * swing : 0;
       scheduleStep(track, spec, state, nextStep, nextAt + offset);
       nextStep = (nextStep + 1) % loopLen;
-      if (nextStep === 0) loopCycle += 1;
+      if (nextStep === 0) {
+        loopCycle += 1;
+        for (const key of Object.keys(improvPrev)) delete improvPrev[key];
+      }
       nextAt += stepSeconds;
     }
   }, 45);

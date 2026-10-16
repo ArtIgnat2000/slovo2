@@ -38,6 +38,17 @@ const EXTRA_GROOVES: Record<string, GrooveSpec> = {
   ambient: { kick: [], snare: [], hat: [], clap: [], bass: 'drone', chord: 'strings', chordIntervals: [0, 4, 7, 11], lead: 'flute', leadBase: 72, padAttack: 0.12, motif: [0, 4, 7, 4, 2, 7, 4, 0], rev: 0.7, dly: 0.4 },
   musicbox: { kick: [], snare: [], hat: [], clap: [], bass: 'quarter', chord: 'strings', chordIntervals: [0, 7], lead: 'bell', leadBase: 84, padAttack: 0.05, motif: [0, 2, 4, 2, 5, 4, 2, 0], rev: 0.5, dly: 0.3 },
   bellpop: { kick: K(0, 8), snare: K(4, 12), hat: EIGHTH_HAT, clap: K(4, 12), bass: 'quarter', chord: 'keys', chordIntervals: [0, 4, 7], lead: 'bell', leadBase: 72, motif: [0, 2, 4, 4, 2, 2, 0, 0], rev: 0.3, dly: 0.2, crash: [0], fill: true },
+  // Лаборатория предложения (docs/proposals/jazz-classical-generation.md):
+  // beboplab — ii-V-I в до, ride-свинг, шагающий бас, ла-помпе, импровиз без темы;
+  // baroquelab — канон Пахельбеля, альбертиев бас, классический генератор мелодии.
+  beboplab: { kick: [], snare: [], hat: [], clap: [], acousticDrums: true, jazzKit: 'swing', bass: 'none', chord: 'none', chordIntervals: [], lead: 'none', duoLead: 'guitar', leadBase: 72, motif: [0], pompeFlag: true, walkFlag: true, fallthrough: true, swing: 0.14, bars: 8, rev: 0.3, dly: 0.15, changes: [
+    { r: 2, q: 'm' }, { r: 2, q: 'm' }, { r: 7, q: '7' }, { r: 7, q: '7' }, { r: 0, q: 'M' }, { r: 0, q: 'M' }, { r: 0, q: 'M' }, { r: 0, q: 'M' },
+    { r: 2, q: 'm' }, { r: 2, q: 'm' }, { r: 7, q: '7' }, { r: 7, q: '7' }, { r: 0, q: 'M' }, { r: 0, q: 'M' }, { r: 9, q: '7' }, { r: 9, q: '7' },
+  ] },
+  baroquelab: { kick: [], snare: [], hat: [], clap: [], bass: 'none', chord: 'none', chordIntervals: [], lead: 'none', duoLead: 'piano', leadBase: 72, motif: [0], alberti: true, improvStyle: 'classical', bars: 8, rev: 0.5, dly: 0.2, changes: [
+    { r: 0, q: 'M' }, { r: 0, q: 'M' }, { r: 7, q: 'M' }, { r: 7, q: 'M' }, { r: 9, q: 'm' }, { r: 9, q: 'm' }, { r: 4, q: 'm' }, { r: 4, q: 'm' },
+    { r: 5, q: 'M' }, { r: 5, q: 'M' }, { r: 0, q: 'M' }, { r: 0, q: 'M' }, { r: 5, q: 'M' }, { r: 5, q: 'M' }, { r: 7, q: 'M' }, { r: 7, q: 'M' },
+  ] },
 };
 
 registerGrooves(EXTRA_GROOVES);
@@ -64,6 +75,8 @@ const TREND2: DemoItem[] = [
 ];
 
 const FOCUS: DemoItem[] = [
+  extra({ id: 'bebop-lab', title: 'Бебоп-лаборатория', style: 'Свинг ii-V-I', emoji: '🎺', bpm: 136, price: 0, scale: [0, 2, 4, 5, 7, 9, 11], groove: 'beboplab' }, 'Алгоритмический джаз из предложения: ii-V-I в до', 'Ride с «пропуской», шагающий бас, ла-помпе и импровиз вместо темы — каждый круг новый.'),
+  extra({ id: 'baroque-lab', title: 'Барокко-лаборатория', style: 'Канон Пахельбеля', emoji: '🎻', bpm: 76, price: 0, scale: [0, 2, 4, 5, 7, 9, 11], groove: 'baroquelab' }, 'Классический генератор: прогрессия не охраняется авторским правом', 'Альбертиев бас и мелодия-арка, квантованная в лад. Прогрессия PD, мелодия генерируется.'),
   extra({ id: 'quiet-piano', title: 'Тихий рояль', style: 'Минимал-классика', emoji: '🎹', bpm: 68, price: 10, scale: [0, 2, 4, 7, 9], groove: 'classical' }, 'Классику слушают 27% отличников (VK Музыка × Учи.ру, 2026)', 'Арпеджио без ударных: то, что реально помогает писать слова.'),
   extra({ id: 'sixty-pulse', title: 'Шестьдесят ударов', style: 'Пульс 60', emoji: '⏱️', bpm: 60, price: 10, scale: [0, 2, 4, 7, 9], groove: 'pulse60' }, 'Исследования фоновой музыки: медленный темп ≈ пульсу покоя', 'Мягкий «тумп» раз в два счёта. Лучший кандидат на «по умолчанию в уроке».'),
   extra({ id: 'rain-lofi', title: 'Дождь за окном', style: 'Лоу-фай с каплями', emoji: '🌧️', bpm: 76, price: 12, scale: [0, 2, 3, 7, 9], groove: 'lofirain' }, 'Lo-fi — самый частый выбор для домашки', 'Случайные тихие «капли» вместо шума: разнообразие без раздражения.'),
