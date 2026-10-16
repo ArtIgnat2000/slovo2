@@ -760,9 +760,14 @@ function bodyIR(ctx: AudioContext, body: KsBody): AudioBuffer {
     });
     data[i] = sum;
   }
-  let peak = 0;
-  for (let i = 0; i < len; i++) peak = Math.max(peak, Math.abs(data[i]));
-  const norm = peak > 0 ? 1 / peak : 1;
+  // L2-нормировка (единичная энергия): свёртка сохраняет уровень струны,
+  // резонансы деки красят спектр, а не поднимают громкость на +40 дБ.
+  // Пиковая нормировка давала усиление ~120× — «палка по трубе» из низа.
+  let energy = 0;
+  for (let i = 0; i < len; i++) energy += data[i] * data[i];
+  // 0.25 — целевой вклад деки: wet ≈ 1.2× RMS струны. Дека красит спектр,
+  // а не перекрывает струну (L2-норма давала +13 дБ низа — «гудение»).
+  const norm = energy > 0 ? 0.25 / Math.sqrt(energy) : 1;
   for (let i = 0; i < len; i++) data[i] *= norm;
   bodyIrCache.set(key, buf);
   return buf;
@@ -839,13 +844,14 @@ function ksVoice(ctx: AudioContext, o: KsOptions) {
   src.connect(hp);
   hp.connect(lp);
   const dry = ctx.createGain();
-  dry.gain.value = o.gain * 0.5;
+  dry.gain.value = o.gain * 0.6;
   lp.connect(dry);
   dry.connect(out);
   const conv = ctx.createConvolver();
+  conv.normalize = false; // IR уже L2-нормирован: без скрытого масштабирования браузера
   conv.buffer = bodyIR(ctx, body);
   const wet = ctx.createGain();
-  wet.gain.value = o.gain;
+  wet.gain.value = o.gain * 0.8;
   lp.connect(conv);
   conv.connect(wet);
   wet.connect(out);
