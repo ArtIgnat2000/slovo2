@@ -47,6 +47,19 @@ export function getMusicContext(): MusicContext {
   return scene;
 }
 
+/**
+ * Для лаборатории: мастер-шина как MediaStream. Пишется ровно тот сигнал,
+ * что идёт в колонки (после трима, лимитера и master) — файл можно слушать
+ * вне приложения и прикладывать к разбору качества.
+ */
+export function recordingStream(): MediaStream | null {
+  const ctx = audio();
+  if (!ctx || !mix) return null;
+  const dest = ctx.createMediaStreamDestination();
+  mix.master.connect(dest);
+  return dest.stream;
+}
+
 /** Общая громкость музыки (0..1): ползунок в лаборатории и будущих настройках. */
 export function setMusicVolume(value: number) {
   volume = Math.min(1, Math.max(0, value));

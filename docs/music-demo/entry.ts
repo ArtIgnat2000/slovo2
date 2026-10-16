@@ -12,6 +12,7 @@ import {
   grooveIds,
   playMusic,
   playStinger,
+  recordingStream,
   registerGrooves,
   setMusicContext,
   setMusicVolume,
@@ -112,6 +113,8 @@ export const demo = {
   stinger(id: string) {
     playStinger(STINGERS[id] ?? 'sixseven');
   },
+  /** Отвод мастер-шины для записи webm (кнопка «⏺ Записать 10 с»). */
+  stream: () => recordingStream(),
 };
 
 (window as unknown as { DEMO?: typeof demo }).DEMO = demo;

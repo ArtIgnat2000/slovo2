@@ -91,6 +91,7 @@
   </label>
   <label class="switch"><input id="focus" type="checkbox"> Режим «Урок»</label>
   <button class="btn" id="stop">⏹ Стоп</button>
+  <button class="btn" id="rec" title="Пишет реальный тракт движка в файл webm">⏺ Записать 10 с</button>
   <span class="note" id="hint">Одновременно играет один луп — так же, как в приложении.</span>
 </div>
 
@@ -223,6 +224,43 @@ document.getElementById('focus').addEventListener('change', (e) => {
     : 'Одновременно играет один луп — так же, как в приложении.';
 });
 document.getElementById('stop').addEventListener('click', stopLoop);
+
+// Запись: MediaRecorder пишет отвод мастер-шины (тот же сигнал, что в колонки).
+// Файл скачивается как slovo2-<трек>.webm — его можно послушать в любом
+// плеере вне приложения или приложить к разбору качества звука.
+const recBtn = document.getElementById('rec');
+recBtn.addEventListener('click', () => {
+  const stream = DEMO.stream();
+  if (!stream) {
+    recBtn.textContent = '⚠ Сначала запустите трек';
+    setTimeout(() => { recBtn.textContent = '⏺ Записать 10 с'; }, 2000);
+    return;
+  }
+  const chunks = [];
+  const rec = new MediaRecorder(stream);
+  rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+  rec.onstop = () => {
+    const blob = new Blob(chunks, { type: rec.mimeType || 'audio/webm' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'slovo2-' + (active || 'loop') + '.webm';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    recBtn.disabled = false;
+    recBtn.textContent = '⏺ Записать 10 с';
+  };
+  let left = 10;
+  recBtn.disabled = true;
+  recBtn.textContent = '⏺ ' + left + ' с…';
+  const iv = setInterval(() => {
+    left -= 1;
+    if (left > 0) recBtn.textContent = '⏺ ' + left + ' с…';
+    else clearInterval(iv);
+  }, 1000);
+  rec.start();
+  setTimeout(() => rec.stop(), 10000);
+});
 document.querySelectorAll('.sting').forEach((b) => b.addEventListener('click', () => DEMO.stinger(b.dataset.sting)));
 </script>
 </body>
