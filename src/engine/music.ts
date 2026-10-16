@@ -58,7 +58,7 @@ export const STARTER_TRACK_IDS = ['guitar-morning', 'forest-dawn'];
  * Порядок важен: на индекс 2 смотрят проверки витрины.
  */
 const CORE_TRACKS: MusicTrack[] = [
-  { id: 'guitar-morning', title: 'Утро с гитарой', style: 'Фингерстайл', emoji: '🎸', bpm: 96, price: 0, scale: [0, 2, 4, 7, 9], groove: 'fingerstyle', about: 'Живая гитара (модель струны) и мягкий шейкер: тёплый старт без электроники.' },
+  { id: 'guitar-morning', title: 'Утро с гитарой', style: 'Свинг-дуэт', emoji: '🎸', bpm: 112, price: 0, scale: [0, 2, 4, 7, 9], groove: 'fingerstyle', about: 'Две гитары в духе джипси-свинга: ла-помпе, шагающий бас и колл-респонс. Мелодия и прогрессия — наши.' },
   { id: 'forest-dawn', title: 'Лес на рассвете', style: 'Саундскейп', emoji: '🌅', bpm: 60, price: 0, scale: [0, 2, 4, 7, 9], groove: 'birdscape', tag: 'Природа', about: 'Только природа: птицы, ветер и ручей. Без музыки и без ударных — можно писать слова.' },
   { id: 'ukulele-sun', title: 'Укулеле на солнце', style: 'Акустик-поп', emoji: '🌻', bpm: 108, price: 8, scale: [0, 2, 4, 7, 9], groove: 'strum', about: 'Бой укулеле, кахон и шейкер: солнечный акустик-поп без синтетики.' },
   { id: 'kalimba-river', title: 'Калимба у реки', style: 'Калимба', emoji: '🪘', bpm: 100, price: 10, scale: [0, 2, 4, 7, 9], groove: 'kalimba', about: 'Калимба (FM с негармоническим рядом) поверх тихого ручья.' },

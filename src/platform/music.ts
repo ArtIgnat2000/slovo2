@@ -783,6 +783,8 @@ interface KsOptions extends Send {
   sustain?: number;
   cutoff?: number;
   body?: KsBody;
+  /** Глушение через N секунд после атаки: чоп ритм-гитары,articulation баса. */
+  chop?: number;
 }
 
 /**
@@ -834,6 +836,15 @@ function ksVoice(ctx: AudioContext, o: KsOptions) {
   });
   const src = ctx.createBufferSource();
   src.buffer = buf;
+  // chop: нота глохнет через o.chop секунд — перкуссивный штрих без педали
+  const sink = o.chop
+    ? (() => {
+        const dyn = ctx.createGain();
+        dyn.gain.setValueAtTime(1, o.at);
+        dyn.gain.setTargetAtTime(0.0001, o.at + o.chop, 0.035);
+        return dyn;
+      })()
+    : null;
   // RMS буфера KS ≈0.03 против пиков 0.1–0.16 у огибающих осцилляторов:
   // без компенсации струна проигрывает перкуссии ~7 дБ× и трек звучит
   // «шумом с приглушённой гитарой» (запись 14:04: 20% энергии выше 5 кГц).
@@ -847,10 +858,12 @@ function ksVoice(ctx: AudioContext, o: KsOptions) {
   lp.frequency.value = Math.min(o.cutoff ?? 9000, 9000);
   src.connect(hp);
   hp.connect(lp);
+  const tail = sink ?? out;
+  if (sink) sink.connect(out);
   const dry = ctx.createGain();
   dry.gain.value = g * 0.6;
   lp.connect(dry);
-  dry.connect(out);
+  dry.connect(tail);
   const conv = ctx.createConvolver();
   conv.normalize = false; // IR уже L2-нормирован: без скрытого масштабирования браузера
   conv.buffer = bodyIR(ctx, body);
@@ -858,7 +871,7 @@ function ksVoice(ctx: AudioContext, o: KsOptions) {
   wet.gain.value = g * 0.8;
   lp.connect(conv);
   conv.connect(wet);
-  wet.connect(out);
+  wet.connect(tail);
   src.start(o.at);
   src.stop(o.at + 2.4);
 }
@@ -1511,6 +1524,12 @@ export interface GrooveSpec {
   nature?: NatureSpec;
   /** Бас — щипковый контрабас (Karplus-Strong с декой), а не синтезаторный. */
   uprightBass?: boolean;
+  /** Свинг по восьмым (триольное чувство), а не по шестнадцатым. */
+  swing8?: boolean;
+  /** Джаз-дуэт: ла-помпе + шагающий бас + колл-респонс вместо общих ветвей. */
+  duo?: boolean;
+  /** Гармония дуэта: аккорд на каждую половину такта (r — полутона от тоники). */
+  changes?: { r: number; q: 'M' | 'm' | '7' }[];
 }
 
 /** Природный слой саундскейпа: подушки на такт и редкие события на круг. */
@@ -1537,7 +1556,19 @@ const GROOVES: Record<string, GrooveSpec> = {
   ethno: { kick: K(0, 8, 11), snare: K(4, 12), hat: K(2, 5, 7, 10, 13), clap: [], bass: 'drone', chord: 'strings', chordIntervals: [0, 7], lead: 'flute', leadBase: 66, grace: true, motif: [0, 1, 2, 4, 2, 1, 4, 2], cutoff: 3600, rev: 0.4, dly: 0.26, fill: true },
 
   // база 0.13.0 — акустика
-  fingerstyle: { kick: [], snare: [], hat: K(2, 6, 10, 14), clap: [], acousticDrums: true, bass: 'quarter', chord: 'strum', chordIntervals: [0, 4, 7], lead: 'guitar', leadBase: 66, leadEveryBeat: true, motif: MOTIF_CORE, swing: 0.06, rev: 0.35, dly: 0.2, uprightBass: true },
+  fingerstyle: {
+    kick: [], snare: [], hat: [], clap: [], acousticDrums: true, bass: 'none', chord: 'none', chordIntervals: [],
+    lead: 'none', leadBase: 66, motif: MOTIF_CORE, swing: 0.62, swing8: true, duo: true, uprightBass: true,
+    // оригинальная прогрессия в идиоме джипси-свинга: мажор, субдоминанта
+    // с минорным обменом, оборот через VI7 и ii–V, в конце — turnaround
+    changes: [
+      { r: 0, q: 'M' }, { r: 0, q: 'M' }, { r: 5, q: 'M' }, { r: 5, q: 'm' },
+      { r: 0, q: 'M' }, { r: 9, q: '7' }, { r: 2, q: 'm' }, { r: 7, q: '7' },
+      { r: 0, q: 'M' }, { r: 0, q: '7' }, { r: 5, q: 'M' }, { r: 5, q: 'm' },
+      { r: 2, q: 'm' }, { r: 7, q: '7' }, { r: 0, q: 'M' }, { r: 9, q: '7' },
+    ],
+    rev: 0.3, dly: 0.12,
+  },
   strum: { kick: K(0, 8), snare: K(4, 12), hat: EIGHTH_HAT, clap: [], acousticDrums: true, bass: 'quarter', chord: 'strum', chordIntervals: [0, 4, 7], lead: 'ukulele', leadBase: 66, motif: [0, 0, 2, 4, 4, 2, 0, 2], swing: 0.1, rev: 0.25, dly: 0.12, fill: true, uprightBass: true },
   kalimba: { kick: [], snare: [], hat: K(2, 6, 10, 14), clap: K(4, 12), acousticDrums: true, bass: 'quarter', chord: 'none', chordIntervals: [], lead: 'kalimba', leadBase: 72, leadEveryBeat: true, motif: [0, 2, 4, 7, 4, 2, 0, 2], nature: { beds: ['stream'], dropletsPerBar: 2 }, rev: 0.4, dly: 0.22, uprightBass: true },
   meadow: { kick: [], snare: [], hat: K(2, 6, 10, 14), clap: [], acousticDrums: true, bass: 'quarter', chord: 'strum', chordIntervals: [0, 4, 7], lead: 'panflute', leadBase: 69, motif: [0, 2, 4, 5, 4, 2, 0, 1], swing: 0.05, nature: { beds: ['wind'], birdsPerBar: 3 }, rev: 0.45, dly: 0.25, uprightBass: true },
@@ -1753,6 +1784,82 @@ function scheduleStep(track: MusicTrack, spec: GrooveSpec, state: ReturnType<typ
     );
   }
 
+  // ── Джаз-дуэт двух гитар (идиома Виньолы/Раниоло, мелодии и прогрессия наши):
+  // ла-помпе на долях с акцентом на 2 и 4, шагающий бас с хроматическим
+  // подходом, колл-респонс фразами по 2 такта с отдыхами и синкопами,
+  // конец фразы — аккордовый стаб (chord melody). Всё seeded: детерминированно.
+  if (spec.duo && spec.changes) {
+    const lesson = scene === 'lesson';
+    const ch = spec.changes[(bar % 8) * 2 + (s16 >= 8 ? 1 : 0)];
+    const next = spec.changes[((bar % 8) * 2 + (s16 >= 8 ? 1 : 0) + 1) % spec.changes.length];
+    const cRoot = 48 + ch.r;
+    const tones = ch.q === 'm' ? [0, 3, 7, 12] : ch.q === '7' ? [0, 4, 10, 14] : [0, 4, 7, 12];
+    const rnd = mulberry(hashString(`${track.id}:duo:${bar}:${s16}`));
+    if (s16 % 4 === 0) {
+      // ла-помпе: чоп-аккорд, акцент 2 и 4, микро-разброс атак
+      const acc = beat === 1 || beat === 3 ? 1.25 : 0.9;
+      const pompeGain = 0.026 * acc * (lesson ? 0.55 : 1);
+      [0, 1, 2].forEach((i) =>
+        ksVoice(ctx, {
+          at: t + i * 0.011 + (rnd() - 0.5) * 0.006,
+          freq: hz(cRoot + 12 + [0, tones[1], tones[2] + 12][i]),
+          dur: 0.5, gain: pompeGain * (0.9 + rnd() * 0.2), bright: 0.55,
+          body: 'guitar', chop: 0.15, sustain: 0.994, cutoff: Math.min(state.cutoff || 6000, 6000),
+          bus: 'chord', pan: -0.22 + i * 0.2, rev: 0.16,
+        }),
+      );
+      // шагающий бас: корень/терция/квинта, на 4-ю долю — подход к следующему
+      const walk = beat < 3 ? [0, tones[1], tones[2]][beat] : ((next.r - ch.r + 12) % 12) - 1;
+      ksVoice(ctx, {
+        at: t + (rnd() - 0.5) * 0.008, freq: hz(cRoot + walk - 12),
+        dur: beatSeconds * 0.95, gain: 0.07 * (0.85 + rnd() * 0.3) * (lesson ? 0.8 : 1),
+        bright: 0.3, sustain: 0.9978, body: 'upright', bus: 'bass', rev: 0.05,
+      });
+    }
+    // колл-респонс: фразы по 2 такта; чётные фразы — «зов» ниже, нечётные — «ответ» октавой выше
+    if (step % 2 === 0) {
+      const phStep = step % 32;
+      const phrase = Math.floor((bar % 8) / 2);
+      const call = phrase % 2 === 0;
+      const e = phStep / 2;
+      const TEMPLATES: { e: number; d: number; kind: 'c' | 'p' | 'end' }[][] = [
+        [{ e: 0, d: 2, kind: 'c' }, { e: 3, d: 1, kind: 'p' }, { e: 4, d: 2, kind: 'c' }, { e: 6, d: 1, kind: 'p' }, { e: 8, d: 3, kind: 'c' }, { e: 12, d: 1, kind: 'p' }, { e: 14, d: 2, kind: 'c' }],
+        [{ e: 0, d: 1, kind: 'p' }, { e: 2, d: 2, kind: 'c' }, { e: 5, d: 1, kind: 'p' }, { e: 6, d: 2, kind: 'c' }, { e: 8, d: 2, kind: 'p' }, { e: 10, d: 2, kind: 'c' }, { e: 12, d: 4, kind: 'end' }],
+        [{ e: 0, d: 3, kind: 'c' }, { e: 4, d: 1, kind: 'p' }, { e: 6, d: 2, kind: 'c' }, { e: 9, d: 1, kind: 'p' }, { e: 10, d: 2, kind: 'c' }, { e: 12, d: 1, kind: 'p' }, { e: 14, d: 2, kind: 'c' }],
+        [{ e: 2, d: 2, kind: 'c' }, { e: 4, d: 1, kind: 'p' }, { e: 6, d: 3, kind: 'c' }, { e: 10, d: 1, kind: 'p' }, { e: 12, d: 2, kind: 'c' }, { e: 14, d: 2, kind: 'end' }],
+      ];
+      const ev = TEMPLATES[phrase % 4].find((x) => x.e === e);
+      if (ev) {
+        const lr = mulberry(hashString(`${track.id}:duoL:${bar}:${e}`));
+        const octave = call ? 12 : 24;
+        const pan = call ? -0.25 : 0.25;
+        const leadK = lesson ? 0.8 : 1;
+        const noteGain = 0.05 * (0.85 + lr() * 0.3) * leadK;
+        const durS = ev.d * beatSeconds * 0.5 * 0.95;
+        const cutoff = Math.min(state.cutoff || 6500, 6500);
+        if (ev.kind === 'end') {
+          // chord melody: фраза заканчивается аккордом, а не одиночной нотой
+          [0, tones[1], tones[2]].forEach((semi, i) =>
+            ksVoice(ctx, {
+              at: t + i * 0.014, freq: hz(cRoot + octave + semi), dur: 0.9,
+              gain: noteGain * 0.8, bright: 0.6, body: 'guitar', chop: 0.55,
+              sustain: 0.996, cutoff, bus: 'lead', pan: pan + (i - 1) * 0.12, rev: 0.3,
+            }),
+          );
+        } else {
+          const pool = ev.kind === 'c' ? tones : [tones[0] - 1, tones[1] + 1, tones[2] - 1, tones[2] + 1];
+          const semi = pool[Math.floor(lr() * pool.length)] + (ev.kind === 'c' && lr() < 0.3 ? 12 : 0);
+          ksVoice(ctx, {
+            at: t + (lr() - 0.5) * 0.01, freq: hz(cRoot + octave + semi), dur: durS,
+            gain: noteGain, bright: 0.62, body: 'guitar', sustain: 0.9965, cutoff,
+            bus: 'lead', pan, rev: 0.3, dly: 0.12,
+          });
+        }
+      }
+    }
+    return; // дуэт самодостаточен: общие ветви аккордов/баса/лида пропускаем
+  }
+
   // Перкуссия: в уроке тише, а яркие тембры (хэт, хлопок, ковбелл, крэш) молчат.
   // Акустический комплект: те же рисунки, но кахон/рим/шейкер/конга/бубен.
   const kit = spec.acousticDrums;
@@ -1870,7 +1977,8 @@ export function playMusic(track: MusicTrack | null, sceneName: MusicContext = sc
     const swing = spec.swing ?? 0;
     if (nextAt < now - 0.5) nextAt = now + 0.05; // вкладка спала: не вываливать шквал прошедших долей
     while (nextAt < now + 0.18) {
-      const offset = nextStep % 2 === 1 ? stepSeconds * swing : 0;
+      const offStep = spec.swing8 ? nextStep % 4 === 2 : nextStep % 2 === 1;
+      const offset = offStep ? stepSeconds * swing : 0;
       scheduleStep(track, spec, state, nextStep, nextAt + offset);
       nextStep = (nextStep + 1) % 128;
       nextAt += stepSeconds;
