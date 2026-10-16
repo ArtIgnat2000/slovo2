@@ -27,6 +27,8 @@ import { ConfirmDialog } from '../Bits';
 import { sfx } from '../../platform/sound';
 import { haptic } from '../../platform/haptics';
 import type { ShopItem } from '../../engine/shop';
+import { MUSIC_TRACKS, MUSIC_BY_ID, type MusicTrack } from '../../engine/music';
+import { playMusic } from '../../platform/music';
 
 /**
  * Магазин БУКа (пункт 4 плана).
@@ -61,7 +63,12 @@ export function ShopScreen() {
   const toggleCostume = useApp((s) => s.toggleCostume);
   const showToast = useApp((s) => s.showToast);
   const recolorItem = useApp((s) => s.recolorItem);
+  const buyMusicTrack = useApp((s) => s.buyMusicTrack);
+  const setMusicTrack = useApp((s) => s.setMusicTrack);
   const [ask, setAsk] = useState<ShopItem | null>(null);
+  const [askMusic, setAskMusic] = useState<MusicTrack | null>(null);
+  const [musicPicker, setMusicPicker] = useState(false);
+  const [previewTrack, setPreviewTrack] = useState<string | null>(null);
   // Открытая палитра (id вещи магазина или костюма) и подтверждение платного оттенка
   const [palette, setPalette] = useState<string | null>(null);
   const [askTint, setAskTint] = useState<{ target: TintTarget; tint: TintOption } | null>(null);
@@ -81,6 +88,46 @@ export function ShopScreen() {
   const pz = normalizePuzzle(profile.puzzle);
   const collecting = activeCostume(pz);
   const allCostumesDone = COSTUMES.every((c) => pz.assembled.includes(c.id));
+  const musicOwned = profile.shop?.musicOwned ?? [];
+  const selectedMusic = profile.shop?.musicTrack ?? null;
+
+  const chooseMusic = (id: string | null) => {
+    const track = id ? MUSIC_BY_ID[id] : null;
+    playMusic(track ?? null);
+    setMusicTrack(id);
+    setPreviewTrack(null);
+    setMusicPicker(false);
+    sfx.tap();
+    if (track) showToast({ emoji: track.emoji, title: `${track.title} играет!`, text: 'БУК будет слушать её и в других разделах' });
+    else showToast({ emoji: '🔇', title: 'Музыка выключена' });
+  };
+
+  const togglePreview = (track: MusicTrack) => {
+    if (previewTrack === track.id) {
+      setPreviewTrack(null);
+      playMusic(selectedMusic ? MUSIC_BY_ID[selectedMusic] ?? null : null);
+    } else {
+      setPreviewTrack(track.id);
+      playMusic(track);
+    }
+  };
+
+  const confirmMusicBuy = () => {
+    if (!askMusic) return;
+    const track = askMusic;
+    const ok = buyMusicTrack(track.id);
+    setAskMusic(null);
+    if (ok) {
+      setMusicTrack(track.id);
+      playMusic(track);
+      setPreviewTrack(null);
+      sfx.reward();
+      haptic.correct();
+      showToast({ emoji: track.emoji, title: `«${track.title}» теперь твоя!`, text: 'БУК уже включил новую музыку' });
+    } else {
+      showToast({ emoji: '💎', title: 'Не хватает кристаллов', text: `Нужно ещё ${Math.max(0, track.price - gems)} 💎` });
+    }
+  };
 
   const tapCostume = (id: string) => {
     sfx.tap();
@@ -176,12 +223,12 @@ export function ShopScreen() {
       <div className="card mb shop-stage">
         <button
           className="shop-mascot"
-          aria-label="Погладить БУКа"
+          aria-label="Нажми, чтобы выбрать музыку для БУКа"
+          aria-expanded={musicPicker}
           onClick={() => {
             sfx.hint();
             haptic.tap();
-            setMood('dance');
-            setTimeout(() => setMood('idle'), 1600);
+            setMusicPicker((open) => !open);
           }}
         >
           <Mascot mood={mood} look={look} stage={growth.index} size={132} />
@@ -204,8 +251,74 @@ export function ShopScreen() {
               : 'Весь гардероб собран ✨'}
             {' · '}куплено на {wardrobeValue(owned)} 💎
           </div>
+          <button className="btn sm primary music-open" onClick={() => setMusicPicker((open) => !open)}>
+            🎵 {selectedMusic ? `Играет: ${MUSIC_BY_ID[selectedMusic]?.title ?? 'музыка'}` : 'Выбрать музыку'}
+          </button>
+          <div className="tiny">Или нажми на БУКа, чтобы открыть свою музыкальную коллекцию</div>
         </div>
       </div>
+
+      {musicPicker && (
+        <section className="card mb music-picker" aria-label="Музыка БУКа">
+          <div className="between mb">
+            <div>
+              <h2 style={{ margin: 0 }}>Музыка БУКа 🎵</h2>
+              <div className="tiny">Выбирай из своей коллекции</div>
+            </div>
+            <button className="btn sm ghost" onClick={() => setMusicPicker(false)}>Готово</button>
+          </div>
+          <button className={`music-choice ${selectedMusic === null ? 'selected' : ''}`} onClick={() => chooseMusic(null)}>
+            <span className="music-emoji">🔇</span><span className="grow"><b>Тишина</b><small>Выключить фоновую музыку</small></span>
+            {selectedMusic === null && <span aria-label="Выбрано">✓</span>}
+          </button>
+          {MUSIC_TRACKS.filter((track) => musicOwned.includes(track.id)).map((track) => (
+            <button key={track.id} className={`music-choice ${selectedMusic === track.id ? 'selected' : ''}`} onClick={() => chooseMusic(track.id)}>
+              <span className="music-emoji">{track.emoji}</span>
+              <span className="grow"><b>{track.title}</b><small>{track.style}</small></span>
+              {selectedMusic === track.id && <span aria-label="Выбрано">✓</span>}
+            </button>
+          ))}
+          {musicOwned.length === 0 && <p className="tiny">Пока нет мелодий. Загляни в музыкальный магазин ниже!</p>}
+        </section>
+      )}
+
+      <section className="mb music-store">
+        <div className="between mb">
+          <div>
+            <h2 style={{ margin: 0 }}>Музыкальный магазин 🎶</h2>
+            <div className="tiny muted">14 оригинальных мелодий · слушай и выбирай свою</div>
+          </div>
+          <span className="stat-pill gems">💎 {gems}</span>
+        </div>
+        <div className="music-store-note">🎧 Все мелодии созданы специально для игры, работают офлайн и не используют чужие песни.</div>
+        <div className="shop-grid music-grid">
+          {MUSIC_TRACKS.map((track) => {
+            const ownedTrack = musicOwned.includes(track.id);
+            const selected = selectedMusic === track.id;
+            const previewing = previewTrack === track.id;
+            const affordable = gems >= track.price;
+            return (
+              <article key={track.id} className={`shop-item music-item ${selected ? 'on' : ''} ${ownedTrack ? 'owned' : ''}`}>
+                <div className="music-cover" aria-hidden="true"><span>{track.emoji}</span><i>♫</i></div>
+                <div className="shop-title">{track.title}</div>
+                <div className="tiny shop-desc">{track.style} · {track.bpm} BPM</div>
+                <button className="btn sm wide ghost" onClick={() => togglePreview(track)} aria-label={`${previewing ? 'Остановить' : 'Послушать'} ${track.title}`}>
+                  {previewing ? '⏸ Остановить' : '▶ Послушать'}
+                </button>
+                {ownedTrack ? (
+                  <button className={`btn sm wide ${selected ? 'green' : 'primary'}`} onClick={() => chooseMusic(selected ? null : track.id)}>
+                    {selected ? 'Играет ✓' : 'Выбрать'}
+                  </button>
+                ) : (
+                  <button className={`btn sm wide ${affordable ? 'primary' : 'ghost'}`} disabled={!affordable} onClick={() => setAskMusic(track)}>
+                    {track.price === 0 ? 'Забрать бесплатно' : affordable ? `Купить · 💎${track.price}` : `Ещё ${track.price - gems} 💎`}
+                  </button>
+                )}
+              </article>
+            );
+          })}
+        </div>
+      </section>
 
       <div className="mb">
         <h2 className="mb">Костюмы · пазлы</h2>
@@ -349,6 +462,18 @@ export function ShopScreen() {
         <br />
         БУК растёт, когда ты осваиваешь слова: сейчас — {growth.title.toLowerCase()}.
       </p>
+
+      {askMusic && (
+        <ConfirmDialog
+          emoji={askMusic.emoji}
+          title={askMusic.price === 0 ? `Забрать «${askMusic.title}»?` : `Купить «${askMusic.title}»?`}
+          text={askMusic.price === 0 ? 'Мелодия бесплатная. БУК сразу сможет её включить.' : `Отдашь ${askMusic.price} 💎 из ${gems}. БУК сразу включит новую музыку.`}
+          stayLabel={askMusic.price === 0 ? 'Забрать бесплатно' : `Купить за 💎${askMusic.price}`}
+          leaveLabel="Не сейчас"
+          onStay={confirmMusicBuy}
+          onLeave={() => setAskMusic(null)}
+        />
+      )}
 
       {ask && (
         <ConfirmDialog

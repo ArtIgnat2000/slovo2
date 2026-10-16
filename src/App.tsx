@@ -13,6 +13,8 @@ import { ShopScreen } from './ui/screens/ShopScreen';
 import { VlabsScreen } from './ui/screens/VlabsScreen';
 import { DiagnosticsScreen } from './ui/DiagnosticsScreen';
 import { setSoundEnabled } from './platform/sound';
+import { MUSIC_BY_ID } from './engine/music';
+import { playMusic, setMusicEnabled } from './platform/music';
 import { setHapticsEnabled } from './platform/haptics';
 import { applyUpdate, shouldSuggestInstall, markInstallHintShown } from './platform/pwa';
 
@@ -88,8 +90,15 @@ export default function App() {
 
   useEffect(() => {
     setSoundEnabled(settings.sound);
+    setMusicEnabled(settings.sound);
     setHapticsEnabled(settings.haptics);
   }, [settings.sound, settings.haptics]);
+
+  // Музыка принадлежит профилю ребёнка: при смене профиля фон переключается вместе с ним.
+  useEffect(() => {
+    const trackId = profile?.shop?.musicTrack ?? null;
+    playMusic(settings.sound && trackId ? MUSIC_BY_ID[trackId] ?? null : null);
+  }, [profile?.shop?.musicTrack, settings.sound]);
 
   useEffect(() => {
     const onUpdate = () => setUpdateReady(true);
