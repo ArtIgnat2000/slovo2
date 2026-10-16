@@ -834,6 +834,10 @@ function ksVoice(ctx: AudioContext, o: KsOptions) {
   });
   const src = ctx.createBufferSource();
   src.buffer = buf;
+  // RMS буфера KS ≈0.03 против пиков 0.1–0.16 у огибающих осцилляторов:
+  // без компенсации струна проигрывает перкуссии ~7 дБ× и трек звучит
+  // «шумом с приглушённой гитарой» (запись 14:04: 20% энергии выше 5 кГц).
+  const g = o.gain * 4;
   const out = route(ctx, o);
   const hp = ctx.createBiquadFilter();
   hp.type = 'highpass';
@@ -844,14 +848,14 @@ function ksVoice(ctx: AudioContext, o: KsOptions) {
   src.connect(hp);
   hp.connect(lp);
   const dry = ctx.createGain();
-  dry.gain.value = o.gain * 0.6;
+  dry.gain.value = g * 0.6;
   lp.connect(dry);
   dry.connect(out);
   const conv = ctx.createConvolver();
   conv.normalize = false; // IR уже L2-нормирован: без скрытого масштабирования браузера
   conv.buffer = bodyIR(ctx, body);
   const wet = ctx.createGain();
-  wet.gain.value = o.gain * 0.8;
+  wet.gain.value = g * 0.8;
   lp.connect(conv);
   conv.connect(wet);
   wet.connect(out);
@@ -1386,10 +1390,10 @@ function drumHit(ctx: AudioContext, at: number, type: DrumHit, level: number, br
     const noise = noiseSource(ctx, at, 0.05);
     const hp = ctx.createBiquadFilter();
     hp.type = 'highpass';
-    hp.frequency.value = 6500;
+    hp.frequency.value = 5600;
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, at);
-    g.gain.linearRampToValueAtTime(0.016 * level, at + 0.006);
+    g.gain.linearRampToValueAtTime(0.011 * level, at + 0.006);
     g.gain.exponentialRampToValueAtTime(0.0001, at + 0.05);
     noise.connect(hp);
     hp.connect(g);
