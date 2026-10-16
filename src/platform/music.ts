@@ -465,6 +465,117 @@ function fmVoice(ctx: AudioContext, o: FmOptions) {
   mod.stop(end);
 }
 
+// ── DX-движок: многооператорный FM по архитектуре Yamaha DX7 ─────────────────
+// Исследование: righto.com «DX7 chip reverse-engineering» (6 операторов-синусов,
+// 32 алгоритма, обратная связь через буфер двух предыдущих значений);
+// muzines «Understanding the DX7» (E.Piano 1 = алгоритм 5: три пары
+// несущая/модулятор 1/2, 3/4, 5/6; op1 — «тинка» Rhodes с KVS 2);
+// thinksynth env::dx (огибающая 4R/4L: уровни шагом 0.75 дБ, скорость
+// удваивается каждые ~6.2 шага). Каждый оператор — синус + огибающая
+// уровня; модуляторы входят в frequency несущей (классический FM-путь),
+// глубина модуляции измеряется в герцах и спадает по своей огибающей —
+// спектр ярчеет на атаке и темнеет на сустейне, как у живого тинка.
+type DxPresetName = 'epiano' | 'bass' | 'brass' | 'bell' | 'pluck';
+
+interface DxOpSpec {
+  ratio: number;
+  detune?: number;
+  /** Уровень: для несущей — доля амплитуды, для модулятора — индекс (× freq). */
+  level: number;
+  attack: number;
+  decay: number;
+  sustain: number;
+  release?: number;
+  isMod?: boolean;
+  /** Индекс несущей, которую модулирует этот оператор. */
+  target?: number;
+}
+
+const DX_PRESETS: Record<DxPresetName, DxOpSpec[]> = {
+  // E.Piano 1 (алгоритм 5): пара 1/2 — тинка с быстрым спадом индекса,
+  // пара 3/4 — тело с длинным спадом, пара 5/6 — молоточковый стук (ratio 3.5)
+  epiano: [
+    { ratio: 1, level: 0.9, attack: 0.004, decay: 0.9, sustain: 0.22, release: 0.3 },
+    { ratio: 1, level: 1.7, attack: 0.002, decay: 0.35, sustain: 0.02, isMod: true, target: 0 },
+    { ratio: 1, level: 0.5, attack: 0.004, decay: 2.2, sustain: 0.32, release: 0.35 },
+    { ratio: 1, level: 0.75, attack: 0.003, decay: 0.8, sustain: 0.04, isMod: true, target: 2 },
+    { ratio: 1, level: 0.3, attack: 0.002, decay: 0.14, sustain: 0 },
+    { ratio: 3.5, level: 1.1, attack: 0.001, decay: 0.05, sustain: 0, isMod: true, target: 4 },
+  ],
+  bass: [
+    { ratio: 1, level: 0.95, attack: 0.004, decay: 0.5, sustain: 0.5, release: 0.08 },
+    { ratio: 1, level: 1.4, attack: 0.002, decay: 0.14, sustain: 0.03, isMod: true, target: 0 },
+    { ratio: 2, level: 0.35, attack: 0.002, decay: 0.3, sustain: 0.05, isMod: true, target: 0 },
+  ],
+  brass: [
+    { ratio: 1, level: 0.9, attack: 0.09, decay: 0.6, sustain: 0.75, release: 0.12 },
+    { ratio: 1, level: 1.2, attack: 0.12, decay: 0.5, sustain: 0.5, isMod: true, target: 0 },
+    { ratio: 2, level: 0.3, attack: 0.08, decay: 0.4, sustain: 0.3, isMod: true, target: 0 },
+  ],
+  bell: [
+    { ratio: 1, level: 0.85, attack: 0.003, decay: 2.6, sustain: 0.05, release: 0.5 },
+    { ratio: 3.42, level: 1.8, attack: 0.002, decay: 1.6, sustain: 0.02, isMod: true, target: 0 },
+    { ratio: 6.71, level: 0.5, attack: 0.002, decay: 0.6, sustain: 0, isMod: true, target: 0 },
+  ],
+  pluck: [
+    { ratio: 1, level: 0.9, attack: 0.002, decay: 0.35, sustain: 0.02, release: 0.08 },
+    { ratio: 3, level: 2.2, attack: 0.001, decay: 0.06, sustain: 0, isMod: true, target: 0 },
+    { ratio: 1, level: 0.6, attack: 0.001, decay: 0.2, sustain: 0, isMod: true, target: 0 },
+  ],
+};
+
+interface DxOptions extends Send {
+  at: number;
+  freq: number;
+  dur: number;
+  gain: number;
+  cutoff?: number;
+  /** 0..1 — скорость ноты: у DX7 уровень и индекс растут с velocity. */
+  vel?: number;
+}
+
+function dxVoice(ctx: AudioContext, preset: DxPresetName, o: DxOptions) {
+  const ops = DX_PRESETS[preset];
+  const out = route(ctx, o);
+  const lp = ctx.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.value = Math.min(o.cutoff ?? 6500, 9000);
+  const master = ctx.createGain();
+  master.gain.value = o.gain;
+  master.connect(lp);
+  lp.connect(out);
+  const vel = 0.6 + 0.4 * (o.vel ?? 1);
+  const oscs: OscillatorNode[] = [];
+  const envs: GainNode[] = [];
+  ops.forEach((op) => {
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(o.freq * op.ratio, o.at);
+    if (op.detune) osc.detune.value = op.detune;
+    const g = ctx.createGain();
+    const peak = Math.max((op.isMod ? op.level * o.freq * vel : op.level * vel), 0.0002);
+    const atk = Math.max(0.001, op.attack);
+    g.gain.setValueAtTime(0.0001, o.at);
+    g.gain.linearRampToValueAtTime(peak, o.at + atk);
+    g.gain.setTargetAtTime(Math.max(peak * op.sustain, 0.0001), o.at + atk, Math.max(0.02, op.decay / 3));
+    if (!op.isMod) {
+      g.gain.setTargetAtTime(0.0001, o.at + Math.max(atk + op.decay, o.dur * 0.92), op.release ?? 0.12);
+    }
+    osc.connect(g);
+    oscs.push(osc);
+    envs.push(g);
+  });
+  ops.forEach((op, i) => {
+    if (op.isMod && op.target !== undefined) envs[i].connect(oscs[op.target].frequency);
+    else if (!op.isMod) envs[i].connect(master);
+  });
+  const end = o.at + o.dur + 0.9;
+  oscs.forEach((osc) => {
+    osc.start(o.at);
+    osc.stop(end);
+  });
+}
+
 interface StackOptions extends Send {
   at: number;
   freq: number;
@@ -533,18 +644,30 @@ function pianoVoice(ctx: AudioContext, o: PianoOptions) {
   env.gain.setTargetAtTime(0.0001, o.at + Math.max(0.25, o.dur * 0.75), Math.max(0.09, o.dur * 0.22));
   filter.connect(env);
   env.connect(out);
-  [-3, 3].forEach((cents) => {
+  // Три «струны» унизона (у рояля в средней тесситуре три струны на ноту):
+  // ±3 цента сразу и +7 с запаздыванием 1.5 мс — третий молоток чуть не в фазе
+  [-3, 3, 7].forEach((cents) => {
     const osc = ctx.createOscillator();
     osc.setPeriodicWave(wave(ctx, 'piano'));
     osc.frequency.setValueAtTime(o.freq, o.at);
     osc.detune.value = cents;
     const g = ctx.createGain();
-    g.gain.value = 0.5;
+    g.gain.value = cents === 7 ? 0.35 : 0.5;
     osc.connect(g);
     g.connect(filter);
-    osc.start(o.at);
-    osc.stop(o.at + o.dur + 0.35);
+    osc.start(o.at + (cents === 7 ? 0.0015 : 0));
+    osc.stop(o.at + o.dur + 0.45);
   });
+  // Дека: свёртка с импульсом резонансной доски (моды 'piano' в BODY_MODES) —
+  // корпус допевает после струны, как у AWM-роялей промышленного уровня
+  const board = ctx.createConvolver();
+  board.normalize = false;
+  board.buffer = bodyIR(ctx, 'piano');
+  const boardGain = ctx.createGain();
+  boardGain.gain.value = 0.4;
+  env.connect(board);
+  board.connect(boardGain);
+  boardGain.connect(out);
   // Молоточек: короткий шумовой транзиент — без него рояль «слепой»
   const hammer = noiseSource(ctx, o.at, 0.014);
   const bp = ctx.createBiquadFilter();
@@ -702,6 +825,11 @@ function bassVoice(ctx: AudioContext, o: BassOptions) {
   sub.start(o.at);
   sub.stop(o.at + o.dur + 0.15);
 
+  if (!o.glideTo) {
+    // середина — DX-бас: атака плотнее пилы с фильтром, spectrum спадает сам
+    dxVoice(ctx, 'bass', { ...o, gain: o.gain * 0.45, cutoff: Math.min(o.cutoff ?? 2400, 2400), bus: 'bass' });
+    return;
+  }
   const filter = ctx.createBiquadFilter();
   filter.type = 'lowpass';
   filter.frequency.setValueAtTime(o.cutoff ?? 900, o.at);
@@ -739,7 +867,7 @@ interface KsOptions extends Send {
  * буфером для свёртки — метод CCRMA «body resonator»: IR деки сворачивается
  * с выходом струнной модели, без измеренных записей.
  */
-type KsBody = 'guitar' | 'ukulele' | 'balalaika' | 'upright';
+type KsBody = 'guitar' | 'ukulele' | 'balalaika' | 'upright' | 'piano';
 
 const BODY_MODES: Record<KsBody, { f: number; tau: number; a: number }[]> = {
   guitar: [
@@ -758,6 +886,13 @@ const BODY_MODES: Record<KsBody, { f: number; tau: number; a: number }[]> = {
   upright: [
     { f: 55, tau: 0.12, a: 1 }, { f: 110, tau: 0.1, a: 0.8 }, { f: 220, tau: 0.07, a: 0.5 },
     { f: 440, tau: 0.045, a: 0.3 }, { f: 900, tau: 0.03, a: 0.15 },
+  ],
+  // дека рояля: моды резонансной доски длиннее гитарных (tau 0.4–0.07 с) —
+  // дерево «допевает» после струны, без этого рояль звучит картонно
+  piano: [
+    { f: 95, tau: 0.4, a: 1 }, { f: 140, tau: 0.35, a: 0.8 }, { f: 210, tau: 0.3, a: 0.6 },
+    { f: 320, tau: 0.22, a: 0.5 }, { f: 480, tau: 0.16, a: 0.35 }, { f: 720, tau: 0.11, a: 0.25 },
+    { f: 1100, tau: 0.07, a: 0.15 },
   ],
 };
 
@@ -932,34 +1067,59 @@ function malletVoice(ctx: AudioContext, o: MalletOptions) {
   tg.connect(out);
 }
 
-/** Губная гармоника: пара пил через форманту, дыхание и вибрато. */
+/**
+ * Губная гармоника v2: бенд-скуп блюзовой идиомы (нота въезжает в строй
+ * снизу за 90 мс), «купол рук» — форманта-лоу-пасс раскрывается f·1.4→f·2.6,
+ * вторая форманта f·4.5 даёт язычковую «гнусавость», вибрато разгоняется
+ * с 0.4 с (в прежней версии LFO не был подключён к осцилляторам — молчал).
+ */
 function harpVoice(ctx: AudioContext, o: KsOptions) {
   const out = route(ctx, o);
+  const cup = ctx.createBiquadFilter();
+  cup.type = 'lowpass';
+  cup.frequency.setValueAtTime(o.freq * 1.4, o.at);
+  cup.frequency.linearRampToValueAtTime(Math.min(6000, o.freq * 2.6), o.at + Math.min(0.35, o.dur * 0.6));
+  cup.Q.value = 1.1;
   const formant = ctx.createBiquadFilter();
   formant.type = 'bandpass';
   formant.frequency.value = o.freq * 2;
   formant.Q.value = 3.2;
   const env = envelope(ctx, o.at, o.gain, 0.035, o.dur, 0.8, 0.09);
+  cup.connect(formant);
   formant.connect(env);
   env.connect(out);
+  const f2 = ctx.createBiquadFilter();
+  f2.type = 'bandpass';
+  f2.frequency.value = o.freq * 4.5;
+  f2.Q.value = 2;
+  const f2g = ctx.createGain();
+  f2g.gain.value = 0.3;
+  cup.connect(f2);
+  f2.connect(f2g);
+  f2g.connect(env);
+  const reeds: OscillatorNode[] = [];
   [-7, 7].forEach((cents) => {
     const osc = ctx.createOscillator();
     osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(o.freq, o.at);
+    osc.frequency.setValueAtTime(o.freq * 0.97, o.at);
+    osc.frequency.exponentialRampToValueAtTime(o.freq, o.at + 0.09);
     osc.detune.value = cents;
     const g = ctx.createGain();
     g.gain.value = 0.5;
     osc.connect(g);
-    g.connect(formant);
+    g.connect(cup);
     osc.start(o.at);
     osc.stop(o.at + o.dur + 0.2);
+    reeds.push(osc);
   });
   const lfo = ctx.createOscillator();
   lfo.type = 'sine';
   lfo.frequency.value = 5.6;
   const lfoGain = ctx.createGain();
-  lfoGain.gain.value = 7;
+  lfoGain.gain.setValueAtTime(2, o.at);
+  lfoGain.gain.setTargetAtTime(9, o.at + 0.4, 0.25);
   lfo.connect(lfoGain);
+  reeds.forEach((osc) => lfoGain.connect(osc.detune));
   const breath = noiseSource(ctx, o.at, Math.min(0.25, o.dur));
   const lp = ctx.createBiquadFilter();
   lp.type = 'lowpass';
@@ -1646,6 +1806,8 @@ export interface GrooveSpec {
   improvStyle?: 'classical';
   /** Альбертиев бас [0,2,1,2] по тонам аккорда — барочная опора вместо шага. */
   alberti?: boolean;
+  /** Фингерстайл-арпеджио p-i-m-a-m-i из табов «Rising Sun» вместо обычного баса. */
+  arpBass?: boolean;
 }
 
 /** Природный слой саундскейпа: подушки на такт и редкие события на круг. */
@@ -1703,7 +1865,7 @@ const GROOVES: Record<string, GrooveSpec> = {
   meadow: { kick: [], snare: [], hat: K(2, 6, 10, 14), clap: [], acousticDrums: true, bass: 'quarter', chord: 'strum', chordIntervals: [0, 4, 7], lead: 'panflute', leadBase: 69, motif: [0, 2, 4, 5, 4, 2, 0, 1], swing: 0.05, nature: { beds: ['wind'], birdsPerBar: 3 }, rev: 0.45, dly: 0.25, uprightBass: true },
   bossa: {
     kick: [], snare: [], hat: [], clap: [], acousticDrums: true, jazzKit: 'bossa', bossaComp: true,
-    bass: 'quarter', chord: 'strum', chordIntervals: [0, 4, 7, 10], lead: 'none', duoLead: 'guitar',
+    bass: 'none', chord: 'none', chordIntervals: [0, 4, 7, 10], arpBass: true, lead: 'none', duoLead: 'guitar',
     leadBase: 66, motif: [0, 2, 3, 4, 3, 2, 0, 2], swing: 0.12, rev: 0.3, dly: 0.18, uprightBass: true,
     // «House of the Rising Sun» (традиционный фолк-блюз, PD) в минорной
     // босса-нове: Am-C-D-F-Am-E7, арпеджированная тема
@@ -1869,9 +2031,9 @@ function leadVoice(ctx: AudioContext, spec: GrooveSpec, state: ReturnType<typeof
   else if (spec.lead === 'piano') pianoVoice(ctx, { ...send, at: o.at, freq, dur: o.dur, gain, cutoff });
   else if (spec.lead === 'flute') fluteVoice(ctx, { ...send, at: o.at, freq, dur: o.dur, gain: gain * 0.95, cutoff }, 'concert');
   else if (spec.lead === 'strings') stringsVoice(ctx, { ...send, at: o.at, freq, dur: o.dur, gain: gain * 0.8, attack: 0.09, cutoff });
-  else if (spec.lead === 'epiano') fmVoice(ctx, { ...send, at: o.at, freq, dur: o.dur, gain, ratio: 2, index: freq * 1.1, cutoff });
-  else if (spec.lead === 'bell') fmVoice(ctx, { ...send, at: o.at, freq, dur: o.dur, gain: gain * 0.8, ratio: 3.5, index: freq * 2.2, cutoff });
-  else if (spec.lead === 'pluck') stackVoice(ctx, { ...send, at: o.at, freq, dur: o.dur, gain, voices: 2, detune: 6, cutoff: Math.min(5200, cutoff), cutoffEnd: 500, attack: 0.003 });
+  else if (spec.lead === 'epiano') dxVoice(ctx, 'epiano', { ...send, at: o.at, freq, dur: o.dur, gain, cutoff });
+  else if (spec.lead === 'bell') dxVoice(ctx, 'bell', { ...send, at: o.at, freq, dur: o.dur, gain: gain * 0.8, cutoff });
+  else if (spec.lead === 'pluck') dxVoice(ctx, 'pluck', { ...send, at: o.at, freq, dur: o.dur, gain, cutoff: Math.min(5200, cutoff) });
   else if (spec.lead === 'supersaw') stackVoice(ctx, { ...send, at: o.at, freq, dur: o.dur, gain: gain * 0.75, voices: 5, detune: 11, cutoff: Math.min(4600, cutoff), cutoffEnd: 1400 });
   else if (spec.lead === 'cowbell') drumHit(ctx, o.at, 'cowbell', gain * 14, state.bright);
   else stackVoice(ctx, { ...send, at: o.at, freq, dur: o.dur, gain, voices: 1, type: 'square', cutoff: Math.min(5000, cutoff) });
@@ -1967,9 +2129,9 @@ function scheduleStep(track: MusicTrack, spec: GrooveSpec, state: ReturnType<typ
   }
   if (spec.chord === 'stab' && (s16 === 2 || s16 === 10)) {
     iv.forEach((interval, i) =>
-      fmVoice(ctx, {
+      dxVoice(ctx, 'brass', {
         at: t, freq: hz(root + 12 + interval), dur: beatSeconds * 0.32, gain: 0.02 * hum.gv,
-        ratio: 2, index: hz(root + 12 + interval) * 0.8, cutoff: Math.min(4200, state.cutoff || 4200),
+        cutoff: Math.min(4200, state.cutoff || 4200),
         bus: 'chord', pan: i % 2 === 0 ? -0.3 : 0.3, rev: (spec.rev ?? 0.2) * 0.7,
       }),
     );
@@ -1993,6 +2155,21 @@ function scheduleStep(track: MusicTrack, spec: GrooveSpec, state: ReturnType<typ
       bassVoice(ctx, { at, freq: hz(midi), dur, gain, cutoff: 700, glideTo: glideTo ? hz(glideTo) : undefined });
     }
   };
+  // Арпеджио из табов «House of the Rising Sun» (guitaretab/tabs4acoustic/
+  // richterguitar): большой палец — бас, затем вверх по трём верхним струнам
+  // и обратно, p-i-m-a-m-i. Для Am таб даёт A2-E3-A3-C4-E4-C4-A3-E3 —
+  // обобщаем на любой аккорд из changes. В уроке редеет до четвертей.
+  if (spec.arpBass && chNow && s16 % (scene === 'lesson' ? 4 : 2) === 0) {
+    const inL = scene === 'lesson';
+    const arpTones = [0, iv[2] ?? 7, 12, (iv[1] ?? 3) + 12, (iv[2] ?? 7) + 12, (iv[1] ?? 3) + 12, 12, iv[2] ?? 7];
+    const j = inL ? (s16 >> 2) * 2 : s16 >> 1;
+    ksVoice(ctx, {
+      at: t, freq: hz(root - 12 + arpTones[j]), dur: beatSeconds * (inL ? 0.9 : 0.48),
+      gain: 0.05 * hum.gv * (inL ? 0.8 : 1), bright: 0.55, body: 'guitar', sustain: 0.996,
+      cutoff: Math.min(5200, state.cutoff || 5200), bus: 'bass', pan: j % 4 < 2 ? -0.15 : 0.15,
+      rev: (spec.rev ?? 0.25) * 0.5,
+    });
+  }
   if (spec.bass === 'quarter' && s16 % 4 === 0) playBass(root, t, beatSeconds * 0.8, 0.085 * hum.gv);
   if (spec.bass === 'eighth' && s16 % 2 === 0) playBass(root + (s16 % 4 === 2 ? 12 : 0), t, beatSeconds * 0.4, 0.075 * hum.gv);
   if (spec.bass === 'offbeat' && s16 % 4 === 2) playBass(root, t, beatSeconds * 0.38, 0.08 * hum.gv);
@@ -2060,6 +2237,13 @@ function scheduleStep(track: MusicTrack, spec: GrooveSpec, state: ReturnType<typ
         ksVoice(ctx, {
           at: t, freq: hz(cRoot - 12 + (beat === 2 ? 7 : 0)), dur: beatSeconds * 0.9,
           gain: 0.075 * (lesson ? 0.8 : 1) * wave, bright: 0.3, sustain: 0.9978,
+          body: 'upright', bus: 'bass', rev: 0.05,
+        });
+        // октавное удвоение: левая рука рэгтайма берёт бас октавой (Wikipedia:
+        // stride — «single bass note or an octave» на 1 и 3), низ становится плотнее
+        ksVoice(ctx, {
+          at: t + 0.002, freq: hz(cRoot - 24 + (beat === 2 ? 7 : 0)), dur: beatSeconds * 0.9,
+          gain: 0.04 * (lesson ? 0.8 : 1) * wave, bright: 0.24, sustain: 0.9978,
           body: 'upright', bus: 'bass', rev: 0.05,
         });
       } else {

@@ -2,6 +2,7 @@
 
 | Снимок | Коммит | Что внутри | Как вернуться |
 | --- | --- | --- | --- |
+| `snap/proposal-v1` | `3b32114` | Стандарты + принятое из предложения: джазовый комплект (ride/bossa), импровиз над changes, шагающий бас с passing-тонами, лаборатории bebop/baroque — до переработки тембров под Yamaha-референс | `git checkout snap/proposal-v1 -- src/ docs/` или revert последующих коммитов |
 | `snap/standards-v1` | `0add9ab` | Стандарты PD ( Saints, C.C. Rider, Entertainer, Liza Jane, Rising Sun, In the Pines ) + джаз-грамматика (помпе/страйд/шагающий бас/рубато/волна формы/вдохи) + объективный разбор записей | `git checkout snap/standards-v1 -- src/ docs/` или revert последующих коммитов |
 | `snap/duo-breath` | `93eecfd` | Свинг-дуэт с дыханием, до стандартов (оригинальные мелодии) | то же |
 
