@@ -92,6 +92,11 @@
   <label class="switch"><input id="focus" type="checkbox"> Режим «Урок»</label>
   <button class="btn" id="stop">⏹ Стоп</button>
   <button class="btn" id="rec" title="Пишет реальный тракт движка в файл webm">⏺ Записать 10 с</button>
+  <span class="note" id="recstate"></span>
+</div>
+<div class="panel" id="recplayer" style="display:none">
+  <b>Захват мастер-шины:</b> <audio id="recaudio" controls></audio>
+  <a id="recdownload" download>скачать файл</a>
   <span class="note" id="hint">Одновременно играет один луп — так же, как в приложении.</span>
 </div>
 
@@ -241,14 +246,36 @@ recBtn.addEventListener('click', () => {
   rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
   rec.onstop = () => {
     const blob = new Blob(chunks, { type: rec.mimeType || 'audio/webm' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'slovo2-' + (active || 'loop') + '.webm';
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    const name = 'slovo2-' + (active || 'loop') + '.webm';
     recBtn.disabled = false;
     recBtn.textContent = '⏺ Записать 10 с';
+    // Плеер на странице: захват можно послушать сразу, без скачивания
+    const playerBox = document.getElementById('recplayer');
+    const audio = document.getElementById('recaudio');
+    const link = document.getElementById('recdownload');
+    const url = URL.createObjectURL(blob);
+    audio.src = url;
+    link.href = url;
+    link.download = name;
+    playerBox.style.display = '';
+    const state = document.getElementById('recstate');
+    // В iframe превью автоскачивание запрещено: шлём файл серверу,
+    // он кладёт запись в recordings/ рабочей области — разбор без скачивания
+    state.textContent = '⏫ Отправляю запись…';
+    fetch('/upload?name=' + encodeURIComponent(name), { method: 'POST', body: blob })
+      .then((r) => r.json())
+      .then((j) => {
+        state.textContent = '✓ ' + j.saved + ' в рабочей области (' + Math.round(j.bytes / 1024) + ' КБ) — можно разбирать';
+      })
+      .catch(() => {
+        state.textContent = '⚠ Сервер не принял файл: откройте лабораторию в отдельной вкладке и скачайте ссылкой';
+      });
+    if (window.top === window) {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      a.click();
+    }
   };
   let left = 10;
   recBtn.disabled = true;

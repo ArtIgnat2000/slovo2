@@ -11,13 +11,48 @@ precache не пускает новую сборку, и человек слуш
   • остальное — no-cache (перевайалидация каждый раз).
 """
 import argparse
+import os
+import re
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+from urllib.parse import parse_qs, urlparse
+
+# Сюда лаборатория шлёт записи («⏺ Записать 10 с»): в iframe превью
+# автоскачивание запрещено браузером, а файл нужен в рабочей области.
+UPLOAD_DIR = Path(os.getcwd()) / 'recordings'
+MAX_UPLOAD = 25 * 1024 * 1024
+AUDIO_EXT = ('.webm', '.wav', '.mp3', '.m4a', '.ogg', '.opus')
 
 NO_STORE = {'', 'index.html', 'sw.js', 'manifest.webmanifest', 'engine.js'}
 
 
 class Handler(SimpleHTTPRequestHandler):
+    def do_POST(self):
+        if self.path.split('?')[0] != '/upload':
+            self.send_error(404)
+            return
+        try:
+            length = int(self.headers.get('Content-Length', '0'))
+        except ValueError:
+            length = 0
+        if length <= 0 or length > MAX_UPLOAD:
+            self.send_error(413)
+            return
+        query = parse_qs(urlparse(self.path).query)
+        name = (query.get('name') or ['rec'])[0]
+        name = re.sub(r'[^A-Za-z0-9._-]', '_', name)[:80] or 'rec'
+        if not name.endswith(AUDIO_EXT):
+            name += '.webm'
+        UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+        (UPLOAD_DIR / name).write_bytes(self.rfile.read(length))
+        payload = f'{{"ok": true, "saved": "{name}", "bytes": {length}}}'.encode()
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Length', str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
+
     def end_headers(self):
         path = self.path.split('?')[0].split('#')[0].rstrip('/')
         name = path.rsplit('/', 1)[-1]
