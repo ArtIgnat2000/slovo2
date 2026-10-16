@@ -34,6 +34,7 @@ let timer: ReturnType<typeof setInterval> | null = null;
 let activeId: string | null = null;
 let nextStep = 0;
 let nextAt = 0;
+let loopLen = 128;
 /** Номер прохода лупа: фразы дышат по-новому на каждом круге (детерминированно). */
 let loopCycle = 0;
 let enabled = true;
@@ -1528,10 +1529,27 @@ export interface GrooveSpec {
   uprightBass?: boolean;
   /** Свинг по восьмым (триольное чувство), а не по шестнадцатым. */
   swing8?: boolean;
-  /** Джаз-дуэт: ла-помпе + шагающий бас + колл-респонс вместо общих ветвей. */
+  /** Джаз-дуэт: колл-респонс импровиза вместо общих ветвей лида. */
   duo?: boolean;
-  /** Гармония дуэта: аккорд на каждую половину такта (r — полутона от тоники). */
+  /** Ла-помпе: чоп-аккорды на долях с акцентом на 2 и 4. */
+  pompeFlag?: boolean;
+  /** Шагающий бас с хроматическим подходом к следующему корню. */
+  walkFlag?: boolean;
+  /** Гармония: аккорд на каждую половину такта (r — полутона от тоники, q — лад). */
   changes?: { r: number; q: 'M' | 'm' | '7' }[];
+  /** Мелодия стандарта (общественное достояние): e — восьмая формы, d — длительность
+   *  в восьмых, n — полутона от тоники, k:'end' — каденция с рубато. */
+  melody?: { e: number; d: number; n: number; k?: 'end' }[];
+  /** Октавный сдвиг мелодии относительно C4. */
+  melodyOct?: number;
+  /** Тембр солиста мелодии (по умолчанию текущий lead грува). */
+  duoLead?: LeadTimbre;
+  /** Страйд-рояль: бас на 1 и 3, чоп-аккорд на 2 и 4 (рэгтайм). */
+  stride?: boolean;
+  /** Джаз-блок заменяет общие ветви, но перкуссию грува оставляет. */
+  fallthrough?: boolean;
+  /** Длина формы в тактах (по умолчанию 8; блюз — 12). */
+  bars?: number;
 }
 
 /** Природный слой саундскейпа: подушки на такт и редкие события на круг. */
@@ -1560,7 +1578,20 @@ const GROOVES: Record<string, GrooveSpec> = {
   // база 0.13.0 — акустика
   fingerstyle: {
     kick: [], snare: [], hat: [], clap: [], acousticDrums: true, bass: 'none', chord: 'none', chordIntervals: [],
-    lead: 'none', leadBase: 66, motif: MOTIF_CORE, swing: 0.62, swing8: true, duo: true, uprightBass: true,
+    lead: 'none', duoLead: 'guitar', pompeFlag: true, walkFlag: true,
+    leadBase: 66, motif: MOTIF_CORE, swing: 0.62, swing8: true, duo: true, uprightBass: true,
+    // «When the Saints Go Marching In» (традиционный спиричуэл, PD): тема в
+    // пяти звуках C-E-F-G, хорус 8 тактов
+    melody: [
+      { e: 0, d: 2, n: 0 }, { e: 2, d: 2, n: 4 }, { e: 4, d: 2, n: 5 }, { e: 6, d: 2, n: 7 },
+      { e: 8, d: 2, n: 0 }, { e: 10, d: 3, n: 4 }, { e: 13, d: 1, n: 5 }, { e: 14, d: 2, n: 7 },
+      { e: 16, d: 2, n: 0 }, { e: 18, d: 2, n: 4 }, { e: 20, d: 2, n: 5 }, { e: 22, d: 2, n: 7 },
+      { e: 24, d: 2, n: 4 }, { e: 26, d: 3, n: 0 }, { e: 29, d: 1, n: 4 }, { e: 30, d: 2, n: 2 },
+      { e: 32, d: 2, n: 4 }, { e: 34, d: 2, n: 5 }, { e: 36, d: 2, n: 7 }, { e: 38, d: 2, n: 4 },
+      { e: 40, d: 1, n: 0 }, { e: 41, d: 1, n: 2 }, { e: 42, d: 4, n: 0 },
+      { e: 48, d: 2, n: 4 }, { e: 50, d: 2, n: 5 }, { e: 52, d: 2, n: 7 }, { e: 54, d: 2, n: 4 },
+      { e: 56, d: 2, n: 0 }, { e: 58, d: 2, n: 2 }, { e: 60, d: 4, n: 0, k: 'end' },
+    ],
     // оригинальная прогрессия в идиоме джипси-свинга: мажор, субдоминанта
     // с минорным обменом, оборот через VI7 и ii–V, в конце — turnaround
     changes: [
@@ -1574,12 +1605,122 @@ const GROOVES: Record<string, GrooveSpec> = {
   strum: { kick: K(0, 8), snare: K(4, 12), hat: EIGHTH_HAT, clap: [], acousticDrums: true, bass: 'quarter', chord: 'strum', chordIntervals: [0, 4, 7], lead: 'ukulele', leadBase: 66, motif: [0, 0, 2, 4, 4, 2, 0, 2], swing: 0.1, rev: 0.25, dly: 0.12, fill: true, uprightBass: true },
   kalimba: { kick: [], snare: [], hat: K(2, 6, 10, 14), clap: K(4, 12), acousticDrums: true, bass: 'quarter', chord: 'none', chordIntervals: [], lead: 'kalimba', leadBase: 72, leadEveryBeat: true, motif: [0, 2, 4, 7, 4, 2, 0, 2], nature: { beds: ['stream'], dropletsPerBar: 2 }, rev: 0.4, dly: 0.22, uprightBass: true },
   meadow: { kick: [], snare: [], hat: K(2, 6, 10, 14), clap: [], acousticDrums: true, bass: 'quarter', chord: 'strum', chordIntervals: [0, 4, 7], lead: 'panflute', leadBase: 69, motif: [0, 2, 4, 5, 4, 2, 0, 1], swing: 0.05, nature: { beds: ['wind'], birdsPerBar: 3 }, rev: 0.45, dly: 0.25, uprightBass: true },
-  bossa: { kick: K(0, 8), snare: K(4, 12), hat: EIGHTH_HAT, clap: [], acousticDrums: true, bass: 'quarter', chord: 'strum', chordIntervals: [0, 4, 7, 10], lead: 'guitar', leadBase: 66, motif: [0, 2, 3, 4, 3, 2, 0, 2], swing: 0.12, rev: 0.3, dly: 0.18, uprightBass: true },
-  folk: { kick: K(0, 6, 8, 14), snare: K(4, 12), hat: EIGHTH_HAT, clap: [], openHat: K(2, 6, 10, 14), acousticDrums: true, bass: 'drone', chord: 'strum', chordIntervals: [0, 7], lead: 'balalaika', leadBase: 69, leadEveryBeat: true, blip: true, motif: [0, 0, 2, 3, 4, 3, 2, 0], swing: 0.08, rev: 0.2, dly: 0.1, fill: true, uprightBass: true },
-  stringsstory: { kick: [], snare: [], hat: [], clap: [], bass: 'quarter', chord: 'strings', chordIntervals: [0, 4, 7], lead: 'strings', leadBase: 69, motif: [0, 4, 2, 5, 4, 2, 1, 0], padAttack: 0.1, rev: 0.5, dly: 0.3, uprightBass: true },
-  blues: { kick: K(0, 8, 10), snare: K(4, 12), hat: K(2, 3, 6, 7, 10, 11, 14, 15), clap: [], acousticDrums: true, bass: 'eighth', chord: 'strum', chordIntervals: [0, 4, 7, 10], lead: 'harp', leadBase: 66, motif: [0, 3, 0, 3, 4, 3, 0, 2], swing: 0.18, rev: 0.25, dly: 0.15, uprightBass: true },
+  bossa: {
+    kick: K(0, 8), snare: K(4, 12), hat: EIGHTH_HAT, clap: [], acousticDrums: true,
+    bass: 'quarter', chord: 'strum', chordIntervals: [0, 4, 7, 10], lead: 'none', duoLead: 'guitar',
+    leadBase: 66, motif: [0, 2, 3, 4, 3, 2, 0, 2], swing: 0.12, rev: 0.3, dly: 0.18, uprightBass: true,
+    // «House of the Rising Sun» (традиционный фолк-блюз, PD) в минорной
+    // босса-нове: Am-C-D-F-Am-E7, арпеджированная тема
+    changes: [
+      { r: 0, q: 'm' }, { r: 0, q: 'm' }, { r: 3, q: 'M' }, { r: 3, q: 'M' },
+      { r: 5, q: 'M' }, { r: 5, q: 'M' }, { r: 8, q: 'M' }, { r: 8, q: 'M' },
+      { r: 0, q: 'm' }, { r: 0, q: 'm' }, { r: 7, q: '7' }, { r: 7, q: '7' },
+      { r: 0, q: 'm' }, { r: 0, q: 'm' }, { r: 7, q: '7' }, { r: 7, q: '7' },
+    ],
+    melody: [
+      { e: 0, d: 2, n: 0 }, { e: 2, d: 2, n: 3 }, { e: 4, d: 2, n: 7 }, { e: 6, d: 2, n: 12 }, { e: 8, d: 3, n: 7 }, { e: 11, d: 1, n: 3 }, { e: 12, d: 4, n: 0 },
+      { e: 16, d: 2, n: 0 }, { e: 18, d: 2, n: 3 }, { e: 20, d: 2, n: 7 }, { e: 22, d: 2, n: 12 }, { e: 24, d: 3, n: 7 }, { e: 27, d: 1, n: 3 }, { e: 28, d: 4, n: 0 },
+      { e: 32, d: 2, n: 12 }, { e: 34, d: 2, n: 10 }, { e: 36, d: 2, n: 7 }, { e: 38, d: 2, n: 3 }, { e: 40, d: 4, n: 0 },
+      { e: 48, d: 2, n: 0 }, { e: 50, d: 2, n: 3 }, { e: 52, d: 2, n: 7 }, { e: 54, d: 2, n: 12 }, { e: 56, d: 3, n: 7 }, { e: 59, d: 1, n: 3 }, { e: 60, d: 4, n: 0, k: 'end' },
+    ],
+  },
+  folk: {
+    kick: K(0, 6, 8, 14), snare: K(4, 12), hat: EIGHTH_HAT, clap: [], openHat: [], acousticDrums: true,
+    bass: 'none', chord: 'none', chordIntervals: [], lead: 'none', duoLead: 'balalaika',
+    pompeFlag: true, walkFlag: true, fallthrough: true,
+    leadBase: 69, leadEveryBeat: true, blip: true, motif: [0, 0, 2, 3, 4, 3, 2, 0], swing: 0.14, swing8: true,
+    rev: 0.2, dly: 0.1, fill: true, uprightBass: true,
+    // «Little Liza Jane» (традиционная, PD): рил-часть по контуру Traditional
+    // Tune Archive (D-D-D | E-D-C-D | E-D-C-A | G-A | C), припев — вокальный
+    // отклик диксиленда
+    changes: [
+      { r: 0, q: 'M' }, { r: 0, q: 'M' }, { r: 0, q: 'M' }, { r: 0, q: 'M' },
+      { r: 0, q: 'M' }, { r: 0, q: 'M' }, { r: 7, q: '7' }, { r: 7, q: '7' },
+      { r: 0, q: 'M' }, { r: 5, q: 'M' }, { r: 0, q: 'M' }, { r: 0, q: 'M' },
+      { r: 0, q: 'M' }, { r: 7, q: '7' }, { r: 0, q: 'M' }, { r: 0, q: 'M' },
+    ],
+    melody: [
+      { e: 0, d: 1, n: 2 }, { e: 1, d: 1, n: 2 }, { e: 2, d: 2, n: 2 },
+      { e: 4, d: 4, n: 4 }, { e: 8, d: 2, n: 2 }, { e: 10, d: 1, n: 0 }, { e: 11, d: 1, n: 2 },
+      { e: 12, d: 2, n: 4 }, { e: 14, d: 2, n: 2 }, { e: 16, d: 2, n: 0 }, { e: 18, d: 2, n: -3 },
+      { e: 20, d: 4, n: -5 }, { e: 24, d: 4, n: -3 }, { e: 28, d: 4, n: 0 },
+      { e: 32, d: 2, n: 0 }, { e: 34, d: 2, n: 4 }, { e: 36, d: 2, n: 7 }, { e: 38, d: 2, n: 4 },
+      { e: 40, d: 2, n: 0 }, { e: 42, d: 2, n: 7 }, { e: 44, d: 4, n: 0 },
+      { e: 48, d: 2, n: 0 }, { e: 50, d: 2, n: 4 }, { e: 52, d: 2, n: 7 }, { e: 54, d: 2, n: 4 },
+      { e: 56, d: 2, n: 0 }, { e: 58, d: 2, n: 2 }, { e: 60, d: 4, n: 0, k: 'end' },
+    ],
+  },
+  stringsstory: {
+    kick: [], snare: [], hat: [], clap: [], bass: 'quarter', chord: 'strings', chordIntervals: [0, 4, 7],
+    lead: 'none', duoLead: 'strings', leadBase: 69, motif: [0, 4, 2, 5, 4, 2, 1, 0],
+    padAttack: 0.1, rev: 0.5, dly: 0.3, uprightBass: true,
+    // «In the Pines» (традиционный аппалачский блюз, PD): минорный плач
+    // струнных, тоника Am с уходом в Em и Dm
+    changes: [
+      { r: 0, q: 'm' }, { r: 0, q: 'm' }, { r: 0, q: 'm' }, { r: 0, q: 'm' },
+      { r: 7, q: 'm' }, { r: 7, q: 'm' }, { r: 0, q: 'm' }, { r: 0, q: 'm' },
+      { r: 0, q: 'm' }, { r: 0, q: 'm' }, { r: 5, q: 'm' }, { r: 5, q: 'm' },
+      { r: 7, q: 'm' }, { r: 7, q: 'm' }, { r: 0, q: 'm' }, { r: 0, q: 'm' },
+    ],
+    melody: [
+      { e: 0, d: 2, n: 0 }, { e: 2, d: 2, n: 3 }, { e: 4, d: 2, n: 7 }, { e: 6, d: 2, n: 3 }, { e: 8, d: 4, n: 0 },
+      { e: 12, d: 2, n: 0 }, { e: 14, d: 2, n: 3 }, { e: 16, d: 2, n: 7 }, { e: 18, d: 2, n: 3 }, { e: 20, d: 4, n: 0 },
+      { e: 24, d: 2, n: 10 }, { e: 26, d: 2, n: 7 }, { e: 28, d: 2, n: 3 }, { e: 30, d: 2, n: 0 }, { e: 32, d: 4, n: -2 },
+      { e: 40, d: 2, n: 0 }, { e: 42, d: 2, n: 3 }, { e: 44, d: 2, n: 7 }, { e: 46, d: 2, n: 10 }, { e: 48, d: 3, n: 7 }, { e: 51, d: 1, n: 3 },
+      { e: 52, d: 2, n: 0 }, { e: 54, d: 2, n: 3 }, { e: 56, d: 4, n: 0, k: 'end' },
+    ],
+  },
+  blues: {
+    kick: K(0, 8, 10), snare: K(4, 12), hat: K(2, 6, 10, 14), clap: [], acousticDrums: true,
+    bass: 'none', chord: 'none', chordIntervals: [], lead: 'none', duoLead: 'harp',
+    pompeFlag: true, walkFlag: true, fallthrough: true, bars: 12,
+    leadBase: 66, motif: [0, 3, 0, 3, 4, 3, 0, 2], swing: 0.2, rev: 0.25, dly: 0.15, uprightBass: true,
+    // 12-тактовый блюз (C7-F7-G7) и тема в идиоме «C.C. Rider» (традиционный
+    // фолк-блюз, PD): структура AAB, «Lord Lord Lord» на каденциях
+    changes: [
+      { r: 0, q: '7' }, { r: 0, q: '7' }, { r: 0, q: '7' }, { r: 0, q: '7' },
+      { r: 5, q: '7' }, { r: 5, q: '7' }, { r: 0, q: '7' }, { r: 0, q: '7' },
+      { r: 7, q: '7' }, { r: 5, q: '7' }, { r: 0, q: '7' }, { r: 7, q: '7' },
+      { r: 0, q: '7' }, { r: 0, q: '7' }, { r: 0, q: '7' }, { r: 0, q: '7' },
+      { r: 5, q: '7' }, { r: 5, q: '7' }, { r: 0, q: '7' }, { r: 0, q: '7' },
+      { r: 7, q: '7' }, { r: 5, q: '7' }, { r: 0, q: '7' }, { r: 7, q: '7' },
+    ],
+    melody: [
+      { e: 0, d: 2, n: 7 }, { e: 2, d: 2, n: 7 }, { e: 4, d: 1, n: 4 }, { e: 5, d: 1, n: 0 }, { e: 6, d: 2, n: 7 },
+      { e: 8, d: 2, n: 9 }, { e: 10, d: 2, n: 7 }, { e: 12, d: 2, n: 4 }, { e: 14, d: 2, n: 0 },
+      { e: 16, d: 2, n: 4 }, { e: 18, d: 2, n: 7 }, { e: 20, d: 2, n: 9 }, { e: 24, d: 4, n: 7 },
+      { e: 32, d: 2, n: 7 }, { e: 34, d: 2, n: 7 }, { e: 36, d: 1, n: 4 }, { e: 37, d: 1, n: 0 }, { e: 38, d: 2, n: 7 },
+      { e: 40, d: 2, n: 9 }, { e: 42, d: 2, n: 7 }, { e: 44, d: 2, n: 4 }, { e: 46, d: 2, n: 0 },
+      { e: 48, d: 2, n: 4 }, { e: 50, d: 2, n: 7 }, { e: 52, d: 2, n: 9 }, { e: 56, d: 4, n: 0 },
+      { e: 64, d: 2, n: 12 }, { e: 66, d: 2, n: 10 }, { e: 68, d: 2, n: 9 }, { e: 70, d: 2, n: 7 },
+      { e: 72, d: 2, n: 4 }, { e: 74, d: 2, n: 0 }, { e: 76, d: 2, n: 4 }, { e: 78, d: 2, n: 7 },
+      { e: 80, d: 2, n: 9 }, { e: 84, d: 4, n: 7 }, { e: 88, d: 2, n: 4 }, { e: 90, d: 2, n: 0 }, { e: 92, d: 4, n: 0, k: 'end' },
+    ],
+  },
   marimba: { kick: [], snare: [], hat: EIGHTH_HAT, clap: K(4, 12), acousticDrums: true, bass: 'quarter', chord: 'none', chordIntervals: [], lead: 'marimba', leadBase: 69, leadEveryBeat: true, motif: [0, 2, 4, 2, 5, 4, 2, 4], nature: { beds: ['wind'], dropletsPerBar: 1 }, rev: 0.35, dly: 0.2, uprightBass: true },
-  classical: { kick: [], snare: [], hat: [], clap: [], bass: 'quarter', chord: 'strings', chordIntervals: [0, 4, 7, 12], lead: 'piano', leadBase: 72, motif: [0, 2, 4, 7, 9, 7, 4, 2], padAttack: 0.08, rev: 0.55, dly: 0.2 },
+  classical: {
+    kick: [], snare: [], hat: [], clap: [], bass: 'none', chord: 'none', chordIntervals: [],
+    lead: 'none', duoLead: 'piano', stride: true,
+    leadBase: 72, motif: [0, 2, 4, 7, 9, 7, 4, 2], padAttack: 0.08, rev: 0.4, dly: 0.15, swing: 0.05, uprightBass: true,
+    // «The Entertainer» (Скотт Джоплин, 1902 — PD): A-секция рэгтайма,
+    // страйд-рояль, хроматические соседи D-D#-E и F# — подпись темы
+    changes: [
+      { r: 0, q: 'M' }, { r: 0, q: 'M' }, { r: 0, q: '7' }, { r: 0, q: '7' },
+      { r: 5, q: 'M' }, { r: 5, q: 'M' }, { r: 0, q: 'M' }, { r: 0, q: 'M' },
+      { r: 2, q: '7' }, { r: 2, q: '7' }, { r: 7, q: '7' }, { r: 7, q: '7' },
+      { r: 0, q: 'M' }, { r: 0, q: 'M' }, { r: 7, q: '7' }, { r: 7, q: '7' },
+    ],
+    melody: [
+      { e: 0, d: 1, n: 2 }, { e: 1, d: 1, n: 3 }, { e: 2, d: 2, n: 4 }, { e: 4, d: 1, n: 0 }, { e: 5, d: 1, n: 4 }, { e: 6, d: 1, n: 0 }, { e: 7, d: 1, n: 4 },
+      { e: 8, d: 1, n: 0 }, { e: 9, d: 1, n: 4 }, { e: 10, d: 1, n: 0 }, { e: 11, d: 1, n: 4 }, { e: 12, d: 4, n: 0 },
+      { e: 16, d: 1, n: 0 }, { e: 17, d: 1, n: 2 }, { e: 18, d: 1, n: 3 }, { e: 19, d: 1, n: 4 }, { e: 20, d: 1, n: 0 }, { e: 21, d: 1, n: 4 }, { e: 22, d: 1, n: 0 }, { e: 23, d: 1, n: 4 },
+      { e: 24, d: 1, n: 0 }, { e: 25, d: 1, n: 2 }, { e: 26, d: 1, n: 3 }, { e: 27, d: 1, n: 4 }, { e: 28, d: 1, n: 0 }, { e: 29, d: 1, n: 2 }, { e: 30, d: 1, n: 4 }, { e: 31, d: 1, n: 11 },
+      { e: 32, d: 4, n: 0 }, { e: 36, d: 1, n: 2 }, { e: 37, d: 1, n: 3 }, { e: 38, d: 2, n: 4 },
+      { e: 40, d: 1, n: 0 }, { e: 41, d: 1, n: 2 }, { e: 42, d: 1, n: 3 }, { e: 43, d: 1, n: 4 }, { e: 44, d: 1, n: 0 }, { e: 45, d: 1, n: 4 }, { e: 46, d: 1, n: 0 }, { e: 47, d: 1, n: 4 },
+      { e: 48, d: 1, n: 0 }, { e: 49, d: 1, n: 2 }, { e: 50, d: 1, n: 3 }, { e: 51, d: 1, n: 4 }, { e: 52, d: 1, n: 0 }, { e: 53, d: 1, n: 2 }, { e: 54, d: 1, n: 4 }, { e: 55, d: 1, n: 11 },
+      { e: 56, d: 2, n: 2 }, { e: 58, d: 2, n: 4 }, { e: 60, d: 4, n: 0, k: 'end' },
+    ],
+  },
 
   // база 0.13.0 — чистые саундскейпы природы (без музыки и ударных)
   birdscape: { kick: [], snare: [], hat: [], clap: [], bass: 'none', chord: 'none', chordIntervals: [], lead: 'none', leadBase: 66, motif: [0], nature: { beds: ['wind', 'stream'], birdsPerBar: 4 }, rev: 0.5 },
@@ -1646,7 +1787,14 @@ function scheduleStep(track: MusicTrack, spec: GrooveSpec, state: ReturnType<typ
   const s16 = step % 16;
   const bar = Math.floor(step / 16);
   const beat = Math.floor(s16 / 4);
-  const root = ROOTS[bar % ROOTS.length];
+  // тоника и состав аккорда — из прогрессии грува, если она есть (стандарты),
+  // иначе прежний круг ROOTS
+  const chSlot = spec.changes ? (bar % (spec.changes.length >> 1)) * 2 + (s16 >= 8 ? 1 : 0) : 0;
+  const chNow = spec.changes ? spec.changes[chSlot] : null;
+  const root = chNow ? 48 + chNow.r : ROOTS[bar % ROOTS.length];
+  const iv = chNow
+    ? (chNow.q === 'm' ? [0, 3, 7, 10] : chNow.q === '7' ? [0, 4, 7, 10] : [0, 4, 7, 12])
+    : spec.chordIntervals;
   const beatSeconds = 60 / state.bpm;
   const full = bar >= 2 || !spec.build;
   const hum = human(track.id, step);
@@ -1665,7 +1813,7 @@ function scheduleStep(track: MusicTrack, spec: GrooveSpec, state: ReturnType<typ
 
   // Аккорды: пэд стерео-парой, стэбы,_power_ суперпилой; краски 7/9 — из таблицы
   if (spec.chord === 'pad' && s16 === 0) {
-    spec.chordIntervals.forEach((interval, i) => {
+    iv.forEach((interval, i) => {
       const midi = root + 12 + interval + (i % 2 === 1 ? 12 : 0);
       stackVoice(ctx, {
         at: t, freq: hz(midi), dur: beatSeconds * 3.6, gain: 0.016 * hum.gv,
@@ -1675,7 +1823,7 @@ function scheduleStep(track: MusicTrack, spec: GrooveSpec, state: ReturnType<typ
     });
   }
   if (spec.chord === 'keys' && s16 === 0) {
-    spec.chordIntervals.forEach((interval, i) =>
+    iv.forEach((interval, i) =>
       pianoVoice(ctx, {
         at: t, freq: hz(root + 12 + interval + (i % 2 === 1 ? 12 : 0)), dur: beatSeconds * 3.2,
         gain: 0.02 * hum.gv, cutoff: Math.min(4200, state.cutoff || 4200),
@@ -1684,7 +1832,7 @@ function scheduleStep(track: MusicTrack, spec: GrooveSpec, state: ReturnType<typ
     );
   }
   if (spec.chord === 'strings' && s16 === 0) {
-    spec.chordIntervals.forEach((interval) =>
+    iv.forEach((interval) =>
       stringsVoice(ctx, {
         at: t, freq: hz(root + 12 + interval), dur: beatSeconds * 3.8,
         gain: 0.013 * hum.gv, attack: 0.14, cutoff: Math.min(2600, state.cutoff || 2600),
@@ -1702,7 +1850,7 @@ function scheduleStep(track: MusicTrack, spec: GrooveSpec, state: ReturnType<typ
     );
   }
   if (spec.chord === 'strum' && s16 === 0) {
-    spec.chordIntervals.forEach((interval, i) =>
+    iv.forEach((interval, i) =>
       ksVoice(ctx, {
         at: t + i * 0.018, freq: hz(root + 12 + interval + (i % 2 === 1 ? 12 : 0)),
         dur: beatSeconds * 2.6, gain: 0.021 * hum.gv, bright: 0.5, body: 'guitar',
@@ -1712,7 +1860,7 @@ function scheduleStep(track: MusicTrack, spec: GrooveSpec, state: ReturnType<typ
     );
   }
   if (spec.chord === 'stab' && (s16 === 2 || s16 === 10)) {
-    spec.chordIntervals.forEach((interval, i) =>
+    iv.forEach((interval, i) =>
       fmVoice(ctx, {
         at: t, freq: hz(root + 12 + interval), dur: beatSeconds * 0.32, gain: 0.02 * hum.gv,
         ratio: 2, index: hz(root + 12 + interval) * 0.8, cutoff: Math.min(4200, state.cutoff || 4200),
@@ -1721,7 +1869,7 @@ function scheduleStep(track: MusicTrack, spec: GrooveSpec, state: ReturnType<typ
     );
   }
   if (spec.chord === 'power' && step % 2 === 0) {
-    spec.chordIntervals.forEach((interval) =>
+    iv.forEach((interval) =>
       stackVoice(ctx, {
         at: t, freq: hz(root + interval), dur: beatSeconds * 0.4, gain: 0.028 * hum.gv,
         voices: 4, detune: 9, cutoff: Math.min(1900, state.cutoff || 1900), cutoffEnd: 700,
@@ -1790,17 +1938,35 @@ function scheduleStep(track: MusicTrack, spec: GrooveSpec, state: ReturnType<typ
   // ла-помпе на долях с акцентом на 2 и 4, шагающий бас с хроматическим
   // подходом, колл-респонс фразами по 2 такта с отдыхами и синкопами,
   // конец фразы — аккордовый стаб (chord melody). Всё seeded: детерминированно.
-  if (spec.duo && spec.changes) {
+  if ((spec.pompeFlag || spec.duo || spec.stride || spec.melody || spec.walkFlag) && spec.changes) {
     const lesson = scene === 'lesson';
     // динамическая волна формы: 8 тактов от тихого входа к пику на 7-м и
     // выдоху в обороте — луп перестаёт быть ровной «пилой» громкости
     const wave = [0.85, 0.92, 1, 1.06, 0.94, 1.04, 1.12, 0.8][bar % 8];
-    const ch = spec.changes[(bar % 8) * 2 + (s16 >= 8 ? 1 : 0)];
-    const next = spec.changes[((bar % 8) * 2 + (s16 >= 8 ? 1 : 0) + 1) % spec.changes.length];
+    const ch = chNow ?? spec.changes[chSlot];
+    const next = spec.changes[(chSlot + 1) % spec.changes.length];
     const cRoot = 48 + ch.r;
     const tones = ch.q === 'm' ? [0, 3, 7, 12] : ch.q === '7' ? [0, 4, 10, 14] : [0, 4, 7, 12];
     const rnd = mulberry(hashString(`${track.id}:duo:${bar}:${s16}`));
-    if (s16 % 4 === 0) {
+    if (spec.stride && s16 % 4 === 0) {
+      // страйд-рояль: бас на 1 и 3 (корень/квинта), чоп-аккорд на 2 и 4
+      if (beat === 0 || beat === 2) {
+        ksVoice(ctx, {
+          at: t, freq: hz(cRoot - 12 + (beat === 2 ? 7 : 0)), dur: beatSeconds * 0.9,
+          gain: 0.075 * (lesson ? 0.8 : 1) * wave, bright: 0.3, sustain: 0.9978,
+          body: 'upright', bus: 'bass', rev: 0.05,
+        });
+      } else {
+        [0, 1, 2].forEach((i) =>
+          ksVoice(ctx, {
+            at: t + i * 0.01, freq: hz(cRoot + 12 + [0, tones[1], tones[2] + 12][i]),
+            dur: 0.4, gain: 0.024 * (lesson ? 0.55 : 1) * wave * (0.9 + rnd() * 0.2),
+            bright: 0.5, body: 'guitar', chop: 0.14, sustain: 0.994,
+            cutoff: Math.min(state.cutoff || 6000, 6000), bus: 'chord', pan: -0.2 + i * 0.2, rev: 0.14,
+          }),
+        );
+      }
+    } else if (spec.pompeFlag && s16 % 4 === 0) {
       // ла-помпе: чоп-аккорд, акцент 2 и 4, микро-разброс атак
       const acc = beat === 1 || beat === 3 ? 1.25 : 0.9;
       const pompeGain = 0.026 * acc * (lesson ? 0.55 : 1) * wave;
@@ -1814,15 +1980,47 @@ function scheduleStep(track: MusicTrack, spec: GrooveSpec, state: ReturnType<typ
         }),
       );
       // шагающий бас: корень/терция/квинта, на 4-ю долю — подход к следующему
-      const walk = beat < 3 ? [0, tones[1], tones[2]][beat] : ((next.r - ch.r + 12) % 12) - 1;
+      const walk = spec.walkFlag && beat < 3 ? [0, tones[1], tones[2]][beat]
+        : spec.walkFlag ? ((next.r - ch.r + 12) % 12) - 1
+        : beat < 3 ? [0, tones[1], tones[2]][beat] : ((next.r - ch.r + 12) % 12) - 1;
       ksVoice(ctx, {
         at: t + (rnd() - 0.5) * 0.008, freq: hz(cRoot + walk - 12),
         dur: beatSeconds * 0.95, gain: 0.07 * (0.85 + rnd() * 0.3) * (lesson ? 0.8 : 1) * wave,
         bright: 0.3, sustain: 0.9978, body: 'upright', bus: 'bass', rev: 0.05,
       });
     }
+    // Мелодия стандарта: чётные круги — тема (head), нечётные — вариация
+    if (spec.melody && step % 2 === 0) {
+      const head = loopCycle % 2 === 0;
+      const e = step >> 1;
+      const mev = spec.melody.find((x) => x.e === e);
+      if (mev) {
+        const lr = mulberry(hashString(`${track.id}:mel:${loopCycle}:${e}`));
+        const skip = !head && mev.k !== 'end' && lr() < 0.22;
+        if (!skip) {
+          const oct = !head && lr() < 0.3 ? 12 : 0;
+          const midi = 60 + (spec.melodyOct ?? 0) + mev.n + oct;
+          const durS = mev.d * beatSeconds * 0.5 * 0.95;
+          const mGain = 0.048 * wave * (lesson ? 0.8 : 1) * (0.9 + lr() * 0.2);
+          const atM = t + (head ? (lr() - 0.5) * 0.008 : (lr() - 0.5) * 0.02);
+          if (mev.k === 'end') {
+            const late = atM + 0.045 + lr() * 0.035;
+            leadVoice(ctx, { ...spec, lead: spec.duoLead ?? spec.lead }, state, {
+              midi: midi - 1, at: late - 0.04, dur: 0.12, gain: mGain * 0.45, pan: panLead,
+            });
+            leadVoice(ctx, { ...spec, lead: spec.duoLead ?? spec.lead }, state, {
+              midi, at: late, dur: durS + 0.3, gain: mGain, pan: panLead,
+            });
+          } else {
+            leadVoice(ctx, { ...spec, lead: spec.duoLead ?? spec.lead }, state, {
+              midi, at: atM, dur: durS, gain: mGain, pan: panLead,
+            });
+          }
+        }
+      }
+    }
     // колл-респонс: фразы по 2 такта; чётные фразы — «зов» ниже, нечётные — «ответ» октавой выше
-    if (step % 2 === 0) {
+    if (spec.duo && (!spec.melody || loopCycle % 2 === 1) && step % 2 === 0) {
       const phStep = step % 32;
       const phrase = Math.floor((bar % 8) / 2);
       const call = phrase % 2 === 0;
@@ -1906,7 +2104,9 @@ function scheduleStep(track: MusicTrack, spec: GrooveSpec, state: ReturnType<typ
         }
       }
     }
-    return; // дуэт самодостаточен: общие ветви аккордов/баса/лида пропускаем
+    // джаз-блок заменил аккорды/бас/лид — но перкуссию грува можно оставить;
+    // грувы только с мелодией (босса, сказка) продолжают общие ветви
+    if ((spec.pompeFlag || spec.walkFlag || spec.duo || spec.stride) && !spec.fallthrough) return;
   }
 
   // Перкуссия: в уроке тише, а яркие тембры (хэт, хлопок, ковбелл, крэш) молчат.
@@ -1979,6 +2179,7 @@ export function playMusic(track: MusicTrack | null, sceneName: MusicContext = sc
   mix.master.gain.setValueAtTime(volume, ctx.currentTime);
   activeId = track.id;
   nextAt = ctx.currentTime + 0.08;
+  loopLen = (GROOVES[track.groove]?.bars ?? 8) * 16;
   nextStep = 0;
   trimStart = ctx.currentTime;
   lastTrimAt = 0;
@@ -2029,7 +2230,7 @@ export function playMusic(track: MusicTrack | null, sceneName: MusicContext = sc
       const offStep = spec.swing8 ? nextStep % 4 === 2 : nextStep % 2 === 1;
       const offset = offStep ? stepSeconds * swing : 0;
       scheduleStep(track, spec, state, nextStep, nextAt + offset);
-      nextStep = (nextStep + 1) % 128;
+      nextStep = (nextStep + 1) % loopLen;
       if (nextStep === 0) loopCycle += 1;
       nextAt += stepSeconds;
     }
