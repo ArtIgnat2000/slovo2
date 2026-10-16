@@ -493,9 +493,42 @@ async function main() {
   check('магазин открылся', has('Магазин БУКа'), body().slice(0, 200));
   check('видны разделы гардероба', has('Головные уборы') && has('На шею'), '');
   check('показан баланс кристаллов', has(`💎 ${useApp.getState().profiles[0].gems}`), '');
+  check('в музыкальном магазине много мелодий', document.querySelectorAll('.music-item').length === 14, String(document.querySelectorAll('.music-item').length));
+  click(document.querySelector('.shop-mascot') as HTMLButtonElement);
+  await sleep(30);
+  check('тап по БУКу открывает выбор своей музыки', !!document.querySelector('.music-picker'), '');
+  const musicChoice = Array.from(document.querySelectorAll('.music-picker .music-choice'))
+    .find((button) => (button.textContent ?? '').includes('Пиксельная вечеринка')) as HTMLButtonElement | undefined;
+  check('коллекция предлагает стартовые мелодии', !!musicChoice, '');
+  if (musicChoice) click(musicChoice);
+  await sleep(30);
+  check('выбранная музыка сохраняется в профиле', useApp.getState().profiles[0].shop?.musicTrack === 'pixel-party', String(useApp.getState().profiles[0].shop?.musicTrack));
+  click(document.querySelector('.shop-mascot') as HTMLButtonElement);
+  await sleep(30);
+  click(Array.from(document.querySelectorAll('.music-picker .music-choice')).find((button) => (button.textContent ?? '').includes('Тишина')) as HTMLButtonElement);
+  await sleep(30);
+  check('музыку можно выключить из коллекции', useApp.getState().profiles[0].shop?.musicTrack === null, String(useApp.getState().profiles[0].shop?.musicTrack));
+  const gemsBeforeMusic = useApp.getState().profiles[0].gems;
+  const neonCard = Array.from(document.querySelectorAll('.music-item')).find((card) => (card.textContent ?? '').includes('Неоновые кеды'));
+  const neonBuy = Array.from(neonCard?.querySelectorAll('button') ?? []).find((button) => (button.textContent ?? '').includes('Купить')) as HTMLButtonElement | undefined;
+  check('музыкальный магазин предлагает платные треки', !!neonBuy, '');
+  if (neonBuy && gemsBeforeMusic >= 8) {
+    click(neonBuy);
+    await sleep(30);
+    click(btnText('Купить за 💎8'));
+    await sleep(50);
+    const musicBought = useApp.getState().profiles[0];
+    check('покупка трека списывает кристаллы и открывает его', musicBought.gems === gemsBeforeMusic - 8 && musicBought.shop?.musicOwned?.includes('neon-sneakers'), '');
+    check('новый трек сразу выбран для БУКа', musicBought.shop?.musicTrack === 'neon-sneakers', String(musicBought.shop?.musicTrack));
+    useApp.setState((s) => ({
+      profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, gems: gemsBeforeMusic, shop: { ...p.shop!, musicTrack: null } } : p)),
+    }));
+    await sleep(30);
+  }
 
   const gemsInShop = useApp.getState().profiles[0].gems;
-  const buyBtn = btnText('Купить');
+  const buyBtn = Array.from(document.querySelectorAll('.shop-item:not(.music-item) button'))
+    .find((button) => (button.textContent ?? '').includes('Купить')) as HTMLButtonElement | undefined;
   check('есть доступная покупка', !!buyBtn, `кристаллов: ${gemsInShop}`);
   if (buyBtn) {
     const title = buyBtn.closest('.shop-item')?.querySelector('.shop-title')?.textContent ?? '';

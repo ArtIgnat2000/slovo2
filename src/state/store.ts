@@ -24,6 +24,7 @@ import {
   type PlannedQuest,
 } from '../engine/quests';
 import { ITEM_BY_ID, isOwned } from '../engine/shop';
+import { MUSIC_BY_ID, normalizeMusicOwned, STARTER_TRACK_IDS } from '../engine/music';
 import { normalizeTuning, recolor, type RecolorOutcome } from '../engine/tints';
 import {
   awardLessonPiece,
@@ -179,9 +180,15 @@ function weeklyEarnings(p: Profile, days: Profile['days'], today: string) {
 function readShop(p: Profile): ShopState {
   const owned = p.shop?.owned ?? [];
   const assembled = p.puzzle?.assembled ?? [];
+  const musicOwned = normalizeMusicOwned(p.shop?.musicOwned);
+  const musicTrack = typeof p.shop?.musicTrack === 'string' && MUSIC_BY_ID[p.shop.musicTrack] && musicOwned.includes(p.shop.musicTrack)
+    ? p.shop.musicTrack
+    : null;
   return {
     owned,
     equipped: p.shop?.equipped ?? {},
+    musicOwned,
+    musicTrack,
     // краски некупленных вещей, чужие id и акценты несобранных костюмов отбрасываем
     tuning: normalizeTuning(p.shop?.tuning, [...owned, ...assembled]),
   };
@@ -206,7 +213,7 @@ function newProfile(name: string, avatar: string): Profile {
     lessonSize: DEFAULT_LESSON_SIZE,
     daily: { day: dayKey(), claimed: [], chestsToday: 0, bonusChestsClaimed: 0, chestsTotal: 0 },
     weekly: { week: weekStartKey(), claimed: [] },
-    shop: { owned: [], equipped: {} },
+    shop: { owned: [], equipped: {}, musicOwned: [...STARTER_TRACK_IDS], musicTrack: null },
     puzzle: { pieces: {}, collecting: null, assembled: [], worn: null },
   };
 }
@@ -246,6 +253,10 @@ function normalizeProfile(raw: Partial<Profile> | null | undefined): Profile | n
     shop: {
       owned,
       equipped: raw.shop?.equipped && typeof raw.shop.equipped === 'object' ? raw.shop.equipped : {},
+      musicOwned: normalizeMusicOwned(raw.shop?.musicOwned),
+      musicTrack: typeof raw.shop?.musicTrack === 'string' && MUSIC_BY_ID[raw.shop.musicTrack] && normalizeMusicOwned(raw.shop?.musicOwned).includes(raw.shop.musicTrack)
+        ? raw.shop.musicTrack
+        : null,
       tuning: normalizeTuning(raw.shop?.tuning, [...owned, ...puzzle.assembled]),
     },
     puzzle,
@@ -313,6 +324,10 @@ interface AppState {
 
   /** Купить аксессуар у БУКа. Возвращает false, если кристаллов не хватает. */
   buyItem: (id: string) => boolean;
+  /** Купить оригинальный музыкальный луп за кристаллы. */
+  buyMusicTrack: (id: string) => boolean;
+  /** Выбрать купленную мелодию для БУКа; null — выключить музыку. */
+  setMusicTrack: (id: string | null) => void;
   /** Надеть/снять аксессуар: повторный тап по надетой вещи снимает её */
   toggleEquip: (id: string) => void;
   /**
@@ -778,6 +793,30 @@ export const useApp = create<AppState>()(
         );
         return true;
       },
+
+      buyMusicTrack: (id) => {
+        const track = MUSIC_BY_ID[id];
+        const p = getActive(get());
+        if (!track || !p) return false;
+        const shop = readShop(p);
+        if (shop.musicOwned?.includes(id) || p.gems < track.price) return false;
+        set((s) => patchActive(s, (prof) => {
+          const current = readShop(prof);
+          return {
+            ...prof,
+            gems: prof.gems - track.price,
+            shop: { ...current, musicOwned: [...(current.musicOwned ?? []), id] },
+          };
+        }));
+        return true;
+      },
+
+      setMusicTrack: (id) =>
+        set((s) => patchActive(s, (prof) => {
+          const shop = readShop(prof);
+          if (id !== null && (!MUSIC_BY_ID[id] || !shop.musicOwned?.includes(id))) return prof;
+          return { ...prof, shop: { ...shop, musicTrack: id } };
+        })),
 
       toggleEquip: (id) =>
         set((s) =>

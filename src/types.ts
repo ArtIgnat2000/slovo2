@@ -78,6 +78,9 @@ export type LessonSize = 'short' | 'standard' | 'full';
 export interface ShopState {
   owned: string[];
   equipped: Partial<Record<ShopSlot, string>>;
+  /** Купленные музыкальные лупы и выбранный для БУКа фон. */
+  musicOwned?: string[];
+  musicTrack?: string | null;
   /** Тюнинг цвета купленных вещей (см. engine/shop.ts и docs/shop-tuning.md) */
   tuning?: ShopTuning;
 }
