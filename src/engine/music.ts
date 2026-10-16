@@ -8,12 +8,16 @@
  * только правила аранжировки, а ноты берутся из `scale` трека.
  */
 export type Groove =
-  | 'pop' | 'lofi' | 'arcade' | 'dance' | 'tropical' | 'cinematic'
   | 'bounce' | 'duck' | 'kpop' | 'phonk' | 'punk' | 'ethno'
+  // База 0.13.0 — «живая»: акустика и природа вместо электроники 0.12.3.
+  | 'fingerstyle' | 'strum' | 'kalimba' | 'meadow' | 'bossa' | 'folk'
+  | 'stringsstory' | 'blues' | 'marimba' | 'classical'
+  | 'birdscape' | 'wavescape' | 'rainscape' | 'nightscape'
   // Лаборатория и будущие волны: рисунки живут снаружи (registerGrooves),
   // а тип разрешает каталогу расти без правок движка.
+  | 'pop' | 'lofi' | 'arcade' | 'dance' | 'tropical' | 'cinematic'
   | 'house' | 'postpunk' | 'tarantella' | 'funkbr' | 'twostep' | 'hardstyle'
-  | 'classical' | 'pulse60' | 'lofirain' | 'ambient' | 'musicbox' | 'bellpop';
+  | 'pulse60' | 'lofirain' | 'ambient' | 'musicbox' | 'bellpop';
 
 /** Полка в витрине магазина: базовая коллекция или «Тренд 2026». */
 export type MusicShelf = 'core' | 'trend';
@@ -44,24 +48,30 @@ export interface MusicTrack {
   about?: string;
 }
 
-export const STARTER_TRACK_IDS = ['sunny-start', 'pixel-party'];
+export const STARTER_TRACK_IDS = ['guitar-morning', 'forest-dawn'];
 
-/** Базовая коллекция (0.12.3): порядок не меняем — на него смотрят проверки. */
+/**
+ * Базовая коллекция 0.13.0 — «живая»: акустические инструменты и чистые
+ * саундскейпы природы вместо электроники 0.12.3. Гитара и струнные — модель
+ * Карплуса-Стронга и wavetable-ансамбли, калимба/маримба — FM с негармоническим
+ * рядом, птицы, волны, дождь и сверчки — синтезированный шум с огибающими.
+ * Порядок важен: на индекс 2 смотрят проверки витрины.
+ */
 const CORE_TRACKS: MusicTrack[] = [
-  { id: 'sunny-start', title: 'Солнечный старт', style: 'Лёгкий поп', emoji: '🌈', bpm: 104, price: 0, scale: [0, 2, 4, 7, 9], groove: 'pop' },
-  { id: 'pixel-party', title: 'Пиксельная вечеринка', style: 'Аркадный чиптюн', emoji: '👾', bpm: 126, price: 0, scale: [0, 3, 5, 7, 10], groove: 'arcade' },
-  { id: 'neon-sneakers', title: 'Неоновые кеды', style: 'Электропоп', emoji: '💜', bpm: 120, price: 8, scale: [0, 2, 4, 7, 9], groove: 'dance' },
-  { id: 'cloud-lofi', title: 'Облачный лоу-фай', style: 'Мягкий бит', emoji: '☁️', bpm: 78, price: 8, scale: [0, 2, 3, 7, 9], groove: 'lofi' },
-  { id: 'jungle-hop', title: 'Прыжок в джунгли', style: 'Тропический грув', emoji: '🦜', bpm: 112, price: 10, scale: [0, 2, 5, 7, 9], groove: 'tropical' },
-  { id: 'starlight', title: 'Звёздный полёт', style: 'Космический синтвейв', emoji: '🚀', bpm: 96, price: 10, scale: [0, 2, 4, 7, 11], groove: 'cinematic' },
-  { id: 'bubblegum', title: 'Жвачка-бум', style: 'Весёлый денс-поп', emoji: '🍬', bpm: 132, price: 12, scale: [0, 2, 4, 7, 9], groove: 'dance' },
-  { id: 'rainbow-disco', title: 'Радужная дискотека', style: 'Диско-бит', emoji: '🪩', bpm: 118, price: 12, scale: [0, 2, 5, 7, 9], groove: 'pop' },
-  { id: 'robot-boogie', title: 'Робо-буги', style: 'Фанковый робот-бит', emoji: '🤖', bpm: 110, price: 14, scale: [0, 3, 5, 7, 10], groove: 'arcade' },
-  { id: 'moon-marsh', title: 'Лунное болото', style: 'Мечтательный лоу-фай', emoji: '🌙', bpm: 84, price: 14, scale: [0, 2, 3, 7, 10], groove: 'lofi' },
-  { id: 'turbo-comet', title: 'Турбо-комета', style: 'Скоростной бит', emoji: '☄️', bpm: 144, price: 16, scale: [0, 2, 4, 7, 9], groove: 'dance' },
-  { id: 'underwater', title: 'Подводный танец', style: 'Морское приключение', emoji: '🐠', bpm: 100, price: 16, scale: [0, 2, 5, 7, 10], groove: 'tropical' },
-  { id: 'magic-forest', title: 'Волшебный лес', style: 'Сказочная мелодия', emoji: '🧚', bpm: 90, price: 18, scale: [0, 2, 4, 7, 11], groove: 'cinematic' },
-  { id: 'supernova', title: 'Супернова', style: 'Большой поп-бит', emoji: '✨', bpm: 128, price: 20, scale: [0, 2, 4, 7, 9], groove: 'dance' },
+  { id: 'guitar-morning', title: 'Утро с гитарой', style: 'Фингерстайл', emoji: '🎸', bpm: 96, price: 0, scale: [0, 2, 4, 7, 9], groove: 'fingerstyle', about: 'Живая гитара (модель струны) и мягкий шейкер: тёплый старт без электроники.' },
+  { id: 'forest-dawn', title: 'Лес на рассвете', style: 'Саундскейп', emoji: '🌅', bpm: 60, price: 0, scale: [0, 2, 4, 7, 9], groove: 'birdscape', tag: 'Природа', about: 'Только природа: птицы, ветер и ручей. Без музыки и без ударных — можно писать слова.' },
+  { id: 'ukulele-sun', title: 'Укулеле на солнце', style: 'Акустик-поп', emoji: '🌻', bpm: 108, price: 8, scale: [0, 2, 4, 7, 9], groove: 'strum', about: 'Бой укулеле, кахон и шейкер: солнечный акустик-поп без синтетики.' },
+  { id: 'kalimba-river', title: 'Калимба у реки', style: 'Калимба', emoji: '🪘', bpm: 100, price: 10, scale: [0, 2, 4, 7, 9], groove: 'kalimba', about: 'Калимба (FM с негармоническим рядом) поверх тихого ручья.' },
+  { id: 'panflute-meadow', title: 'Флейта на лугу', style: 'Пан-флейта', emoji: '🌾', bpm: 90, price: 12, scale: [0, 2, 4, 7, 9], groove: 'meadow', about: 'Пан-флейта с дыханием, гитарные арпеджио и птицы на лугу.' },
+  { id: 'bossa-yard', title: 'Босса во дворе', style: 'Босанова', emoji: '🍃', bpm: 112, price: 14, scale: [0, 2, 4, 7, 9], groove: 'bossa', about: 'Нейлоновая струна, римшот и шейкер: босанова, сыгранная «вживую».' },
+  { id: 'folk-dance', title: 'Плясовая', style: 'Народный танец', emoji: '🪗', bpm: 126, price: 14, scale: [0, 2, 3, 5, 7, 8, 10], groove: 'folk', about: 'Балалайка (быстрый щипок), дрон и бубен: народный танец без фонограммы.' },
+  { id: 'strings-story', title: 'Сказка со струнными', style: 'Струнный ансамбль', emoji: '🎻', bpm: 80, price: 16, scale: [0, 2, 4, 7, 11], groove: 'stringsstory', about: 'Струнный ансамбль и рояль рассказывают историю: медленно и тепло.' },
+  { id: 'blues-harp', title: 'Гармоника на станции', style: 'Блюз', emoji: '🚂', bpm: 92, price: 14, scale: [0, 3, 5, 7, 10], groove: 'blues', about: 'Губная гармоника с дыханием, гитарный шафл и кахон: дорожный блюз.' },
+  { id: 'marimba-garden', title: 'Маримба в саду', style: 'Маримба', emoji: '🌺', bpm: 104, price: 12, scale: [0, 2, 5, 7, 9], groove: 'marimba', about: 'Деревянные пластинки маримбы и конги: сад, полдень, ничто не мешает.' },
+  { id: 'letter-piano', title: 'Рояль для письма', style: 'Минимал-классика', emoji: '✉️', bpm: 72, price: 12, scale: [0, 2, 4, 7, 9], groove: 'classical', about: 'Рояль и струнная подкладка без ударных: проверено исследованиями — письму не мешает.' },
+  { id: 'sea-waves', title: 'Морской прибой', style: 'Саундскейп', emoji: '🌊', bpm: 60, price: 10, scale: [0, 2, 4, 7, 9], groove: 'wavescape', tag: 'Природа', about: 'Только море: волны, ветер и редкие чайки. Ровный фон для урока и сна.' },
+  { id: 'rain-roof', title: 'Дождь на крыше', style: 'Саундскейп', emoji: '☔', bpm: 64, price: 10, scale: [0, 2, 3, 7, 9], groove: 'rainscape', tag: 'Природа', about: 'Только дождь: ровный шум, капли и далёкий гром раз в круг.' },
+  { id: 'night-crickets', title: 'Ночь у костра', style: 'Саундскейп', emoji: '🌙', bpm: 56, price: 12, scale: [0, 2, 4, 7, 9], groove: 'nightscape', tag: 'Природа', about: 'Только ночь: сверчки, ветер и сова. Самый тихий трек каталога.' },
 ];
 
 /**

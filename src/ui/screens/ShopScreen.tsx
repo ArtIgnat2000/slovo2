@@ -33,7 +33,7 @@ import { playMusic } from '../../platform/music';
 /** Полки музыкального магазина: тренд отдельно, дальше вся коллекция. */
 const MUSIC_SHELVES: { shelf: MusicShelf; title: string; note: string }[] = [
   { shelf: 'trend', title: '🔥 Тренд 2026', note: 'Свежие жанры: своя музыка в духе времени, без чужих песен' },
-  { shelf: 'core', title: '🎵 Вся коллекция', note: '' },
+  { shelf: 'core', title: '🌿 Акустика и природа', note: 'Живые инструменты и звуки природы: гитара, калимба, флейта, струнные, лес, море, дождь' },
 ];
 
 /**

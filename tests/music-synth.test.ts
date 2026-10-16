@@ -117,11 +117,17 @@ try {
     scheduled = 0;
     playMusic(track, 'reward');
     const rewardVoices = runFor(WINDOW);
-    assert.ok(rewardVoices > 20, `${track.id}: на награде почти ничего не звучит (${rewardVoices} голосов)`);
+    // Саундскейпы природы сознательно разрежены: это подушки и события, а не грув
+    const floor = track.tag === 'Природа' ? 6 : 20;
+    assert.ok(rewardVoices > floor, `${track.id}: на награде почти ничего не звучит (${rewardVoices} голосов)`);
 
-    // Урок: не плотнее, чем на награде, а для быстрого трека — заметно реже
+    // Урок: не плотнее, чем на награде, а для быстрого трека — заметно реже.
+    // Луп перезапускаем: окна «награда» и «урок» должны играть одни и те же
+    // такты, иначе редкое событие круга (сова на 3-м такте) попадёт только
+    // в одно окно и сравнение станет фазовым артефактом.
     scheduled = 0;
-    setMusicContext('lesson');
+    stopMusic();
+    playMusic(track, 'lesson');
     assert.equal(getMusicContext(), 'lesson');
     const lessonVoices = runFor(WINDOW);
     assert.ok(lessonVoices <= rewardVoices, `${track.id}: в уроке плотнее, чем на награде (${lessonVoices} > ${rewardVoices})`);

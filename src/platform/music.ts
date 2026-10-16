@@ -712,6 +712,327 @@ function bassVoice(ctx: AudioContext, o: BassOptions) {
   saw.stop(o.at + o.dur + 0.15);
 }
 
+// ── Живые инструменты ───────────────────────────────────────────────────────
+
+interface KsOptions extends Send {
+  at: number;
+  freq: number;
+  dur: number;
+  gain: number;
+  /** 0..1 — яркость щипка (положение «медиатора» на струне). */
+  bright?: number;
+  sustain?: number;
+  cutoff?: number;
+}
+
+/**
+ * Щипковая струна по модели Карплуса-Стронга: буфер шума прокачивается
+ * рекурсией out[i] = k·(out[i−N]+out[i−N+1])/2 — струна гудит сама, без
+ * осцилляторов и без циклов нод. Буфер считаем на лету (70 тыс. итераций —
+ * доли миллисекунды), поэтому кэш не нужен и память не растёт.
+ */
+function ksVoice(ctx: AudioContext, o: KsOptions) {
+  const sr = ctx.sampleRate;
+  const len = Math.floor(sr * 1.6);
+  const n = Math.max(8, Math.round(sr / o.freq));
+  const buf = ctx.createBuffer(1, len, sr);
+  const data = buf.getChannelData(0);
+  const rnd = mulberry(hashString('ks') ^ Math.round(o.freq * 8));
+  for (let i = 0; i < n; i++) data[i] = (rnd() * 2 - 1) * 0.55;
+  const damp = 0.5 * (0.55 + 0.45 * (o.bright ?? 0.7));
+  const k = o.sustain ?? 0.996;
+  for (let i = n; i < len; i++) data[i] = k * damp * (data[i - n] + data[i - n + 1]);
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  const body = ctx.createBiquadFilter();
+  body.type = 'lowpass';
+  body.frequency.value = o.cutoff ?? 4600;
+  const g = ctx.createGain();
+  g.gain.value = o.gain;
+  src.connect(body);
+  body.connect(g);
+  g.connect(route(ctx, o));
+  src.start(o.at);
+  src.stop(o.at + 1.65);
+}
+
+interface MalletOptions extends Send {
+  at: number;
+  freq: number;
+  dur: number;
+  gain: number;
+  /** 4.2 — маримба (дерево), 5.4 — калимба (металл пружины). */
+  ratio?: number;
+}
+
+/** Пластинчатый удар: FM с негармоническим рядом + деревянный тик молоточка. */
+function malletVoice(ctx: AudioContext, o: MalletOptions) {
+  const ratio = o.ratio ?? 4.2;
+  fmVoice(ctx, { ...o, ratio, index: o.freq * (ratio === 5.4 ? 0.5 : 0.35), cutoff: 6500, attack: 0.002 });
+  const fundamental = ctx.createOscillator();
+  fundamental.type = 'sine';
+  fundamental.frequency.setValueAtTime(o.freq, o.at);
+  const fg = envelope(ctx, o.at, o.gain * 0.55, 0.003, o.dur * 0.8, 0.4, 0.08);
+  const out = route(ctx, o);
+  fundamental.connect(fg);
+  fg.connect(out);
+  fundamental.start(o.at);
+  fundamental.stop(o.at + o.dur + 0.15);
+  const tick = noiseSource(ctx, o.at, 0.008);
+  const bp = ctx.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.value = Math.min(9500, o.freq * 6);
+  bp.Q.value = 1.4;
+  const tg = ctx.createGain();
+  tg.gain.setValueAtTime(o.gain * 0.4, o.at);
+  tg.gain.exponentialRampToValueAtTime(0.0001, o.at + 0.008);
+  tick.connect(bp);
+  bp.connect(tg);
+  tg.connect(out);
+}
+
+/** Губная гармоника: пара пил через форманту, дыхание и вибрато. */
+function harpVoice(ctx: AudioContext, o: KsOptions) {
+  const out = route(ctx, o);
+  const formant = ctx.createBiquadFilter();
+  formant.type = 'bandpass';
+  formant.frequency.value = o.freq * 2;
+  formant.Q.value = 3.2;
+  const env = envelope(ctx, o.at, o.gain, 0.035, o.dur, 0.8, 0.09);
+  formant.connect(env);
+  env.connect(out);
+  [-7, 7].forEach((cents) => {
+    const osc = ctx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(o.freq, o.at);
+    osc.detune.value = cents;
+    const g = ctx.createGain();
+    g.gain.value = 0.5;
+    osc.connect(g);
+    g.connect(formant);
+    osc.start(o.at);
+    osc.stop(o.at + o.dur + 0.2);
+  });
+  const lfo = ctx.createOscillator();
+  lfo.type = 'sine';
+  lfo.frequency.value = 5.6;
+  const lfoGain = ctx.createGain();
+  lfoGain.gain.value = 7;
+  lfo.connect(lfoGain);
+  const breath = noiseSource(ctx, o.at, Math.min(0.25, o.dur));
+  const lp = ctx.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.value = 1000;
+  const bg = ctx.createGain();
+  bg.gain.setValueAtTime(o.gain * 0.2, o.at);
+  bg.gain.setTargetAtTime(0.0001, o.at + 0.06, 0.07);
+  breath.connect(lp);
+  lp.connect(bg);
+  bg.connect(out);
+  lfo.start(o.at);
+  lfo.stop(o.at + o.dur + 0.2);
+}
+
+// ── Живая природа (синтезированный шум и свипы, без записей) ─────────────────
+
+function birdChirp(ctx: AudioContext, at: number, seed: number, level: number) {
+  const rnd = mulberry(seed);
+  const syllables = 2 + Math.floor(rnd() * 3);
+  const base = 2400 + rnd() * 1500;
+  const out = route(ctx, { bus: 'lead', pan: (rnd() - 0.5) * 1.2, rev: 0.4 });
+  let t = at;
+  for (let i = 0; i < syllables; i++) {
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    const f0 = base * (0.9 + rnd() * 0.25);
+    osc.frequency.setValueAtTime(f0, t);
+    osc.frequency.exponentialRampToValueAtTime(f0 * (1.25 + rnd() * 0.4), t + 0.035);
+    osc.frequency.exponentialRampToValueAtTime(f0 * 0.82, t + 0.075);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(0.016 * level, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.08);
+    osc.connect(g);
+    g.connect(out);
+    osc.start(t);
+    osc.stop(t + 0.1);
+    t += 0.09 + rnd() * 0.06;
+  }
+}
+
+function owlHoot(ctx: AudioContext, at: number, level: number) {
+  const out = route(ctx, { bus: 'lead', pan: -0.3, rev: 0.5 });
+  [0, 0.3].forEach((offset, i) => {
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(i === 0 ? 430 : 392, at + offset);
+    osc.frequency.exponentialRampToValueAtTime(i === 0 ? 400 : 368, at + offset + 0.22);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, at + offset);
+    g.gain.linearRampToValueAtTime(0.024 * level, at + offset + 0.05);
+    g.gain.setTargetAtTime(0.0001, at + offset + 0.12, 0.07);
+    osc.connect(g);
+    g.connect(out);
+    osc.start(at + offset);
+    osc.stop(at + offset + 0.35);
+  });
+}
+
+function gullCry(ctx: AudioContext, at: number, level: number) {
+  const out = route(ctx, { bus: 'lead', pan: 0.35, rev: 0.5 });
+  const osc = ctx.createOscillator();
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(980, at);
+  osc.frequency.exponentialRampToValueAtTime(470, at + 0.34);
+  const bp = ctx.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.value = 1400;
+  bp.Q.value = 1.6;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, at);
+  g.gain.linearRampToValueAtTime(0.014 * level, at + 0.05);
+  g.gain.exponentialRampToValueAtTime(0.0001, at + 0.36);
+  osc.connect(bp);
+  bp.connect(g);
+  g.connect(out);
+  osc.start(at);
+  osc.stop(at + 0.4);
+}
+
+function natureBed(ctx: AudioContext, kind: 'wind' | 'rain' | 'stream' | 'waves' | 'crickets', at: number, dur: number, level: number, seed: number) {
+  const rnd = mulberry(seed);
+  if (kind === 'crickets') {
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.value = 4300;
+    const pulse = ctx.createOscillator();
+    pulse.type = 'square';
+    pulse.frequency.value = 26;
+    const pulseGain = ctx.createGain();
+    pulseGain.gain.value = 0.5;
+    const gate = ctx.createGain();
+    gate.gain.value = 0.5;
+    pulse.connect(pulseGain);
+    pulseGain.connect(gate.gain);
+    const window_ = ctx.createGain();
+    window_.gain.setValueAtTime(0.0001, at);
+    window_.gain.linearRampToValueAtTime(0.0055 * level, at + 0.12);
+    window_.gain.setTargetAtTime(0.0001, at + Math.max(0.3, dur * 0.7), 0.2);
+    const out = route(ctx, { bus: 'lead', pan: 0.25, rev: 0.3 });
+    osc.connect(gate);
+    gate.connect(window_);
+    window_.connect(out);
+    osc.start(at);
+    pulse.start(at);
+    osc.stop(at + dur + 0.4);
+    pulse.stop(at + dur + 0.4);
+    return;
+  }
+  const src = noiseSource(ctx, at, dur);
+  const out = route(ctx, { bus: 'lead', pan: kind === 'stream' ? 0.2 : kind === 'wind' ? -0.2 : 0, rev: 0.35 });
+  const g = ctx.createGain();
+  if (kind === 'rain') {
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 450;
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 5200;
+    src.connect(hp);
+    hp.connect(lp);
+    lp.connect(g);
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.linearRampToValueAtTime(0.02 * level, at + 0.25);
+    g.gain.setValueAtTime(0.02 * level, at + Math.max(0.3, dur - 0.3));
+    g.gain.linearRampToValueAtTime(0.0001, at + dur);
+  } else if (kind === 'wind') {
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.Q.value = 0.8;
+    bp.frequency.setValueAtTime(420 + rnd() * 160, at);
+    bp.frequency.linearRampToValueAtTime(300 + rnd() * 260, at + dur * 0.6);
+    bp.frequency.linearRampToValueAtTime(420 + rnd() * 140, at + dur);
+    src.connect(bp);
+    bp.connect(g);
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.linearRampToValueAtTime(0.013 * level, at + dur * 0.3);
+    g.gain.linearRampToValueAtTime(0.008 * level, at + dur * 0.7);
+    g.gain.linearRampToValueAtTime(0.0001, at + dur);
+  } else if (kind === 'stream') {
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 1600;
+    const peak = ctx.createBiquadFilter();
+    peak.type = 'peaking';
+    peak.frequency.value = 3100;
+    peak.gain.value = 5;
+    src.connect(hp);
+    hp.connect(peak);
+    peak.connect(g);
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.linearRampToValueAtTime(0.011 * level, at + 0.2);
+    g.gain.setValueAtTime(0.011 * level, at + Math.max(0.25, dur - 0.25));
+    g.gain.linearRampToValueAtTime(0.0001, at + dur);
+  } else {
+    // waves: валл шума с медленным свипом фильтра и пеной на гребне
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(240, at);
+    lp.frequency.linearRampToValueAtTime(820, at + dur * 0.45);
+    lp.frequency.linearRampToValueAtTime(240, at + dur);
+    src.connect(lp);
+    lp.connect(g);
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.linearRampToValueAtTime(0.03 * level, at + dur * 0.45);
+    g.gain.linearRampToValueAtTime(0.0001, at + dur);
+    const foam = noiseSource(ctx, at + dur * 0.3, dur * 0.4);
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 4500;
+    const fg = ctx.createGain();
+    fg.gain.setValueAtTime(0.0001, at + dur * 0.3);
+    fg.gain.linearRampToValueAtTime(0.009 * level, at + dur * 0.5);
+    fg.gain.linearRampToValueAtTime(0.0001, at + dur * 0.7);
+    foam.connect(hp);
+    hp.connect(fg);
+    fg.connect(out);
+  }
+  g.connect(out);
+}
+
+function droplet(ctx: AudioContext, at: number, seed: number, level: number) {
+  const rnd = mulberry(seed);
+  const osc = ctx.createOscillator();
+  osc.type = 'sine';
+  const f = 900 + rnd() * 1600;
+  osc.frequency.setValueAtTime(f * 1.4, at);
+  osc.frequency.exponentialRampToValueAtTime(f, at + 0.04);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.007 * level, at);
+  g.gain.exponentialRampToValueAtTime(0.0001, at + 0.05);
+  const out = route(ctx, { bus: 'lead', pan: (rnd() - 0.5) * 0.8, rev: 0.45 });
+  osc.connect(g);
+  g.connect(out);
+  osc.start(at);
+  osc.stop(at + 0.07);
+}
+
+function thunder(ctx: AudioContext, at: number, level: number) {
+  const src = noiseSource(ctx, at, 2.2);
+  const lp = ctx.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.setValueAtTime(260, at);
+  lp.frequency.exponentialRampToValueAtTime(90, at + 1.8);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, at);
+  g.gain.linearRampToValueAtTime(0.04 * level, at + 0.5);
+  g.gain.exponentialRampToValueAtTime(0.0001, at + 2.1);
+  const out = route(ctx, { bus: 'lead', pan: -0.2, rev: 0.5 });
+  src.connect(lp);
+  lp.connect(g);
+  g.connect(out);
+}
+
 // ── Ударные (физика + шум, как в драм-машинах) ───────────────────────────────
 
 function noiseSource(ctx: AudioContext, at: number, dur: number) {
@@ -852,6 +1173,108 @@ function drumHit(ctx: AudioContext, at: number, type: DrumHit, level: number, br
     noise.connect(hp);
     hp.connect(g);
     g.connect(out(0.4, 0.5));
+  } else if (type === 'cajon') {
+    // Деревянный ящик: низкий удар корпуса + хлопок ладони
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(95, at);
+    osc.frequency.exponentialRampToValueAtTime(55, at + 0.1);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.linearRampToValueAtTime(0.12 * level, at + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + 0.16);
+    osc.connect(g);
+    g.connect(out(0));
+    osc.start(at);
+    osc.stop(at + 0.2);
+    const slap = noiseSource(ctx, at, 0.03);
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 420;
+    const sg = ctx.createGain();
+    sg.gain.setValueAtTime(0.04 * level, at);
+    sg.gain.exponentialRampToValueAtTime(0.0001, at + 0.03);
+    slap.connect(lp);
+    lp.connect(sg);
+    sg.connect(out(0));
+  } else if (type === 'rim') {
+    const osc = ctx.createOscillator();
+    osc.type = 'square';
+    osc.frequency.value = 1750;
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 1800;
+    bp.Q.value = 2.4;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.03 * level, at);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + 0.035);
+    osc.connect(bp);
+    bp.connect(g);
+    g.connect(out(-0.12, 0.12));
+    osc.start(at);
+    osc.stop(at + 0.05);
+    const click = noiseSource(ctx, at, 0.015);
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 3000;
+    const cg = ctx.createGain();
+    cg.gain.setValueAtTime(0.02 * level, at);
+    cg.gain.exponentialRampToValueAtTime(0.0001, at + 0.015);
+    click.connect(hp);
+    hp.connect(cg);
+    cg.connect(out(-0.12));
+  } else if (type === 'shaker') {
+    const noise = noiseSource(ctx, at, 0.05);
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 6500;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.linearRampToValueAtTime(0.016 * level, at + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + 0.05);
+    noise.connect(hp);
+    hp.connect(g);
+    g.connect(out(0.28, 0.06));
+  } else if (type === 'conga') {
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(260, at);
+    osc.frequency.exponentialRampToValueAtTime(190, at + 0.08);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.07 * level, at);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + 0.11);
+    osc.connect(g);
+    g.connect(out(0.18, 0.1));
+    osc.start(at);
+    osc.stop(at + 0.14);
+    const slap = noiseSource(ctx, at, 0.02);
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 900;
+    const sg = ctx.createGain();
+    sg.gain.setValueAtTime(0.025 * level, at);
+    sg.gain.exponentialRampToValueAtTime(0.0001, at + 0.02);
+    slap.connect(bp);
+    bp.connect(sg);
+    sg.connect(out(0.18));
+  } else if (type === 'tambourine') {
+    const noise = noiseSource(ctx, at, 0.11);
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 8000;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.02 * level, at);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + 0.11);
+    noise.connect(hp);
+    hp.connect(g);
+    g.connect(out(0.3, 0.15));
+    const jingle = noiseSource(ctx, at + 0.05, 0.06);
+    const hg = ctx.createGain();
+    hg.gain.setValueAtTime(0.01 * level, at + 0.05);
+    hg.gain.exponentialRampToValueAtTime(0.0001, at + 0.11);
+    jingle.connect(hp);
+    hp.connect(hg);
+    hg.connect(out(0.3, 0.15));
   } else if (type === 'riser') {
     // Шумовой сув: полоса ползёт вверх за такт — подводка к крэшу
     const noise = noiseSource(ctx, at, 0.95);
@@ -870,7 +1293,9 @@ function drumHit(ctx: AudioContext, at: number, type: DrumHit, level: number, br
   }
 }
 
-type DrumHit = 'kick' | 'snare' | 'hat' | 'openhat' | 'clap' | 'cowbell' | 'tom' | 'crash' | 'riser';
+type DrumHit =
+  | 'kick' | 'snare' | 'hat' | 'openhat' | 'clap' | 'cowbell' | 'tom' | 'crash' | 'riser'
+  | 'cajon' | 'rim' | 'shaker' | 'conga' | 'tambourine';
 
 // ── Таблица грувов ──────────────────────────────────────────────────────────
 //
@@ -879,7 +1304,9 @@ type DrumHit = 'kick' | 'snare' | 'hat' | 'openhat' | 'clap' | 'cowbell' | 'tom'
 // мелодия — ступенями `scale` трека. Новые поля 2.0: lead — тембр звукоизвлечения,
 // sidechain — глубина «дыхания» от бочки, rev/dly — посылы, crash/fill/riser — форма.
 
-export type LeadTimbre = 'epiano' | 'bell' | 'pluck' | 'supersaw' | 'square' | 'cowbell' | 'piano' | 'flute' | 'strings';
+export type LeadTimbre =
+  | 'epiano' | 'bell' | 'pluck' | 'supersaw' | 'square' | 'cowbell' | 'piano' | 'flute' | 'strings'
+  | 'guitar' | 'ukulele' | 'balalaika' | 'kalimba' | 'marimba' | 'harp' | 'panflute' | 'none';
 
 export interface GrooveSpec {
   kick: number[];
@@ -887,8 +1314,8 @@ export interface GrooveSpec {
   hat: number[];
   clap: number[];
   openHat?: number[];
-  bass: 'quarter' | 'eighth' | 'offbeat' | 'drone' | 'slide';
-  chord: 'pad' | 'stab' | 'power' | 'keys' | 'strings' | 'none';
+  bass: 'quarter' | 'eighth' | 'offbeat' | 'drone' | 'slide' | 'none';
+  chord: 'pad' | 'stab' | 'power' | 'keys' | 'strings' | 'strum' | 'none';
   chordIntervals: number[];
   lead: LeadTimbre;
   /** Базовая MIDI-нота мелодии: 66 — каталог, 65 — лоу-фай, 78 — ковбелл. */
@@ -915,6 +1342,20 @@ export interface GrooveSpec {
   riser?: boolean;
   /** Струнная подкладка со второй половины лупа (гимн: дроп становится шире). */
   stringsOverlay?: boolean;
+  /** Акустический комплект вместо драм-машины: кахон, рим, шейкер, конга, бубен. */
+  acousticDrums?: boolean;
+  /** Живая природа: подкладки-подушки и события с сид-рандомом. */
+  nature?: NatureSpec;
+}
+
+/** Природный слой саундскейпа: подушки на такт и редкие события на круг. */
+export interface NatureSpec {
+  beds?: ('wind' | 'rain' | 'stream' | 'waves' | 'crickets')[];
+  birdsPerBar?: number;
+  dropletsPerBar?: number;
+  owlBars?: number[];
+  gullBars?: number[];
+  thunderBars?: number[];
 }
 
 const K = (...steps: number[]) => Array.from({ length: 16 }, (_, i) => (steps.includes(i) ? 1 : 0));
@@ -922,14 +1363,6 @@ const EIGHTH_HAT = K(0, 2, 4, 6, 8, 10, 12, 14);
 const MOTIF_CORE = [0, 2, 4, 3, 1, 4, 2, 0];
 
 const GROOVES: Record<string, GrooveSpec> = {
-  // базовый каталог 0.12.3 — рисунки те же, звучание теперь «взрослое»
-  pop: { kick: K(0), snare: K(8, 12), hat: EIGHTH_HAT, clap: [], bass: 'quarter', chord: 'keys', chordIntervals: [0, 4, 7], lead: 'epiano', leadBase: 66, motif: MOTIF_CORE, rev: 0.3, dly: 0.14, fill: true },
-  lofi: { kick: K(0), snare: [], hat: [], clap: [], bass: 'quarter', chord: 'keys', chordIntervals: [0, 4, 7], lead: 'epiano', leadBase: 65, motif: MOTIF_CORE, cutoff: 1500, rev: 0.5, dly: 0.3, swing: 0.06 },
-  arcade: { kick: K(0), snare: K(8), hat: EIGHTH_HAT, clap: [], bass: 'quarter', chord: 'pad', chordIntervals: [0, 4, 7], lead: 'square', leadBase: 66, leadEveryBeat: true, blip: true, motif: MOTIF_CORE, rev: 0.16, dly: 0.2, fill: true },
-  dance: { kick: K(0, 8), snare: K(8), hat: EIGHTH_HAT, clap: [], openHat: K(4, 12), bass: 'quarter', chord: 'pad', chordIntervals: [0, 4, 7], lead: 'epiano', leadBase: 66, motif: MOTIF_CORE, sidechain: 0.5, rev: 0.22, dly: 0.2, crash: [0, 4], fill: true, riser: true },
-  tropical: { kick: K(0, 12), snare: K(8), hat: [], clap: [], bass: 'quarter', chord: 'keys', chordIntervals: [0, 4, 7], lead: 'pluck', leadBase: 66, motif: MOTIF_CORE, rev: 0.4, dly: 0.24, fill: true },
-  cinematic: { kick: K(0), snare: K(8), hat: [], clap: [], bass: 'drone', chord: 'strings', chordIntervals: [0, 4, 7], lead: 'bell', leadBase: 66, motif: MOTIF_CORE, rev: 0.6, dly: 0.3, padAttack: 0.08, crash: [0] },
-
   // полка «Тренд 2026»
   bounce: { kick: K(0, 10), snare: K(4, 12), hat: K(3, 6, 11, 13, 14), clap: [], bass: 'slide', chord: 'none', chordIntervals: [], lead: 'square', leadBase: 66, hook: 'sixseven', motif: [5, 6, 5, 6, 4, 5, 6, 4], swing: 0.08, sidechain: 0.35, rev: 0.14, dly: 0.16, crash: [0, 4], fill: true },
   duck: { kick: K(0, 4, 8, 12), snare: [], hat: EIGHTH_HAT, clap: K(4, 12), openHat: K(14), bass: 'offbeat', chord: 'stab', chordIntervals: [0, 4, 7], lead: 'epiano', leadBase: 66, hook: 'wave', motif: [0, 0, 2, 2, 4, 4, 2, 0], swing: 0.18, sidechain: 0.45, rev: 0.2, dly: 0.12, crash: [0], fill: true },
@@ -937,9 +1370,27 @@ const GROOVES: Record<string, GrooveSpec> = {
   phonk: { kick: K(0, 6, 10), snare: K(4, 12), hat: K(0, 2, 3, 5, 6, 8, 10, 11, 13), clap: [], bass: 'slide', chord: 'none', chordIntervals: [], lead: 'cowbell', leadBase: 78, motif: [0, 3, 0, 5, 3, 0, 7, 5], swing: 0.16, sidechain: 0.5, rev: 0.12, dly: 0.1, crash: [0, 4], fill: true },
   punk: { kick: K(0, 6, 8, 14), snare: K(4, 12), hat: EIGHTH_HAT, clap: [], openHat: K(14), bass: 'eighth', chord: 'power', chordIntervals: [0, 7], lead: 'supersaw', leadBase: 66, motif: [0, 0, 3, 0, 5, 3, 0, 2], cutoff: 3200, rev: 0.1, dly: 0.12, crash: [0, 4], fill: true },
   ethno: { kick: K(0, 8, 11), snare: K(4, 12), hat: K(2, 5, 7, 10, 13), clap: [], bass: 'drone', chord: 'strings', chordIntervals: [0, 7], lead: 'flute', leadBase: 66, grace: true, motif: [0, 1, 2, 4, 2, 1, 4, 2], cutoff: 3600, rev: 0.4, dly: 0.26, fill: true },
+
+  // база 0.13.0 — акустика
+  fingerstyle: { kick: [], snare: [], hat: K(2, 6, 10, 14), clap: [], acousticDrums: true, bass: 'quarter', chord: 'strum', chordIntervals: [0, 4, 7], lead: 'guitar', leadBase: 66, leadEveryBeat: true, motif: MOTIF_CORE, swing: 0.06, rev: 0.35, dly: 0.2 },
+  strum: { kick: K(0, 8), snare: K(4, 12), hat: EIGHTH_HAT, clap: [], acousticDrums: true, bass: 'quarter', chord: 'strum', chordIntervals: [0, 4, 7], lead: 'ukulele', leadBase: 66, motif: [0, 0, 2, 4, 4, 2, 0, 2], swing: 0.1, rev: 0.25, dly: 0.12, fill: true },
+  kalimba: { kick: [], snare: [], hat: K(2, 6, 10, 14), clap: K(4, 12), acousticDrums: true, bass: 'quarter', chord: 'none', chordIntervals: [], lead: 'kalimba', leadBase: 72, leadEveryBeat: true, motif: [0, 2, 4, 7, 4, 2, 0, 2], nature: { beds: ['stream'], dropletsPerBar: 2 }, rev: 0.4, dly: 0.22 },
+  meadow: { kick: [], snare: [], hat: K(2, 6, 10, 14), clap: [], acousticDrums: true, bass: 'quarter', chord: 'strum', chordIntervals: [0, 4, 7], lead: 'panflute', leadBase: 69, motif: [0, 2, 4, 5, 4, 2, 0, 1], swing: 0.05, nature: { beds: ['wind'], birdsPerBar: 3 }, rev: 0.45, dly: 0.25 },
+  bossa: { kick: K(0, 8), snare: K(4, 12), hat: EIGHTH_HAT, clap: [], acousticDrums: true, bass: 'quarter', chord: 'strum', chordIntervals: [0, 4, 7, 10], lead: 'guitar', leadBase: 66, motif: [0, 2, 3, 4, 3, 2, 0, 2], swing: 0.12, rev: 0.3, dly: 0.18 },
+  folk: { kick: K(0, 6, 8, 14), snare: K(4, 12), hat: EIGHTH_HAT, clap: [], openHat: K(2, 6, 10, 14), acousticDrums: true, bass: 'drone', chord: 'strum', chordIntervals: [0, 7], lead: 'balalaika', leadBase: 69, leadEveryBeat: true, blip: true, motif: [0, 0, 2, 3, 4, 3, 2, 0], swing: 0.08, rev: 0.2, dly: 0.1, fill: true },
+  stringsstory: { kick: [], snare: [], hat: [], clap: [], bass: 'quarter', chord: 'strings', chordIntervals: [0, 4, 7], lead: 'strings', leadBase: 69, motif: [0, 4, 2, 5, 4, 2, 1, 0], padAttack: 0.1, rev: 0.5, dly: 0.3 },
+  blues: { kick: K(0, 8, 10), snare: K(4, 12), hat: K(2, 3, 6, 7, 10, 11, 14, 15), clap: [], acousticDrums: true, bass: 'eighth', chord: 'strum', chordIntervals: [0, 4, 7, 10], lead: 'harp', leadBase: 66, motif: [0, 3, 0, 3, 4, 3, 0, 2], swing: 0.18, rev: 0.25, dly: 0.15 },
+  marimba: { kick: [], snare: [], hat: EIGHTH_HAT, clap: K(4, 12), acousticDrums: true, bass: 'quarter', chord: 'none', chordIntervals: [], lead: 'marimba', leadBase: 69, leadEveryBeat: true, motif: [0, 2, 4, 2, 5, 4, 2, 4], nature: { beds: ['wind'], dropletsPerBar: 1 }, rev: 0.35, dly: 0.2 },
+  classical: { kick: [], snare: [], hat: [], clap: [], bass: 'quarter', chord: 'strings', chordIntervals: [0, 4, 7, 12], lead: 'piano', leadBase: 72, motif: [0, 2, 4, 7, 9, 7, 4, 2], padAttack: 0.08, rev: 0.55, dly: 0.2 },
+
+  // база 0.13.0 — чистые саундскейпы природы (без музыки и ударных)
+  birdscape: { kick: [], snare: [], hat: [], clap: [], bass: 'none', chord: 'none', chordIntervals: [], lead: 'none', leadBase: 66, motif: [0], nature: { beds: ['wind', 'stream'], birdsPerBar: 4 }, rev: 0.5 },
+  wavescape: { kick: [], snare: [], hat: [], clap: [], bass: 'none', chord: 'none', chordIntervals: [], lead: 'none', leadBase: 66, motif: [0], nature: { beds: ['waves', 'wind'], gullBars: [2, 6] }, rev: 0.55 },
+  rainscape: { kick: [], snare: [], hat: [], clap: [], bass: 'none', chord: 'none', chordIntervals: [], lead: 'none', leadBase: 66, motif: [0], nature: { beds: ['rain', 'wind'], dropletsPerBar: 5, thunderBars: [6] }, rev: 0.5 },
+  nightscape: { kick: [], snare: [], hat: [], clap: [], bass: 'none', chord: 'none', chordIntervals: [], lead: 'none', leadBase: 66, motif: [0], nature: { beds: ['crickets', 'wind'], owlBars: [2, 6] }, rev: 0.45 },
 };
 
-const FALLBACK_GROOVE = GROOVES.pop;
+const FALLBACK_GROOVE = GROOVES.fingerstyle;
 
 /** Какие грувы умеет синтезатор из коробки: проверка каталога сверяет с ним каждый трек. */
 export const GROOVE_IDS: readonly string[] = Object.keys(GROOVES);
@@ -973,7 +1424,14 @@ function leadVoice(ctx: AudioContext, spec: GrooveSpec, state: ReturnType<typeof
   const gain = o.gain * state.lead;
   const cutoff = Math.min(spec.cutoff ?? 6500, state.cutoff || Infinity);
   const send: Send = { bus: 'lead', pan: o.pan, rev: spec.rev ?? 0.25, dly: spec.dly ? spec.dly * 0.6 : 0 };
-  if (spec.lead === 'piano') pianoVoice(ctx, { ...send, at: o.at, freq, dur: o.dur, gain, cutoff });
+  if (spec.lead === 'guitar') ksVoice(ctx, { ...send, at: o.at, freq, dur: o.dur, gain: gain * 1.1, bright: 0.7, cutoff: Math.min(4600, cutoff) });
+  else if (spec.lead === 'ukulele') ksVoice(ctx, { ...send, at: o.at, freq, dur: o.dur, gain, bright: 0.5, cutoff: Math.min(3800, cutoff) });
+  else if (spec.lead === 'balalaika') ksVoice(ctx, { ...send, at: o.at, freq, dur: o.dur * 0.8, gain, bright: 0.85, sustain: 0.99, cutoff: Math.min(5200, cutoff) });
+  else if (spec.lead === 'kalimba') malletVoice(ctx, { ...send, at: o.at, freq, dur: o.dur, gain, ratio: 5.4 });
+  else if (spec.lead === 'marimba') malletVoice(ctx, { ...send, at: o.at, freq, dur: o.dur, gain, ratio: 4.2 });
+  else if (spec.lead === 'harp') harpVoice(ctx, { ...send, at: o.at, freq, dur: o.dur, gain, cutoff });
+  else if (spec.lead === 'panflute') fluteVoice(ctx, { ...send, at: o.at, freq, dur: o.dur, gain: gain * 0.95, cutoff });
+  else if (spec.lead === 'piano') pianoVoice(ctx, { ...send, at: o.at, freq, dur: o.dur, gain, cutoff });
   else if (spec.lead === 'flute') fluteVoice(ctx, { ...send, at: o.at, freq, dur: o.dur, gain: gain * 0.9, cutoff });
   else if (spec.lead === 'strings') stringsVoice(ctx, { ...send, at: o.at, freq, dur: o.dur, gain: gain * 0.8, attack: 0.06, cutoff });
   else if (spec.lead === 'epiano') fmVoice(ctx, { ...send, at: o.at, freq, dur: o.dur, gain, ratio: 2, index: freq * 1.1, cutoff });
@@ -1045,6 +1503,16 @@ function scheduleStep(track: MusicTrack, spec: GrooveSpec, state: ReturnType<typ
       }),
     );
   }
+  if (spec.chord === 'strum' && s16 === 0) {
+    spec.chordIntervals.forEach((interval, i) =>
+      ksVoice(ctx, {
+        at: t + i * 0.018, freq: hz(root + 12 + interval + (i % 2 === 1 ? 12 : 0)),
+        dur: beatSeconds * 2.6, gain: 0.02 * hum.gv, bright: 0.55,
+        cutoff: Math.min(4000, state.cutoff || 4000),
+        bus: 'chord', pan: i % 2 === 0 ? -0.25 : 0.25, rev: (spec.rev ?? 0.25) * 0.8,
+      }),
+    );
+  }
   if (spec.chord === 'stab' && (s16 === 2 || s16 === 10)) {
     spec.chordIntervals.forEach((interval, i) =>
       fmVoice(ctx, {
@@ -1082,7 +1550,7 @@ function scheduleStep(track: MusicTrack, spec: GrooveSpec, state: ReturnType<typ
   // Мелодия: свежая фраза на каждый такт, тембр из таблицы, стерео-чередование
   const phrase = (beat + bar * 3 + (track.id.length % 4)) % spec.motif.length;
   const alternates = (beat + bar) % 2 === 0;
-  if (full && s16 % 4 === 0 && (alternates || spec.leadEveryBeat)) {
+  if (spec.lead !== 'none' && full && s16 % 4 === 0 && (alternates || spec.leadEveryBeat)) {
     const midi = spec.leadBase + degree(track, spec.motif[phrase]);
     if (spec.grace) {
       leadVoice(ctx, spec, state, { midi: midi + 1, at: t, dur: beatSeconds * 0.09, gain: 0.032, pan: panLead });
@@ -1094,7 +1562,7 @@ function scheduleStep(track: MusicTrack, spec: GrooveSpec, state: ReturnType<typ
       leadVoice(ctx, spec, state, { midi, at: t, dur: beatSeconds * 0.72, gain: 0.045, pan: panLead });
     }
   }
-  if (spec.blip && s16 === 6 && step % 8 === 6) {
+  if (spec.blip && spec.lead !== 'none' && s16 === 6 && step % 8 === 6) {
     leadVoice(ctx, spec, state, { midi: 72 + degree(track, phrase + 2), at: t, dur: beatSeconds * 0.26, gain: 0.03, pan: -panLead });
   }
 
@@ -1115,13 +1583,47 @@ function scheduleStep(track: MusicTrack, spec: GrooveSpec, state: ReturnType<typ
     );
   }
 
-  // Перкуссия: в уроке тише, а яркие тембры (хэт, хлопок, ковбелл, крэш) молчат
-  if (spec.kick[s16]) drumHit(ctx, t, 'kick', state.drums * hum.gv, state.bright);
-  if (spec.snare[s16]) drumHit(ctx, t, 'snare', state.drums * hum.gv, state.bright);
+  // Перкуссия: в уроке тише, а яркие тембры (хэт, хлопок, ковбелл, крэш) молчат.
+  // Акустический комплект: те же рисунки, но кахон/рим/шейкер/конга/бубен.
+  const kit = spec.acousticDrums;
+  if (spec.kick[s16]) drumHit(ctx, t, kit ? 'cajon' : 'kick', state.drums * hum.gv, state.bright);
+  if (spec.snare[s16]) drumHit(ctx, t, kit ? 'rim' : 'snare', state.drums * hum.gv, state.bright);
   if (state.bright) {
-    if (spec.hat[s16]) drumHit(ctx, t, 'hat', state.drums, true);
-    if (spec.openHat?.[s16]) drumHit(ctx, t, 'openhat', state.drums * 0.8, true);
-    if (spec.clap[s16]) drumHit(ctx, t, 'clap', state.drums, true);
+    if (spec.hat[s16]) drumHit(ctx, t, kit ? 'shaker' : 'hat', state.drums, true);
+    if (spec.openHat?.[s16]) drumHit(ctx, t, kit ? 'tambourine' : 'openhat', state.drums * 0.8, true);
+    if (spec.clap[s16]) drumHit(ctx, t, kit ? 'conga' : 'clap', state.drums, true);
+  }
+
+  // Живая природа: подушки на такт, птицы/капли по сид-рандому, редкие события на круг
+  if (spec.nature) {
+    const level = state.bright ? 1 : 0.75;
+    const barSeconds = beatSeconds * 4;
+    if (s16 === 0) {
+      spec.nature.beds?.forEach((bed) => {
+        if (bed === 'waves') {
+          // валл идёт внахлёст: следующий гребень начинается до конца предыдущего
+          natureBed(ctx, bed, t, barSeconds * 1.15, level, hashString(track.id) ^ bar);
+        } else if (bed === 'crickets') {
+          natureBed(ctx, bed, t, barSeconds * 0.45, level, hashString(track.id) ^ bar);
+          natureBed(ctx, bed, t + barSeconds * 0.5, barSeconds * 0.45, level, hashString(track.id) ^ (bar + 101));
+        } else {
+          natureBed(ctx, bed, t, barSeconds, level, hashString(track.id) ^ bar);
+        }
+      });
+      const birds = spec.nature.birdsPerBar ?? 0;
+      for (let i = 0; i < birds; i++) {
+        const rnd = mulberry(hashString(`${track.id}:bird:${bar}:${i}`));
+        birdChirp(ctx, t + rnd() * barSeconds * 0.8, hashString(track.id) ^ (bar * 16 + i), level);
+      }
+      const drops = spec.nature.dropletsPerBar ?? 0;
+      for (let i = 0; i < drops; i++) {
+        const rnd = mulberry(hashString(`${track.id}:drop:${bar}:${i}`));
+        droplet(ctx, t + rnd() * barSeconds * 0.9, hashString(track.id) ^ (bar * 32 + i), level);
+      }
+      if (spec.nature.owlBars?.includes(bar % 8)) owlHoot(ctx, t + barSeconds * 0.5, level);
+      if (state.bright && spec.nature.gullBars?.includes(bar % 8)) gullCry(ctx, t + barSeconds * 0.3, level);
+      if (state.bright && spec.nature.thunderBars?.includes(bar % 8)) thunder(ctx, t, level * 0.8);
+    }
   }
 
   // Форма лупа: крэш на старте половин, филлы на 4-м и 8-м тактах, райзер перед концом

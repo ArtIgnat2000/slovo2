@@ -33,7 +33,10 @@ assert.ok(TREND_TRACKS.every((track) => track.shelf === 'trend' && Boolean(track
 // Одна строка «для взрослых» обязательна: тренд без объяснения пугает родителя
 assert.ok(TREND_TRACKS.every((track) => (track.about ?? '').length > 20), 'у каждого тренда есть пояснение для родителей');
 // Порядок каталога не поехал: проверки и смоук покупают трек по индексу 2
-assert.equal(MUSIC_TRACKS[2].id, 'neon-sneakers');
+assert.equal(MUSIC_TRACKS[2].id, 'ukulele-sun');
+// «Живая» база: четыре чистых саундскейпа природы с плашкой «Природа»
+assert.equal(MUSIC_TRACKS.filter((track) => track.tag === 'Природа').length, 4, 'полка природы на месте');
+assert.ok(MUSIC_TRACKS.filter((track) => track.tag === 'Природа').every((track) => (track.about ?? '').includes('Только')), 'саундскейп честно предупреждает, что музыки нет');
 
 // Контекстная музыка: в уроке тише и медленнее, на награде — как задумано
 for (const track of MUSIC_TRACKS) {
@@ -51,7 +54,7 @@ for (const track of MUSIC_TRACKS) {
 assert.equal(playbackFor(MUSIC_BY_ID['campfire-punk'], 'lesson').bpm, LESSON_BPM_CAP);
 assert.equal(playbackFor(MUSIC_BY_ID['campfire-punk'], 'reward').bpm, 168);
 // Спокойный трек не ускоряется в уроке
-assert.equal(playbackFor(MUSIC_BY_ID['cloud-lofi'], 'lesson').bpm, 78);
+assert.equal(playbackFor(MUSIC_BY_ID['letter-piano'], 'lesson').bpm, 72);
 
 // «Шесть-семь»: крюк строится из шестой и седьмой ступени, поэтому в ладу их семь
 const sixSeven = MUSIC_BY_ID['six-seven'];
@@ -59,11 +62,11 @@ assert.equal(sixSeven.scale.length, 7, 'нужны обе ступени — 6-�
 assert.deepEqual(sixSeven.scale.slice(5), [8, 10], '6-я и 7-я ступени натурального минора');
 
 assert.deepEqual(normalizeMusicOwned(undefined), STARTER_TRACK_IDS, 'старые профили получают бесплатный стартовый набор');
-assert.deepEqual(normalizeMusicOwned(['pixel-party', 'pixel-party', 'made-up']), ['pixel-party']);
+assert.deepEqual(normalizeMusicOwned(['ukulele-sun', 'ukulele-sun', 'made-up']), ['ukulele-sun']);
 assert.deepEqual(normalizeMusicOwned(['six-seven', 'duck-dance']), ['six-seven', 'duck-dance'], 'трендовые треки переживают перезапуск');
 assert.equal(canBuyTrack(MUSIC_TRACKS[2], 8, []), true);
 assert.equal(canBuyTrack(MUSIC_TRACKS[2], 7, []), false);
-assert.equal(canBuyTrack(MUSIC_TRACKS[2], 100, ['neon-sneakers']), false);
+assert.equal(canBuyTrack(MUSIC_TRACKS[2], 100, ['ukulele-sun']), false);
 assert.equal(canBuyTrack(MUSIC_BY_ID['six-seven'], 14, []), true);
 assert.equal(canBuyTrack(MUSIC_BY_ID['six-seven'], 13, []), false);
 

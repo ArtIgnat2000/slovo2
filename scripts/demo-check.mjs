@@ -48,10 +48,11 @@ const all = DEMO.sections.flatMap(s=>s.items);
 console.log(`лупов: ${all.length}, грувов: ${DEMO.grooveCount()}`);
 for (const entry of all) {
   scheduled=0; DEMO.play(entry.track); const reward=runFor(8);
-  if (reward<=20) throw new Error(`${entry.track.id}: тихо на награде (${reward})`);
-  scheduled=0; DEMO.setFocus(true); const lesson=runFor(8);
+  const floor = entry.track.tag === 'Природа' ? 6 : 20;
+  if (reward<=floor) throw new Error(`${entry.track.id}: тихо на награде (${reward})`);
+  scheduled=0; DEMO.stop(); DEMO.setFocus(true); DEMO.play(entry.track); const lesson=runFor(8);
   if (lesson>reward) throw new Error(`${entry.track.id}: урок плотнее награды (${lesson}>${reward})`);
-  DEMO.setFocus(false); DEMO.stop();
+  DEMO.stop(); DEMO.setFocus(false);
   console.log(`  ✓ ${entry.track.id.padEnd(18)} reward ${String(reward).padStart(4)} · урок ${String(lesson).padStart(4)}`);
 }
 for (const s of ['sixseven','cowbell','mogu','golden','bell']) { scheduled=0; DEMO.stinger(s); if (scheduled<2) throw new Error('стингер '+s+' молчит'); }
