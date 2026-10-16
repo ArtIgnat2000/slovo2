@@ -29,18 +29,50 @@ class FakeNode {
   detune = new FakeParam();
   frequency = new FakeParam();
   gain = new FakeParam();
+  // микшерная шина 2.0: дилей, панорама, компрессор, фильтры
+  delayTime = new FakeParam();
+  pan = new FakeParam();
+  playbackRate = new FakeParam();
+  Q = new FakeParam();
+  threshold = new FakeParam();
+  knee = new FakeParam();
+  ratio = new FakeParam();
+  attack = new FakeParam();
+  release = new FakeParam();
+  curve: Float32Array | null = null;
+  oversample = 'none';
+  buffer: unknown = null;
+  loop = false;
   connect(target: unknown) { assert.ok(target, 'connect() в никуда'); return this; }
   start(t: number) { scheduled++; check(0, t); }
   stop(t: number) { check(0, t); }
 }
+class FakeBuffer {
+  constructor(readonly channels: number, readonly length: number, readonly sampleRate: number) {}
+  getChannelData(channel: number) {
+    assert.ok(channel < this.channels, 'канала нет в буфере');
+    return new Float32Array(this.length);
+  }
+}
 class FakeCtx {
   state = 'running';
   currentTime = 0;
+  sampleRate = 44100;
   destination = new FakeNode();
   constructor() { lastCtx = this; }
   createOscillator() { return new FakeNode(); }
   createGain() { return new FakeNode(); }
   createBiquadFilter() { return new FakeNode(); }
+  createStereoPanner() { return new FakeNode(); }
+  createWaveShaper() { return new FakeNode(); }
+  createConvolver() { return new FakeNode(); }
+  createDynamicsCompressor() { return new FakeNode(); }
+  createDelay() { return new FakeNode(); }
+  createBufferSource() { return new FakeNode(); }
+  createBuffer(channels: number, length: number, sampleRate: number) {
+    assert.ok(length > 0 && sampleRate > 0, 'буфер ненулевой');
+    return new FakeBuffer(channels, length, sampleRate);
+  }
   resume() { return Promise.resolve(); }
 }
 

@@ -22,7 +22,9 @@
     "chests:art": "node scripts/process-chest-art.mjs",
     "promo": "OUT_DIR=docs/promo/$(date +%F) node scripts/promo/make_costumes.mjs",
     "test:adaptive": "node scripts/adaptive-test.mjs",
-    "test:qr": "node scripts/qr-verify.mjs"
+    "test:qr": "node scripts/qr-verify.mjs",
+    "demo:build": "tsc --noEmit -p tsconfig.demo.json && node scripts/build-demo.mjs",
+    "test:demo": "npm run demo:build && node scripts/demo-check.mjs"
   },
   "dependencies": {
     "idb": "^8.0.3",

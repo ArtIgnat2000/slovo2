@@ -78,9 +78,10 @@
   <h1>🎧 Аудио-лаборатория музыкального магазина БУКа</h1>
   <p class="sub">
     Черновик к документу <code>docs/music-trends-2026.md</code>. Всё, что здесь звучит, — <b>оригинальные
-    синтезированные лупы</b> (Web Audio, без сэмплов, без чужих мелодий и текстов): та же техника, что
-    уже работает в <code>src/platform/music.ts</code>. Тренды 2026 года взяты как <b>жанр, темп,
-    ритмический рисунок и повод</b>, а не как чужая песня.
+    синтезированные лупы</b> (Web Audio, без сэмплов, без чужих мелодий и текстов). Движок один на
+    лабораторию и приложение: <code>engine.js</code> собирается из <code>src/platform/music.ts</code>
+    командой <code>npm run demo:build</code> — расхождений в звучании быть не может. Тренды 2026 года
+    взяты как <b>жанр, темп, ритмический рисунок и повод</b>, а не как чужая песня.
   </p>
 </header>
 
@@ -145,402 +146,37 @@
   </p>
 </section>
 
+<script src="engine.js"></script>
 <script>
 /* ──────────────────────────────────────────────────────────────────────────
-   Синтезатор. Порты функций из src/platform/music.ts + новые грувы.
-   Никаких внешних файлов: осцилляторы, фильтр, короткие огибающие.
+   Интерфейс лаборатории. Движок — НЕ копия: window.DEMO приходит из
+   engine.js, который собирается из src/platform/music.ts командой
+   `npm run demo:build`. Лаборатория и приложение звучат одинаково.
    ────────────────────────────────────────────────────────────────────────── */
-let ctx = null, master = null, comp = null;
-let timer = null, active = null, nextStep = 0, nextAt = 0;
-let focusMode = false;
+let active = null;
 
-function ac() {
-  if (!ctx) {
-    ctx = new (window.AudioContext || window.webkitAudioContext)();
-    comp = ctx.createDynamicsCompressor();
-    comp.threshold.value = -18; comp.ratio.value = 6;
-    master = ctx.createGain();
-    master.gain.value = 0.7;
-    master.connect(comp); comp.connect(ctx.destination);
-  }
-  if (ctx.state === 'suspended') ctx.resume();
-  return ctx;
-}
-const hz = (midi) => 440 * Math.pow(2, (midi - 69) / 12);
-
-function voice(o) {
-  const a = ac();
-  const osc = a.createOscillator(), g = a.createGain(), f = a.createBiquadFilter();
-  osc.type = o.type || 'triangle';
-  osc.frequency.setValueAtTime(hz(o.midi), o.at);
-  if (o.glideTo) osc.frequency.exponentialRampToValueAtTime(hz(o.glideTo), o.at + (o.glideTime || o.dur * 0.7));
-  if (o.detune) osc.detune.value = o.detune;
-  f.type = 'lowpass';
-  f.frequency.setValueAtTime(o.filter || 5000, o.at);
-  if (o.filterTo) f.frequency.linearRampToValueAtTime(o.filterTo, o.at + o.dur);
-  osc.connect(f); f.connect(g); g.connect(master);
-  const vol = (o.gain || 0.05) * (focusMode ? (o.kind === 'drum' ? 0.35 : 0.8) : 1);
-  g.gain.setValueAtTime(0.0001, o.at);
-  g.gain.linearRampToValueAtTime(vol, o.at + (o.attack || 0.012));
-  g.gain.setTargetAtTime(0.0001, o.at + Math.max(0.03, o.dur * (o.sustain || 0.55)), Math.max(0.035, o.dur * 0.18));
-  osc.start(o.at); osc.stop(o.at + o.dur + 0.15);
-  if (o.doubled) {
-    const o2 = a.createOscillator(), g2 = a.createGain();
-    o2.type = o.type || 'triangle'; o2.detune.value = (o.detune || 0) + 8;
-    o2.frequency.setValueAtTime(hz(o.midi), o.at);
-    o2.connect(g2); g2.connect(master);
-    g2.gain.setValueAtTime(0.0001, o.at);
-    g2.gain.linearRampToValueAtTime(vol * 0.6, o.at + 0.014);
-    g2.gain.setTargetAtTime(0.0001, o.at + Math.max(0.03, o.dur * 0.55), Math.max(0.04, o.dur * 0.2));
-    o2.start(o.at); o2.stop(o.at + o.dur + 0.15);
-  }
+function refresh() {
+  document.querySelectorAll('.card').forEach((cardEl) => {
+    const on = cardEl.dataset.id === active;
+    cardEl.classList.toggle('playing', on);
+    cardEl.querySelector('.play').textContent = on ? '⏸ Остановить' : '▶ Послушать';
+  });
 }
 
-function drum(at, type, vol = 1) {
-  const a = ac();
-  const v = vol * (focusMode ? 0.3 : 1);
-  if (type === 'kick' || type === 'thump') {
-    const osc = a.createOscillator(), g = a.createGain();
-    osc.type = 'sine';
-    const f0 = type === 'thump' ? 92 : 118;
-    osc.frequency.setValueAtTime(f0, at);
-    osc.frequency.exponentialRampToValueAtTime(type === 'thump' ? 40 : 48, at + 0.12);
-    g.gain.setValueAtTime(0.11 * v, at);
-    g.gain.exponentialRampToValueAtTime(0.0001, at + (type === 'thump' ? 0.2 : 0.16));
-    osc.connect(g); g.connect(master); osc.start(at); osc.stop(at + 0.22);
-    return;
-  }
-  if (type === 'boom') { // хардстайл-бочка: длиннее и с «телом»
-    const osc = a.createOscillator(), g = a.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(150, at);
-    osc.frequency.exponentialRampToValueAtTime(50, at + 0.06);
-    osc.frequency.setValueAtTime(50, at + 0.06);
-    g.gain.setValueAtTime(0.12 * v, at);
-    g.gain.exponentialRampToValueAtTime(0.0001, at + 0.26);
-    osc.connect(g); g.connect(master); osc.start(at); osc.stop(at + 0.3);
-    return;
-  }
-  if (type === 'hat') {
-    const osc = a.createOscillator(), g = a.createGain();
-    osc.type = 'square'; osc.frequency.setValueAtTime(7600, at);
-    g.gain.setValueAtTime(0.008 * v, at);
-    g.gain.exponentialRampToValueAtTime(0.0001, at + 0.025);
-    osc.connect(g); g.connect(master); osc.start(at); osc.stop(at + 0.04);
-    return;
-  }
-  if (type === 'snare') {
-    const osc = a.createOscillator(), g = a.createGain();
-    osc.type = 'triangle'; osc.frequency.setValueAtTime(185, at);
-    g.gain.setValueAtTime(0.02 * v, at);
-    g.gain.exponentialRampToValueAtTime(0.0001, at + 0.09);
-    osc.connect(g); g.connect(master); osc.start(at); osc.stop(at + 0.1);
-    const o2 = a.createOscillator(), g2 = a.createGain();
-    o2.type = 'square'; o2.frequency.setValueAtTime(1400, at);
-    g2.gain.setValueAtTime(0.012 * v, at);
-    g2.gain.exponentialRampToValueAtTime(0.0001, at + 0.06);
-    o2.connect(g2); g2.connect(master); o2.start(at); o2.stop(at + 0.07);
-    return;
-  }
-  if (type === 'clap') {
-    for (let i = 0; i < 3; i++) {
-      const t = at + i * 0.012;
-      const o = a.createOscillator(), g = a.createGain(), f = a.createBiquadFilter();
-      o.type = 'square'; o.frequency.setValueAtTime(2100 + i * 320, t);
-      f.type = 'bandpass'; f.frequency.value = 2400;
-      g.gain.setValueAtTime(0.016 * v, t);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
-      o.connect(f); f.connect(g); g.connect(master); o.start(t); o.stop(t + 0.06);
-    }
-    return;
-  }
-  if (type === 'cowbell') {
-    [540, 800].forEach((f0, i) => {
-      const o = a.createOscillator(), g = a.createGain(), bp = a.createBiquadFilter();
-      o.type = 'square'; o.frequency.setValueAtTime(f0, at);
-      bp.type = 'bandpass'; bp.frequency.value = 2400; bp.Q.value = 1.2;
-      g.gain.setValueAtTime((i ? 0.014 : 0.02) * v, at);
-      g.gain.exponentialRampToValueAtTime(0.0001, at + 0.16);
-      o.connect(bp); bp.connect(g); g.connect(master); o.start(at); o.stop(at + 0.2);
-    });
-    return;
-  }
-  if (type === 'bell' || type === 'drop') {
-    const o = a.createOscillator(), g = a.createGain();
-    o.type = 'sine';
-    const f0 = type === 'bell' ? 1560 : 2400 + Math.random() * 1800;
-    o.frequency.setValueAtTime(f0, at);
-    g.gain.setValueAtTime((type === 'bell' ? 0.03 : 0.012) * v, at);
-    g.gain.exponentialRampToValueAtTime(0.0001, at + (type === 'bell' ? 0.5 : 0.12));
-    o.connect(g); g.connect(master); o.start(at); o.stop(at + 0.6);
-  }
-}
-
-/* ── Грувы: таблица вместо if-цепочек ───────────────────────────────────── */
-const G = {
-  pop:       { kick:[1,0,0,0, 0,0,1,0, 0,0,1,0, 0,0,0,0], snare:[0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,1], hat:[0,0,1,0, 0,0,1,0, 0,0,1,0, 0,0,1,0], bass:'quarter', chord:'pad', lead:'triangle', leadOct:0, motif:[0,2,4,3,1,4,2,0] },
-  lofi:      { kick:[1,0,0,0, 0,0,0,0, 1,0,0,0, 0,0,0,0], snare:[0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0], bass:'quarter', chord:'pad', lead:'triangle', leadOct:0, filter:1500, swing:0.12, motif:[0,1,3,2,4,2,1,0] },
-  arcade:    { kick:[1,0,0,0, 0,0,1,0, 1,0,0,0, 0,0,1,0], snare:[0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0], hat:[0,0,1,0, 0,0,1,0, 0,0,1,0, 0,0,1,0], bass:'eighth', chord:'stab', lead:'square', leadOct:0, motif:[0,2,4,7,4,2,4,0], extra:'blip' },
-  dance:     { kick:[1,0,0,0, 1,0,0,0, 1,0,0,0, 1,0,0,0], snare:[0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0], hat:[0,0,1,0, 0,0,1,0, 0,0,1,0, 0,0,1,0], bass:'offbeat', chord:'stab', lead:'triangle', leadOct:0, motif:[0,3,2,4,1,4,2,0] },
-  tropical:  { kick:[1,0,0,0, 0,0,0,0, 1,0,0,1, 0,0,1,0], snare:[0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0], hat:[0,1,0,1, 0,1,0,1, 0,1,0,1, 0,1,0,1], bass:'syncop', chord:'pluck', lead:'triangle', leadOct:0, motif:[0,2,3,1,4,3,2,0] },
-  cinematic: { kick:[1,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0], snare:[], bass:'drone', chord:'pad', lead:'sine', leadOct:1, motif:[0,4,2,7,4,2,1,0], filter:2600 },
-
-  /* новые — тренд-волна */
-  bounce:    { kick:[1,0,0,0, 0,0,0,0, 0,0,1,0, 0,0,0,0], snare:[0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0], hat:[0,0,0,1, 0,0,1,0, 0,0,0,1, 0,1,1,0], bass:'slide', chord:'none', lead:'square', leadOct:0, hook:'sixseven', motif:[5,6,5,6,4,5,6,4], swing:0.08, hatVol:0.7 },
-  duck:      { kick:[1,0,0,0, 1,0,0,0, 1,0,0,0, 1,0,0,0], clap:[0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0], hat:[0,0,1,0, 0,0,1,0, 0,0,1,0, 0,0,1,1], bass:'offbeat', chord:'stab', lead:'pluck', leadOct:0, hook:'wave', motif:[0,0,2,2,4,4,2,0], swing:0.18 },
-  kpop:      { kick:[1,0,0,0, 1,0,0,0, 1,0,0,0, 1,0,0,0], clap:[0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0], hat:[0,0,1,0, 0,0,1,0, 0,0,1,0, 0,0,1,0], bass:'eighth', chord:'anthem', lead:'saw', leadOct:0, motif:[0,2,4,7,4,2,0,4], build:true },
-  phonk:     { kick:[1,0,0,0, 0,0,1,0, 0,0,1,0, 0,0,0,0], snare:[0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0], hat:[1,0,1,1, 0,1,1,0, 1,0,1,1, 0,1,0,1], bass:'slide', chord:'none', lead:'cowbell', leadOct:1, motif:[0,3,0,5,3,0,7,5], swing:0.16, hatVol:0.6 },
-  funkbr:    { kick:[1,0,0,1, 0,0,1,0, 0,1,0,0, 1,0,1,0], snare:[0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0], hat:[0,1,1,0, 1,0,1,1, 0,1,1,0, 1,0,1,1], bass:'slide', chord:'none', lead:'cowbell', leadOct:1, motif:[0,5,3,0,7,5,3,0], swing:0.14, hatVol:0.55 },
-  punk:      { kick:[1,0,0,0, 0,0,1,0, 1,0,0,0, 0,0,1,0], snare:[0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0], hat:[1,0,1,0, 1,0,1,0, 1,0,1,0, 1,0,1,1], bass:'eighth', chord:'power', lead:'saw', leadOct:0, motif:[0,0,3,0,5,3,0,2], filter:3200 },
-  postpunk:  { kick:[1,0,0,0, 0,0,1,0, 1,0,0,0, 0,0,1,0], snare:[0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0], hat:[0,0,1,0, 0,0,1,0, 0,0,1,0, 0,0,1,0], bass:'octave', chord:'arp', lead:'triangle', leadOct:1, motif:[0,4,7,4,2,7,4,0], filter:3000, detune:7 },
-  ethno:     { kick:[1,0,0,0, 0,0,0,0, 1,0,0,1, 0,0,1,0], snare:[0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0], hat:[0,0,1,0, 0,1,0,1, 0,0,1,0, 0,1,0,1], bass:'drone', chord:'dronechord', lead:'pluck', leadOct:0, motif:[0,1,2,4,2,1,4,2], grace:true, filter:3600 },
-  house:     { kick:[1,0,0,0, 1,0,0,0, 1,0,0,0, 1,0,0,0], clap:[0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0], hat:[0,0,1,0, 0,0,1,0, 0,0,1,0, 0,0,1,0], bass:'offbeat', chord:'stab', lead:'pluck', leadOct:1, motif:[0,2,4,2,7,4,2,0], filter:3200, hatVol:0.8 },
-  twostep:   { kick:[1,0,0,0, 0,0,1,0, 0,0,1,0, 0,1,0,0], snare:[0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0], hat:[0,1,0,0, 1,0,1,0, 0,1,0,1, 0,0,1,0], bass:'slide', chord:'stab', lead:'pluck', leadOct:0, motif:[0,3,2,0,4,2,3,0], swing:0.22 },
-  hardstyle: { kick:[1,0,1,0, 1,0,1,0, 1,0,1,0, 1,0,1,0], clap:[0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0], bass:'reverse', chord:'stab', lead:'saw', leadOct:0, motif:[0,0,7,0,5,0,7,9], boom:true, filter:4000 },
-  tarantella:{ kick:[1,0,0,0, 0,0,1,0, 1,0,0,0, 0,1,0,0], snare:[0,0,0,0, 0,0,0,1, 0,0,0,0, 0,0,0,1], hat:[], bass:'eighth', chord:'pluck', lead:'pluck', leadOct:1, motif:[0,2,4,5,4,2,4,0], swing:0.3 },
-
-  /* фокус-полка */
-  classical: { kick:[], snare:[], hat:[], bass:'half', chord:'arpeggio', lead:'sine', leadOct:1, motif:[0,2,4,2,7,4,2,0], filter:2400, soft:true },
-  pulse60:   { kick:[1,0,0,0, 0,0,0,0, 1,0,0,0, 0,0,0,0], snare:[], hat:[], bass:'half', chord:'pad', lead:'sine', leadOct:0, motif:[0,4,2,4,0,2,4,7], filter:1600, soft:true, thump:true },
-  lofirain:  { kick:[1,0,0,0, 0,0,0,0, 1,0,0,0, 0,0,0,0], snare:[0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0], hat:[], bass:'quarter', chord:'pad', lead:'triangle', leadOct:0, motif:[0,2,3,1,2,0,3,2], filter:1300, swing:0.14, rain:true, soft:true },
-  ambient:   { kick:[], snare:[], hat:[], bass:'drone', chord:'pad', lead:'sine', leadOct:1, motif:[0,4,7,4,2,7,4,0], filter:1400, sparse:true, soft:true },
-
-  /* сезонные */
-  musicbox:  { kick:[], snare:[], hat:[], bass:'half', chord:'none', lead:'bell', leadOct:2, motif:[0,1,0,5,4,1,0,3], filter:3000, trill:true, soft:true },
-  bellpop:   { kick:[1,0,0,0, 0,0,1,0, 1,0,0,0, 0,0,1,0], snare:[0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0], hat:[0,0,1,0, 0,0,1,0, 0,0,1,0, 0,0,1,0], bass:'quarter', chord:'bellchord', lead:'bell', leadOct:1, motif:[0,2,4,7,4,2,4,0], bellBeat:true },
-};
-
-const ROOTS = [48, 53, 55, 50];
-
-function playNote(track, g, midi, at, dur, kind) {
-  const leadType = g.lead === 'square' ? 'square' : g.lead === 'saw' ? 'sawtooth' : g.lead === 'pluck' ? 'triangle' : g.lead === 'bell' ? 'sine' : 'triangle';
-  const vol = kind === 'lead' ? (g.soft ? 0.03 : 0.045) : kind === 'bass' ? 0.075 : 0.018;
-  const o = { midi, at, dur, type: leadType, gain: vol, filter: g.filter || 5000, kind: 'note' };
-  if (g.detune) o.detune = g.detune;
-  if (g.lead === 'saw' || g.lead === 'pluck') { o.doubled = true; o.filterTo = (g.filter || 5000) * 0.4; }
-  if (g.lead === 'bell') { o.gain = 0.03; o.sustain = 0.25; }
-  if (kind === 'chord' && (g.chord === 'pad' || g.chord === 'anthem' || g.chord === 'dronechord')) { o.attack = g.chord === 'anthem' ? 0.06 : 0.25; o.sustain = 0.8; }
-  if (kind === 'chord' && g.chord === 'power') { o.type = 'sawtooth'; o.gain = 0.028; o.filter = 1800; o.doubled = true; }
-  if (g.lead === 'cowbell' && kind === 'lead') { drum(at, 'cowbell', 0.9); voice({ midi: midi + 12, at, dur: dur * 0.6, type: 'square', gain: 0.012, filter: 2600, kind: 'note' }); return; }
-  voice(o);
-}
-
-function chordVoicing(g, root) {
-  if (g.chord === 'power') return [0, 7];
-  if (g.chord === 'dronechord') return [0, 7, 12];
-  if (g.chord === 'arpeggio' || g.chord === 'arp') return [0, 4, 7, 12];
-  if (g.chord === 'bellchord') return [0, 7, 12, 16];
-  if (g.chord === 'anthem') return [0, 4, 7, 11];
-  return [0, 4, 7];
-}
-
-function scheduleStep(track, step, at) {
-  const g = G[track.groove] || G.pop;
-  const beat = Math.floor(step / 4);
-  const s16 = step % 16;
-  const bar = Math.floor(beat / 4);
-  const root = ROOTS[bar % 4];
-  const beatSec = 60 / (focusMode ? Math.min(track.bpm, 90) : track.bpm);
-  const sc = track.scale;
-  const deg = (i) => sc[((i % sc.length) + sc.length) % sc.length];
-
-  // ── аккорд / пэд
-  if (g.chord !== 'none') {
-    if (g.chord === 'arpeggio' || g.chord === 'arp') {
-      if (step % 2 === 0) {
-        const seq = chordVoicing(g, root);
-        const n = seq[(step / 2) % seq.length];
-        playNote(track, g, root + 12 + n, at, beatSec * 0.9, 'chord');
-      }
-    } else if (g.chord === 'stab') {
-      if (s16 === 2 || s16 === 10) chordVoicing(g, root).forEach((n) => playNote(track, g, root + 12 + n, at, beatSec * 0.35, 'chord'));
-    } else if (g.chord === 'power') {
-      if (step % 2 === 0) chordVoicing(g, root).forEach((n) => playNote(track, g, root + n, at, beatSec * 0.42, 'chord'));
-    } else if (g.chord === 'bellchord') {
-      if (s16 === 0) chordVoicing(g, root).forEach((n) => playNote(track, g, root + 12 + n, at, beatSec * 1.6, 'chord'));
-    } else if (step % 16 === 0) {
-      chordVoicing(g, root).forEach((n) => playNote(track, g, root + 12 + n, at, beatSec * (g.soft ? 4.2 : 3.5), 'chord'));
-    }
-  }
-
-  // ── бас
-  if (g.bass === 'quarter' && s16 % 4 === 0) playNote(track, g, root, at, beatSec * 0.82, 'bass');
-  if (g.bass === 'eighth' && s16 % 2 === 0) playNote(track, g, root + (s16 % 4 === 2 ? 12 : 0), at, beatSec * 0.42, 'bass');
-  if (g.bass === 'half' && s16 % 8 === 0) playNote(track, g, root, at, beatSec * 1.7, 'bass');
-  if (g.bass === 'offbeat' && s16 % 4 === 2) playNote(track, g, root, at, beatSec * 0.4, 'bass');
-  if (g.bass === 'syncop' && [0, 3, 6, 10, 12].includes(s16)) playNote(track, g, root, at, beatSec * 0.36, 'bass');
-  if (g.bass === 'octave' && s16 % 2 === 0) playNote(track, g, root + ((step / 2) % 2 ? 12 : 0), at, beatSec * 0.4, 'bass');
-  if (g.bass === 'drone' && step % 16 === 0) { playNote(track, g, root, at, beatSec * 3.8, 'bass'); playNote(track, g, root + 7, at, beatSec * 3.8, 'bass'); }
-  if (g.bass === 'reverse' && s16 % 2 === 1) playNote(track, g, root, at, beatSec * 0.34, 'bass');
-  if (g.bass === 'slide' && (s16 === 0 || s16 === 6 || s16 === 10)) {
-    const a2 = ac();
-    const osc = a2.createOscillator(), gn = a2.createGain(), f = a2.createBiquadFilter();
-    osc.type = 'triangle';
-    const from = root - (s16 === 0 ? 5 : 0);
-    osc.frequency.setValueAtTime(hz(from), at);
-    osc.frequency.exponentialRampToValueAtTime(hz(root), at + beatSec * 0.3);
-    f.type = 'lowpass'; f.frequency.setValueAtTime(700, at);
-    osc.connect(f); f.connect(gn); gn.connect(master);
-    const v = 0.085 * (focusMode ? 0.4 : 1);
-    gn.gain.setValueAtTime(0.0001, at);
-    gn.gain.linearRampToValueAtTime(v, at + 0.02);
-    gn.gain.setTargetAtTime(0.0001, at + beatSec * 0.35, 0.08);
-    osc.start(at); osc.stop(at + beatSec * 0.9);
-  }
-
-  // ── мелодия
-  const motif = g.motif;
-  const phrase = (beat + bar * 3 + (track.id.length % 4)) % motif.length;
-  const oct = 60 + ((g.leadOct || 0) * 12);
-  const density = g.sparse ? 16 : g.soft ? 8 : 4;
-  const leadOn = step % density === 0 && (!g.build || bar >= 2 || step % 8 === 0);
-  if (leadOn) {
-    const n = deg(motif[phrase % motif.length]);
-    const dur = beatSec * (g.soft ? 1.4 : 0.72);
-    if (g.grace) { // фольклорный форшлаг
-      playNote(track, g, oct + deg(motif[phrase % motif.length] + 1), at, beatSec * 0.09, 'lead');
-      playNote(track, g, oct + n, at + beatSec * 0.1, dur, 'lead');
-    } else {
-      playNote(track, g, oct + n, at, dur, 'lead');
-    }
-    if (g.trill && bar % 2 === 1) playNote(track, g, oct + n + 1, at + beatSec * 0.4, beatSec * 0.3, 'lead');
-  }
-  // «крюк» — узнаваемая фигурка тренда
-  if (g.hook === 'sixseven' && (s16 === 0 || s16 === 3)) {
-    const first = s16 === 0;
-    playNote(track, g, oct + deg(first ? 5 : 6), at, beatSec * 0.42, 'lead');
-    if (bar % 2 === 1 && s16 === 3) playNote(track, g, oct + deg(4), at + beatSec * 0.3, beatSec * 0.4, 'lead');
-  }
-  if (g.hook === 'wave' && (s16 === 4 || s16 === 12)) {
-    [0, 2].forEach((k) => playNote(track, g, oct + deg(motif[(phrase + k) % motif.length]), at + k * beatSec * 0.22, beatSec * 0.2, 'lead'));
-  }
-  if (g.extra === 'blip' && step % 8 === 6) playNote(track, g, oct + 12 + deg(phrase + 2), at, beatSec * 0.28, 'lead');
-
-  // ── перкуссия
-  const hit = (arr) => arr && arr[s16];
-  const hv = g.hatVol ?? 1;
-  if (hit(g.kick)) drum(at, g.thump ? 'thump' : g.boom ? 'boom' : 'kick');
-  if (hit(g.snare)) drum(at, 'snare');
-  if (hit(g.clap)) drum(at, 'clap');
-  if (hit(g.hat)) drum(at, 'hat', hv);
-  if (g.bellBeat && s16 === 8) drum(at, 'bell', 0.8);
-  if (g.rain && Math.random() < 0.18) drum(at + Math.random() * 0.1, 'drop');
-}
-
-function startLoop(track) {
-  const a = ac();
-  stopLoop();
-  active = track.id;
-  nextStep = 0;
-  nextAt = a.currentTime + 0.08;
-  document.querySelectorAll('.card').forEach((c) => c.classList.toggle('playing', c.dataset.id === track.id));
-  document.querySelectorAll('.play').forEach((b) => { if (b.closest('.card').dataset.id === track.id) b.textContent = '⏸ Пауза'; });
-  timer = setInterval(() => {
-    if (!ctx || active !== track.id) return;
-    const now = ctx.currentTime;
-    const g = G[track.groove] || G.pop;
-    const bpm = focusMode ? Math.min(track.bpm, 90) : track.bpm;
-    const stepSec = (60 / bpm) / 4;
-    const swing = g.swing || 0;
-    while (nextAt < now + 0.2) {
-      const off = (nextStep % 2 === 1) ? stepSec * swing : 0;
-      scheduleStep(track, nextStep, nextAt + off);
-      nextStep = (nextStep + 1) % 64;
-      nextAt += stepSec;
-    }
-  }, 45);
+function startLoop(entry) {
+  active = entry.track.id;
+  DEMO.play(entry.track);
+  refresh();
 }
 
 function stopLoop() {
-  if (timer) clearInterval(timer);
-  timer = null; active = null;
-  if (ctx && master) {
-    const now = ctx.currentTime;
-    master.gain.cancelScheduledValues(now);
-    master.gain.setTargetAtTime(volume(), now, 0.03);
-  }
-  document.querySelectorAll('.card').forEach((c) => c.classList.remove('playing'));
-  document.querySelectorAll('.play').forEach((b) => { b.textContent = '▶ Послушать'; });
+  active = null;
+  DEMO.stop();
+  refresh();
 }
 
-/* ── Стингеры наград ───────────────────────────────────────────────────── */
-function sting(kind) {
-  const a = ac();
-  const t0 = a.currentTime + 0.02;
-  const seq = {
-    sixseven: [[70, 0], [72, 0.14], [70, 0.3], [72, 0.42]],
-    cowbell:  [[0, 0]],
-    mogu:     [[67, 0], [69, 0.12], [72, 0.24], [69, 0.38], [67, 0.5]],
-    golden:   [[60, 0], [64, 0.09], [67, 0.18], [72, 0.27], [76, 0.38]],
-    bell:     [[0, 0]],
-  }[kind];
-  if (kind === 'cowbell') {
-    [0, 0.13, 0.26].forEach((d, i) => drum(t0 + d, 'cowbell', 1 - i * 0.15));
-    voice({ midi: 45, at: t0, dur: 0.5, type: 'triangle', gain: 0.08, filter: 700 });
-    return;
-  }
-  if (kind === 'bell') {
-    [0, 0.42].forEach((d) => drum(t0 + d, 'bell', 1));
-    voice({ midi: 60, at: t0, dur: 0.8, type: 'sine', gain: 0.05, filter: 2600 });
-    voice({ midi: 64, at: t0, dur: 0.8, type: 'sine', gain: 0.04, filter: 2600 });
-    return;
-  }
-  seq.forEach(([m, d]) => voice({ midi: m, at: t0 + d, dur: 0.22, type: kind === 'golden' ? 'sawtooth' : 'triangle', gain: kind === 'golden' ? 0.05 : 0.07, filter: 4200, doubled: kind === 'golden' }));
-  if (kind === 'golden') [0, 7, 12].forEach((n) => voice({ midi: 48 + n, at: t0 + 0.36, dur: 1.1, type: 'sine', gain: 0.05, filter: 2400 }));
-}
-
-/* ── Каталог ───────────────────────────────────────────────────────────── */
-const TREND1 = [
-  { id:'six-seven', title:'Шесть-семь', style:'Мем-баунс (дрилл-лайт)', emoji:'6️⃣', bpm:140, price:14, scale:[0,2,3,5,7,8,10], groove:'bounce', trend:'Мем «67»: Skrilla «Doot Doot» → Gazan «67 (Six Seven)», №2 у школьников РФ', note:'Крюк — шестая и седьмая ступень лада: музыкальная шутка про 6 и 7, без единой цитаты.' },
-  { id:'duck-dance', title:'Утята', style:'Танец утят 2026', emoji:'🦆', bpm:124, price:12, scale:[0,2,4,7,9], groove:'duck', trend:'«Я тебя могну» (ЦУЕФА, июль 2026) — 8,3 млн видео, простой танец руками', note:'В каталоге 0.13.0 трек называется нейтрально — «Утята»: из мемов в именах оставили только «Шесть-семь».' },
-  { id:'golden-stage', title:'Золотая сцена', style:'K-pop гимн', emoji:'🏆', bpm:100, price:18, scale:[0,2,4,7,11], groove:'kpop', trend:'KPop Demon Hunters «Golden» — №1 Billboard, «Оскар», фандом 5–11 лет', note:'Двухтактовый «билд» и хлопок на 2 и 4: ощущение большого припева без вокала.' },
-  { id:'school-phonk', title:'Фонк на переменке', style:'Школьный фонк', emoji:'🐮', bpm:132, price:16, scale:[0,3,5,7,10], groove:'phonk', trend:'Жанр, которым дети называют всё дерзкое (ср. «Школьный фонк», 2025)', note:'Ковбелл-мелодия + скользящий бас. Самый «взрослый» звук в полке — поэтому и желанный.' },
-  { id:'campfire-punk', title:'Сказка у костра', style:'Сказочный панк', emoji:'🔥', bpm:168, price:18, scale:[0,2,3,5,7,8,10], groove:'punk', trend:'«Король и Шут» — №1 среди любимых артистов школьников (VK Музыка, 2026)', note:'Быстро, минорно, как страшная сказка. Только на наградах: для письма слишком бодро.' },
-  { id:'firebird', title:'Жар-птица', style:'Этно-электроника', emoji:'🪶', bpm:118, price:20, scale:[0,2,3,5,7,8,11], groove:'ethno', trend:'«Феникс» BEARWOLF — №3 у школьников: электроника + славянские танцы', note:'Дрон, форшлаги и народный лад поверх танцевального бита. «Наш» тренд, а не импортный.' },
-];
-
-const TREND2 = [
-  { id:'kitten-headphones', title:'Котёнок в наушниках', style:'Дип-хаус', emoji:'🎧', bpm:122, price:14, scale:[0,2,3,7,9], groove:'house', trend:'Вика Шоу «Просто» + анимация котёнка в наушниках; deep house-подборки 2026', note:'Мягче фонка, но современнее диско: хороший «средний» выбор.' },
-  { id:'cassette-wave', title:'Кассетный пост-панк', style:'Пост-панк', emoji:'📼', bpm:138, price:16, scale:[0,3,5,7,10], groove:'postpunk', trend:'«Кино» и Виктор Цой — №2 у школьников', note:'Восьмые баса и «хорус»-арпеджио: ретро-звук, который дети открыли заново.' },
-  { id:'tralala', title:'Тарантелла-трала', style:'Брейнрот-тарантелла', emoji:'🦈', bpm:150, price:16, scale:[0,2,4,5,7,9], groove:'tarantella', trend:'Итальянский брейнрот: Тралалеро Тралала, Бомбардиро Крокодило', note:'6/8 с свингом и щипками. Абсурдный тренд 2025-го, который дети помнят до сих пор.' },
-  { id:'rio-bounce', title:'Рио-баунс', style:'Бразильский фонк-поп', emoji:'🥁', bpm:130, price:16, scale:[0,3,5,7,10], groove:'funkbr', trend:'Brazilian phonk — тег, которым помечают и «67» Gazan', note:'Синкопированная бочка и ковбелл. Танцевальнее фонка, менее «тёмный».' },
-  { id:'maybe-maybe', title:'Может быть', style:'Ту-степ баунс', emoji:'🤔', bpm:126, price:12, scale:[0,2,3,7,9], groove:'twostep', trend:'«Филяй-филяй» (Vielleicht) — танцевальный тренд осени 2026', note:'Гаражный ломаный ритм: звучит «не как у всех» в каталоге.' },
-  { id:'storm-drop', title:'Шторм-дроп', style:'Киношный рейв', emoji:'⛈️', bpm:128, price:18, scale:[0,2,4,7,11], groove:'hardstyle', trend:'Танец под Storm II (GENER8ION × Yung Lean) — главный тренд осени 2026', note:'Бочка восьмыми и «обратный» бас. Громко: в магазин — с пометкой «для наград».' },
-];
-
-const FOCUS = [
-  { id:'quiet-piano', title:'Тихий рояль', style:'Минимал-классика', emoji:'🎹', bpm:68, price:10, scale:[0,2,4,7,9], groove:'classical', trend:'Классику слушают 27% отличников (VK Музыка × Учи.ру, 2026)', note:'Арпеджио без ударных: то, что реально помогает писать слова.' },
-  { id:'sixty-pulse', title:'Шестьдесят ударов', style:'Пульс 60', emoji:'⏱️', bpm:60, price:10, scale:[0,2,4,7,9], groove:'pulse60', trend:'Исследования фоновой музыки: медленный темп ≈ пульсу покоя', note:'Мягкий «тумп» раз в два счёта. Лучший кандидат на «по умолчанию в уроке».' },
-  { id:'rain-lofi', title:'Дождь за окном', style:'Лоу-фай с каплями', emoji:'🌧️', bpm:76, price:12, scale:[0,2,3,7,9], groove:'lofirain', trend:'Lo-fi — самый частый выбор для домашки', note:'Случайные тихие «капли» вместо шума: разнообразие без раздражения.' },
-  { id:'space-silence', title:'Космическая тишина', style:'Эмбиент-пад', emoji:'🌌', bpm:72, price:12, scale:[0,2,4,7,11], groove:'ambient', trend:'Для детей, которым любой бит мешает', note:'Почти тишина: пэд раз в такт и редкая нота. Честная альтернатива «выключить звук».' },
-];
-
-const SEASON = [
-  { id:'musicbox-ghosts', title:'Шкатулка с привидениями', style:'Жутковатая шкатулка', emoji:'🎃', bpm:92, price:12, scale:[0,1,5,6,8], groove:'musicbox', trend:'Хэллоуин: music-box звуки в трендах октября 2026', note:'Сезон: 20 октября — 5 ноября. Страшно ровно настолько, чтобы было смешно.' },
-  { id:'first-bell', title:'Первый звонок', style:'Звонкий поп', emoji:'🔔', bpm:112, price:12, scale:[0,2,4,7,9], groove:'bellpop', trend:'1 сентября; Gazan пел «67» на линейке и звонил в колокольчик', note:'Сезон: 25 августа — 15 сентября. Колокольчик на третий счёт.' },
-  { id:'tree-rave', title:'Ёлка-рейв', style:'Новогодний дэнс', emoji:'🎄', bpm:128, price:14, scale:[0,2,4,7,11], groove:'kpop', trend:'Новый год и каникулы', note:'Сезон: 15 декабря — 15 января. Самый покупаемый трек зимы.' },
-];
-
-const NOW = [
-  { id:'sunny-start', title:'Солнечный старт', style:'Лёгкий поп', emoji:'🌈', bpm:104, price:0, scale:[0,2,4,7,9], groove:'pop', note:'Бесплатный старт.' },
-  { id:'pixel-party', title:'Пиксельная вечеринка', style:'Аркадный чиптюн', emoji:'👾', bpm:126, price:0, scale:[0,3,5,7,10], groove:'arcade', note:'Бесплатный старт.' },
-  { id:'neon-sneakers', title:'Неоновые кеды', style:'Электропоп', emoji:'💜', bpm:120, price:8, scale:[0,2,4,7,9], groove:'dance' },
-  { id:'cloud-lofi', title:'Облачный лоу-фай', style:'Мягкий бит', emoji:'☁️', bpm:78, price:8, scale:[0,2,3,7,9], groove:'lofi' },
-  { id:'jungle-hop', title:'Прыжок в джунгли', style:'Тропический грув', emoji:'🦜', bpm:112, price:10, scale:[0,2,5,7,9], groove:'tropical' },
-  { id:'starlight', title:'Звёздный полёт', style:'Космический синтвейв', emoji:'🚀', bpm:96, price:10, scale:[0,2,4,7,11], groove:'cinematic' },
-  { id:'bubblegum', title:'Жвачка-бум', style:'Весёлый денс-поп', emoji:'🍬', bpm:132, price:12, scale:[0,2,4,7,9], groove:'dance' },
-  { id:'rainbow-disco', title:'Радужная дискотека', style:'Диско-бит', emoji:'🪩', bpm:118, price:12, scale:[0,2,5,7,9], groove:'pop' },
-  { id:'robot-boogie', title:'Робо-буги', style:'Фанковый робот-бит', emoji:'🤖', bpm:110, price:14, scale:[0,3,5,7,10], groove:'arcade' },
-  { id:'moon-marsh', title:'Лунное болото', style:'Мечтательный лоу-фай', emoji:'🌙', bpm:84, price:14, scale:[0,2,3,7,10], groove:'lofi' },
-  { id:'turbo-comet', title:'Турбо-комета', style:'Скоростной бит', emoji:'☄️', bpm:144, price:16, scale:[0,2,4,7,9], groove:'dance' },
-  { id:'underwater', title:'Подводный танец', style:'Морское приключение', emoji:'🐠', bpm:100, price:16, scale:[0,2,5,7,10], groove:'tropical' },
-  { id:'magic-forest', title:'Волшебный лес', style:'Сказочная мелодия', emoji:'🧚', bpm:90, price:18, scale:[0,2,4,7,11], groove:'cinematic' },
-  { id:'supernova', title:'Супернова', style:'Большой поп-бит', emoji:'✨', bpm:128, price:20, scale:[0,2,4,7,9], groove:'dance' },
-];
-
-const volume = () => (Number(document.getElementById('vol').value) / 100) * 0.9;
-
-function card(t) {
+function card(entry) {
+  const t = entry.track;
   const el = document.createElement('div');
   el.className = 'card';
   el.dataset.id = t.id;
@@ -557,36 +193,37 @@ function card(t) {
       <span class="chip price">${t.price === 0 ? 'бесплатно' : t.price + ' 💎'}</span>
       <span class="chip">groove: ${t.groove}</span>
     </div>
-    ${t.trend ? `<div class="trend">${t.trend}</div>` : ''}
-    ${t.note ? `<div class="note">${t.note}</div>` : ''}
+    ${entry.trend ? `<div class="trend">${entry.trend}</div>` : ''}
+    ${entry.note ? `<div class="note">${entry.note}</div>` : ''}
     <div class="row"><button class="play">▶ Послушать</button></div>`;
   el.querySelector('.play').addEventListener('click', () => {
     if (active === t.id) stopLoop();
-    else startLoop(t);
+    else startLoop(entry);
   });
   return el;
 }
 
-const mount = (id, list) => { const box = document.getElementById(id); list.forEach((t) => box.appendChild(card(t))); };
-mount('grid-trend1', TREND1);
-mount('grid-trend2', TREND2);
-mount('grid-focus', FOCUS);
-mount('grid-season', SEASON);
-mount('grid-now', NOW);
-
-document.getElementById('vol').addEventListener('input', (e) => {
-  if (master && ctx) master.gain.setTargetAtTime(volume(), ctx.currentTime, 0.02);
+DEMO.sections.forEach(({ grid, items }) => {
+  const box = document.getElementById(grid);
+  items.forEach((entry) => box.appendChild(card(entry)));
 });
+document.querySelector('.legend').insertAdjacentText('afterbegin',
+  `Движок: ${DEMO.grooveCount()} грувов, ${DEMO.trackCount()} лупов. `);
+
+const vol = document.getElementById('vol');
+const applyVolume = () => DEMO.setVolume((Number(vol.value) / 100) * 0.9);
+vol.addEventListener('input', applyVolume);
+applyVolume();
+
 document.getElementById('focus').addEventListener('change', (e) => {
-  focusMode = e.target.checked;
-  document.getElementById('hint').textContent = focusMode
-    ? 'Режим «Урок»: темп ≤90, перкуссия тише, хай-хэты и ковбелл почти не звучат.'
+  // Луп не перезапускается: движок читает контекст на каждом шаге планировщика
+  DEMO.setFocus(e.target.checked);
+  document.getElementById('hint').textContent = e.target.checked
+    ? 'Режим «Урок»: темп ≤90, перкуссия тише, хай-хэты и ковбелл почти не звучат — тот же луп, на лету.'
     : 'Одновременно играет один луп — так же, как в приложении.';
-  const cur = [...TREND1, ...TREND2, ...FOCUS, ...SEASON, ...NOW].find((t) => t.id === active);
-  if (cur) startLoop(cur);
 });
 document.getElementById('stop').addEventListener('click', stopLoop);
-document.querySelectorAll('.sting').forEach((b) => b.addEventListener('click', () => sting(b.dataset.sting)));
+document.querySelectorAll('.sting').forEach((b) => b.addEventListener('click', () => DEMO.stinger(b.dataset.sting)));
 </script>
 </body>
 </html>

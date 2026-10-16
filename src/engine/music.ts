@@ -9,7 +9,11 @@
  */
 export type Groove =
   | 'pop' | 'lofi' | 'arcade' | 'dance' | 'tropical' | 'cinematic'
-  | 'bounce' | 'duck' | 'kpop' | 'phonk' | 'punk' | 'ethno';
+  | 'bounce' | 'duck' | 'kpop' | 'phonk' | 'punk' | 'ethno'
+  // Лаборатория и будущие волны: рисунки живут снаружи (registerGrooves),
+  // а тип разрешает каталогу расти без правок движка.
+  | 'house' | 'postpunk' | 'tarantella' | 'funkbr' | 'twostep' | 'hardstyle'
+  | 'classical' | 'pulse60' | 'lofirain' | 'ambient' | 'musicbox' | 'bellpop';
 
 /** Полка в витрине магазина: базовая коллекция или «Тренд 2026». */
 export type MusicShelf = 'core' | 'trend';
