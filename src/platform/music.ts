@@ -34,6 +34,8 @@ let timer: ReturnType<typeof setInterval> | null = null;
 let activeId: string | null = null;
 let nextStep = 0;
 let nextAt = 0;
+/** Номер прохода лупа: фразы дышат по-новому на каждом круге (детерминированно). */
+let loopCycle = 0;
 let enabled = true;
 let scene: MusicContext = 'reward';
 let volume = 0.62;
@@ -1790,6 +1792,9 @@ function scheduleStep(track: MusicTrack, spec: GrooveSpec, state: ReturnType<typ
   // конец фразы — аккордовый стаб (chord melody). Всё seeded: детерминированно.
   if (spec.duo && spec.changes) {
     const lesson = scene === 'lesson';
+    // динамическая волна формы: 8 тактов от тихого входа к пику на 7-м и
+    // выдоху в обороте — луп перестаёт быть ровной «пилой» громкости
+    const wave = [0.85, 0.92, 1, 1.06, 0.94, 1.04, 1.12, 0.8][bar % 8];
     const ch = spec.changes[(bar % 8) * 2 + (s16 >= 8 ? 1 : 0)];
     const next = spec.changes[((bar % 8) * 2 + (s16 >= 8 ? 1 : 0) + 1) % spec.changes.length];
     const cRoot = 48 + ch.r;
@@ -1798,7 +1803,7 @@ function scheduleStep(track: MusicTrack, spec: GrooveSpec, state: ReturnType<typ
     if (s16 % 4 === 0) {
       // ла-помпе: чоп-аккорд, акцент 2 и 4, микро-разброс атак
       const acc = beat === 1 || beat === 3 ? 1.25 : 0.9;
-      const pompeGain = 0.026 * acc * (lesson ? 0.55 : 1);
+      const pompeGain = 0.026 * acc * (lesson ? 0.55 : 1) * wave;
       [0, 1, 2].forEach((i) =>
         ksVoice(ctx, {
           at: t + i * 0.011 + (rnd() - 0.5) * 0.006,
@@ -1812,7 +1817,7 @@ function scheduleStep(track: MusicTrack, spec: GrooveSpec, state: ReturnType<typ
       const walk = beat < 3 ? [0, tones[1], tones[2]][beat] : ((next.r - ch.r + 12) % 12) - 1;
       ksVoice(ctx, {
         at: t + (rnd() - 0.5) * 0.008, freq: hz(cRoot + walk - 12),
-        dur: beatSeconds * 0.95, gain: 0.07 * (0.85 + rnd() * 0.3) * (lesson ? 0.8 : 1),
+        dur: beatSeconds * 0.95, gain: 0.07 * (0.85 + rnd() * 0.3) * (lesson ? 0.8 : 1) * wave,
         bright: 0.3, sustain: 0.9978, body: 'upright', bus: 'bass', rev: 0.05,
       });
     }
@@ -1822,15 +1827,23 @@ function scheduleStep(track: MusicTrack, spec: GrooveSpec, state: ReturnType<typ
       const phrase = Math.floor((bar % 8) / 2);
       const call = phrase % 2 === 0;
       const e = phStep / 2;
+      const cyc = loopCycle;
       const TEMPLATES: { e: number; d: number; kind: 'c' | 'p' | 'end' }[][] = [
         [{ e: 0, d: 2, kind: 'c' }, { e: 3, d: 1, kind: 'p' }, { e: 4, d: 2, kind: 'c' }, { e: 6, d: 1, kind: 'p' }, { e: 8, d: 3, kind: 'c' }, { e: 12, d: 1, kind: 'p' }, { e: 14, d: 2, kind: 'c' }],
         [{ e: 0, d: 1, kind: 'p' }, { e: 2, d: 2, kind: 'c' }, { e: 5, d: 1, kind: 'p' }, { e: 6, d: 2, kind: 'c' }, { e: 8, d: 2, kind: 'p' }, { e: 10, d: 2, kind: 'c' }, { e: 12, d: 4, kind: 'end' }],
         [{ e: 0, d: 3, kind: 'c' }, { e: 4, d: 1, kind: 'p' }, { e: 6, d: 2, kind: 'c' }, { e: 9, d: 1, kind: 'p' }, { e: 10, d: 2, kind: 'c' }, { e: 12, d: 1, kind: 'p' }, { e: 14, d: 2, kind: 'c' }],
         [{ e: 2, d: 2, kind: 'c' }, { e: 4, d: 1, kind: 'p' }, { e: 6, d: 3, kind: 'c' }, { e: 10, d: 1, kind: 'p' }, { e: 12, d: 2, kind: 'c' }, { e: 14, d: 2, kind: 'end' }],
       ];
-      const ev = TEMPLATES[phrase % 4].find((x) => x.e === e);
+      // каждый второй круг фразы меняют очерёдность шаблонов: та же
+      // грамматика, другой рассказ
+      const tIdx = (phrase + (cyc % 2) * 2) % 4;
+      const firstE = TEMPLATES[tIdx][0].e;
+      // вдох: «ответ» иногда молчит в первой реплике — вопрос повисает
+      const breathSkip = !call && e === firstE &&
+        mulberry(hashString(`${track.id}:breath:${cyc}:${phrase}`))() < 0.25;
+      const ev = breathSkip ? undefined : TEMPLATES[tIdx].find((x) => x.e === e);
       if (ev) {
-        const lr = mulberry(hashString(`${track.id}:duoL:${bar}:${e}`));
+        const lr = mulberry(hashString(`${track.id}:duoL:${cyc}:${bar}:${e}`));
         const octave = call ? 12 : 24;
         const pan = call ? -0.25 : 0.25;
         const leadK = lesson ? 0.8 : 1;
@@ -1838,10 +1851,18 @@ function scheduleStep(track: MusicTrack, spec: GrooveSpec, state: ReturnType<typ
         const durS = ev.d * beatSeconds * 0.5 * 0.95;
         const cutoff = Math.min(state.cutoff || 6500, 6500);
         if (ev.kind === 'end') {
+          // рубато каденции: стаб приходит на 45–80 мс позже доли (laid back),
+          // с grace-нотой полутоном ниже за 40 мс — жест живой руки
+          const late = t + 0.045 + lr() * 0.035;
+          ksVoice(ctx, {
+            at: late - 0.04, freq: hz(cRoot + octave + tones[2] - 1), dur: 0.12,
+            gain: noteGain * 0.45, bright: 0.6, body: 'guitar', chop: 0.05,
+            sustain: 0.995, cutoff, bus: 'lead', pan, rev: 0.25,
+          });
           // chord melody: фраза заканчивается аккордом, а не одиночной нотой
           [0, tones[1], tones[2]].forEach((semi, i) =>
             ksVoice(ctx, {
-              at: t + i * 0.014, freq: hz(cRoot + octave + semi), dur: 0.9,
+              at: late + i * 0.014, freq: hz(cRoot + octave + semi), dur: 0.9,
               gain: noteGain * 0.8, bright: 0.6, body: 'guitar', chop: 0.55,
               sustain: 0.996, cutoff, bus: 'lead', pan: pan + (i - 1) * 0.12, rev: 0.3,
             }),
@@ -1849,11 +1870,39 @@ function scheduleStep(track: MusicTrack, spec: GrooveSpec, state: ReturnType<typ
         } else {
           const pool = ev.kind === 'c' ? tones : [tones[0] - 1, tones[1] + 1, tones[2] - 1, tones[2] + 1];
           const semi = pool[Math.floor(lr() * pool.length)] + (ev.kind === 'c' && lr() < 0.3 ? 12 : 0);
-          ksVoice(ctx, {
-            at: t + (lr() - 0.5) * 0.01, freq: hz(cRoot + octave + semi), dur: durS,
-            gain: noteGain, bright: 0.62, body: 'guitar', sustain: 0.9965, cutoff,
-            bus: 'lead', pan, rev: 0.3, dly: 0.12,
-          });
+          // enclosure: иногда цель обходится сверху через полутон — две
+          // быстрые ноты вместо одной, как у живого солиста
+          if (ev.kind === 'c' && lr() < 0.18) {
+            ksVoice(ctx, {
+              at: t, freq: hz(cRoot + octave + semi + 1), dur: durS * 0.45,
+              gain: noteGain * 0.7, bright: 0.62, body: 'guitar', sustain: 0.996, cutoff,
+              bus: 'lead', pan, rev: 0.3, dly: 0.12,
+            });
+            ksVoice(ctx, {
+              at: t + durS * 0.5, freq: hz(cRoot + octave + semi), dur: durS * 0.5,
+              gain: noteGain, bright: 0.62, body: 'guitar', sustain: 0.9965, cutoff,
+              bus: 'lead', pan, rev: 0.3, dly: 0.12,
+            });
+          } else {
+            ksVoice(ctx, {
+              at: t + (lr() - 0.5) * 0.01, freq: hz(cRoot + octave + semi), dur: durS,
+              gain: noteGain, bright: 0.62, body: 'guitar', sustain: 0.9965, cutoff,
+              bus: 'lead', pan, rev: 0.3, dly: 0.12,
+            });
+          }
+          // шорох пальца о струну на длинных нотах: 10 мс шума на 4 кГц
+          if (durS >= beatSeconds * 0.9) {
+            const sq = noiseSource(ctx, t, 0.012);
+            const sqHp = ctx.createBiquadFilter();
+            sqHp.type = 'highpass';
+            sqHp.frequency.value = 4000;
+            const sqG = ctx.createGain();
+            sqG.gain.setValueAtTime(noteGain * 0.09, t);
+            sqG.gain.exponentialRampToValueAtTime(0.0001, t + 0.012);
+            sq.connect(sqHp);
+            sqHp.connect(sqG);
+            sqG.connect(route(ctx, { bus: 'lead', pan, rev: 0.1 }));
+          }
         }
       }
     }
@@ -1981,6 +2030,7 @@ export function playMusic(track: MusicTrack | null, sceneName: MusicContext = sc
       const offset = offStep ? stepSeconds * swing : 0;
       scheduleStep(track, spec, state, nextStep, nextAt + offset);
       nextStep = (nextStep + 1) % 128;
+      if (nextStep === 0) loopCycle += 1;
       nextAt += stepSeconds;
     }
   }, 45);
