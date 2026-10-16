@@ -573,54 +573,75 @@ function stringsVoice(ctx: AudioContext, o: StringsOptions) {
 }
 
 /**
- * Флейта и пан-флейта, версия 2. Пан-флейта — закрытая труба: только нечётные
- * гармоники (wavetable 'panpipe'). Атака приходит снизу (98.4% → тон за 70 мс),
- вибрато включается с 0.3 с и разгоняется постепенно, дыхание — полоса шума
- * вокруг второй гармоники с «чиффом» на атаке, а не ровное «шшш» всю ноту.
+ * Флейта и пан-флейта, версия 3 — по модели STK (Cook/Scavone, Karjalainen):
+ * струя (jet) «запускает» инструмент, поэтому огибающая дыхания стартует
+ * раньше тона и ведёт его; шум джета — полоса вокруг 1.5–2-й гармоники
+ * (у настоящих флейт спектр дыхания привязан к ноте, а не к октаве);
+ * вибрато включается с 0.35 с и слегка трогает амплитуду тоже.
+ * Пан-флейта — закрытая труба: нечётные гармоники (wavetable 'panpipe'),
+ * дыхания больше, вибрато меньше.
  */
 function fluteVoice(ctx: AudioContext, o: PianoOptions, variant: 'pan' | 'concert' = 'concert') {
   const out = route(ctx, o);
+  const pan = variant === 'pan';
+  // Дыхание: нарастание 50–70 мс (startBlowing с rate), спад в конце ноты
+  const blow = ctx.createGain();
+  blow.gain.setValueAtTime(0.0001, o.at);
+  blow.gain.linearRampToValueAtTime(1, o.at + (pan ? 0.07 : 0.05));
+  blow.gain.setTargetAtTime(0.88, o.at + 0.12, 0.22);
+  blow.gain.setTargetAtTime(0.0001, o.at + Math.max(0.25, o.dur * 0.85), 0.09);
+  blow.connect(out);
+  // Тон: wavetable (пан — нечётные гармоники), строй въезжает за 40 мс
   const tone = ctx.createOscillator();
-  tone.setPeriodicWave(wave(ctx, variant === 'pan' ? 'panpipe' : 'flute'));
-  tone.frequency.setValueAtTime(o.freq * 0.993, o.at);
-  tone.frequency.exponentialRampToValueAtTime(o.freq, o.at + 0.045);
+  tone.setPeriodicWave(wave(ctx, pan ? 'panpipe' : 'flute'));
+  tone.frequency.setValueAtTime(o.freq * 0.995, o.at);
+  tone.frequency.exponentialRampToValueAtTime(o.freq, o.at + 0.04);
+  const toneFilter = ctx.createBiquadFilter();
+  toneFilter.type = 'lowpass';
+  toneFilter.frequency.value = Math.min(o.cutoff ?? 5200, 5200);
+  const toneLevel = ctx.createGain();
+  toneLevel.gain.value = o.gain;
+  tone.connect(toneFilter);
+  toneFilter.connect(toneLevel);
+  toneLevel.connect(blow);
+  // Вибрато: частота + лёгкая амплитуда, разгон с 0.35 с
   const lfo = ctx.createOscillator();
   lfo.type = 'sine';
-  lfo.frequency.value = variant === 'pan' ? 4.8 : 5.3;
-  const lfoDepth = ctx.createGain();
-  lfoDepth.gain.setValueAtTime(0.0001, o.at);
-  lfoDepth.gain.setTargetAtTime(variant === 'pan' ? 4.5 : 5.5, o.at + 0.4, 0.3);
-  lfo.connect(lfoDepth);
-  lfoDepth.connect(tone.detune);
-  const env = ctx.createGain();
-  const attack = variant === 'pan' ? 0.032 : 0.022;
-  env.gain.setValueAtTime(0.0001, o.at);
-  env.gain.linearRampToValueAtTime(o.gain, o.at + attack);
-  env.gain.setTargetAtTime(o.gain * 0.86, o.at + attack, 0.16);
-  env.gain.setTargetAtTime(0.0001, o.at + Math.max(0.2, o.dur * 0.8), 0.09);
-  const body = ctx.createBiquadFilter();
-  body.type = 'lowpass';
-  body.frequency.value = Math.min(o.cutoff ?? 5200, 5200);
-  tone.connect(env);
-  env.connect(body);
-  body.connect(out);
-  // Дыхание: полоса шума вокруг 2-й гармоники; на атаке — короткий «чифф»
-  const breath = noiseSource(ctx, o.at, Math.min(0.5, o.dur));
-  const bp = ctx.createBiquadFilter();
-  bp.type = 'bandpass';
-  bp.frequency.value = o.freq * 1.9;
-  bp.Q.value = 1.1;
-  const bg = ctx.createGain();
-  bg.gain.setValueAtTime(o.gain * 0.32, o.at);
-  bg.gain.exponentialRampToValueAtTime(o.gain * 0.12, o.at + 0.045);
-  bg.gain.setTargetAtTime(o.gain * 0.07, o.at + 0.045, 0.12);
-  bg.gain.setTargetAtTime(0.0001, o.at + Math.max(0.15, o.dur * 0.6), 0.08);
-  breath.connect(bp);
-  bp.connect(bg);
-  bg.connect(out);
+  lfo.frequency.value = pan ? 4.8 : 5.3;
+  const lfoDetune = ctx.createGain();
+  lfoDetune.gain.setValueAtTime(0.0001, o.at);
+  lfoDetune.gain.setTargetAtTime(pan ? 4.5 : 5.5, o.at + 0.35, 0.3);
+  lfo.connect(lfoDetune);
+  lfoDetune.connect(tone.detune);
+  const lfoAmp = ctx.createGain();
+  lfoAmp.gain.setValueAtTime(0.0001, o.at);
+  lfoAmp.gain.setTargetAtTime(o.gain * 0.05, o.at + 0.35, 0.3);
+  lfo.connect(lfoAmp);
+  lfoAmp.connect(blow.gain);
+  // Джет-шум: полоса вокруг 1.8·f0 (спектр дыхания привязан к ноте)
+  const jet = noiseSource(ctx, o.at, Math.min(0.6, o.dur));
+  const jetBp = ctx.createBiquadFilter();
+  jetBp.type = 'bandpass';
+  jetBp.frequency.value = o.freq * 1.8;
+  jetBp.Q.value = 0.9;
+  const jetLevel = ctx.createGain();
+  jetLevel.gain.value = o.gain * (pan ? 0.3 : 0.22);
+  jet.connect(jetBp);
+  jetBp.connect(jetLevel);
+  jetLevel.connect(blow);
+  // Верхний шелест дыхания
+  const hiss = noiseSource(ctx, o.at, Math.min(0.4, o.dur));
+  const hissHp = ctx.createBiquadFilter();
+  hissHp.type = 'highpass';
+  hissHp.frequency.value = 3200;
+  const hissLevel = ctx.createGain();
+  hissLevel.gain.value = o.gain * 0.06;
+  hiss.connect(hissHp);
+  hissHp.connect(hissLevel);
+  hissLevel.connect(blow);
   tone.start(o.at);
   lfo.start(o.at);
-  const end = o.at + o.dur + 0.3;
+  const end = o.at + o.dur + 0.35;
   tone.stop(end);
   lfo.stop(end);
 }
@@ -677,22 +698,62 @@ interface KsOptions extends Send {
   cutoff?: number;
 }
 
-/** Резонансы деки: без них струна — проволока, с ними — гитара/укулеле/балалайка. */
-type KsBody = 'guitar' | 'ukulele' | 'balalaika';
+/**
+ * Моды деки (измеренные семейства частот классической гитары и контрабаса:
+ * воздушный резонанс Гельмгольца ~100 Гц, плато ~200–250 Гц и вебо выше).
+ * Импульс деки синтезируется модалной суммой затухающих синусов и хранится
+ * буфером для свёртки — метод CCRMA «body resonator»: IR деки сворачивается
+ * с выходом струнной модели, без измеренных записей.
+ */
+type KsBody = 'guitar' | 'ukulele' | 'balalaika' | 'upright';
 
-const KS_BODIES: Record<KsBody, { f: number; q: number; g: number }[]> = {
+const BODY_MODES: Record<KsBody, { f: number; tau: number; a: number }[]> = {
   guitar: [
-    { f: 98, q: 5, g: 3.5 }, { f: 210, q: 4, g: 2.5 }, { f: 420, q: 3, g: 2 },
-    { f: 1100, q: 2, g: 1 }, { f: 2400, q: 1.1, g: -1.5 },
+    { f: 105, tau: 0.09, a: 1 }, { f: 196, tau: 0.07, a: 0.8 }, { f: 255, tau: 0.06, a: 0.7 },
+    { f: 398, tau: 0.05, a: 0.5 }, { f: 520, tau: 0.04, a: 0.35 }, { f: 830, tau: 0.03, a: 0.25 },
+    { f: 1200, tau: 0.02, a: 0.18 }, { f: 1900, tau: 0.012, a: 0.12 }, { f: 2600, tau: 0.008, a: 0.08 },
   ],
   ukulele: [
-    { f: 300, q: 4.5, g: 3 }, { f: 620, q: 4, g: 2 }, { f: 1800, q: 1.8, g: 1.5 },
-    { f: 3200, q: 1.2, g: 0.8 },
+    { f: 300, tau: 0.05, a: 1 }, { f: 620, tau: 0.04, a: 0.7 }, { f: 980, tau: 0.03, a: 0.45 },
+    { f: 1500, tau: 0.02, a: 0.3 }, { f: 2400, tau: 0.012, a: 0.18 }, { f: 3400, tau: 0.008, a: 0.1 },
   ],
   balalaika: [
-    { f: 250, q: 4, g: 2.5 }, { f: 900, q: 3, g: 2 }, { f: 3000, q: 1.6, g: 2 },
+    { f: 250, tau: 0.045, a: 1 }, { f: 520, tau: 0.035, a: 0.7 }, { f: 900, tau: 0.025, a: 0.5 },
+    { f: 1600, tau: 0.015, a: 0.3 }, { f: 2800, tau: 0.009, a: 0.18 },
+  ],
+  upright: [
+    { f: 55, tau: 0.12, a: 1 }, { f: 110, tau: 0.1, a: 0.8 }, { f: 220, tau: 0.07, a: 0.5 },
+    { f: 440, tau: 0.045, a: 0.3 }, { f: 900, tau: 0.03, a: 0.15 },
   ],
 };
+
+const bodyIrCache = new Map<string, AudioBuffer>();
+
+function bodyIR(ctx: AudioContext, body: KsBody): AudioBuffer {
+  const key = `${ctx.sampleRate}:${body}`;
+  const cached = bodyIrCache.get(key);
+  if (cached) return cached;
+  const modes = BODY_MODES[body];
+  const len = Math.floor(ctx.sampleRate * 0.4);
+  const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  const rnd = mulberry(hashString(`body:${body}`));
+  const phases = modes.map(() => rnd() * Math.PI * 2);
+  for (let i = 0; i < len; i++) {
+    const t = i / ctx.sampleRate;
+    let sum = 0;
+    modes.forEach((mode, m) => {
+      sum += mode.a * Math.exp(-t / mode.tau) * Math.sin(2 * Math.PI * mode.f * t + phases[m]);
+    });
+    data[i] = sum;
+  }
+  let peak = 0;
+  for (let i = 0; i < len; i++) peak = Math.max(peak, Math.abs(data[i]));
+  const norm = peak > 0 ? 1 / peak : 1;
+  for (let i = 0; i < len; i++) data[i] *= norm;
+  bodyIrCache.set(key, buf);
+  return buf;
+}
 
 interface KsOptions extends Send {
   at: number;
@@ -707,26 +768,25 @@ interface KsOptions extends Send {
 }
 
 /**
- * Щипковая струна, версия 2 — уже похожа на инструмент, а не на проволоку:
- *  • возбуждение — шум с гребёнкой позиции медиатора (comb на доли периода) и
- *    мягким низкочным скосом, поэтому спектр струны «настоящий»;
- *  • в петле — однполюсный низкочастотный фильтр: верхние гармоники гаснут
- *    быстрее нижних, и высокие ноты живут меньше низких, как в жизни;
- *  • стерео-буфер: вторая «струна» с периодом N+1 и своим сидом — естественный
- *    хор без дополнительных нод;
- *  • после буфера — каскад резонансов деки (KS_BODIES): корпус гитары, укулеле
- *    или балалайки;
+ * Щипковая струна, версия 3 — по рекомендациям Jaffe–Smith (Computer Music
+ * Journal, 1983), Columbia «Physical Modeling of Guitar» и CCRMA:
+ *  • возбуждение — шум с гребёнкой позиции медиатора (доля длины волнывода);
+ *  • петля — IIR-фильтр низких частот (однополюсник в цепи задержки),
+ *    частота среза растёт с f0 ноты: демпфирование струны частотно-зависимое;
+ *  • стерео: вторая струна с периодом N+1 — биения двух поляризаций;
+ *  • выход струны сворачивается с импульсом деки (ConvolverNode) и смешивается
+ *    с сухим сигналом: без деки струна — проволока, с одной декой без струны —
+ *    бумажная коробка. Нужны оба звена;
  *  • 2 мс атаки убирают щелчок старта буфера.
  */
 function ksVoice(ctx: AudioContext, o: KsOptions) {
   const sr = ctx.sampleRate;
-  const len = Math.floor(sr * 1.8);
+  const len = Math.floor(sr * 2.4);
   const bright = o.bright ?? 0.6;
   const body = o.body ?? 'guitar';
   const buf = ctx.createBuffer(2, len, sr);
   [0, 1].forEach((channel) => {
     const data = buf.getChannelData(channel);
-    // вторая струна чуть ниже (период +1 семпл) и тише — хор и ширина
     const n = Math.max(6, Math.round(sr / o.freq)) + channel;
     const rnd = mulberry(hashString(`ks:${body}`) ^ Math.round(o.freq * 8) ^ (channel * 0x5bd1));
     const pick = Math.max(2, Math.round(n * (0.3 - 0.16 * bright)));
@@ -741,11 +801,15 @@ function ksVoice(ctx: AudioContext, o: KsOptions) {
     for (let i = 0; i < n; i++) peak = Math.max(peak, Math.abs(data[i]));
     const norm = (peak > 0 ? 0.9 / peak : 1) * (channel === 0 ? 1 : 0.45);
     for (let i = 0; i < n; i++) data[i] *= norm;
-    const b = 0.16 + 0.24 * (1 - bright);
+    // Петля: смесь прямого отвода и однополюсного ФНЧ; срез растёт с f0 (JASA 2012)
+    const b = 0.25 + 0.3 * (1 - bright);
+    const c = Math.min(0.5, 0.14 + o.freq / 7000);
     const decay = (o.sustain ?? 0.9965) * (0.9992 - Math.min(0.0012, o.freq / 900000));
+    let yf = 0;
     for (let i = n; i < len; i++) {
-      const prev2 = i - n - 1 >= 0 ? data[i - n - 1] : data[i - n];
-      data[i] = decay * ((1 - b) * data[i - n] + b * prev2);
+      const xd = data[i - n];
+      yf = c * xd + (1 - c) * yf;
+      data[i] = decay * ((1 - b) * xd + b * yf);
     }
     const attack = Math.floor(sr * 0.002);
     for (let i = 0; i < attack; i++) data[i] *= i / attack;
@@ -755,29 +819,25 @@ function ksVoice(ctx: AudioContext, o: KsOptions) {
   const out = route(ctx, o);
   const hp = ctx.createBiquadFilter();
   hp.type = 'highpass';
-  hp.frequency.value = body === 'guitar' ? 70 : body === 'ukulele' ? 120 : 150;
+  hp.frequency.value = body === 'guitar' ? 60 : body === 'upright' ? 35 : 110;
   const lp = ctx.createBiquadFilter();
   lp.type = 'lowpass';
-  lp.frequency.value = Math.min(o.cutoff ?? 8000, 8000);
-  let node: AudioNode = src;
-  node.connect(hp);
-  node = hp;
-  KS_BODIES[body].forEach((resonance) => {
-    const peak = ctx.createBiquadFilter();
-    peak.type = 'peaking';
-    peak.frequency.value = resonance.f;
-    peak.Q.value = resonance.q;
-    peak.gain.value = resonance.g;
-    node.connect(peak);
-    node = peak;
-  });
-  node.connect(lp);
-  const g = ctx.createGain();
-  g.gain.value = o.gain;
-  lp.connect(g);
-  g.connect(out);
+  lp.frequency.value = Math.min(o.cutoff ?? 9000, 9000);
+  src.connect(hp);
+  hp.connect(lp);
+  const dry = ctx.createGain();
+  dry.gain.value = o.gain * 0.5;
+  lp.connect(dry);
+  dry.connect(out);
+  const conv = ctx.createConvolver();
+  conv.buffer = bodyIR(ctx, body);
+  const wet = ctx.createGain();
+  wet.gain.value = o.gain;
+  lp.connect(conv);
+  conv.connect(wet);
+  wet.connect(out);
   src.start(o.at);
-  src.stop(o.at + 1.8);
+  src.stop(o.at + 2.4);
 }
 
 interface MalletOptions extends Send {
@@ -1426,6 +1486,8 @@ export interface GrooveSpec {
   acousticDrums?: boolean;
   /** Живая природа: подкладки-подушки и события с сид-рандомом. */
   nature?: NatureSpec;
+  /** Бас — щипковый контрабас (Karplus-Strong с декой), а не синтезаторный. */
+  uprightBass?: boolean;
 }
 
 /** Природный слой саундскейпа: подушки на такт и редкие события на круг. */
@@ -1452,15 +1514,15 @@ const GROOVES: Record<string, GrooveSpec> = {
   ethno: { kick: K(0, 8, 11), snare: K(4, 12), hat: K(2, 5, 7, 10, 13), clap: [], bass: 'drone', chord: 'strings', chordIntervals: [0, 7], lead: 'flute', leadBase: 66, grace: true, motif: [0, 1, 2, 4, 2, 1, 4, 2], cutoff: 3600, rev: 0.4, dly: 0.26, fill: true },
 
   // база 0.13.0 — акустика
-  fingerstyle: { kick: [], snare: [], hat: K(2, 6, 10, 14), clap: [], acousticDrums: true, bass: 'quarter', chord: 'strum', chordIntervals: [0, 4, 7], lead: 'guitar', leadBase: 66, leadEveryBeat: true, motif: MOTIF_CORE, swing: 0.06, rev: 0.35, dly: 0.2 },
-  strum: { kick: K(0, 8), snare: K(4, 12), hat: EIGHTH_HAT, clap: [], acousticDrums: true, bass: 'quarter', chord: 'strum', chordIntervals: [0, 4, 7], lead: 'ukulele', leadBase: 66, motif: [0, 0, 2, 4, 4, 2, 0, 2], swing: 0.1, rev: 0.25, dly: 0.12, fill: true },
-  kalimba: { kick: [], snare: [], hat: K(2, 6, 10, 14), clap: K(4, 12), acousticDrums: true, bass: 'quarter', chord: 'none', chordIntervals: [], lead: 'kalimba', leadBase: 72, leadEveryBeat: true, motif: [0, 2, 4, 7, 4, 2, 0, 2], nature: { beds: ['stream'], dropletsPerBar: 2 }, rev: 0.4, dly: 0.22 },
-  meadow: { kick: [], snare: [], hat: K(2, 6, 10, 14), clap: [], acousticDrums: true, bass: 'quarter', chord: 'strum', chordIntervals: [0, 4, 7], lead: 'panflute', leadBase: 69, motif: [0, 2, 4, 5, 4, 2, 0, 1], swing: 0.05, nature: { beds: ['wind'], birdsPerBar: 3 }, rev: 0.45, dly: 0.25 },
-  bossa: { kick: K(0, 8), snare: K(4, 12), hat: EIGHTH_HAT, clap: [], acousticDrums: true, bass: 'quarter', chord: 'strum', chordIntervals: [0, 4, 7, 10], lead: 'guitar', leadBase: 66, motif: [0, 2, 3, 4, 3, 2, 0, 2], swing: 0.12, rev: 0.3, dly: 0.18 },
-  folk: { kick: K(0, 6, 8, 14), snare: K(4, 12), hat: EIGHTH_HAT, clap: [], openHat: K(2, 6, 10, 14), acousticDrums: true, bass: 'drone', chord: 'strum', chordIntervals: [0, 7], lead: 'balalaika', leadBase: 69, leadEveryBeat: true, blip: true, motif: [0, 0, 2, 3, 4, 3, 2, 0], swing: 0.08, rev: 0.2, dly: 0.1, fill: true },
-  stringsstory: { kick: [], snare: [], hat: [], clap: [], bass: 'quarter', chord: 'strings', chordIntervals: [0, 4, 7], lead: 'strings', leadBase: 69, motif: [0, 4, 2, 5, 4, 2, 1, 0], padAttack: 0.1, rev: 0.5, dly: 0.3 },
-  blues: { kick: K(0, 8, 10), snare: K(4, 12), hat: K(2, 3, 6, 7, 10, 11, 14, 15), clap: [], acousticDrums: true, bass: 'eighth', chord: 'strum', chordIntervals: [0, 4, 7, 10], lead: 'harp', leadBase: 66, motif: [0, 3, 0, 3, 4, 3, 0, 2], swing: 0.18, rev: 0.25, dly: 0.15 },
-  marimba: { kick: [], snare: [], hat: EIGHTH_HAT, clap: K(4, 12), acousticDrums: true, bass: 'quarter', chord: 'none', chordIntervals: [], lead: 'marimba', leadBase: 69, leadEveryBeat: true, motif: [0, 2, 4, 2, 5, 4, 2, 4], nature: { beds: ['wind'], dropletsPerBar: 1 }, rev: 0.35, dly: 0.2 },
+  fingerstyle: { kick: [], snare: [], hat: K(2, 6, 10, 14), clap: [], acousticDrums: true, bass: 'quarter', chord: 'strum', chordIntervals: [0, 4, 7], lead: 'guitar', leadBase: 66, leadEveryBeat: true, motif: MOTIF_CORE, swing: 0.06, rev: 0.35, dly: 0.2, uprightBass: true },
+  strum: { kick: K(0, 8), snare: K(4, 12), hat: EIGHTH_HAT, clap: [], acousticDrums: true, bass: 'quarter', chord: 'strum', chordIntervals: [0, 4, 7], lead: 'ukulele', leadBase: 66, motif: [0, 0, 2, 4, 4, 2, 0, 2], swing: 0.1, rev: 0.25, dly: 0.12, fill: true, uprightBass: true },
+  kalimba: { kick: [], snare: [], hat: K(2, 6, 10, 14), clap: K(4, 12), acousticDrums: true, bass: 'quarter', chord: 'none', chordIntervals: [], lead: 'kalimba', leadBase: 72, leadEveryBeat: true, motif: [0, 2, 4, 7, 4, 2, 0, 2], nature: { beds: ['stream'], dropletsPerBar: 2 }, rev: 0.4, dly: 0.22, uprightBass: true },
+  meadow: { kick: [], snare: [], hat: K(2, 6, 10, 14), clap: [], acousticDrums: true, bass: 'quarter', chord: 'strum', chordIntervals: [0, 4, 7], lead: 'panflute', leadBase: 69, motif: [0, 2, 4, 5, 4, 2, 0, 1], swing: 0.05, nature: { beds: ['wind'], birdsPerBar: 3 }, rev: 0.45, dly: 0.25, uprightBass: true },
+  bossa: { kick: K(0, 8), snare: K(4, 12), hat: EIGHTH_HAT, clap: [], acousticDrums: true, bass: 'quarter', chord: 'strum', chordIntervals: [0, 4, 7, 10], lead: 'guitar', leadBase: 66, motif: [0, 2, 3, 4, 3, 2, 0, 2], swing: 0.12, rev: 0.3, dly: 0.18, uprightBass: true },
+  folk: { kick: K(0, 6, 8, 14), snare: K(4, 12), hat: EIGHTH_HAT, clap: [], openHat: K(2, 6, 10, 14), acousticDrums: true, bass: 'drone', chord: 'strum', chordIntervals: [0, 7], lead: 'balalaika', leadBase: 69, leadEveryBeat: true, blip: true, motif: [0, 0, 2, 3, 4, 3, 2, 0], swing: 0.08, rev: 0.2, dly: 0.1, fill: true, uprightBass: true },
+  stringsstory: { kick: [], snare: [], hat: [], clap: [], bass: 'quarter', chord: 'strings', chordIntervals: [0, 4, 7], lead: 'strings', leadBase: 69, motif: [0, 4, 2, 5, 4, 2, 1, 0], padAttack: 0.1, rev: 0.5, dly: 0.3, uprightBass: true },
+  blues: { kick: K(0, 8, 10), snare: K(4, 12), hat: K(2, 3, 6, 7, 10, 11, 14, 15), clap: [], acousticDrums: true, bass: 'eighth', chord: 'strum', chordIntervals: [0, 4, 7, 10], lead: 'harp', leadBase: 66, motif: [0, 3, 0, 3, 4, 3, 0, 2], swing: 0.18, rev: 0.25, dly: 0.15, uprightBass: true },
+  marimba: { kick: [], snare: [], hat: EIGHTH_HAT, clap: K(4, 12), acousticDrums: true, bass: 'quarter', chord: 'none', chordIntervals: [], lead: 'marimba', leadBase: 69, leadEveryBeat: true, motif: [0, 2, 4, 2, 5, 4, 2, 4], nature: { beds: ['wind'], dropletsPerBar: 1 }, rev: 0.35, dly: 0.2, uprightBass: true },
   classical: { kick: [], snare: [], hat: [], clap: [], bass: 'quarter', chord: 'strings', chordIntervals: [0, 4, 7, 12], lead: 'piano', leadBase: 72, motif: [0, 2, 4, 7, 9, 7, 4, 2], padAttack: 0.08, rev: 0.55, dly: 0.2 },
 
   // база 0.13.0 — чистые саундскейпы природы (без музыки и ударных)
@@ -1513,7 +1575,7 @@ function leadVoice(ctx: AudioContext, spec: GrooveSpec, state: ReturnType<typeof
   else if (spec.lead === 'panflute') fluteVoice(ctx, { ...send, at: o.at, freq, dur: o.dur, gain: gain * 1.05, cutoff }, 'pan');
   else if (spec.lead === 'piano') pianoVoice(ctx, { ...send, at: o.at, freq, dur: o.dur, gain, cutoff });
   else if (spec.lead === 'flute') fluteVoice(ctx, { ...send, at: o.at, freq, dur: o.dur, gain: gain * 0.95, cutoff }, 'concert');
-  else if (spec.lead === 'strings') stringsVoice(ctx, { ...send, at: o.at, freq, dur: o.dur, gain: gain * 0.8, attack: 0.06, cutoff });
+  else if (spec.lead === 'strings') stringsVoice(ctx, { ...send, at: o.at, freq, dur: o.dur, gain: gain * 0.8, attack: 0.09, cutoff });
   else if (spec.lead === 'epiano') fmVoice(ctx, { ...send, at: o.at, freq, dur: o.dur, gain, ratio: 2, index: freq * 1.1, cutoff });
   else if (spec.lead === 'bell') fmVoice(ctx, { ...send, at: o.at, freq, dur: o.dur, gain: gain * 0.8, ratio: 3.5, index: freq * 2.2, cutoff });
   else if (spec.lead === 'pluck') stackVoice(ctx, { ...send, at: o.at, freq, dur: o.dur, gain, voices: 2, detune: 6, cutoff: Math.min(5200, cutoff), cutoffEnd: 500, attack: 0.003 });
@@ -1612,19 +1674,24 @@ function scheduleStep(track: MusicTrack, spec: GrooveSpec, state: ReturnType<typ
     );
   }
 
-  // Бас
-  if (spec.bass === 'quarter' && s16 % 4 === 0) bassVoice(ctx, { at: t, freq: hz(root), dur: beatSeconds * 0.8, gain: 0.085 * hum.gv });
-  if (spec.bass === 'eighth' && s16 % 2 === 0) bassVoice(ctx, { at: t, freq: hz(root + (s16 % 4 === 2 ? 12 : 0)), dur: beatSeconds * 0.4, gain: 0.075 * hum.gv });
-  if (spec.bass === 'offbeat' && s16 % 4 === 2) bassVoice(ctx, { at: t, freq: hz(root), dur: beatSeconds * 0.38, gain: 0.08 * hum.gv });
+  // Бас: в акустических грувах — щипковый контрабас (KS с декой upright),
+  // в электронных — синтезаторный саб+пила
+  const playBass = (midi: number, at: number, dur: number, gain: number, glideTo?: number) => {
+    if (spec.uprightBass && !glideTo) {
+      ksVoice(ctx, { at, freq: hz(midi), dur, gain: gain * 0.95, bright: 0.28, sustain: 0.9975, body: 'upright', bus: 'bass', rev: 0.05 });
+    } else {
+      bassVoice(ctx, { at, freq: hz(midi), dur, gain, cutoff: 700, glideTo: glideTo ? hz(glideTo) : undefined });
+    }
+  };
+  if (spec.bass === 'quarter' && s16 % 4 === 0) playBass(root, t, beatSeconds * 0.8, 0.085 * hum.gv);
+  if (spec.bass === 'eighth' && s16 % 2 === 0) playBass(root + (s16 % 4 === 2 ? 12 : 0), t, beatSeconds * 0.4, 0.075 * hum.gv);
+  if (spec.bass === 'offbeat' && s16 % 4 === 2) playBass(root, t, beatSeconds * 0.38, 0.08 * hum.gv);
   if (spec.bass === 'drone' && s16 === 0) {
-    bassVoice(ctx, { at: t, freq: hz(root), dur: beatSeconds * 3.8, gain: 0.08 * hum.gv });
-    bassVoice(ctx, { at: t, freq: hz(root + 7), dur: beatSeconds * 3.8, gain: 0.045 * hum.gv });
+    playBass(root, t, beatSeconds * 3.8, 0.08 * hum.gv);
+    playBass(root + 7, t, beatSeconds * 3.8, 0.045 * hum.gv);
   }
   if (spec.bass === 'slide' && (s16 === 0 || s16 === 6 || s16 === 10)) {
-    bassVoice(ctx, {
-      at: t, freq: hz(root - (s16 === 0 ? 5 : 0)), glideTo: hz(root),
-      dur: beatSeconds * 0.66, gain: 0.1 * hum.gv, cutoff: 700,
-    });
+    playBass(root - (s16 === 0 ? 5 : 0), t, beatSeconds * 0.66, 0.1 * hum.gv, root);
   }
 
   // Мелодия: свежая фраза на каждый такт, тембр из таблицы, стерео-чередование
