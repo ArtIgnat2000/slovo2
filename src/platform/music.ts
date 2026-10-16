@@ -88,6 +88,7 @@ let mix: Mix | null = null;
 let noiseBuf: AudioBuffer | null = null;
 let impulseBuf: AudioBuffer | null = null;
 let rmsBuf: Float32Array<ArrayBuffer> | null = null;
+let rmsEma = 0;
 let lastTrimAt = 0;
 let trimStart = 0;
 
@@ -225,7 +226,7 @@ function buildMix(ctx: AudioContext): Mix {
   fallback.attack.value = 0.002;
   fallback.release.value = 0.09;
   const analyser = ctx.createAnalyser();
-  analyser.fftSize = 1024;
+  analyser.fftSize = 32768; // ~0.74 с окна: трим не ходит за каждой нотой
   post.connect(shaper);
   shaper.connect(trim);
   trim.connect(preLimit);
@@ -651,14 +652,14 @@ function fluteVoice(ctx: AudioContext, o: PianoOptions, variant: 'pan' | 'concer
   const out = route(ctx, o);
   const tone = ctx.createOscillator();
   tone.setPeriodicWave(wave(ctx, variant === 'pan' ? 'panpipe' : 'flute'));
-  tone.frequency.setValueAtTime(o.freq * 0.984, o.at);
-  tone.frequency.exponentialRampToValueAtTime(o.freq, o.at + 0.07);
+  tone.frequency.setValueAtTime(o.freq * 0.993, o.at);
+  tone.frequency.exponentialRampToValueAtTime(o.freq, o.at + 0.045);
   const lfo = ctx.createOscillator();
   lfo.type = 'sine';
   lfo.frequency.value = variant === 'pan' ? 4.8 : 5.3;
   const lfoDepth = ctx.createGain();
   lfoDepth.gain.setValueAtTime(0.0001, o.at);
-  lfoDepth.gain.setTargetAtTime(variant === 'pan' ? 6 : 7, o.at + 0.3, 0.28);
+  lfoDepth.gain.setTargetAtTime(variant === 'pan' ? 4.5 : 5.5, o.at + 0.4, 0.3);
   lfo.connect(lfoDepth);
   lfoDepth.connect(tone.detune);
   const env = ctx.createGain();
@@ -680,9 +681,9 @@ function fluteVoice(ctx: AudioContext, o: PianoOptions, variant: 'pan' | 'concer
   bp.frequency.value = o.freq * 1.9;
   bp.Q.value = 1.1;
   const bg = ctx.createGain();
-  bg.gain.setValueAtTime(o.gain * 0.5, o.at);
-  bg.gain.exponentialRampToValueAtTime(o.gain * 0.16, o.at + 0.05);
-  bg.gain.setTargetAtTime(o.gain * 0.09, o.at + 0.05, 0.12);
+  bg.gain.setValueAtTime(o.gain * 0.32, o.at);
+  bg.gain.exponentialRampToValueAtTime(o.gain * 0.12, o.at + 0.045);
+  bg.gain.setTargetAtTime(o.gain * 0.07, o.at + 0.045, 0.12);
   bg.gain.setTargetAtTime(0.0001, o.at + Math.max(0.15, o.dur * 0.6), 0.08);
   breath.connect(bp);
   bp.connect(bg);
@@ -751,15 +752,15 @@ type KsBody = 'guitar' | 'ukulele' | 'balalaika';
 
 const KS_BODIES: Record<KsBody, { f: number; q: number; g: number }[]> = {
   guitar: [
-    { f: 98, q: 9, g: 6 }, { f: 210, q: 7, g: 4 }, { f: 420, q: 5, g: 3 },
-    { f: 1100, q: 3, g: 1.5 }, { f: 2400, q: 1.2, g: -2 },
+    { f: 98, q: 5, g: 3.5 }, { f: 210, q: 4, g: 2.5 }, { f: 420, q: 3, g: 2 },
+    { f: 1100, q: 2, g: 1 }, { f: 2400, q: 1.1, g: -1.5 },
   ],
   ukulele: [
-    { f: 300, q: 8, g: 5 }, { f: 620, q: 6, g: 3 }, { f: 1800, q: 2.5, g: 2 },
-    { f: 3200, q: 1.5, g: 1 },
+    { f: 300, q: 4.5, g: 3 }, { f: 620, q: 4, g: 2 }, { f: 1800, q: 1.8, g: 1.5 },
+    { f: 3200, q: 1.2, g: 0.8 },
   ],
   balalaika: [
-    { f: 250, q: 6, g: 4 }, { f: 900, q: 4, g: 3 }, { f: 3000, q: 2, g: 3 },
+    { f: 250, q: 4, g: 2.5 }, { f: 900, q: 3, g: 2 }, { f: 3000, q: 1.6, g: 2 },
   ],
 };
 
@@ -813,8 +814,8 @@ function ksVoice(ctx: AudioContext, o: KsOptions) {
     const b = 0.16 + 0.24 * (1 - bright);
     const decay = (o.sustain ?? 0.9965) * (0.9992 - Math.min(0.0012, o.freq / 900000));
     for (let i = n; i < len; i++) {
-      const lp = (1 - b) * data[i - n] + b * data[i - n - 1];
-      data[i] = decay * lp;
+      const prev2 = i - n - 1 >= 0 ? data[i - n - 1] : data[i - n];
+      data[i] = decay * ((1 - b) * data[i - n] + b * prev2);
     }
     const attack = Math.floor(sr * 0.002);
     for (let i = 0; i < attack; i++) data[i] *= i / attack;
@@ -930,26 +931,43 @@ function harpVoice(ctx: AudioContext, o: KsOptions) {
 
 function birdChirp(ctx: AudioContext, at: number, seed: number, level: number) {
   const rnd = mulberry(seed);
-  const syllables = 2 + Math.floor(rnd() * 3);
-  const base = 2400 + rnd() * 1500;
-  const out = route(ctx, { bus: 'lead', pan: (rnd() - 0.5) * 1.2, rev: 0.4 });
+  // Птица v2: короткие слоги (25–45 мс) с малым свипом и быстрыми трелями,
+  // паузы неровные. Прежние медленные свипы на 80 мс звучали сиреной.
+  const kind = rnd();
+  const syllables = kind < 0.35 ? 1 : 2 + Math.floor(rnd() * 4);
+  const base = 2600 + rnd() * 1800;
+  const out = route(ctx, { bus: 'lead', pan: (rnd() - 0.5) * 1.2, rev: 0.35 });
   let t = at;
   for (let i = 0; i < syllables; i++) {
+    const trill = kind > 0.6 && i > 0;
+    const durS = trill ? 0.09 + rnd() * 0.06 : 0.025 + rnd() * 0.02;
     const osc = ctx.createOscillator();
     osc.type = 'sine';
-    const f0 = base * (0.9 + rnd() * 0.25);
+    const f0 = base * (0.94 + rnd() * 0.12);
     osc.frequency.setValueAtTime(f0, t);
-    osc.frequency.exponentialRampToValueAtTime(f0 * (1.25 + rnd() * 0.4), t + 0.035);
-    osc.frequency.exponentialRampToValueAtTime(f0 * 0.82, t + 0.075);
+    osc.frequency.exponentialRampToValueAtTime(f0 * (1.06 + rnd() * 0.1), t + durS * 0.5);
+    osc.frequency.exponentialRampToValueAtTime(f0 * (0.95 + rnd() * 0.06), t + durS);
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, t);
-    g.gain.linearRampToValueAtTime(0.016 * level, t + 0.012);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.08);
+    g.gain.linearRampToValueAtTime(0.011 * level, t + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + durS);
+    if (trill) {
+      // трель: амплитуда пульсирует 28–34 Гц — слитный «чирр», а не свист
+      const pulse = ctx.createOscillator();
+      pulse.type = 'square';
+      pulse.frequency.value = 28 + rnd() * 6;
+      const depth = ctx.createGain();
+      depth.gain.value = 0.0045 * level;
+      pulse.connect(depth);
+      depth.connect(g.gain);
+      pulse.start(t);
+      pulse.stop(t + durS + 0.02);
+    }
     osc.connect(g);
     g.connect(out);
     osc.start(t);
-    osc.stop(t + 0.1);
-    t += 0.09 + rnd() * 0.06;
+    osc.stop(t + durS + 0.02);
+    t += durS + (trill ? 0.02 : 0.03 + rnd() * 0.07);
   }
 }
 
@@ -1788,6 +1806,7 @@ export function playMusic(track: MusicTrack | null, sceneName: MusicContext = sc
   nextStep = 0;
   trimStart = ctx.currentTime;
   lastTrimAt = 0;
+  rmsEma = 0;
   const spec = specOf(track);
   mix.dly.delayTime.setValueAtTime(Math.min(1.4, (60 / track.bpm) * 0.75), ctx.currentTime);
   let lastScene: MusicContext | null = null;
@@ -1806,18 +1825,23 @@ export function playMusic(track: MusicTrack | null, sceneName: MusicContext = sc
     // Авто-громкость: раз в полсекунды меряем RMS после мастер-шины и подводим
     // трим к цели (награда 0.10, урок 0.05). Все треки звучат одинаково дорого,
     // а разница «урок тише» задаётся правилом, а не случайной аранжировкой.
-    if (now - lastTrimAt > 0.5) {
+    // Авто-громкость v2: окно 0.74 с + EMA между замерами + шаг не чаще 1.5 с
+    // и не больше ±4% за шаг. Прежний замер окном 23 мс ходил насосом за
+    // каждой нотой — это и слышалось как «ритмическая сирена».
+    if (now - lastTrimAt > 1.5) {
       lastTrimAt = now;
       const buf = rmsBuffer(mix.analyser.fftSize);
       mix.analyser.getFloatTimeDomainData(buf);
       let sumSq = 0;
       for (let i = 0; i < buf.length; i++) sumSq += buf[i] * buf[i];
       const rms = Math.sqrt(sumSq / buf.length);
-      if (rms > 0.002 && now - trimStart > 1.2) {
+      if (rms > 0.002 && now - trimStart > 3) {
+        rmsEma = rmsEma === 0 ? rms : rmsEma * 0.65 + rms * 0.35;
         const target = scene === 'lesson' ? 0.05 : 0.1;
+        const wanted = Math.min(1.8, Math.max(0.6, mix.trim.gain.value * Math.pow(target / rmsEma, 0.2)));
         const current = mix.trim.gain.value;
-        const next = Math.min(1.8, Math.max(0.6, current * Math.pow(target / rms, 0.3)));
-        mix.trim.gain.setTargetAtTime(next, now, 0.4);
+        const next = Math.min(current * 1.04, Math.max(current * 0.96, wanted));
+        mix.trim.gain.setTargetAtTime(next, now, 0.6);
       }
     }
     const stepSeconds = (60 / state.bpm) / 4;
