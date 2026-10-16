@@ -77,9 +77,8 @@ interface Mix {
   drum: GainNode;
   bass: GainNode;
   chord: GainNode;
-  /** Авто-мастеринг: трим громкости, предап лимитера, запасной компрессор, анализатор RMS. */
+  /** Авто-мастеринг: трим громкости, компрессор-лимитер, анализатор RMS. */
   trim: GainNode;
-  preLimit: GainNode;
   fallback: DynamicsCompressorNode;
   analyser: AnalyserNode;
 }
@@ -214,11 +213,11 @@ function buildMix(ctx: AudioContext): Mix {
   dlyReturn.connect(revSend);
 
   // Авто-мастеринг: трим приводит громкость разных треков к одной цели
-  // (измеряется анализатором), а лимитер с лукапом страхует от клиппинга
-  // на стеках суперпилы и крэшей. Пока AudioWorklet грузится — быстрый компрессор.
+  // (измеряется анализатором), а быстрый компрессор-лимитер страхует пики
+  // суперпилы и крэшей. Лукуп-ворклет из волны 2.1 удалён: общее кольцо на
+  // оба канала и окно пика не там давали запаздывающую накачку — «палка по трубе».
   const trim = ctx.createGain();
   trim.gain.value = 1;
-  const preLimit = ctx.createGain();
   const fallback = ctx.createDynamicsCompressor();
   fallback.threshold.value = -2.5;
   fallback.knee.value = 6;
@@ -229,8 +228,7 @@ function buildMix(ctx: AudioContext): Mix {
   analyser.fftSize = 32768; // ~0.74 с окна: трим не ходит за каждой нотой
   post.connect(shaper);
   shaper.connect(trim);
-  trim.connect(preLimit);
-  preLimit.connect(fallback);
+  trim.connect(fallback);
   fallback.connect(master);
   master.connect(analyser);
   master.connect(ctx.destination);
@@ -238,75 +236,8 @@ function buildMix(ctx: AudioContext): Mix {
   return {
     sum, duckBass, duckChord, hp, glue, post, shaper, master,
     revSend, revReturn, dlySend, dlyReturn, dly, dlyFb, dlyFilter,
-    lead, drum, bass, chord, trim, preLimit, fallback, analyser,
+    lead, drum, bass, chord, trim, fallback, analyser,
   };
-}
-
-/**
- * Лукуп-лимитер на AudioWorklet: сигнал задерживается на 4 мс, огибающая
- * смотрит ВПЕРЁД по буферу и заранее опускает усиление — пики снимаются
- * без слышимой pumping-атаки. Код живёт строкой в бандле: внешних файлов нет.
- */
-const LIMITER_WORKLET = `
-class LookaheadLimiter extends AudioWorkletProcessor {
-  constructor(options) {
-    super(options);
-    this.d = Math.max(32, Math.round(sampleRate * 0.004));
-    this.len = this.d * 2 + 256;
-    this.buf = new Float32Array(this.len);
-    this.pos = 0;
-    this.env = 0;
-    this.g = 1;
-    this.thr = 0.86;
-  }
-  process(inputs, outputs) {
-    const input = inputs[0];
-    const output = outputs[0];
-    if (!input || input.length === 0 || !input[0]) return true;
-    const n = input[0].length;
-    for (let ch = 0; ch < output.length; ch++) {
-      const x = input[ch] || input[0];
-      const y = output[ch];
-      for (let i = 0; i < n; i++) {
-        this.buf[this.pos] = x[i];
-        let pk = 0;
-        for (let k = 1; k <= this.d; k++) {
-          const v = Math.abs(this.buf[(this.pos + k) % this.len]);
-          if (v > pk) pk = v;
-        }
-        this.env = pk > this.env ? pk : this.env * 0.9996;
-        const target = this.env > this.thr ? this.thr / this.env : 1;
-        this.g = target < this.g ? target : this.g + (target - this.g) * 0.0012;
-        y[i] = this.buf[(this.pos - this.d + this.len) % this.len] * this.g;
-        this.pos = (this.pos + 1) % this.len;
-      }
-    }
-    return true;
-  }
-}
-registerProcessor('lookahead-limiter', LookaheadLimiter);
-`;
-
-let limiterSettled = false;
-
-async function upgradeLimiter(ctx: AudioContext) {
-  if (limiterSettled || !mix || !ctx.audioWorklet) return;
-  try {
-    const url = URL.createObjectURL(new Blob([LIMITER_WORKLET], { type: 'application/javascript' }));
-    await ctx.audioWorklet.addModule(url);
-    URL.revokeObjectURL(url);
-    if (!mix) return;
-    const node = new AudioWorkletNode(ctx, 'lookahead-limiter');
-    const { preLimit, fallback, master, analyser } = mix;
-    preLimit.disconnect(fallback);
-    fallback.disconnect(master);
-    preLimit.connect(node);
-    node.connect(master);
-    node.connect(analyser);
-  } catch {
-    /* остаёмся на запасном компрессоре: лучше сжатие, чем тишина */
-  }
-  limiterSettled = true;
 }
 
 function audio(): AudioContext | null {
@@ -314,7 +245,6 @@ function audio(): AudioContext | null {
     if (!context) {
       context = new (window.AudioContext || (window as any).webkitAudioContext)();
       mix = buildMix(context);
-      void upgradeLimiter(context);
     }
     if (context.state === 'suspended') void context.resume().catch(() => undefined);
     return context;
@@ -1837,8 +1767,10 @@ export function playMusic(track: MusicTrack | null, sceneName: MusicContext = sc
       const rms = Math.sqrt(sumSq / buf.length);
       if (rms > 0.002 && now - trimStart > 3) {
         rmsEma = rmsEma === 0 ? rms : rmsEma * 0.65 + rms * 0.35;
-        const target = scene === 'lesson' ? 0.05 : 0.1;
-        const wanted = Math.min(1.8, Math.max(0.6, mix.trim.gain.value * Math.pow(target / rmsEma, 0.2)));
+        const target = scene === 'lesson' ? 0.045 : 0.085;
+        // узкий коридор: сильный буст тихих треков тянул за собой шумовой пол
+        // и хвосты реверба — «шум вместо музыки»
+        const wanted = Math.min(1.35, Math.max(0.7, mix.trim.gain.value * Math.pow(target / rmsEma, 0.2)));
         const current = mix.trim.gain.value;
         const next = Math.min(current * 1.04, Math.max(current * 0.96, wanted));
         mix.trim.gain.setTargetAtTime(next, now, 0.6);
