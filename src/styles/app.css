@@ -4340,6 +4340,31 @@ p {
   font-size: 13.5px;
   line-height: 1.4;
 }
+/* Помощь по цветам доступна из ярлыка без адресной строки. */
+.theme-help {
+  padding: 4px 0 12px;
+  border-bottom: 1px solid var(--line);
+}
+.theme-help summary {
+  min-height: 44px;
+  padding: 11px 0;
+  color: var(--primary);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+.theme-help summary:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+.theme-help .setting-hint {
+  margin: 4px 0 10px;
+  color: var(--ink-2);
+}
+.theme-help .btn {
+  max-width: 100%;
+  white-space: normal;
+}
 .setting-copy {
   flex: 1 1 55%;
 }

@@ -118,6 +118,25 @@ export async function runParentUiChecks(): Promise<void> {
     document.querySelector('.parent-panel')?.textContent?.slice(0, 200) ?? '',
   );
 
+  const help = document.querySelector('.theme-help') as HTMLDetailsElement | null;
+  check('из настроек можно узнать, почему светлая тема серая',
+    !!help && help.querySelector('summary')?.textContent?.includes('Светлая тема всё равно серая?') === true);
+  if (help) help.open = true;
+  check('помощь не предлагает удалять ярлык с прогрессом',
+    !!help && help.textContent?.includes('Не удаляйте ярлык') === true &&
+      help.textContent?.includes('Прогресс') === true);
+  const urlBeforeDiagnostics = window.location.href;
+  click(help?.querySelector('button'));
+  await sleep(70);
+  check('диагностика открывается кнопкой из PWA без адресной строки',
+    !!document.querySelector('.diag-screen') && has('Проверка Auto Dark') && window.location.href === urlBeforeDiagnostics);
+  click(document.querySelector('.diag-screen button'));
+  await sleep(70);
+  check('после диагностики возвращаемся в настройки родителей',
+    !document.querySelector('.diag-screen') &&
+      document.querySelector('[role="tab"][aria-selected="true"]')?.textContent?.includes('Настройки') === true &&
+      has('Размер урока'));
+
   const soundSwitch = Array.from(document.querySelectorAll('[role="switch"]')).find((el) =>
     (el.getAttribute('aria-label') ?? '').includes('Звук'),
   ) as HTMLButtonElement | undefined;
@@ -174,6 +193,13 @@ export async function runParentUiChecks(): Promise<void> {
     has('Передать приложение') && has('Версия') && has('Слово2 сделали в V-labs'),
     body().slice(0, 240),
   );
+  click(btnText('Диагностика приложения'));
+  await sleep(60);
+  check('диагностика доступна также из вкладки «Приложение»', !!document.querySelector('.diag-screen'));
+  click(document.querySelector('.diag-screen button'));
+  await sleep(60);
+  check('после проверки вкладка «Приложение» остаётся открытой',
+    document.querySelector('[role="tab"][aria-selected="true"]')?.textContent?.includes('Приложение') === true);
   await openParentSection('Обзор');
   check(
     'обзор не показывает рекламу школы — она не отвлекает от отчёта',

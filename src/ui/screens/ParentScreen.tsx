@@ -11,6 +11,9 @@ interface Props {
   onUnlock: () => void;
   onOpenProfiles: () => void;
   onOpenVlabs: () => void;
+  onOpenDiagnostics: (section: ParentTabId) => void;
+  /** Вернуться в тот же раздел после диагностики, открытой из ярлыка. */
+  initialTab?: ParentTabId;
   /** Открыть вкладку «Слова» (из обзора — «посмотреть все слова») */
   onOpenWords: () => void;
 }
@@ -35,9 +38,9 @@ interface Props {
  * стал честнее: ошибка показывается на месте, ответ не стирается, Enter
  * отправляет форму.
  */
-export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs, onOpenWords }: Props) {
+export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs, onOpenDiagnostics, initialTab = 'overview', onOpenWords }: Props) {
   const profile = useActiveProfile();
-  const [tab, setTab] = useState<ParentTabId>('overview');
+  const [tab, setTab] = useState<ParentTabId>(initialTab);
 
   if (!profile) return null;
 
@@ -83,12 +86,12 @@ export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs, 
       )}
       {tab === 'settings' && (
         <ParentPanel id="settings">
-          <SettingsTab profile={profile} />
+          <SettingsTab profile={profile} onOpenDiagnostics={() => onOpenDiagnostics('settings')} />
         </ParentPanel>
       )}
       {tab === 'app' && (
         <ParentPanel id="app">
-          <AppTab onOpenVlabs={onOpenVlabs} />
+          <AppTab onOpenVlabs={onOpenVlabs} onOpenDiagnostics={() => onOpenDiagnostics('app')} />
         </ParentPanel>
       )}
     </div>

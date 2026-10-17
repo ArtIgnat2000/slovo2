@@ -1,182 +1,195 @@
-// Тема оформления: как приложение объявляет палитру браузеру.
-//
-// Проверяем три вещи, из-за которых светлая тема выглядела тёмно-серой на
-// Android-телефоне:
-//  1) схема страницы объявляется и в атрибуте документа, и в теге
-//     <meta name="color-scheme"> (браузер читает именно тег);
-//  2) то же самое происходит ДО первого кадра — инлайн-скрипт в index.html
-//     ставит data-theme и схему по зеркалу выбора темы в localStorage;
-//  3) приложение умеет отличить «тёмная тема выбрана в приложении» от
-//     «страницу перекрашивает браузер» — и не путает их.
+// Тема на Android: проверяем не только смену CSS после запуска, но и самый
+// первый байт HTML. В 0.14.4 скрипт менял meta на «only light», однако исходный
+// тег оставался «light dark» — браузер мог включить Auto Dark до скрипта.
+// Samsung Internet с принудительным затемнением может игнорировать даже
+// исправленный тег: отрицательная проверка canvas НЕ доказывает обратного.
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { check } from './ui-helpers';
 import {
   applyTheme,
+  browserDarkModeHelp,
   browserName,
   detectForcedRepaint,
   readThemeMirror,
+  repaintAssessment,
   resolveTheme,
   systemPrefersDark,
   THEME_MIRROR_KEY,
   writeThemeMirror,
 } from '../src/platform/theme';
 
-/** Тег со схемой — такой же, как в настоящем index.html. */
 function schemeMeta(): HTMLMetaElement | null {
   return document.querySelector('meta[name="color-scheme"]');
 }
 
-/** Считывает инлайн-скрипт из настоящего index.html. */
-function readBootScript(): string {
+/** Читаем настоящий HTML, а не копию тега в тестовом DOM. */
+function readIndexHtml(): string {
   let dir = process.cwd();
   for (let i = 0; i < 4; i += 1) {
     const candidate = path.join(dir, 'index.html');
-    if (existsSync(candidate)) {
-      const html = readFileSync(candidate, 'utf8');
-      const blocks = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
-      const boot = blocks.find((code) => code.includes(THEME_MIRROR_KEY));
-      if (!boot) throw new Error('В index.html нет инлайн-скрипта, который ставит тему до первого кадра');
-      return boot;
-    }
+    if (existsSync(candidate)) return readFileSync(candidate, 'utf8');
     dir = path.dirname(dir);
   }
   throw new Error(`Не найден index.html рядом с ${process.cwd()}`);
 }
 
-/** Приводит документ в исходное состояние: тема не задана, схема статичная. */
+function readBootScript(html: string): string {
+  const blocks = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+  const boot = blocks.find((code) => code.includes(THEME_MIRROR_KEY));
+  if (!boot) throw new Error('В index.html нет скрипта темы до первого кадра');
+  return boot;
+}
+
+/** Состояние HTML до выполнения какого-либо скрипта. */
 function resetDocument(): void {
   document.documentElement.removeAttribute('data-theme');
   document.documentElement.style.colorScheme = '';
-  schemeMeta()?.setAttribute('content', 'light dark');
+  schemeMeta()?.setAttribute('content', 'only light');
 }
 
 export async function runThemeChecks(): Promise<void> {
-  console.log('\n── Тема: схема страницы и первый кадр ──');
+  console.log('\n── Тема: первый байт HTML, смена палитры и Android ──');
 
   const originalMatchMedia = window.matchMedia;
   const originalMirror = readThemeMirror();
   const originalTheme = document.documentElement.dataset.theme;
   const originalScheme = document.documentElement.style.colorScheme;
   const originalMeta = schemeMeta()?.getAttribute('content') ?? null;
+  const originalThemeColor = document.querySelector('meta[name="theme-color"]')?.getAttribute('content') ?? null;
 
-  // ── 1. Схема объявляется и в документе, и в теге ────────────────────────
+  // ── 1. HTML из сборки: тег должен быть безопасным уже при парсинге ──────
+  const html = readIndexHtml();
+  const staticMeta = /<meta\s+name="color-scheme"\s+content="([^"]+)"\s*\/>/.exec(html);
+  check(
+    'исходный HTML объявляет only light ещё до скрипта (не light dark)',
+    staticMeta?.[1] === 'only light' && staticMeta.index < html.indexOf('<script>'),
+    staticMeta?.[0] ?? 'тег не найден',
+  );
+  check('в HTML ровно один тег color-scheme', (html.match(/<meta\s+name="color-scheme"/g) ?? []).length === 1);
+
+  // ── 2. Настройка после загрузки и при переключении ──────────────────────
   applyTheme('light');
   check(
-    'светлая тема: атрибут документа и инлайн-стиль',
+    'светлая тема: атрибут и CSS color-scheme',
     document.documentElement.dataset.theme === 'light' &&
       document.documentElement.style.colorScheme === 'only light',
     document.documentElement.style.colorScheme,
   );
+  check('светлая тема: метатег only light', schemeMeta()?.getAttribute('content') === 'only light');
   check(
-    'светлая тема: тег <meta name="color-scheme">',
-    schemeMeta()?.getAttribute('content') === 'only light',
-    schemeMeta()?.getAttribute('content') ?? 'нет тега',
-  );
-  check(
-    'светлая тема: цвет системной панели — фирменный',
+    'светлая тема: цвет панели',
     document.querySelector('meta[name="theme-color"]')?.getAttribute('content') === '#7C5CFF',
-    document.querySelector('meta[name="theme-color"]')?.getAttribute('content') ?? 'нет тега',
   );
 
   applyTheme('dark');
   check(
-    'тёмная тема: атрибут документа и инлайн-стиль',
+    'тёмная тема: атрибут и CSS color-scheme',
     document.documentElement.dataset.theme === 'dark' &&
       document.documentElement.style.colorScheme === 'only dark',
     document.documentElement.style.colorScheme,
   );
+  check('тёмная тема: метатег dark (only dark в HTML недопустим)', schemeMeta()?.getAttribute('content') === 'dark');
   check(
-    'тёмная тема: тег <meta name="color-scheme">',
-    schemeMeta()?.getAttribute('content') === 'only dark',
-    schemeMeta()?.getAttribute('content') ?? 'нет тега',
+    'тёмная тема: цвет панели',
+    document.querySelector('meta[name="theme-color"]')?.getAttribute('content') === '#171426',
   );
+  applyTheme('light');
+  check('после возврата к светлой метатег снова only light', schemeMeta()?.getAttribute('content') === 'only light');
 
-  // ── 2. «Как в телефоне» следует за системной темой ───────────────────────
-  window.matchMedia = ((query: string) => ({
-    ...originalMatchMedia(query),
-    matches: true,
-  })) as typeof window.matchMedia;
-  check('при тёмной системной теме выбирается тёмная палитра', resolveTheme('auto') === 'dark', resolveTheme('auto'));
-  check('при тёмной системной теме схема объявлена как тёмная', applyTheme('auto') === 'dark', document.documentElement.style.colorScheme);
-
-  window.matchMedia = ((query: string) => ({
-    ...originalMatchMedia(query),
-    matches: false,
-  })) as typeof window.matchMedia;
-  check('при светлой системной теме выбирается светлая палитра', resolveTheme('auto') === 'light', resolveTheme('auto'));
-  check('выбор «светлая» не зависит от системной темы', resolveTheme('light', true) === 'light', resolveTheme('light', true));
-  check('выбор «тёмная» не зависит от системной темы', resolveTheme('dark', false) === 'dark', resolveTheme('dark', false));
-
+  // ── 3. «Как в телефоне» следует системной теме ──────────────────────────
+  window.matchMedia = ((query: string) => ({ ...originalMatchMedia(query), matches: true })) as typeof window.matchMedia;
+  check('при тёмной системе auto выбирает тёмную палитру', resolveTheme('auto') === 'dark');
+  check('при тёмной системе auto объявляет метатег dark', applyTheme('auto') === 'dark' && schemeMeta()?.content === 'dark');
+  window.matchMedia = ((query: string) => ({ ...originalMatchMedia(query), matches: false })) as typeof window.matchMedia;
+  check('при светлой системе auto выбирает светлую палитру', resolveTheme('auto') === 'light');
+  check('явная светлая не зависит от системной', resolveTheme('light', true) === 'light');
+  check('явная тёмная не зависит от системной', resolveTheme('dark', false) === 'dark');
   window.matchMedia = originalMatchMedia;
-  check('системная тема читается без ошибок', typeof systemPrefersDark() === 'boolean', String(systemPrefersDark()));
+  check('системная тема читается без ошибок', typeof systemPrefersDark() === 'boolean');
 
-  // ── 3. Зеркало выбора темы ───────────────────────────────────────────────
   writeThemeMirror('light');
-  check('выбор темы записывается в зеркало', readThemeMirror() === 'light', String(readThemeMirror()));
+  check('зеркало записывает светлую тему', readThemeMirror() === 'light');
   writeThemeMirror('dark');
-  check('зеркало перезаписывается при смене выбора', readThemeMirror() === 'dark', String(readThemeMirror()));
+  check('зеркало перезаписывается', readThemeMirror() === 'dark');
 
-  // ── 4. Первый кадр: инлайн-скрипт из настоящего index.html ──────────────
-  const boot = readBootScript();
+  // ── 4. Выполняем именно скрипт из index.html ────────────────────────────
+  const boot = readBootScript(html);
   const runBoot = (mirror: string | null, prefersDark: boolean) => {
     if (mirror === null) window.localStorage.removeItem(THEME_MIRROR_KEY);
     else window.localStorage.setItem(THEME_MIRROR_KEY, mirror);
-    window.matchMedia = ((query: string) => ({
-      ...originalMatchMedia(query),
-      matches: prefersDark,
-    })) as typeof window.matchMedia;
+    window.matchMedia = ((query: string) => ({ ...originalMatchMedia(query), matches: prefersDark })) as typeof window.matchMedia;
     resetDocument();
     (window as unknown as { eval: (code: string) => void }).eval(boot);
     window.matchMedia = originalMatchMedia;
   };
 
-  runBoot('light', false);
+  resetDocument();
+  check('без JavaScript страница начинается со светлой схемы', schemeMeta()?.content === 'only light');
+  runBoot('light', true);
   check(
-    'до первого кадра выбранная светлая тема уже объявлена',
+    'явная светлая до первого кадра остаётся светлой даже при тёмной системе',
     document.documentElement.dataset.theme === 'light' &&
-      document.documentElement.style.colorScheme === 'only light' &&
-      schemeMeta()?.getAttribute('content') === 'only light',
-    `${document.documentElement.dataset.theme ?? '—'} / ${document.documentElement.style.colorScheme} / ${schemeMeta()?.getAttribute('content') ?? '—'}`,
+      document.documentElement.style.colorScheme === 'only light' && schemeMeta()?.content === 'only light',
   );
-
   runBoot('dark', false);
   check(
-    'до первого кадра выбранная тёмная тема уже объявлена',
+    'явная тёмная до первого кадра: CSS only dark, HTML dark',
     document.documentElement.dataset.theme === 'dark' &&
-      document.documentElement.style.colorScheme === 'only dark' &&
-      schemeMeta()?.getAttribute('content') === 'only dark',
-    `${document.documentElement.dataset.theme ?? '—'} / ${document.documentElement.style.colorScheme} / ${schemeMeta()?.getAttribute('content') ?? '—'}`,
+      document.documentElement.style.colorScheme === 'only dark' && schemeMeta()?.content === 'dark' &&
+      document.querySelector('meta[name="theme-color"]')?.getAttribute('content') === '#171426',
   );
-
+  runBoot('auto', true);
+  check('сохранённое auto следует тёмной системе', document.documentElement.dataset.theme === 'dark' && schemeMeta()?.content === 'dark');
   runBoot(null, true);
-  check(
-    'без сохранённого выбора первая палитра следует за системной темой',
-    document.documentElement.dataset.theme === 'dark' &&
-      schemeMeta()?.getAttribute('content') === 'only dark',
-    `${document.documentElement.dataset.theme ?? '—'} / ${schemeMeta()?.getAttribute('content') ?? '—'}`,
-  );
-
+  check('первый запуск следует тёмной системе', document.documentElement.dataset.theme === 'dark' && schemeMeta()?.content === 'dark');
   runBoot(null, false);
+  check('первый запуск при светлой системе остаётся светлым', document.documentElement.dataset.theme === 'light' && schemeMeta()?.content === 'only light');
+
+  const storagePrototype = Object.getPrototypeOf(window.localStorage) as Storage;
+  const originalGetItem = storagePrototype.getItem;
+  try {
+    storagePrototype.getItem = () => { throw new Error('Хранилище недоступно'); };
+    window.matchMedia = ((query: string) => ({ ...originalMatchMedia(query), matches: true })) as typeof window.matchMedia;
+    resetDocument();
+    (window as unknown as { eval: (code: string) => void }).eval(boot);
+    check(
+      'без доступа к localStorage скрипт всё равно выбирает системную тему',
+      document.documentElement.dataset.theme === 'dark' && schemeMeta()?.content === 'dark',
+    );
+  } finally {
+    storagePrototype.getItem = originalGetItem;
+    window.matchMedia = originalMatchMedia;
+  }
+
+  // ── 5. Отрицательная проверка не должна скрывать Samsung Force Dark ─────
+  check('в jsdom Auto Dark не обнаружен', detectForcedRepaint() === false);
   check(
-    'без сохранённого выбора при светлой системе палитра светлая',
-    document.documentElement.dataset.theme === 'light' &&
-      schemeMeta()?.getAttribute('content') === 'only light',
-    `${document.documentElement.dataset.theme ?? '—'} / ${schemeMeta()?.getAttribute('content') ?? '—'}`,
+    'для Samsung отрицательный результат НЕ означает «нет перекраски»',
+    repaintAssessment('Samsung Internet', false).includes('не определяется'),
   );
+  check('положительный результат сообщается явно', repaintAssessment('Chrome', true).includes('обнаружена'));
+  check(
+    'инструкция Samsung: Force Dark выключить, а Use website dark theme ВКЛЮЧИТЬ',
+    browserDarkModeHelp('Samsung Internet').includes('выключите «Принудительный') &&
+      browserDarkModeHelp('Samsung Internet').includes('Labs') &&
+      browserDarkModeHelp('Samsung Internet').includes('нужно включить'),
+  );
+  check(
+    'инструкция Samsung: после смены темы телефона проверить Force Dark снова',
+    browserDarkModeHelp('Samsung Internet').includes('при обычной теме телефона') &&
+      browserDarkModeHelp('Samsung Internet').includes('снова включиться'),
+  );
+  check('Samsung определяется по user-agent', browserName('Mozilla/5.0 (Linux; Android 13) SamsungBrowser/23.0 Chrome/115 Mobile Safari/537.36') === 'Samsung Internet');
+  check('Chrome не путается с Samsung', browserName('Mozilla/5.0 (Linux; Android 13) Chrome/120 Mobile Safari/537.36') === 'Chrome');
 
-  // ── 5. Отличаем перекраску браузера от тёмной темы приложения ──────────
-  check('в обычном браузере перекраски не видно', detectForcedRepaint() === false, 'элемент с системным цветом canvas');
-  check('браузер определяется по строке user-agent', browserName('Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 SamsungBrowser/23.0 Chrome/115 Mobile Safari/537.36') === 'Samsung Internet', 'Samsung Internet');
-  check('Chrome не путается с Samsung Internet', browserName('Mozilla/5.0 (Linux; Android 13) Chrome/120 Mobile Safari/537.36') === 'Chrome', 'Chrome');
-
-  // ── Возвращаем как было ─────────────────────────────────────────────────
+  // ── Восстанавливаем тему для остальных UI-проверок ──────────────────────
   if (originalMirror) writeThemeMirror(originalMirror);
   else window.localStorage.removeItem(THEME_MIRROR_KEY);
   if (originalTheme) document.documentElement.dataset.theme = originalTheme;
   else document.documentElement.removeAttribute('data-theme');
-  if (originalScheme) document.documentElement.style.colorScheme = originalScheme;
-  else document.documentElement.style.colorScheme = '';
+  document.documentElement.style.colorScheme = originalScheme;
   if (originalMeta) schemeMeta()?.setAttribute('content', originalMeta);
+  if (originalThemeColor) document.querySelector('meta[name="theme-color"]')?.setAttribute('content', originalThemeColor);
   window.matchMedia = originalMatchMedia;
 }
