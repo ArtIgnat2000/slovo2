@@ -80,12 +80,29 @@ export default function App() {
   const [updateReady, setUpdateReady] = useState(false);
 
   useEffect(() => {
-    const dark =
-      settings.theme === 'dark' ||
-      (settings.theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    document.documentElement.dataset.theme = dark ? 'dark' : 'light';
-    const meta = document.querySelector('meta[name="theme-color"]');
-    meta?.setAttribute('content', dark ? '#171426' : '#7C5CFF');
+    const applyTheme = () => {
+      const dark =
+        settings.theme === 'dark' ||
+        (settings.theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+      // Явно сообщаем браузеру текущую схему: без этого Chrome на Android
+      // может «притемнять» светлую тему (auto-dark), и она выглядит серой.
+      document.documentElement.style.colorScheme = dark ? 'dark' : 'only light';
+      const meta = document.querySelector('meta[name="theme-color"]');
+      meta?.setAttribute('content', dark ? '#171426' : '#7C5CFF');
+    };
+    applyTheme();
+    if (settings.theme === 'auto') {
+      const media = window.matchMedia('(prefers-color-scheme: dark)');
+      const handler = () => applyTheme();
+      // Современный API + фолбэк для старых WebView
+      if (typeof media.addEventListener === 'function') media.addEventListener('change', handler);
+      else media.addListener(handler);
+      return () => {
+        if (typeof media.removeEventListener === 'function') media.removeEventListener('change', handler);
+        else media.removeListener(handler);
+      };
+    }
   }, [settings.theme]);
 
   useEffect(() => {

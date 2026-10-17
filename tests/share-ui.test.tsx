@@ -9,6 +9,7 @@
 //    текстом, чтобы её можно было скопировать руками (не «кнопка-обманка»);
 //  • платформенные функции честно сообщают о своих возможностях.
 import { appUrl, canNativeShare, copyAppLink, linkLabel, shareApp, SHARE_TITLE } from '../src/platform/share';
+import { useApp } from '../src/state/store';
 import { qrEncode } from '../src/engine/qr';
 import { buttons, check, click, has, openParentSection, sleep } from './ui-helpers';
 
@@ -25,6 +26,23 @@ function bigQr(): HTMLElement | null {
 
 export async function runShareAppChecks(): Promise<void> {
   console.log('\n── «Передать приложение»: QR и ссылка ──');
+
+  const originalTheme = useApp.getState().settings.theme;
+  const originalMatchMedia = window.matchMedia;
+  window.matchMedia = (query) => ({ ...originalMatchMedia(query), matches: true });
+  for (const theme of ['light', 'dark', 'auto'] as const) {
+    useApp.getState().setSettings({ theme });
+    await sleep(40);
+    const expected = theme === 'light' ? 'light' : 'dark';
+    check(`тема ${theme} при тёмной системе: явная схема браузера`,
+      document.documentElement.dataset.theme === expected &&
+      document.documentElement.style.colorScheme === (expected === 'light' ? 'only light' : 'dark'),
+      document.documentElement.style.colorScheme);
+  }
+  window.matchMedia = originalMatchMedia;
+  useApp.getState().setSettings({ theme: originalTheme });
+  await sleep(40);
+
 
   check('ссылка на приложение выглядит как адрес, а не как путь', /^https?:\/\//.test(linkText()), linkText());
   // Смоук-сборка (как и настоящая сборка на Pages) закрепляет адрес через
@@ -87,9 +105,12 @@ export async function runShareAppChecks(): Promise<void> {
     document.body.textContent?.slice(0, 200) ?? '',
   );
 
+  check('маленький QR чёрный на белом', qrArt?.querySelector('path')?.getAttribute('fill') === '#000000' && qrArt?.querySelector('rect')?.getAttribute('fill') === '#ffffff', qrArt?.outerHTML.slice(0, 200) ?? '');
+
   click(document.querySelector('.share-qr'));
   await sleep(40);
   check('нажатие на QR открывает крупный вид', !!bigQr(), document.body.textContent?.slice(0, 160) ?? '');
+  check('крупный QR чёрный на белом', bigQr()?.querySelector('path')?.getAttribute('fill') === '#000000' && bigQr()?.querySelector('rect')?.getAttribute('fill') === '#ffffff', bigQr()?.outerHTML.slice(0, 200) ?? '');
   const closeZoom = buttons().find((b) => (b.textContent ?? '').trim() === 'Закрыть');
   click(closeZoom);
   await sleep(40);
