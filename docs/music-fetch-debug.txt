@@ -1,15 +1,24 @@
 === node v22.23.3 ===
 === log scripts/fetch-music.mjs ===
-↓ carefree (Carefree) … ок, 3.1 МБ
-↓ life-of-riley (Life of Riley) … ок, 3.6 МБ
-↓ easy-lemon (Easy Lemon) … ок, 1.9 МБ
-↓ wholesome (Wholesome) … ок, 5.6 МБ
-↓ wallpaper (Wallpaper) … ✗ fetch failed
-  источник: https://incompetech.com/music/royalty-free/mp3-royaltyfree/Wallpaper.mp3 (страница трека: https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100843)
+= carefree уже скачан, пропускаю
+= life-of-riley уже скачан, пропускаю
+= easy-lemon уже скачан, пропускаю
+= wholesome уже скачан, пропускаю
+↓ wallpaper (Wallpaper) … ок, 3.4 МБ
+↓ daily-beetle (Daily Beetle) … ок, 4.8 МБ
+↓ monkeys-spinning-monkeys (Monkeys Spinning Monkeys) … ок, 1.9 МБ
+↓ sneaky-snitch (Sneaky Snitch) … ок, 2.1 МБ
+↓ fluffing-a-duck (Fluffing a Duck) … ок, 1.0 МБ
+↓ happy-alley (Happy Alley) … ок, 1.5 МБ
+↓ cheery-monday (Cheery Monday) … ок, 1.2 МБ
+↓ pixelland (Pixelland) … ок, 3.6 МБ
+
+✓ аудио готово: 12 файлов, всего 33.7 МБ в public/audio/
+  (пережато в MP3 128 кбит/с — требование CC BY об изменениях выполнено полем modified каталога)
 
 === curl -I официального файла ===
 HTTP/1.1 200 OK
-Date: Sat, 17 Oct 2026 08:17:24 GMT
+Date: Sat, 17 Oct 2026 08:20:47 GMT
 Server: Apache/2.4.56 (Debian)
 Last-Modified: Sun, 15 Feb 2015 14:10:31 GMT
 ETag: "643339-50f21084aa3c0"
@@ -24,7 +33,7 @@ Content-Type: application/octet-stream
 
 === curl -I без UA ===
 HTTP/1.1 200 OK
-Date: Sat, 17 Oct 2026 08:17:25 GMT
+Date: Sat, 17 Oct 2026 08:20:48 GMT
 Server: Apache/2.4.56 (Debian)
 Last-Modified: Sun, 15 Feb 2015 14:12:08 GMT
 ETag: "4d2b8c-50f210e12be00"
