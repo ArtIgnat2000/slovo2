@@ -1,0 +1,48 @@
+=== node v22.23.3 ===
+=== log scripts/fetch-music.mjs ===
+= carefree уже скачан, пропускаю
+= life-of-riley уже скачан, пропускаю
+= easy-lemon уже скачан, пропускаю
+= wholesome уже скачан, пропускаю
+= wallpaper уже скачан, пропускаю
+= daily-beetle уже скачан, пропускаю
+= monkeys-spinning-monkeys уже скачан, пропускаю
+= sneaky-snitch уже скачан, пропускаю
+= fluffing-a-duck уже скачан, пропускаю
+= happy-alley уже скачан, пропускаю
+= cheery-monday уже скачан, пропускаю
+= pixelland уже скачан, пропускаю
+
+✓ аудио готово: 12 файлов, всего 33.7 МБ в public/audio/
+  (пережато в MP3 128 кбит/с — требование CC BY об изменениях выполнено полем modified каталога)
+
+=== curl -I официального файла ===
+HTTP/1.1 200 OK
+Date: Sat, 17 Oct 2026 09:03:08 GMT
+Server: Apache/2.4.56 (Debian)
+Last-Modified: Sun, 15 Feb 2015 14:10:31 GMT
+ETag: "643339-50f21084aa3c0"
+Accept-Ranges: bytes
+Content-Length: 6566713
+Link: https://incompetech.com/.well-known/openapi.yaml; rel="describedby"
+Cache-Control: no-cache, no-store, must-revalidate
+Pragma: no-cache
+Expires: 0
+Content-Disposition: attachment
+Content-Type: application/octet-stream
+
+=== curl -I без UA ===
+HTTP/1.1 200 OK
+Date: Sat, 17 Oct 2026 09:03:08 GMT
+Server: Apache/2.4.56 (Debian)
+Last-Modified: Sun, 15 Feb 2015 14:12:08 GMT
+ETag: "4d2b8c-50f210e12be00"
+Accept-Ranges: bytes
+Content-Length: 5057420
+Link: https://incompetech.com/.well-known/openapi.yaml; rel="describedby"
+Cache-Control: no-cache, no-store, must-revalidate
+Pragma: no-cache
+Expires: 0
+Content-Disposition: attachment
+Content-Type: application/octet-stream
+
