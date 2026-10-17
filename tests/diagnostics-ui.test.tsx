@@ -22,6 +22,15 @@ export async function runDiagnosticsRouteChecks(): Promise<void> {
     !Array.from(document.querySelectorAll('.diag-screen b')).some((node) => ['Тест', 'Тест пазлов', 'Задания'].includes(node.textContent ?? '')),
     'в сводке не должно быть пользовательских имён',
   );
+  // Раздел «Тема» отвечает на главный вопрос по «серому экрану»: перекрасил
+  // экран браузер или приложение само выбрало тёмную тему.
+  check(
+    'диагностика показывает браузер, тему и признак перекраски',
+    (document.body.textContent ?? '').includes('Перекраска браузером') &&
+      (document.body.textContent ?? '').includes('Браузер') &&
+      (document.body.textContent ?? '').includes('Схема страницы'),
+    document.querySelector('.diag-screen')?.textContent?.slice(0, 260) ?? '',
+  );
 
   const close = document.querySelector('.diag-screen button') as HTMLButtonElement | null;
   click(close);

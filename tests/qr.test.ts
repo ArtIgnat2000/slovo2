@@ -23,6 +23,8 @@ import {
   type QrEcc,
   type QrMatrix,
 } from '../src/engine/qr';
+import { QR_MODULE_PX, QR_QUIET_ZONE, qrPngBytes, qrPngDataUrl } from '../src/engine/qrPng';
+import { decodePng, pngBytesFromDataUrl } from './qr-png-helper';
 
 // ── Ёмкости: сколько байт влезает в каждую версию (таблица стандарта) ────────
 {
@@ -254,4 +256,49 @@ function readText(codewords: number[], version: number): string {
   assert.deepEqual(again?.modules, first?.modules, 'код должен быть воспроизводимым');
 }
 
-console.log('✓ QR-код ссылки: ёмкости, форматы, обратное чтение, синдромы и снимок');
+// ── PNG-картинка: QR должен оставаться чёрно-белым ────────────────────────
+// На Android с принудительной тёмной темой браузер переводит цвет SVG-отрисовки
+// в одну яркость, и код из инлайнового SVG становится однотонно серым. Поэтому
+// код рисуется картинкой, и проверяем именно пиксели: модули — чёрные, поле и
+// «тихая зона» — белые.
+{
+  const matrix = qrEncode('https://artignat2000.github.io/slovo2/');
+  assert.ok(matrix);
+  const modulePx = QR_MODULE_PX;
+  const side = (matrix.size + QR_QUIET_ZONE * 2) * modulePx;
+  const decoded = decodePng(qrPngBytes(matrix));
+  assert.equal(decoded.width, side, 'ширина картинки — сторона кода в пикселях');
+  assert.equal(decoded.height, side, 'высота картинки — сторона кода в пикселях');
+  assert.equal(decoded.bitDepth, 1, 'картинка чёрно-белая: один бит на пиксель');
+
+  /** Цвет модуля (mx, my) в центре модуля; минус — «тихая зона». */
+  const pixel = (mx: number, my: number): boolean => {
+    const x = (mx + QR_QUIET_ZONE) * modulePx + (modulePx >> 1);
+    const y = (my + QR_QUIET_ZONE) * modulePx + (modulePx >> 1);
+    return decoded.pixels[y][x];
+  };
+
+  let dark = 0;
+  let light = 0;
+  for (let my = 0; my < matrix.size; my += 1) {
+    for (let mx = 0; mx < matrix.size; mx += 1) {
+      const isDark = matrix.modules[my * matrix.size + mx];
+      assert.equal(pixel(mx, my), !isDark, `модуль (${mx}, ${my}) должен быть ${isDark ? 'чёрным' : 'белым'}`);
+      if (isDark) dark += 1;
+      else light += 1;
+    }
+  }
+  assert.ok(dark > 0 && light > 0, 'в коде есть и чёрные, и белые модули');
+  assert.equal(pixel(-1, -1), true, '«тихая зона» белая');
+  assert.equal(pixel(-1, matrix.size), true, '«тихая зона» белая');
+  assert.equal(pixel(matrix.size, -1), true, '«тихая зона» белая');
+  assert.equal(pixel(matrix.size, matrix.size), true, '«тихая зона» белая');
+
+  // Картинка отдаётся как data-URL: ни сети, ни файлов — только память.
+  const url = qrPngDataUrl(matrix);
+  assert.ok(url.startsWith('data:image/png;base64,'), 'QR отдаётся как data-URL');
+  const fromUrl = decodePng(pngBytesFromDataUrl(url));
+  assert.deepEqual(fromUrl.pixels, decoded.pixels, 'картинка из data-URL совпадает с собранной');
+}
+
+console.log('✓ QR-код ссылки: ёмкости, форматы, обратное чтение, синдромы, снимок и чёрно-белая картинка');
