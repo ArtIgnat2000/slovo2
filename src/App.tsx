@@ -87,7 +87,19 @@ export default function App() {
       document.documentElement.dataset.theme = dark ? 'dark' : 'light';
       // Явно сообщаем браузеру текущую схему: без этого Chrome на Android
       // может «притемнять» светлую тему (auto-dark), и она выглядит серой.
-      document.documentElement.style.colorScheme = dark ? 'dark' : 'only light';
+      // `only` — не просто «поддерживаем обе», а «не трогай, другой темы для
+      // этой страницы нет»: именно этого слова не хватает части браузеров,
+      // чтобы отключить собственное перекрашивание.
+      const scheme = dark ? 'only dark' : 'only light';
+      document.documentElement.style.colorScheme = scheme;
+      // Samsung Internet и некоторые Android-WebView читают принудительную
+      // тёмную тему в первую очередь по <meta name="color-scheme">, а не по
+      // инлайн-стилю: без обновления самого тега «Force dark mode for web
+      // content» перекрашивает страницу даже при выбранной светлой теме и
+      // светлой системной теме (см. отчёт пользователя: Samsung Internet,
+      // системная тема светлая, в приложении выбрано «светлая», экран тёмный).
+      const schemeMeta = document.querySelector('meta[name="color-scheme"]');
+      schemeMeta?.setAttribute('content', scheme);
       const meta = document.querySelector('meta[name="theme-color"]');
       meta?.setAttribute('content', dark ? '#171426' : '#7C5CFF');
     };

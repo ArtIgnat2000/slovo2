@@ -24,11 +24,22 @@ function mulberry32(a: number) {
 const smokeSeed = Number(process.env.SMOKE_SEED ?? 1);
 Math.random = mulberry32(Number.isFinite(smokeSeed) ? smokeSeed : 1);
 
-const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', {
-  url: 'http://localhost:5173/',
-  pretendToBeVisual: true,
-  runScripts: 'outside-only',
-});
+// <meta name="color-scheme"> и <meta name="theme-color"> повторяют реальный
+// index.html: App.tsx читает и переписывает их при смене темы (Samsung
+// Internet и часть Android-WebView ориентируются на сам тег, а не только на
+// инлайн-стиль документа), и смоук должен проверять это на тех же тегах,
+// что получит настоящая страница, а не молча проходить из-за их отсутствия.
+const dom = new JSDOM(
+  '<!doctype html><html><head>' +
+    '<meta name="color-scheme" content="light dark" />' +
+    '<meta name="theme-color" content="#7C5CFF" />' +
+    '</head><body><div id="root"></div></body></html>',
+  {
+    url: 'http://localhost:5173/',
+    pretendToBeVisual: true,
+    runScripts: 'outside-only',
+  },
+);
 
 const g = globalThis as Record<string, unknown>;
 const w = dom.window as unknown as Record<string, unknown>;

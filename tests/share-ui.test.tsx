@@ -34,10 +34,19 @@ export async function runShareAppChecks(): Promise<void> {
     useApp.getState().setSettings({ theme });
     await sleep(40);
     const expected = theme === 'light' ? 'light' : 'dark';
+    const expectedScheme = expected === 'light' ? 'only light' : 'only dark';
+    const schemeMeta = document.querySelector('meta[name="color-scheme"]');
     check(`тема ${theme} при тёмной системе: явная схема браузера`,
       document.documentElement.dataset.theme === expected &&
-      document.documentElement.style.colorScheme === (expected === 'light' ? 'only light' : 'dark'),
+      document.documentElement.style.colorScheme === expectedScheme,
       document.documentElement.style.colorScheme);
+    // Samsung Internet и часть Android-WebView читают принудительную тёмную
+    // тему по самому тегу <meta name="color-scheme">, а не по инлайн-стилю
+    // документа: без синхронизации тега «Force dark» перекрашивает страницу
+    // даже при выбранной светлой теме и светлой системной теме.
+    check(`тема ${theme}: тег <meta name="color-scheme"> синхронизирован`,
+      schemeMeta?.getAttribute('content') === expectedScheme,
+      schemeMeta?.getAttribute('content') ?? 'нет тега');
   }
   window.matchMedia = originalMatchMedia;
   useApp.getState().setSettings({ theme: originalTheme });
