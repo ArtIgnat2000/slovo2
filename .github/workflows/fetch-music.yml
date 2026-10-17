@@ -7,12 +7,22 @@ name: Fetch official music
 # scripts/fetch-music.mjs; сверка каталога и файлов — npm run audio:check.
 
 on:
+  # Вручную — когда workflow уже на main (workflow_dispatch).
+  # И автоматически — любой push, который меняет сам этот файл: так аудио можно
+  # докачать в ветке ещё до попадания workflow в main.
   workflow_dispatch:
     inputs:
       keep_original:
         description: 'Скачать без пережатия (true) или пережать в MP3 128 кбит/с (false)'
         required: false
         default: 'false'
+  push:
+    paths:
+      - '.github/workflows/fetch-music.yml'
+
+concurrency:
+  group: fetch-music-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: write
