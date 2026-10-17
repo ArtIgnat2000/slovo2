@@ -1769,6 +1769,8 @@ export interface GrooveSpec {
   riser?: boolean;
   /** Струнная подкладка со второй половины лупа (гимн: дроп становится шире). */
   stringsOverlay?: boolean;
+  /** Колокольный контр-слой с 5-го такта (K-pop гимн: «золотой» блеск дропа). */
+  bellOverlay?: boolean;
   /** Акустический комплект вместо драм-машины: кахон, рим, шейкер, конга, бубен. */
   acousticDrums?: boolean;
   /** Живая природа: подкладки-подушки и события с сид-рандомом. */
@@ -1827,9 +1829,9 @@ const MOTIF_CORE = [0, 2, 4, 3, 1, 4, 2, 0];
 const GROOVES: Record<string, GrooveSpec> = {
   // полка «Тренд 2026»
   bounce: { kick: K(0, 10), snare: K(4, 12), hat: K(3, 6, 11, 13, 14), clap: [], bass: 'slide', chord: 'none', chordIntervals: [], lead: 'square', leadBase: 66, hook: 'sixseven', motif: [5, 6, 5, 6, 4, 5, 6, 4], swing: 0.08, sidechain: 0.35, rev: 0.14, dly: 0.16, crash: [0, 4], fill: true },
-  duck: { kick: K(0, 4, 8, 12), snare: [], hat: EIGHTH_HAT, clap: K(4, 12), openHat: K(14), bass: 'offbeat', chord: 'stab', chordIntervals: [0, 4, 7], lead: 'epiano', leadBase: 66, hook: 'wave', motif: [0, 0, 2, 2, 4, 4, 2, 0], swing: 0.18, sidechain: 0.45, rev: 0.2, dly: 0.12, crash: [0], fill: true },
-  kpop: { kick: K(0, 4, 8, 12), snare: [], hat: EIGHTH_HAT, clap: K(4, 12), bass: 'eighth', chord: 'pad', chordIntervals: [0, 4, 7, 11], lead: 'supersaw', leadBase: 66, build: true, padAttack: 0.06, stringsOverlay: true, motif: [0, 2, 4, 7, 4, 2, 0, 4], sidechain: 0.4, rev: 0.34, dly: 0.22, crash: [0, 2, 4, 6], fill: true, riser: true },
-  phonk: { kick: K(0, 6, 10), snare: K(4, 12), hat: K(0, 2, 3, 5, 6, 8, 10, 11, 13), clap: [], bass: 'slide', chord: 'none', chordIntervals: [], lead: 'cowbell', leadBase: 78, motif: [0, 3, 0, 5, 3, 0, 7, 5], swing: 0.16, sidechain: 0.5, rev: 0.12, dly: 0.1, crash: [0, 4], fill: true },
+  duck: { kick: K(0, 4, 8, 12), snare: [], hat: EIGHTH_HAT, clap: K(4, 12), openHat: K(14), bass: 'offbeat', chord: 'stab', chordIntervals: [0, 4, 7, 9], lead: 'epiano', leadBase: 66, hook: 'wave', motif: [0, 0, 2, 2, 4, 4, 2, 0], swing: 0.18, sidechain: 0.45, rev: 0.2, dly: 0.12, crash: [0], fill: true },
+  kpop: { kick: K(0, 4, 8, 12), snare: [], hat: EIGHTH_HAT, clap: K(4, 12), bass: 'eighth', chord: 'pad', chordIntervals: [0, 4, 7, 11], lead: 'supersaw', leadBase: 66, build: true, padAttack: 0.06, stringsOverlay: true, motif: [0, 2, 4, 7, 4, 2, 0, 4], bellOverlay: true, sidechain: 0.4, rev: 0.34, dly: 0.22, crash: [0, 2, 4, 6], fill: true, riser: true },
+  phonk: { kick: K(0, 6, 10), snare: K(4, 12), hat: K(0, 2, 3, 5, 6, 8, 10, 11, 13), clap: [], bass: 'slide', chord: 'pad', chordIntervals: [0, 3, 7], padAttack: 0.1, lead: 'cowbell', leadBase: 78, motif: [0, 3, 0, 5, 3, 0, 7, 5], swing: 0.16, sidechain: 0.5, rev: 0.12, dly: 0.1, crash: [0, 4], fill: true },
   punk: { kick: K(0, 6, 8, 14), snare: K(4, 12), hat: EIGHTH_HAT, clap: [], openHat: K(14), bass: 'eighth', chord: 'power', chordIntervals: [0, 7], lead: 'supersaw', leadBase: 66, motif: [0, 0, 3, 0, 5, 3, 0, 2], cutoff: 3200, rev: 0.1, dly: 0.12, crash: [0, 4], fill: true },
   ethno: { kick: K(0, 8, 11), snare: K(4, 12), hat: K(2, 5, 7, 10, 13), clap: [], bass: 'drone', chord: 'strings', chordIntervals: [0, 7], lead: 'flute', leadBase: 66, grace: true, motif: [0, 1, 2, 4, 2, 1, 4, 2], cutoff: 3600, rev: 0.4, dly: 0.26, fill: true },
 
@@ -2107,6 +2109,17 @@ function scheduleStep(track: MusicTrack, spec: GrooveSpec, state: ReturnType<typ
       }),
     );
   }
+  if (spec.bellOverlay && bar >= 4 && s16 === 0) {
+    // DX-колокол (нечастные отношения 3.42/6.71) — «золотой» блеск в дропе:
+    // гимн растёт в ширину двумя слоями, струнные держат, колокола сверкают
+    [12, 19].forEach((interval, i) =>
+      dxVoice(ctx, 'bell', {
+        at: t + i * 0.035, freq: hz(root + interval), dur: beatSeconds * 2.4,
+        gain: 0.012 * hum.gv, cutoff: 5200,
+        bus: 'chord', pan: i === 0 ? -0.35 : 0.35, rev: (spec.rev ?? 0.3) * 0.9,
+      }),
+    );
+  }
   if (spec.bossaComp && (s16 === 6 || s16 === 13) && mulberry(hashString(`${track.id}:bc:${step}`))() < 0.8) {
     iv.forEach((interval, i) =>
       ksVoice(ctx, {
@@ -2202,10 +2215,12 @@ function scheduleStep(track: MusicTrack, spec: GrooveSpec, state: ReturnType<typ
 
   // Узнаваемая фигурка тренда — то, что ребёнок слышит как «своё»
   if (spec.hook === 'sixseven' && full && (s16 === 0 || s16 === 3)) {
+    // Хук — лицо мема: DX-pluck (индекс 3:1 со спадом 60 мс) даёт щелчок
+    // профессионального синтезатора; сам мотив остаётся чиптюн-квадратом
     const first = s16 === 0;
-    leadVoice(ctx, { ...spec, lead: 'square' }, state, { midi: spec.leadBase + degree(track, first ? 5 : 6), at: t, dur: beatSeconds * 0.42, gain: 0.04, pan: panLead });
+    leadVoice(ctx, { ...spec, lead: 'pluck' }, state, { midi: spec.leadBase + degree(track, first ? 5 : 6), at: t, dur: beatSeconds * 0.42, gain: 0.04, pan: panLead });
     if (bar % 2 === 1 && s16 === 3) {
-      leadVoice(ctx, { ...spec, lead: 'square' }, state, { midi: spec.leadBase + degree(track, 4), at: t + beatSeconds * 0.3, dur: beatSeconds * 0.4, gain: 0.032, pan: panLead });
+      leadVoice(ctx, { ...spec, lead: 'pluck' }, state, { midi: spec.leadBase + degree(track, 4), at: t + beatSeconds * 0.3, dur: beatSeconds * 0.4, gain: 0.032, pan: panLead });
     }
   }
   if (spec.hook === 'wave' && full && (s16 === 4 || s16 === 12)) {
