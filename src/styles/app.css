@@ -4539,7 +4539,7 @@ p {
   }
 }
 
-/* Музыкальная коллекция БУКа: оригинальные offline-синтезированные лупы */
+/* Музыкальная коллекция БУКа: записи Kevin MacLeod (CC BY 4.0) из public/audio/ */
 .music-open {
   margin-top: 10px;
   min-height: 36px;
@@ -4593,9 +4593,8 @@ p {
   font-size: var(--fs-xs);
   line-height: 1.4;
 }
-/* Полки музыкального магазина: «Тренд 2026» показываем отдельно от базовой
-   коллекции — ребёнку важно «то, что сейчас у всех», взрослому — что это
-   своя музыка, а не чужая песня (docs/music-trends-2026.md). */
+/* Полки музыкального магазина: спокойный фон (занятия, меню) отдельно от
+   весёлой коллекции — у каждой мелодии своё место в игре. */
 .music-shelf + .music-shelf { margin-top: var(--sp-5); }
 .music-shelf-title { margin: 0; font-size: var(--fs-sm); }
 .music-shelf-note { margin: 2px 0 var(--sp-2); }
@@ -4676,4 +4675,46 @@ p {
 @media (min-width: 420px) {
   .music-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .music-cover { height: 86px; }
+}
+
+/* «Авторы и лицензии»: атрибуция музыки CC BY — доступна из приложения */
+.credits-row {
+  margin-top: var(--sp-3);
+}
+.credits-card {
+  margin-top: var(--sp-3);
+  text-align: left;
+}
+.credits-heading {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-sm);
+}
+.credits {
+  display: grid;
+  gap: var(--sp-2);
+}
+.credits p {
+  margin: 0;
+  line-height: 1.45;
+}
+.credits a {
+  color: var(--primary);
+  word-break: break-word;
+}
+.credits-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--sp-2);
+}
+.credits-item {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg-2);
+}
+.credits-title {
+  margin-bottom: 4px;
+  line-height: 1.3;
 }

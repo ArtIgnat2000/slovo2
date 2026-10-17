@@ -1,0 +1,57 @@
+name: Fetch official music
+
+# Качает MP3 каталога с официальных страниц incompetech.com (Kevin MacLeod,
+# CC BY 4.0) в public/audio/ и коммитит их в ветку, по которой запущен.
+# Запускается вручную (workflow_dispatch): нужен только при первом добавлении
+# музыки или при замене трека в src/engine/music.ts. Скрипт и правила —
+# scripts/fetch-music.mjs; сверка каталога и файлов — npm run audio:check.
+
+on:
+  workflow_dispatch:
+    inputs:
+      keep_original:
+        description: 'Скачать без пережатия (true) или пережать в MP3 128 кбит/с (false)'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: ffmpeg (для пережатия аудио)
+        if: ${{ inputs.keep_original != 'true' }}
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - run: npm ci
+
+      - name: Скачать официальные треки
+        run: |
+          if [ "${{ inputs.keep_original }}" = "true" ]; then
+            node scripts/fetch-music.mjs --keep-original
+          else
+            node scripts/fetch-music.mjs
+          fi
+
+      - run: npm run audio:check
+
+      - name: Закоммитить аудио
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/audio
+          if git diff --cached --quiet; then
+            echo "Аудио не изменилось — коммит не нужен."
+          else
+            git commit -m "Аудио: официальные треки Kevin MacLeod (incompetech.com, CC BY 4.0)"
+            git push
+          fi

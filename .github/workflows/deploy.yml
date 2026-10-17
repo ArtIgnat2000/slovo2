@@ -36,6 +36,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run audio:check
       - run: npm run content:check
       - run: npm run test:smoke
       - run: npm run build

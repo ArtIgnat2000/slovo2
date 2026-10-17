@@ -24,7 +24,7 @@ import {
   type PlannedQuest,
 } from '../engine/quests';
 import { ITEM_BY_ID, isOwned } from '../engine/shop';
-import { MUSIC_BY_ID, normalizeMusicOwned, STARTER_TRACK_IDS } from '../engine/music';
+import { migrateMusicShop, MUSIC_BY_ID, STARTER_TRACK_IDS } from '../engine/music';
 import { normalizeTuning, recolor, type RecolorOutcome } from '../engine/tints';
 import {
   awardLessonPiece,
@@ -76,7 +76,12 @@ export type MascotMode = 'on' | 'home' | 'off';
 export type LessonHelpMode = 'socratic' | 'direct' | 'off';
 
 export interface Settings {
+  /** Звуковые эффекты (правильный ответ, сундук): синтезируются на месте. */
   sound: boolean;
+  /** Фоновая музыка: отдельный переключатель, чтобы SFX жили без музыки и наоборот. */
+  music: boolean;
+  /** Громкость фоновой музыки (0..1): умеренная по умолчанию. */
+  musicVolume: number;
   haptics: boolean;
   dailyGoal: number; // XP в день
   theme: 'auto' | 'light' | 'dark';
@@ -86,6 +91,8 @@ export interface Settings {
 
 const DEFAULT_SETTINGS: Settings = {
   sound: true,
+  music: true,
+  musicVolume: 0.5,
   haptics: true,
   dailyGoal: 120,
   theme: 'auto',
@@ -180,15 +187,13 @@ function weeklyEarnings(p: Profile, days: Profile['days'], today: string) {
 function readShop(p: Profile): ShopState {
   const owned = p.shop?.owned ?? [];
   const assembled = p.puzzle?.assembled ?? [];
-  const musicOwned = normalizeMusicOwned(p.shop?.musicOwned);
-  const musicTrack = typeof p.shop?.musicTrack === 'string' && MUSIC_BY_ID[p.shop.musicTrack] && musicOwned.includes(p.shop.musicTrack)
-    ? p.shop.musicTrack
-    : null;
+  // Музыкальная часть — через миграцию: покупки старого каталога не теряются.
+  const music = migrateMusicShop(p.shop);
   return {
     owned,
     equipped: p.shop?.equipped ?? {},
-    musicOwned,
-    musicTrack,
+    musicOwned: music.musicOwned,
+    musicTrack: music.musicTrack,
     // краски некупленных вещей, чужие id и акценты несобранных костюмов отбрасываем
     tuning: normalizeTuning(p.shop?.tuning, [...owned, ...assembled]),
   };
@@ -213,7 +218,9 @@ function newProfile(name: string, avatar: string): Profile {
     lessonSize: DEFAULT_LESSON_SIZE,
     daily: { day: dayKey(), claimed: [], chestsToday: 0, bonusChestsClaimed: 0, chestsTotal: 0 },
     weekly: { week: weekStartKey(), claimed: [] },
-    shop: { owned: [], equipped: {}, musicOwned: [...STARTER_TRACK_IDS], musicTrack: null },
+    // Новому профилю — стартовая мелодия: музыка играет с первого дня,
+    // а «Тишина» остаётся одним нажатием в коллекции БУКа.
+    shop: { owned: [], equipped: {}, musicOwned: [...STARTER_TRACK_IDS], musicTrack: STARTER_TRACK_IDS[0] },
     puzzle: { pieces: {}, collecting: null, assembled: [], worn: null },
   };
 }
@@ -253,10 +260,9 @@ function normalizeProfile(raw: Partial<Profile> | null | undefined): Profile | n
     shop: {
       owned,
       equipped: raw.shop?.equipped && typeof raw.shop.equipped === 'object' ? raw.shop.equipped : {},
-      musicOwned: normalizeMusicOwned(raw.shop?.musicOwned),
-      musicTrack: typeof raw.shop?.musicTrack === 'string' && MUSIC_BY_ID[raw.shop.musicTrack] && normalizeMusicOwned(raw.shop?.musicOwned).includes(raw.shop.musicTrack)
-        ? raw.shop.musicTrack
-        : null,
+      // Миграция каталога музыки: старые покупки дают новые треки, выбор
+      // ребёнка (включая «Тишина») сохраняется — см. engine/music.ts.
+      ...migrateMusicShop(raw.shop),
       tuning: normalizeTuning(raw.shop?.tuning, [...owned, ...puzzle.assembled]),
     },
     puzzle,
@@ -267,6 +273,18 @@ function normalizeSettings(raw: Partial<Settings> | null | undefined): Settings 
   if (!raw || typeof raw !== 'object') return DEFAULT_SETTINGS;
   return {
     sound: typeof raw.sound === 'boolean' ? raw.sound : DEFAULT_SETTINGS.sound,
+    // У профилей до 0.14.0 музыка и эффекты делили один выключатель «Звук»:
+    // кто его выключал, тот не хотел звука вообще — музыку таким не включаем.
+    music:
+      typeof raw.music === 'boolean'
+        ? raw.music
+        : typeof raw.sound === 'boolean'
+          ? raw.sound
+          : DEFAULT_SETTINGS.music,
+    musicVolume:
+      typeof raw.musicVolume === 'number' && Number.isFinite(raw.musicVolume) && raw.musicVolume >= 0
+        ? Math.min(1, raw.musicVolume)
+        : DEFAULT_SETTINGS.musicVolume,
     haptics: typeof raw.haptics === 'boolean' ? raw.haptics : DEFAULT_SETTINGS.haptics,
     dailyGoal:
       typeof raw.dailyGoal === 'number' && Number.isFinite(raw.dailyGoal) && raw.dailyGoal > 0
@@ -324,7 +342,7 @@ interface AppState {
 
   /** Купить аксессуар у БУКа. Возвращает false, если кристаллов не хватает. */
   buyItem: (id: string) => boolean;
-  /** Купить оригинальный музыкальный луп за кристаллы. */
+  /** Купить мелодию из музыкального магазина (однократно; открытый трек остаётся в профиле). */
   buyMusicTrack: (id: string) => boolean;
   /** Выбрать купленную мелодию для БУКа; null — выключить музыку. */
   setMusicTrack: (id: string | null) => void;

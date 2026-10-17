@@ -1,9 +1,10 @@
 import { execSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import { STARTER_TRACK_IDS } from './src/engine/music';
 
 // Имя репозитория на GitHub Pages. Если репозиторий назовёте иначе — поменяйте тут.
 const REPO_BASE = '/slovo2/';
@@ -79,13 +80,40 @@ export default defineConfig(({ command }) => ({
         ],
       },
       workbox: {
-        // webp — картинки слов: без них офлайн-режим показывал бы пустые рамки
-        globPatterns: ['**/*.{js,css,html,png,svg,webp,webmanifest}'],
+        // webp — картинки слов: без них офлайн-режим показывал бы пустые рамки.
+        // audio/*.mp3 — стартовые мелодии: музыка должна звучать офлайн сразу
+        // после установки PWA. Платные треки намеренно НЕ идут в precache —
+        // они крупные и нужны только тем, кто их открыл (см. runtimeCaching).
+        // Паттерн добавляется только если файл на месте: сборка без аудио
+        // (свежий клон до npm run music:fetch) остаётся чистой и рабочей,
+        // а полноту аудио проверяет npm run audio:check.
+        globPatterns: [
+          '**/*.{js,css,html,png,svg,webp,webmanifest}',
+          ...STARTER_TRACK_IDS.filter((id) => existsSync(new URL(`./public/audio/${id}.mp3`, import.meta.url))).map(
+            (id) => `**/audio/${id}.mp3`,
+          ),
+        ],
+        // MP3 стартовых треков крупнее порога workbox по умолчанию (2 МБ).
+        maximumFileSizeToCacheInBytes: 12 * 1024 * 1024,
         // Витрина вариантов карточки (docs/) — служебная страница для ревью,
         // ей нечего делать в офлайн-кэше у ребёнка.
         globIgnores: ['docs/**'],
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,
+        // Остальная музыка (покупки, прослушивание): первый запрос кладёт файл
+        // в кэш «slovo2-audio», дальше трек играет офлайн. Прогрев стартовых и
+        // купленных треков — platform/music.ts:warmTracks.
+        runtimeCaching: [
+          {
+            urlPattern: /\/audio\/.*\.mp3$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'slovo2-audio',
+              expiration: { maxEntries: 24 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
       },
       devOptions: { enabled: false },
     }),

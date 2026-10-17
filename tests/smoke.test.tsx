@@ -494,25 +494,38 @@ async function main() {
   check('магазин открылся', has('Магазин БУКа'), body().slice(0, 200));
   check('видны разделы гардероба', has('Головные уборы') && has('На шею'), '');
   check('показан баланс кристаллов', has(`💎 ${useApp.getState().profiles[0].gems}`), '');
-  check('в музыкальном магазине много мелодий', document.querySelectorAll('.music-item').length === MUSIC_TRACKS.length, String(document.querySelectorAll('.music-item').length));
-  check('полка «Тренд 2026» показана отдельно', has('Тренд 2026') && document.querySelectorAll('.music-tag').length >= 6, '');
-  check('у тренда есть пояснение для взрослых', has('шестая и седьмая ступень'), '');
+  check('в музыкальном магазине все мелодии каталога', document.querySelectorAll('.music-item').length === MUSIC_TRACKS.length, String(document.querySelectorAll('.music-item').length));
+  check('полки «Спокойный фон» и «Коллекция» разведены', has('Спокойный фон') && has('Коллекция и награды'), '');
+  check('магазин честно называет лицензию', has('CC BY 4.0') && has('Kevin MacLeod'), '');
+  // Раздел «Авторы и лицензии» доступен прямо из приложения
+  const creditsBtn = buttons().find((b) => (b.textContent ?? '').includes('Авторы и лицензии'));
+  check('кнопка «Авторы и лицензии» видна в магазине', !!creditsBtn, '');
+  if (creditsBtn) click(creditsBtn);
+  await sleep(30);
+  check(
+    'раздел лицензий показывает оригинальные названия и источник',
+    has('Carefree') && has('incompetech.com') && has('creativecommons.org') && has('Изменения аудио'),
+    body().slice(0, 200),
+  );
+  check('раздел объясняет отсутствие исключительных прав', has('не даёт исключительных прав'), '');
+  if (creditsBtn) click(creditsBtn);
+  await sleep(30);
   click(document.querySelector('.shop-mascot') as HTMLButtonElement);
   await sleep(30);
   check('тап по БУКу открывает выбор своей музыки', !!document.querySelector('.music-picker'), '');
   const musicChoice = Array.from(document.querySelectorAll('.music-picker .music-choice'))
-    .find((button) => (button.textContent ?? '').includes('Утро с гитарой')) as HTMLButtonElement | undefined;
+    .find((button) => (button.textContent ?? '').includes('Лимончик')) as HTMLButtonElement | undefined;
   check('коллекция предлагает стартовые мелодии', !!musicChoice, '');
   if (musicChoice) click(musicChoice);
   await sleep(30);
-  check('выбранная музыка сохраняется в профиле', useApp.getState().profiles[0].shop?.musicTrack === 'guitar-morning', String(useApp.getState().profiles[0].shop?.musicTrack));
+  check('выбранная музыка сохраняется в профиле', useApp.getState().profiles[0].shop?.musicTrack === 'easy-lemon', String(useApp.getState().profiles[0].shop?.musicTrack));
   click(document.querySelector('.shop-mascot') as HTMLButtonElement);
   await sleep(30);
   click(Array.from(document.querySelectorAll('.music-picker .music-choice')).find((button) => (button.textContent ?? '').includes('Тишина')) as HTMLButtonElement);
   await sleep(30);
   check('музыку можно выключить из коллекции', useApp.getState().profiles[0].shop?.musicTrack === null, String(useApp.getState().profiles[0].shop?.musicTrack));
   const gemsBeforeMusic = useApp.getState().profiles[0].gems;
-  const neonCard = Array.from(document.querySelectorAll('.music-item')).find((card) => (card.textContent ?? '').includes('Укулеле на солнце'));
+  const neonCard = Array.from(document.querySelectorAll('.music-item')).find((card) => (card.textContent ?? '').includes('Весёлый переулок'));
   const neonBuy = Array.from(neonCard?.querySelectorAll('button') ?? []).find((button) => (button.textContent ?? '').includes('Купить')) as HTMLButtonElement | undefined;
   check('музыкальный магазин предлагает платные треки', !!neonBuy, '');
   if (neonBuy && gemsBeforeMusic >= 8) {
@@ -521,8 +534,12 @@ async function main() {
     click(btnText('Купить за 💎8'));
     await sleep(50);
     const musicBought = useApp.getState().profiles[0];
-    check('покупка трека списывает кристаллы и открывает его', musicBought.gems === gemsBeforeMusic - 8 && musicBought.shop?.musicOwned?.includes('ukulele-sun'), '');
-    check('новый трек сразу выбран для БУКа', musicBought.shop?.musicTrack === 'ukulele-sun', String(musicBought.shop?.musicTrack));
+    check('покупка трека списывает кристаллы и открывает его', musicBought.gems === gemsBeforeMusic - 8 && musicBought.shop?.musicOwned?.includes('happy-alley'), '');
+    check('новый трек сразу выбран для БУКа', musicBought.shop?.musicTrack === 'happy-alley', String(musicBought.shop?.musicTrack));
+    // Покупка однократная: повторный вызов не списывает кристаллы снова
+    const okAgain = useApp.getState().buyMusicTrack('happy-alley');
+    const afterRepeat = useApp.getState().profiles[0];
+    check('повторная покупка не списывает кристаллы', okAgain === false && afterRepeat.gems === gemsBeforeMusic - 8, `ok=${okAgain}, gems=${afterRepeat.gems}`);
     useApp.setState((s) => ({
       profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, gems: gemsBeforeMusic, shop: { ...p.shop!, musicTrack: null } } : p)),
     }));

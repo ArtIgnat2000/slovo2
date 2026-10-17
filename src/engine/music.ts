@@ -1,180 +1,299 @@
-/** Оригинальные короткие синтезированные лупы: без внешних файлов и без лицензированных песен. */
-
 /**
- * Вайб аранжировки — влияет на ударные, бас и тембр. Первые шесть — базовый
- * каталог (0.12.3), последние шесть — полка «Тренд 2026» (0.13.0): жанры,
- * которые дети 7–10 лет узнают как «свои». Ритмические рисунки и тембры
- * описаны таблицей в platform/music.ts (GROOVES) — своих мелодий там нет,
- * только правила аранжировки, а ноты берутся из `scale` трека.
+ * Каталог фоновой музыки: профессиональные записи Kevin MacLeod (incompetech.com).
+ *
+ * Правила каталога (0.14.0 — замена синтезатора на настоящие записи):
+ *  • единственный источник аудио — официальный сайт автора, страницы треков
+ *    (см. sourceUrl); файлы лежат локально в public/audio/ и играют офлайн;
+ *  • лицензия каждого трека записана по его официальной странице (сегодня у
+ *    всех двенадцати это CC BY 4.0, но поле license у каждого своё — при
+ *    замене трека не полагаться на «обычно у автора 4.0»);
+ *  • покупка трека за кристаллы однократная и не даёт ребёнку исключительных
+ *    прав: это открытие мелодии внутри игры, а аудио остаётся под CC BY;
+ *  • изменения аудио (если делались) помечены в `modified` — требование CC BY
+ *    обозначать изменения.
+ *
+ * Звуковые эффекты (platform/sound.ts) — отдельная история, их эта замена не
+ * касается: они синтезируются на месте и остаются как были.
  */
-export type Groove =
-  | 'bounce' | 'duck' | 'kpop' | 'phonk' | 'punk' | 'ethno'
-  // База 0.13.0 — «живая»: акустика и природа вместо электроники 0.12.3.
-  | 'fingerstyle' | 'strum' | 'kalimba' | 'meadow' | 'bossa' | 'folk'
-  | 'stringsstory' | 'blues' | 'marimba' | 'classical'
-  | 'birdscape' | 'wavescape' | 'rainscape' | 'nightscape'
-  // Лаборатория и будущие волны: рисунки живут снаружи (registerGrooves),
-  // а тип разрешает каталогу расти без правок движка.
-  | 'pop' | 'lofi' | 'arcade' | 'dance' | 'tropical' | 'cinematic'
-  | 'house' | 'postpunk' | 'tarantella' | 'funkbr' | 'twostep' | 'hardstyle'
-  | 'pulse60' | 'lofirain' | 'ambient' | 'musicbox' | 'bellpop'
-  | 'beboplab' | 'baroquelab';
 
-/** Полка в витрине магазина: базовая коллекция или «Тренд 2026». */
-export type MusicShelf = 'core' | 'trend';
+/** Полка витрины: спокойный фон занятий или весёлая коллекция/награды. */
+export type MusicShelf = 'calm' | 'fun';
 
 /**
- * Где сейчас звучит трек. Музыка принадлежит ребёнку везде, но в уроке она
- * обязана быть фоном: быстрый бит во время подбора буквы мешает (музыка со
- * словами и высокая энергия ухудшают вербальные задачи — см. разбор в
- * docs/music-trends-2026.md, §3.7). Поэтому один трек имеет два состояния.
+ * Где сейчас звучит музыка. В уроке (ребёнок читает и пишет) музыка обязана
+ * быть фоном: файл нельзя «замедлить» без смены тона, поэтому контекст
+ * задаёт громкость, а не аранжировку (см. playbackFor).
  */
 export type MusicContext = 'lesson' | 'reward';
 
+/** Один трек фоновой музыки — профессиональная запись с официальной лицензией. */
 export interface MusicTrack {
+  /** id совпадает с именем файла: `public/audio/<id>.mp3`. */
   id: string;
+  /** Название для ребёнка (в магазине и коллекции). */
   title: string;
-  style: string;
+  /** Оригинальное название записи — как в источнике и в тексте атрибуции. */
+  originalTitle: string;
+  /** Автор записи. */
+  artist: 'Kevin MacLeod';
   emoji: string;
-  bpm: number;
-  /** Темп в уроке, если авторский отличается (рэгтайм награды — тихое письмо в уроке). */
-  lessonBpm?: number;
+  /** Цена в кристаллах; 0 — доступен сразу. Покупка однократная. */
   price: number;
-  /** Тональность/набор нот в MIDI-номерах. */
-  scale: number[];
-  groove: Groove;
-  /** Полка витрины; нет поля — базовая коллекция. */
-  shelf?: MusicShelf;
-  /** Короткая плашка на карточке («Тренд»). */
+  /** Официальная страница трека: источник аудио и точный текст лицензии. */
+  sourceUrl: string;
+  /** ISRC записи — как на официальной странице. */
+  isrc: string;
+  /** Точная лицензия по официальной странице трека. */
+  license: string;
+  /** Ссылка на текст лицензии. */
+  licenseUrl: string;
+  /**
+   * Отметка об изменениях аудио (требование CC BY). `null` — файл без изменений;
+   * иначе коротко: что именно сделано.
+   */
+  modified: string | null;
+  /** Длительность записи в секундах (по официальной странице). */
+  seconds: number;
+  /** Авторский темп — только для карточки; файл играет как записан. */
+  bpm: number;
+  shelf: MusicShelf;
+  /** Короткая плашка на карточке. */
   tag?: string;
-  /** Одна строка для взрослых: на каком тренде основан трек и чего в нём нет. */
-  about?: string;
+  /** Одна строка для взрослых: что за запись и как она звучит в игре. */
+  about: string;
 }
 
-export const STARTER_TRACK_IDS = ['guitar-morning', 'forest-dawn'];
+/** Лицензия и её текст на сегодня одинаковы у всех двенадцати — но проверено постранично. */
+const CC_BY_4 = 'Creative Commons «Attribution» 4.0 (CC BY 4.0)';
+const CC_BY_4_URL = 'https://creativecommons.org/licenses/by/4.0/';
+
+/** Страница трека на официальном сайте автора. */
+const page = (isrc: string) => `https://incompetech.com/music/royalty-free/index.html?isrc=${isrc}`;
+
+/** Две мелодии доступны сразу: спокойный фон занятий и приветливое меню. */
+export const STARTER_TRACK_IDS = ['carefree', 'easy-lemon'];
 
 /**
- * Базовая коллекция 0.13.0 — «живая»: акустические инструменты и чистые
- * саундскейпы природы вместо электроники 0.12.3. Гитара и струнные — модель
- * Карплуса-Стронга и wavetable-ансамбли, калимба/маримба — FM с негармоническим
- * рядом, птицы, волны, дождь и сверчки — синтезированный шум с огибающими.
- * Порядок важен: на индекс 2 смотрят проверки витрины.
+ * Каталог 0.14.0. Порядок важен: первые шесть — «Спокойный фон» (занятия,
+ * меню), последние шесть — «Коллекция и награды». Проверки витрины смотрят
+ * на индекс 2 и на полки. Цены соотнесены с экономикой (доход ≈ 24 💎/день,
+ * потолок цены — MAX_TRACK_PRICE): короткие «наградные» треки дешевле,
+ * длинные спокойные дороже.
  */
-const CORE_TRACKS: MusicTrack[] = [
-  { id: 'guitar-morning', title: 'Утро с гитарой', style: 'Свинг-дуэт', emoji: '🎸', bpm: 112, price: 0, scale: [0, 2, 4, 7, 9], groove: 'fingerstyle', about: 'Две гитары в духе джипси-свинга играют традиционный спиричуэл «When the Saints» (общественное достояние): ла-помпе, шагающий бас, колл-респонс.' },
-  { id: 'forest-dawn', title: 'Лес на рассвете', style: 'Саундскейп', emoji: '🌅', bpm: 60, price: 0, scale: [0, 2, 4, 7, 9], groove: 'birdscape', tag: 'Природа', about: 'Только природа: птицы, ветер и ручей. Без музыки и без ударных — можно писать слова.' },
-  { id: 'ukulele-sun', title: 'Укулеле на солнце', style: 'Акустик-поп', emoji: '🌻', bpm: 108, price: 8, scale: [0, 2, 4, 7, 9], groove: 'strum', about: 'Бой укулеле, кахон и шейкер: солнечный акустик-поп без синтетики.' },
-  { id: 'kalimba-river', title: 'Калимба у реки', style: 'Калимба', emoji: '🪘', bpm: 100, price: 10, scale: [0, 2, 4, 7, 9], groove: 'kalimba', about: 'Калимба (FM с негармоническим рядом) поверх тихого ручья.' },
-  { id: 'panflute-meadow', title: 'Флейта на лугу', style: 'Пан-флейта', emoji: '🌾', bpm: 90, price: 12, scale: [0, 2, 4, 7, 9], groove: 'meadow', about: 'Пан-флейта с дыханием, гитарные арпеджио и птицы на лугу.' },
-  { id: 'bossa-yard', title: 'Босса во дворе', style: 'Босса-минор', emoji: '🍃', bpm: 96, price: 14, scale: [0, 2, 4, 7, 9], groove: 'bossa', about: '«House of the Rising Sun» (традиционный фолк-блюз, общественное достояние) в минорной босса-нове: нейлон, синкопа, тёплый бас.' },
-  { id: 'folk-dance', title: 'Плясовая', style: 'Диксиленд-рил', emoji: '🪗', bpm: 126, price: 14, scale: [0, 2, 3, 5, 7, 8, 10], groove: 'folk', about: '«Little Liza Jane» (традиционная, общественное достояние): балалайка встречает диксиленд — рил, припев-отклик, помпе и шагающий бас.' },
-  { id: 'strings-story', title: 'Сказка со струнными', style: 'Струнная баллада', emoji: '🎻', bpm: 80, price: 16, scale: [0, 2, 4, 7, 11], groove: 'stringsstory', about: '«In the Pines» (традиционный аппалачский блюз, общественное достояние): струнный ансамбль ведёт плач, минор дышит пэдами.' },
-  { id: 'blues-harp', title: 'Гармоника на станции', style: 'Блюз-дуэт', emoji: '🚂', bpm: 92, price: 14, scale: [0, 3, 5, 7, 10], groove: 'blues', about: '12 тактов с темой в идиоме «C.C. Rider» (традиционный фолк-блюз, общественное достояние): гармоника, шагающий контрабас, чоп-аккорды.' },
-  { id: 'marimba-garden', title: 'Маримба в саду', style: 'Маримба', emoji: '🌺', bpm: 104, price: 12, scale: [0, 2, 5, 7, 9], groove: 'marimba', about: 'Деревянные пластинки маримбы и конги: сад, полдень, ничто не мешает.' },
-  { id: 'letter-piano', title: 'Рояль для письма', style: 'Рэгтайм', emoji: '✉️', bpm: 104, lessonBpm: 72, price: 12, scale: [0, 2, 4, 7, 9], groove: 'classical', about: '«The Entertainer» Скотта Джоплина (1902, общественное достояние) на страйд-рояле: бас на 1 и 3, аккорд на 2 и 4. Письму не мешает — проверено.' },
-  { id: 'sea-waves', title: 'Морской прибой', style: 'Саундскейп', emoji: '🌊', bpm: 60, price: 10, scale: [0, 2, 4, 7, 9], groove: 'wavescape', tag: 'Природа', about: 'Только море: волны, ветер и редкие чайки. Ровный фон для урока и сна.' },
-  { id: 'rain-roof', title: 'Дождь на крыше', style: 'Саундскейп', emoji: '☔', bpm: 64, price: 10, scale: [0, 2, 3, 7, 9], groove: 'rainscape', tag: 'Природа', about: 'Только дождь: ровный шум, капли и далёкий гром раз в круг.' },
-  { id: 'night-crickets', title: 'Ночь у костра', style: 'Саундскейп', emoji: '🌙', bpm: 56, price: 12, scale: [0, 2, 4, 7, 9], groove: 'nightscape', tag: 'Природа', about: 'Только ночь: сверчки, ветер и сова. Самый тихий трек каталога.' },
+const CATALOG: MusicTrack[] = [
+  {
+    id: 'carefree', title: 'Беззаботный день', originalTitle: 'Carefree', artist: 'Kevin MacLeod', emoji: '☀️',
+    price: 0, isrc: 'USUAN1400037', sourceUrl: page('USUAN1400037'),
+    license: CC_BY_4, licenseUrl: CC_BY_4_URL, modified: null, seconds: 205, bpm: 96,
+    shelf: 'calm', tag: 'Меню',
+    about: '«Carefree» — яркая укулеле-мелодия: приветливый фон главного экрана, с которым начинается игра.',
+  },
+  {
+    id: 'life-of-riley', title: 'Счастливые деньки', originalTitle: 'Life of Riley', artist: 'Kevin MacLeod', emoji: '🌈',
+    price: 14, isrc: 'USUAN1400054', sourceUrl: page('USUAN1400054'),
+    license: CC_BY_4, licenseUrl: CC_BY_4_URL, modified: null, seconds: 235, bpm: 102,
+    shelf: 'calm',
+    about: 'Колокольчики, укулеле и гитара: ровное светлое настроение без резких акцентов — подходит и для занятий.',
+  },
+  {
+    id: 'easy-lemon', title: 'Лимончик', originalTitle: 'Easy Lemon', artist: 'Kevin MacLeod', emoji: '🍋',
+    price: 0, isrc: 'USUAN1200076', sourceUrl: page('USUAN1200076'),
+    license: CC_BY_4, licenseUrl: CC_BY_4_URL, modified: null, seconds: 126, bpm: 82,
+    shelf: 'calm', tag: 'Для урока',
+    about: '«Easy Lemon» — самый спокойный трек каталога (82 BPM): автор писал его как фон, который не мешает голосу и письму.',
+  },
+  {
+    id: 'wholesome', title: 'Тёплый дом', originalTitle: 'Wholesome', artist: 'Kevin MacLeod', emoji: '🏡',
+    price: 20, isrc: 'USUAN1900022', sourceUrl: page('USUAN1900022'),
+    license: CC_BY_4, licenseUrl: CC_BY_4_URL, modified: null, seconds: 364, bpm: 128,
+    shelf: 'calm',
+    about: 'Виолончель, альт и маримба без ударных — длинная тёплая запись для тех, кому нужен «домашний» фон.',
+  },
+  {
+    id: 'wallpaper', title: 'Тихий ритм', originalTitle: 'Wallpaper', artist: 'Kevin MacLeod', emoji: '🖼️',
+    price: 14, isrc: 'USUAN1100843', sourceUrl: page('USUAN1100843'),
+    license: CC_BY_4, licenseUrl: CC_BY_4_URL, modified: null, seconds: 220, bpm: 92,
+    shelf: 'calm',
+    about: 'Чистый «обояный» микс без акцентов (так автор и описывает запись): фон, к которому быстро привыкаешь и не отвлекаешься.',
+  },
+  {
+    id: 'daily-beetle', title: 'Весёлый жук', originalTitle: 'Daily Beetle', artist: 'Kevin MacLeod', emoji: '🪲',
+    price: 18, isrc: 'USUAN1500025', sourceUrl: page('USUAN1500025'),
+    license: CC_BY_4, licenseUrl: CC_BY_4_URL, modified: null, seconds: 317, bpm: 100,
+    shelf: 'calm',
+    about: 'Укулеле, маримба и музыкальная шкатулка: спокойный, но задорный ритм — хороший фон на повторении.',
+  },
+  {
+    id: 'monkeys-spinning-monkeys', title: 'Обезьянки', originalTitle: 'Monkeys Spinning Monkeys', artist: 'Kevin MacLeod', emoji: '🐒',
+    price: 12, isrc: 'USUAN1400011', sourceUrl: page('USUAN1400011'),
+    license: CC_BY_4, licenseUrl: CC_BY_4_URL, modified: null, seconds: 125, bpm: 144,
+    shelf: 'fun', tag: 'Награда',
+    about: 'Флейты и пиццикато: самая «мультяшная» запись каталога — звучит после уроков, когда можно повеселиться.',
+  },
+  {
+    id: 'sneaky-snitch', title: 'Шаг на цыпочках', originalTitle: 'Sneaky Snitch', artist: 'Kevin MacLeod', emoji: '🕵️',
+    price: 12, isrc: 'USUAN1100772', sourceUrl: page('USUAN1100772'),
+    license: CC_BY_4, licenseUrl: CC_BY_4_URL, modified: null, seconds: 137, bpm: 87,
+    shelf: 'fun',
+    about: 'Гобой, струнные и малый барабан «на цыпочках»: озорная запись про тайный заговор — любимец юных детективов.',
+  },
+  {
+    id: 'fluffing-a-duck', title: 'Утёнок', originalTitle: 'Fluffing a Duck', artist: 'Kevin MacLeod', emoji: '🦆',
+    price: 10, isrc: 'USUAN1100768', sourceUrl: page('USUAN1100768'),
+    license: CC_BY_4, licenseUrl: CC_BY_4_URL, modified: null, seconds: 67, bpm: 122,
+    shelf: 'fun',
+    about: 'Короткая смешная пьеса с тромбоном и духыми (в файле две маленькие части) — щедрая музыкальная «шутка».',
+  },
+  {
+    id: 'happy-alley', title: 'Весёлый переулок', originalTitle: 'Happy Alley', artist: 'Kevin MacLeod', emoji: '🌟',
+    price: 8, isrc: 'USUAN1100482', sourceUrl: page('USUAN1100482'),
+    license: CC_BY_4, licenseUrl: CC_BY_4_URL, modified: null, seconds: 80, bpm: 112,
+    shelf: 'fun',
+    about: 'Акустическая гитара, бас и барабаны: задорный переулок с неожиданным бриджем — самый доступный трек коллекции.',
+  },
+  {
+    id: 'cheery-monday', title: 'Добрый понедельник', originalTitle: 'Cheery Monday', artist: 'Kevin MacLeod', emoji: '😊',
+    price: 8, isrc: 'USUAN1700065', sourceUrl: page('USUAN1700065'),
+    license: CC_BY_4, licenseUrl: CC_BY_4_URL, modified: null, seconds: 80, bpm: 102,
+    shelf: 'fun',
+    about: 'Простая «пятидесятническая» пьеса с хлопками, фортепиано и колокольчиком: короткая и добрая, как первый день недели.',
+  },
+  {
+    id: 'pixelland', title: 'Пикселяндия', originalTitle: 'Pixelland', artist: 'Kevin MacLeod', emoji: '🕹️',
+    price: 16, isrc: 'USUAN1500076', sourceUrl: page('USUAN1500076'),
+    license: CC_BY_4, licenseUrl: CC_BY_4_URL, modified: null, seconds: 234, bpm: 230,
+    shelf: 'fun', tag: 'Награда',
+    about: '8-битный синтезатор встречает диксиленд: самый быстрый трек каталога (230 BPM) — только для наград, не для письма.',
+  },
 ];
+
+export const MUSIC_TRACKS: MusicTrack[] = CATALOG;
+
+export const MUSIC_BY_ID: Record<string, MusicTrack> = Object.fromEntries(MUSIC_TRACKS.map((t) => [t.id, t]));
+
+/** id трека = имя файла в public/audio/ (без расширения). */
+export const audioFileOf = (track: MusicTrack): string => `audio/${track.id}.mp3`;
 
 /**
- * Полка «Тренд 2026» — шесть оригинальных лупов на жанрах, которые сейчас
- * узнаёт ребёнок 7–10 лет. Из тренда взяты только жанр, темп, ритмический
- * рисунок и настроение: ни чужих мелодий, ни текстов, ни названий песен,
- * ни имён артистов (правила — docs/music-trends-2026.md, §4).
+ * Потолок цены одиночного трека: ≈1 день занятий (доход ≈24 💎 в день).
+ * Держит экономику магазина: коллекция не должна становиться недостижимой.
  */
-export const TREND_TRACKS: MusicTrack[] = [
-  {
-    id: 'six-seven', title: 'Шесть-семь', style: 'Мем-баунс', emoji: '6️⃣', bpm: 140, price: 14,
-    scale: [0, 2, 3, 5, 7, 8, 10], groove: 'bounce', shelf: 'trend', tag: 'Тренд',
-    about: 'Числа 6 и 7 как главный мем школьников: крюк — шестая и седьмая ступень лада. Своя мелодия, без цитат.',
-  },
-  {
-    id: 'duck-dance', title: 'Утята', style: 'Танец утят 2026', emoji: '🦆', bpm: 124, price: 12,
-    scale: [0, 2, 4, 7, 9], groove: 'duck', shelf: 'trend', tag: 'Тренд',
-    about: 'Простой танец руками из подростковых мемов 2026 года. Свинг, хлопок и «волна» из двух нот.',
-  },
-  {
-    id: 'golden-stage', title: 'Золотая сцена', style: 'K-pop гимн', emoji: '🏆', bpm: 100, price: 18,
-    scale: [0, 2, 4, 7, 11], groove: 'kpop', shelf: 'trend', tag: 'Тренд',
-    about: 'Гимн-подъём в духе анимационных K-pop хитов: два такта накапливают энергию, два — звучат целиком.',
-  },
-  {
-    id: 'school-phonk', title: 'Фонк на переменке', style: 'Школьный фонк', emoji: '🐮', bpm: 132, price: 16,
-    scale: [0, 3, 5, 7, 10], groove: 'phonk', shelf: 'trend', tag: 'Тренд',
-    about: '«Фонк» — слово, которым дети называют всё дерзкое. Ковбелл и скользящий бас; в уроке звучит тихо и медленно.',
-  },
-  {
-    id: 'campfire-punk', title: 'Сказка у костра', style: 'Сказочный панк', emoji: '🔥', bpm: 168, price: 18,
-    scale: [0, 2, 3, 5, 7, 8, 10], groove: 'punk', shelf: 'trend', tag: 'Тренд',
-    about: 'Быстрая минорная сказка — рок-истории остаются у школьников в числе любимых. Самый бодрый трек каталога.',
-  },
-  {
-    id: 'firebird', title: 'Жар-птица', style: 'Этно-электроника', emoji: '🪶', bpm: 118, price: 20,
-    scale: [0, 2, 3, 5, 7, 8, 11], groove: 'ethno', shelf: 'trend', tag: 'Тренд',
-    about: 'Народный лад, дрон и форшлаги поверх танцевального бита: современная электроника с «нашим» мелодизмом.',
-  },
-];
+export const MAX_TRACK_PRICE = 24;
 
-export const MUSIC_TRACKS: MusicTrack[] = [...CORE_TRACKS, ...TREND_TRACKS];
-
-export const MUSIC_BY_ID: Record<string, MusicTrack> = Object.fromEntries(MUSIC_TRACKS.map((track) => [track.id, track]));
-
-export function normalizeMusicOwned(raw: unknown): string[] {
-  if (!Array.isArray(raw)) return [...STARTER_TRACK_IDS];
-  return [...new Set(raw.filter((id): id is string => typeof id === 'string' && Boolean(MUSIC_BY_ID[id])))];
+/** Треки полки — витрина показывает их отдельными полками. */
+export function tracksByShelf(shelf: MusicShelf): MusicTrack[] {
+  return MUSIC_TRACKS.filter((t) => t.shelf === shelf);
 }
 
 export function canBuyTrack(track: MusicTrack, gems: number, owned: string[]): boolean {
   return !owned.includes(track.id) && gems >= track.price;
 }
 
-/** Треки полки «Тренд 2026» — витрина показывает их отдельной полкой. */
-export function tracksByShelf(shelf: MusicShelf): MusicTrack[] {
-  return MUSIC_TRACKS.filter((track) => (track.shelf ?? 'core') === shelf);
+// ── Миграция профилей с синтезатора (до 0.14.0) ──────────────────────────────
+//
+// До 0.14.0 музыка рождалась кодом: каталог «Оригинальные лупы» с id вроде
+// guitar-morning. Замена каталога не должна отбирать покупки ребёнка, поэтому
+// каждая купленная старая мелодия даёт одну новую из платной части каталога
+// (по порядку), а выбранный фон получает «преемника» по тому же правилу.
+// Списки детерминированные: повторная нормализация ничего не пересчитывает
+// (idempotent), прогресс, кристаллы и весь остальной профиль не трогаются.
+
+/** id синтезатора 0.13.0 в порядке старого каталога (бесплатные — первыми). */
+export const LEGACY_TRACK_IDS = [
+  'guitar-morning', 'forest-dawn',
+  'ukulele-sun', 'kalimba-river', 'panflute-meadow', 'bossa-yard', 'folk-dance', 'strings-story',
+  'blues-harp', 'marimba-garden', 'letter-piano', 'sea-waves', 'rain-roof', 'night-crickets',
+  'six-seven', 'duck-dance', 'golden-stage', 'school-phonk', 'campfire-punk', 'firebird',
+];
+
+const LEGACY_STARTER_IDS = LEGACY_TRACK_IDS.slice(0, 2);
+const LEGACY_PAID_IDS = LEGACY_TRACK_IDS.slice(2);
+const LEGACY_SET = new Set(LEGACY_TRACK_IDS);
+
+/** Платная часть нового каталога в порядке списка — «преемники» старых покупок. */
+const PAID_TRACK_IDS = MUSIC_TRACKS.filter((t) => t.price > 0).map((t) => t.id);
+
+export interface MusicShopSelection {
+  musicOwned: string[];
+  musicTrack: string | null;
+}
+
+/**
+ * Нормализует (и мигрирует) музыкальную часть магазина:
+ *  • неизвестные id отбрасываются, бесплатный старт выдаётся тем, у кого поля
+ *    ещё нет (профили до магазина и новые);
+ *  • каждая купленная старая мелодия даёт одну новую (первые N платных),
+ *    выбранный старый фон — «преемника» по позиции в списке;
+ *  • явный «Тишина» (null) сохраняется: выбор ребёнка не перетирается.
+ *
+ * Функция чистая и идемпотентна: её можно звать на каждом чтении профиля.
+ */
+export function migrateMusicShop(raw: { musicOwned?: unknown; musicTrack?: unknown } | null | undefined): MusicShopSelection {
+  const listed = Array.isArray(raw?.musicOwned)
+    ? raw.musicOwned.filter((id): id is string => typeof id === 'string')
+    : null;
+
+  const owned: string[] = [];
+  const push = (id: string) => {
+    if (MUSIC_BY_ID[id] && !owned.includes(id)) owned.push(id);
+  };
+
+  // Старые id в порядке СПИСКА профиля: ребёнок получает столько же новых,
+  // сколько было куплено, а выбранный трек находит «преемника» по позиции.
+  const legacyListed = (listed ?? []).filter((id) => LEGACY_SET.has(id));
+  const legacyPaid = legacyListed.filter((id) => LEGACY_PAID_IDS.includes(id));
+  const granted = PAID_TRACK_IDS.slice(0, Math.min(legacyPaid.length, PAID_TRACK_IDS.length));
+  const successorOf = new Map<string, string>();
+  legacyListed.forEach((id) => {
+    const starterIdx = LEGACY_STARTER_IDS.indexOf(id);
+    if (starterIdx >= 0) {
+      successorOf.set(id, STARTER_TRACK_IDS[Math.min(starterIdx, STARTER_TRACK_IDS.length - 1)]);
+      return;
+    }
+    const paidIdx = legacyPaid.indexOf(id);
+    if (paidIdx >= 0 && granted[paidIdx]) successorOf.set(id, granted[paidIdx]);
+  });
+
+  if (listed) {
+    STARTER_TRACK_IDS.forEach(push);
+    granted.forEach(push);
+    listed.forEach(push);
+  } else {
+    STARTER_TRACK_IDS.forEach(push);
+  }
+
+  let track: string | null;
+  const picked = raw?.musicTrack;
+  if (picked === null) track = null;
+  else if (typeof picked === 'string' && MUSIC_BY_ID[picked] && owned.includes(picked)) track = picked;
+  else if (typeof picked === 'string' && successorOf.has(picked)) track = successorOf.get(picked) ?? null;
+  else if (picked === undefined) track = owned[0] ?? null;
+  else track = null;
+
+  return { musicOwned: owned, musicTrack: track && owned.includes(track) ? track : null };
 }
 
 // ── Контекстная музыка ──────────────────────────────────────────────────────
 //
-// Один трек — два состояния. В уроке (ребёнок читает слово и подбирает буквы)
-// музыка обязана быть фоном: темп не выше LESSON_BPM_CAP, перкуссия тихая,
-// яркие тембры (хэт, хлопок, ковбелл) выключены, фильтр прикрыт. На награде
-// (сундук, «урок пройден») трек возвращается к полному груву — именно там
-// ребёнок получает «свой» трендовый звук. Правила вынесены сюда как чистая
-// функция: их можно проверить без браузера и не потерять при правке синтеза.
+// Один трек — два состояния. В уроке музыка обязана быть фоном: файл нельзя
+// замедлить без смены тона, поэтому «урок» = умеренная громкость. На награде
+// (сундук, «урок пройден», меню) трек звучит в полную силу настроек.
+// Правила — чистая функция: проверяются без браузера.
 
-/** Потолок темпа в уроке: выше него бит начинает тянуть внимание на себя. */
-export const LESSON_BPM_CAP = 90;
+/** Множитель громкости в уроке: музыка не должна мешать разбору слова и письму. */
+export const LESSON_VOLUME = 0.5;
 
 export interface PlaybackState {
-  /** Темп лупа. */
-  bpm: number;
-  /** Громкость ударных относительно полной (1). */
-  drums: number;
-  /** Играть ли яркие тембры: хай-хэт, хлопок, ковбелл. */
-  bright: boolean;
-  /** Срез фильтра в герцах; 0 — оставить как задумано грувом. */
-  cutoff: number;
-  /** Громкость мелодии относительно полной (1). */
-  lead: number;
+  /** Множитель громкости в этом контексте (0..1). */
+  volume: number;
 }
 
-const REWARD: PlaybackState = { bpm: -1, drums: 1, bright: true, cutoff: 0, lead: 1 };
-
-/** Как трек звучит в данном контексте. Чистая функция — проверяется в тестах. */
-export function playbackFor(track: MusicTrack, context: MusicContext): PlaybackState {
-  if (context === 'reward') return { ...REWARD, bpm: track.bpm };
-  return {
-    bpm: Math.min(track.lessonBpm ?? track.bpm, LESSON_BPM_CAP),
-    drums: 0.35,
-    bright: false,
-    cutoff: 2000,
-    lead: 0.8,
-  };
+/** Громкость контекста: правило живёт здесь, плеер его только применяет. */
+export function contextVolume(context: MusicContext): number {
+  return context === 'lesson' ? LESSON_VOLUME : 1;
 }
 
-/**
- * Потолок цены одиночного трека: ≈1 день занятий (доход ≈24 💎 в день).
- * Держит экономику магазина: тренд не должен становиться недостижимым.
- */
-export const MAX_TRACK_PRICE = 24;
+/** Как трек звучит в данном контексте. */
+export function playbackFor(_track: MusicTrack, context: MusicContext): PlaybackState {
+  return { volume: contextVolume(context) };
+}

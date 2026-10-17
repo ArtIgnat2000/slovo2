@@ -29,12 +29,20 @@ import { haptic } from '../../platform/haptics';
 import type { ShopItem } from '../../engine/shop';
 import { MUSIC_TRACKS, MUSIC_BY_ID, tracksByShelf, type MusicShelf, type MusicTrack } from '../../engine/music';
 import { playMusic } from '../../platform/music';
+import { MusicCreditsToggle } from '../Credits';
 
-/** Полки музыкального магазина: тренд отдельно, дальше вся коллекция. */
+/** Полки музыкального магазина: спокойный фон отдельно от весёлой коллекции. */
 const MUSIC_SHELVES: { shelf: MusicShelf; title: string; note: string }[] = [
-  { shelf: 'trend', title: '🔥 Тренд 2026', note: 'Свежие жанры: своя музыка в духе времени, без чужих песен' },
-  { shelf: 'core', title: '🌿 Акустика и природа', note: 'Живые инструменты и звуки природы: гитара, калимба, флейта, струнные, лес, море, дождь' },
+  { shelf: 'calm', title: '🌿 Спокойный фон', note: 'Ровные мелодии для занятий и меню: не мешают читать, писать и думать' },
+  { shelf: 'fun', title: '🎉 Коллекция и награды', note: 'Весёлые записи за прохождение уроков: их открывают за кристаллы' },
 ];
+
+/** «3:25» — длительность записи на карточке. */
+function fmtTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.round(seconds % 60);
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
 
 /**
  * Магазин БУКа (пункт 4 плана).
@@ -280,7 +288,7 @@ export function ShopScreen() {
           {MUSIC_TRACKS.filter((track) => musicOwned.includes(track.id)).map((track) => (
             <button key={track.id} className={`music-choice ${selectedMusic === track.id ? 'selected' : ''}`} onClick={() => chooseMusic(track.id)}>
               <span className="music-emoji">{track.emoji}</span>
-              <span className="grow"><b>{track.title}</b><small>{track.style}</small></span>
+              <span className="grow"><b>{track.title}</b><small>«{track.originalTitle}»</small></span>
               {selectedMusic === track.id && <span aria-label="Выбрано">✓</span>}
             </button>
           ))}
@@ -292,12 +300,16 @@ export function ShopScreen() {
         <div className="between mb">
           <div>
             <h2 style={{ margin: 0 }}>Музыкальный магазин 🎶</h2>
-            <div className="tiny muted">{MUSIC_TRACKS.length} оригинальных мелодий · слушай и выбирай свою</div>
+            <div className="tiny muted">{MUSIC_TRACKS.length} мелодий Kevin MacLeod · слушай и выбирай свою</div>
           </div>
           <span className="stat-pill gems">💎 {gems}</span>
         </div>
-        <div className="music-store-note">🎧 Все мелодии созданы специально для игры, работают офлайн и не используют чужие песни.</div>
-        {/* Полки: трендовые жанры отдельно — ребёнку важно «то, что сейчас у всех» */}
+        <div className="music-store-note">
+          🎧 Настоящие записи Kevin MacLeod — они работают офлайн и используются по лицензии CC BY 4.0
+          (автор указан в разделе «Авторы и лицензии»).
+        </div>
+        <div className="mb"><MusicCreditsToggle /></div>
+        {/* Полки: спокойный фон отдельно — у каждого своё место в игре */}
         {MUSIC_SHELVES.map(({ shelf, title, note }) => (
           <div className="music-shelf" key={shelf}>
             <h3 className="music-shelf-title">{title}</h3>
@@ -313,7 +325,7 @@ export function ShopScreen() {
                     <div className="music-cover" aria-hidden="true"><span>{track.emoji}</span><i>♫</i></div>
                     {track.tag && <span className="music-tag">{track.tag}</span>}
                     <div className="shop-title">{track.title}</div>
-                    <div className="tiny shop-desc">{track.style} · {track.bpm} BPM</div>
+                    <div className="tiny shop-desc">«{track.originalTitle}» · {fmtTime(track.seconds)}</div>
                     {/* Одна строка для взрослых: на каком тренде трек и чего в нём нет */}
                     {track.about && <div className="tiny muted music-about">{track.about}</div>}
                     <button className="btn sm wide ghost" onClick={() => togglePreview(track)} aria-label={`${previewing ? 'Остановить' : 'Послушать'} ${track.title}`}>
