@@ -1,4 +1,6 @@
 :root {
+  /* Не разрешаем Auto Dark Theme браузера перекрашивать светлую палитру. */
+  color-scheme: only light;
   --bg: #fff8ec;
   --bg-2: #fff;
   --ink: #241f36;
@@ -117,6 +119,7 @@
 }
 
 [data-theme='dark'] {
+  color-scheme: dark;
   --bg: #171426;
   --bg-2: #1f1b33;
   --ink: #f4f1ff;

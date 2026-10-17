@@ -27,9 +27,10 @@ export function QrSvg({ matrix, className = '' }: { matrix: QrMatrix; className?
       aria-label="QR-код со ссылкой на приложение: наведите камеру телефона"
       shapeRendering="crispEdges"
       focusable="false"
+      style={{ colorScheme: 'only light', forcedColorAdjust: 'none', background: '#ffffff' }}
     >
-      <rect width={total} height={total} rx={1.5} fill="#ffffff" />
-      <path d={path} fill="#1c1733" />
+      <rect width={total} height={total} fill="#ffffff" />
+      <path d={path} fill="#000000" />
     </svg>
   );
 }
