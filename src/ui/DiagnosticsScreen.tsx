@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { inspectStorage, type StorageDiagnosticReport } from '../platform/diagnostics';
 import { useStorageHealth } from '../state/health';
 import { useApp } from '../state/store';
-import { browserName, detectForcedRepaint, readThemeMirror, systemPrefersDark } from '../platform/theme';
+import { browserDarkModeHelp, browserName, detectForcedRepaint, readThemeMirror, repaintAssessment, systemPrefersDark } from '../platform/theme';
+import { isStandalone } from '../platform/pwa';
 
 interface Props {
   onClose: () => void;
@@ -54,25 +55,25 @@ function reportText(report: StorageDiagnosticReport, health: string): string {
 }
 
 /**
- * Сведения о теме.
- *
- * Их смысл — разделить две разные причины «серого экрана»: тёмная тема,
- * выбранная в самом приложении, и перекрашивание страницы браузером. Во
- * втором случае палитра приложения верна, а поверх неё наложена чужая: это
- * видно по строке «перекрашивает ли браузер страницу» и по тому, что
- * заявленный палитрой фон отличается от фона на экране.
+ * Сведения о теме. getComputedStyle показывает CSS, а НЕ итоговые пиксели:
+ * Samsung Internet может перекрасить их после вычисления стилей. Нельзя
+ * сравнить CSS-фон с «фоном на экране» и заключить, что браузер не виноват.
  */
 function themeLines(): string[] {
   const root = document.documentElement;
+  const browser = browserName(navigator.userAgent);
   const schemeMeta = document.querySelector('meta[name="color-scheme"]');
   return [
-    `Браузер: ${browserName(navigator.userAgent)}`,
-    `Тема в настройках: ${useApp.getState().settings.theme}; на экране: ${root.dataset.theme || 'не задана'}`,
+    `Браузер: ${browser}; режим: ${isStandalone() ? 'ярлык (standalone)' : 'вкладка'}`,
+    `User-Agent: ${navigator.userAgent}`,
+    `Тема в настройках: ${useApp.getState().settings.theme}; выбранная палитра: ${root.dataset.theme || 'не задана'}`,
     `Схема страницы: ${root.style.colorScheme || 'не задана'}; тег <meta color-scheme>: ${schemeMeta?.getAttribute('content') ?? 'нет тега'}`,
     `Системная тема: ${systemPrefersDark() ? 'тёмная' : 'светлая'}`,
-    `Перекрашивает ли браузер страницу: ${detectForcedRepaint() ? 'да' : 'нет'}`,
-    `Фон на экране: ${getComputedStyle(document.body).backgroundColor || 'не вычислен'}; заявленный палитрой: ${getComputedStyle(root).getPropertyValue('--bg').trim() || 'не задан'}`,
+    `Проверка Auto Dark: ${repaintAssessment(browser, detectForcedRepaint())}`,
+    `Фон по CSS: ${getComputedStyle(document.body).backgroundColor || 'не вычислен'}; токен --bg: ${getComputedStyle(root).getPropertyValue('--bg').trim() || 'не задан'}`,
+    'CSS-цвета не показывают перекраску пикселей Samsung Internet.',
     `Зеркало темы в localStorage: ${readThemeMirror() ?? 'нет'}`,
+    `Совет: ${browserDarkModeHelp(browser)}`,
   ];
 }
 
@@ -86,16 +87,14 @@ export function DiagnosticsScreen({ onClose }: Props) {
   const hydratedAt = useStorageHealth((s) => s.hydratedAt);
   const blockedWrites = useStorageHealth((s) => s.blockedWrites);
   const theme = useApp((s) => s.settings.theme);
-  /** Перекрашивает ли браузер страницу поверх нашей палитры. */
-  const [repaint, setRepaint] = useState(false);
-
-  useEffect(() => {
-    setRepaint(detectForcedRepaint());
-  }, []);
+  /** Признак Chrome Auto Dark; отсутствие признака не исключает фильтр Samsung. */
+  const [repaint, setRepaint] = useState(() => detectForcedRepaint());
+  const browser = browserName(navigator.userAgent);
 
   const refresh = useCallback(async () => {
     setChecking(true);
     setNotice('');
+    setRepaint(detectForcedRepaint());
     try {
       setReport(await inspectStorage());
     } catch (error) {
@@ -128,12 +127,58 @@ export function DiagnosticsScreen({ onClose }: Props) {
   return (
     <main className="screen diag-screen">
       <div className="row mb">
-        <h1 className="grow" style={{ margin: 0 }}>Диагностика сохранения</h1>
+        <h1 className="grow" style={{ margin: 0 }}>Диагностика приложения</h1>
         <button className="btn ghost sm" onClick={onClose}>Закрыть</button>
       </div>
       <p className="muted mb">
         Проверка только читает состояние на этом устройстве: данные не меняются и никуда не отправляются.
+        Сводка содержит сведения о браузере и устройстве, но не имена учеников.
       </p>
+
+      <section className="card mb" aria-label="Тема оформления">
+        <h2>Тема</h2>
+        <div className="kv">
+          <span>Браузер</span>
+          <b>{browser}</b>
+        </div>
+        <div className="kv">
+          <span>Открыто</span>
+          <b>{isStandalone() ? 'с ярлыка' : 'во вкладке браузера'}</b>
+        </div>
+        <div className="kv">
+          <span>Тема в настройках</span>
+          <b>{theme}</b>
+        </div>
+        <div className="kv">
+          <span>Выбранная палитра CSS</span>
+          <b>{document.documentElement.dataset.theme ?? 'не задана'}</b>
+        </div>
+        <div className="kv">
+          <span>Схема страницы</span>
+          <b>{document.documentElement.style.colorScheme || 'не задана'}</b>
+        </div>
+        <div className="kv">
+          <span>Тег <code>color-scheme</code></span>
+          <b>{document.querySelector('meta[name="color-scheme"]')?.getAttribute('content') ?? 'нет тега'}</b>
+        </div>
+        <div className="kv">
+          <span>Системная тема</span>
+          <b>{systemPrefersDark() ? 'тёмная' : 'светлая'}</b>
+        </div>
+        <div className="kv">
+          <span>Проверка Auto Dark</span>
+          <b className={repaint ? 'diag-warn' : ''}>{repaintAssessment(browser, repaint)}</b>
+        </div>
+        <div className="kv">
+          <span>Фон по CSS</span>
+          <b>{getComputedStyle(document.body).backgroundColor || '—'}</b>
+        </div>
+        <p className="setting-hint">
+          Значения CSS не измеряют цвет пикселей: Samsung Internet может перекрашивать экран после
+          вычисления стилей. Отрицательная проверка не означает, что перекраски нет.
+        </p>
+        <p className="setting-hint">{browserDarkModeHelp(browser)}</p>
+      </section>
 
       <section className="card mb" aria-label="Состояние хранилища">
         <h2>Хранилище</h2>
@@ -217,44 +262,6 @@ export function DiagnosticsScreen({ onClose }: Props) {
         <div className="kv">
           <span>Записи, остановленные защитой</span>
           <b>{blockedWrites}</b>
-        </div>
-      </section>
-
-      <section className="card mb" aria-label="Тема оформления">
-        <h2>Тема</h2>
-        <div className="kv">
-          <span>Браузер</span>
-          <b>{browserName(navigator.userAgent)}</b>
-        </div>
-        <div className="kv">
-          <span>Тема в настройках</span>
-          <b>{theme}</b>
-        </div>
-        <div className="kv">
-          <span>Тема на экране</span>
-          <b>{document.documentElement.dataset.theme ?? 'не задана'}</b>
-        </div>
-        <div className="kv">
-          <span>Схема страницы</span>
-          <b>{document.documentElement.style.colorScheme || 'не задана'}</b>
-        </div>
-        <div className="kv">
-          <span>Тег <code>color-scheme</code></span>
-          <b>{document.querySelector('meta[name="color-scheme"]')?.getAttribute('content') ?? 'нет тега'}</b>
-        </div>
-        <div className="kv">
-          <span>Системная тема</span>
-          <b>{systemPrefersDark() ? 'тёмная' : 'светлая'}</b>
-        </div>
-        <div className="kv">
-          <span>Перекраска браузером</span>
-          <b className={repaint ? 'diag-warn' : 'diag-ok'}>
-            {repaint ? 'да, браузер перекрашивает страницу' : 'нет'}
-          </b>
-        </div>
-        <div className="kv">
-          <span>Фон на экране</span>
-          <b>{getComputedStyle(document.body).backgroundColor || '—'}</b>
         </div>
       </section>
 

@@ -8,7 +8,8 @@
     />
     <title>СЛОВО 2.0 — словарные слова</title>
     <meta name="description" content="Увлекательная тренировка словарных слов для 2 класса. Работает без интернета." />
-    <meta name="color-scheme" content="light dark" />
+    <!-- Статичное значение важно: браузер видит его раньше любого скрипта. -->
+    <meta name="color-scheme" content="only light" />
     <meta name="theme-color" content="#7C5CFF" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -19,39 +20,34 @@
     <!--
       Тема объявляется до первого кадра.
 
-      Браузер читает схему страницы при загрузке, и именно тег
-      <meta name="color-scheme"> отключает собственное принудительное
-      затемнение (Chrome: «мета-тег не даёт Auto Dark Theme примениться
-      вовсе, поэтому не бывает вспышки потемневшего содержимого»). Статичный
-      тег «light dark» означал «я умею обе схемы», и браузер успевал
-      включить перекрашивание раньше, чем приложение переписывало тег.
+      Сам тег выше уже говорит «only light»: Chrome может прочитать его ещё
+      до выполнения этого скрипта. Скрипт выбирает сохранённую тему до первой
+      отрисовки. В тёмной теме meta="dark" (допустимое значение HTML), а
+      CSS color-scheme="only dark". Samsung Internet с принудительным
+      затемнением может игнорировать оба объявления: его настройку нельзя
+      выключить со страницы.
 
-      Выбор темы лежит в IndexedDB и читается асинхронно, поэтому здесь
-      берётся его зеркало в localStorage: оно читается синхронно. Скрипт
-      повторяет логику src/platform/theme.ts — правила проверяет
-      tests/theme-ui.test.tsx (он читает этот файл и выполняет вот этот
-      самый скрипт).
+      Настройки лежат в IndexedDB и читаются асинхронно; зеркало выбора темы
+      в localStorage доступно сразу. Логика повторяет src/platform/theme.ts;
+      tests/theme-ui.test.tsx проверяет этот скрипт из настоящего index.html.
     -->
     <script>
       (function () {
+        var saved = null;
+        var prefersDark = false;
+        try { saved = window.localStorage.getItem('slovo2-theme'); } catch (error) { /* нет доступа к хранилищу */ }
         try {
-          var saved = window.localStorage.getItem('slovo2-theme');
-          var theme = saved === 'light' || saved === 'dark' ? saved : 'auto';
-          var prefersDark = window.matchMedia
-            ? window.matchMedia('(prefers-color-scheme: dark)').matches
-            : false;
-          var dark = theme === 'dark' || (theme === 'auto' && prefersDark);
-          var scheme = dark ? 'only dark' : 'only light';
-          var root = document.documentElement;
-          root.setAttribute('data-theme', dark ? 'dark' : 'light');
-          root.style.colorScheme = scheme;
-          var schemeMeta = document.querySelector('meta[name="color-scheme"]');
-          if (schemeMeta) schemeMeta.setAttribute('content', scheme);
-          var themeMeta = document.querySelector('meta[name="theme-color"]');
-          if (themeMeta) themeMeta.setAttribute('content', dark ? '#171426' : '#7C5CFF');
-        } catch (error) {
-          // Хранилище недоступно (приватный режим) — тему применит приложение.
-        }
+          prefersDark = !!window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        } catch (error) { /* нет системной темы — используем светлую */ }
+        var theme = saved === 'light' || saved === 'dark' ? saved : 'auto';
+        var dark = theme === 'dark' || (theme === 'auto' && prefersDark);
+        var root = document.documentElement;
+        root.setAttribute('data-theme', dark ? 'dark' : 'light');
+        root.style.colorScheme = dark ? 'only dark' : 'only light';
+        var schemeMeta = document.querySelector('meta[name="color-scheme"]');
+        if (schemeMeta) schemeMeta.setAttribute('content', dark ? 'dark' : 'only light');
+        var themeMeta = document.querySelector('meta[name="theme-color"]');
+        if (themeMeta) themeMeta.setAttribute('content', dark ? '#171426' : '#7C5CFF');
       })();
     </script>
   </head>

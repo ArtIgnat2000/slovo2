@@ -9,10 +9,11 @@
 import { DEFAULT_LESSON_SIZE, LESSON_SIZE_OPTIONS } from '../../engine/scheduler';
 import { useApp } from '../../state/store';
 import { MusicCreditsToggle } from '../Credits';
+import { ThemeHelp } from '../ThemeHelp';
 import { Choice, GroupTitle, SettingRow, Switch } from './ParentBits';
 import type { Profile } from '../../types';
 
-export function SettingsTab({ profile }: { profile: Profile }) {
+export function SettingsTab({ profile, onOpenDiagnostics }: { profile: Profile; onOpenDiagnostics: () => void }) {
   const settings = useApp((s) => s.settings);
   const setSettings = useApp((s) => s.setSettings);
   const setLessonSize = useApp((s) => s.setLessonSize);
@@ -132,6 +133,7 @@ export function SettingsTab({ profile }: { profile: Profile }) {
             ]}
           />
         </SettingRow>
+        <ThemeHelp onOpenDiagnostics={onOpenDiagnostics} />
 
         <SettingRow
           title="Сова БУК"

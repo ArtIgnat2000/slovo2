@@ -9,9 +9,10 @@ import { GroupTitle } from './ParentBits';
 
 interface Props {
   onOpenVlabs: () => void;
+  onOpenDiagnostics: () => void;
 }
 
-export function AppTab({ onOpenVlabs }: Props) {
+export function AppTab({ onOpenVlabs, onOpenDiagnostics }: Props) {
   return (
     <div className="parent-stack">
       <ShareApp />
@@ -59,6 +60,9 @@ export function AppTab({ onOpenVlabs }: Props) {
           Если на сайте и в приложении разные номера — на телефоне ждёт обновление: закройте и откройте
           приложение или примите плашку «Доступно обновление».
         </p>
+        <button type="button" className="btn ghost sm" onClick={onOpenDiagnostics}>
+          Диагностика приложения
+        </button>
       </div>
     </div>
   );

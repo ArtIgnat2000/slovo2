@@ -1,25 +1,16 @@
 /**
- * Тема оформления: как выбрана палитра и как объявить её браузеру.
+ * Тема оформления и объявление схемы браузеру.
  *
- * Отдельный модуль нужен по двум причинам.
+ * Статичный <meta name="color-scheme" content="only light"> в index.html
+ * защищает первый кадр от Chrome Auto Dark ещё ДО выполнения скриптов.
+ * Инлайн-скрипт затем читает зеркало темы и выбирает палитру до отрисовки;
+ * applyTheme поддерживает её после загрузки IndexedDB и при переключении.
  *
- * 1. **Браузер читает схему при загрузке страницы, а не когда приложение
- *    перерисует экран.** По документации Chrome (developer.chrome.com/blog/
- *    auto-dark-theme/) отказ от принудительного затемнения делает тег
- *    `<meta name="color-scheme">` — и он действует именно на этапе загрузки:
- *    «мета-тег не даёт Auto Dark Theme примениться вовсе, поэтому не бывает
- *    вспышки потемневшего содержимого». Статичный тег `light dark` из index.html
- *    означал «я умею обе схемы», и браузер успевал включить собственное
- *    перекрашивание раньше, чем приложение переписывало тег (это делал React
- *    уже после загрузки бандла). Поэтому схему нужно объявлять ДО первого
- *    кадра — инлайн-скриптом в index.html, который читает зеркало выбора темы.
- *
- * 2. **Нужен честный признак того, что страницу перекрашивает браузер.**
- *    Приложение умеет только нарисовать свою палитру: если экран серый, значит
- *    поверх нашей вёрстки браузер наложил собственную тёмную тему. Сказать
- *    об этом родителю и показать, что делать, — единственное, что мы можем
- *    сделать в этом случае: отключить принудительное затемнение на уровне
- *    страницы Samsung Internet не даёт (см. docs/RELEASE-0.14.4.md).
+ * Это не способ отключить принудительное затемнение Samsung Internet:
+ * некоторые его версии перекрашивают готовые пиксели, игнорируя color-scheme.
+ * Проверка Chrome Auto Dark ниже тоже не видит такую перекраску. Поэтому
+ * диагностике нельзя говорить «браузер не перекрашивает» при отрицательном
+ * результате проверки (см. docs/RELEASE-0.14.5.md).
  */
 
 /** Выбор в настройках: «как в телефоне», «светлая» или «тёмная». */
@@ -80,20 +71,19 @@ export function writeThemeMirror(theme: ThemeSetting): void {
 }
 
 /**
- * Объявить тему браузеру: атрибут `data-theme` (по нему выбираются токены
- * палитры), схема страницы и цвет системной панели.
+ * Выбрать токены палитры, схему страницы и цвет системной панели.
  *
- * Схема объявляется со словом `only`: это не «я умею обе», а «другой темы
- * для этой страницы нет» — именно эта формулировка выключает собственное
- * перекрашивание в браузерах, которые его умеют.
+ * `only light` в HTML и CSS отключает Chrome Auto Dark. В тёмной теме CSS
+ * использует `only dark`, но в HTML-метатеге допустимо `dark`, не `only dark`.
+ * Samsung Internet может проигнорировать оба объявления при включённой
+ * принудительной тёмной теме веб-контента.
  */
 export function applyTheme(theme: ThemeSetting, prefersDark?: boolean): ResolvedTheme {
   const resolved = resolveTheme(theme, prefersDark);
-  const scheme = resolved === 'dark' ? 'only dark' : 'only light';
   const root = document.documentElement;
   root.dataset.theme = resolved;
-  root.style.colorScheme = scheme;
-  document.querySelector('meta[name="color-scheme"]')?.setAttribute('content', scheme);
+  root.style.colorScheme = resolved === 'dark' ? 'only dark' : 'only light';
+  document.querySelector('meta[name="color-scheme"]')?.setAttribute('content', resolved === 'dark' ? 'dark' : 'only light');
   document
     .querySelector('meta[name="theme-color"]')
     ?.setAttribute('content', resolved === 'dark' ? DARK_THEME_COLOR : LIGHT_THEME_COLOR);
@@ -101,18 +91,15 @@ export function applyTheme(theme: ThemeSetting, prefersDark?: boolean): Resolved
 }
 
 /**
- * Перекрашивает ли браузер страницу поверх нашей палитры.
+ * Признак Chrome Auto Dark: системный цвет `canvas` при `color-scheme: light`
+ * должен быть белым (метод из документации Chrome).
  *
- * Проверка из документации Chrome: подложка из системного цвета `canvas` при
- * `color-scheme: light` — белый цвет. Если вычисленный фон не белый, значит
- * браузер подмешал свою тёмную тему (Chrome Auto Dark Mode, принудительная
- * тёмная тема Samsung Internet).
- *
- * Если браузер не умеет считать `canvas` (или это не браузер вовсе), вернём
- * «не перекрашивает»: лишняя плашка с советом хуже, чем её отсутствие.
+ * Отрицательный результат НЕ доказывает, что экран не перекрашен: Samsung
+ * Internet может изменять цвета после расчёта CSS, не меняя getComputedStyle.
+ * Без поддержки canvas/DOM возвращаем false (= «не обнаружено»).
  */
 export function detectForcedRepaint(): boolean {
-  if (typeof document === 'undefined' || typeof getComputedStyle !== 'function') return false;
+  if (typeof document === 'undefined' || !document.body || typeof getComputedStyle !== 'function') return false;
   const probe = document.createElement('div');
   probe.style.position = 'absolute';
   probe.style.width = '1px';
@@ -133,7 +120,31 @@ export function detectForcedRepaint(): boolean {
   return painted !== 'rgb(255, 255, 255)';
 }
 
-/** Имя браузера по строке user-agent — нужно, чтобы дать точную инструкцию. */
+/**
+ * Формулировка результата проверки. Samsung Internet не обязан отражать свой
+ * фильтр в getComputedStyle, поэтому «false» нельзя переводить как «нет».
+ */
+export function repaintAssessment(browser: string, detected: boolean): string {
+  if (detected) return 'обнаружена проверкой Auto Dark';
+  if (browser === 'Samsung Internet') return 'не определяется этой проверкой в Samsung Internet';
+  return 'не обнаружена проверкой Auto Dark (другие фильтры возможны)';
+}
+
+/** Совет относится к браузеру ярлыка, а не к настройке темы в СЛОВО. */
+export function browserDarkModeHelp(browser: string): string {
+  if (browser === 'Samsung Internet') {
+    return 'Samsung Internet: ☰ → Настройки → Просмотр веб-страниц и прокрутка → Тёмный режим → выключите «Принудительный тёмный режим для веб-контента» (название может отличаться). Проверьте этот пункт при обычной теме телефона: после её смены он может снова включиться. Если есть только Labs → «Использовать тёмную тему сайта», её, наоборот, нужно включить. Затем закройте ярлык из недавних приложений и откройте снова.';
+  }
+  if (browser === 'Chrome') {
+    return 'Chrome: ⋮ → Настройки → Тема → выключите «Затемнять сайты», если такой пункт есть. Затем закройте и снова откройте ярлык.';
+  }
+  if (browser === 'Яндекс.Браузер') {
+    return 'Яндекс.Браузер: Настройки → Внешний вид → выключите принудительную тёмную тему для сайтов. Затем закройте и снова откройте ярлык.';
+  }
+  return 'В браузере, из которого установлен ярлык, проверьте настройку принудительного затемнения веб-страниц и выключите её. Затем закройте и снова откройте ярлык.';
+}
+
+/** Имя браузера по строке user-agent — нужно, чтобы дать подходящую инструкцию. */
 export function browserName(userAgent: string): string {
   const ua = userAgent.toLowerCase();
   if (ua.includes('samsungbrowser')) return 'Samsung Internet';

@@ -31,7 +31,7 @@ Math.random = mulberry32(Number.isFinite(smokeSeed) ? smokeSeed : 1);
 // что получит настоящая страница, а не молча проходить из-за их отсутствия.
 const dom = new JSDOM(
   '<!doctype html><html><head>' +
-    '<meta name="color-scheme" content="light dark" />' +
+    '<meta name="color-scheme" content="only light" />' +
     '<meta name="theme-color" content="#7C5CFF" />' +
     '</head><body><div id="root"></div></body></html>',
   {

@@ -13,6 +13,7 @@ import { LessonScreen } from './ui/screens/LessonScreen';
 import { ShopScreen } from './ui/screens/ShopScreen';
 import { VlabsScreen } from './ui/screens/VlabsScreen';
 import { DiagnosticsScreen } from './ui/DiagnosticsScreen';
+import type { ParentTabId } from './ui/parent/ParentBits';
 import { setSoundEnabled } from './platform/sound';
 import { MUSIC_BY_ID, MUSIC_TRACKS, STARTER_TRACK_IDS } from './engine/music';
 import { playMusic, setMusicEnabled, setMusicVolume, warmTracks } from './platform/music';
@@ -79,6 +80,9 @@ export default function App() {
   const [profilesOpen, setProfilesOpen] = useState(false);
   const [parentUnlocked, setParentUnlocked] = useState(false);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(diagnosticsRequested);
+  // Из установленного ярлыка нет адресной строки. После проверки темы
+  // возвращаем взрослого в тот же раздел, откуда он открыл диагностику.
+  const [parentReturnTab, setParentReturnTab] = useState<ParentTabId>('overview');
   const [updateReady, setUpdateReady] = useState(false);
 
   useEffect(() => {
@@ -86,9 +90,8 @@ export default function App() {
       applyTheme(settings.theme);
     };
     apply();
-    // Зеркало выбора темы в localStorage: инлайн-скрипт в index.html читает
-    // его до первого кадра — схема страницы должна быть объявлена сразу,
-    // иначе браузер успевает включить собственное перекрашивание.
+    // Зеркало выбора темы для следующего запуска: статичный meta уже
+    // объявляет only light, инлайн-скрипт уточняет выбор до первого кадра.
     writeThemeMirror(settings.theme);
     if (settings.theme === 'auto') {
       const media = window.matchMedia('(prefers-color-scheme: dark)');
@@ -193,7 +196,10 @@ export default function App() {
 
   const switchTab = (next: Tab) => {
     setProfilesOpen(false);
-    if (next !== 'parent') setParentUnlocked(false);
+    if (next !== 'parent') {
+      setParentUnlocked(false);
+      setParentReturnTab('overview');
+    }
     setTab(next);
   };
 
@@ -241,6 +247,11 @@ export default function App() {
         <ParentScreen
           unlocked={parentUnlocked}
           onUnlock={() => setParentUnlocked(true)}
+          initialTab={parentReturnTab}
+          onOpenDiagnostics={(section) => {
+            setParentReturnTab(section);
+            setDiagnosticsOpen(true);
+          }}
           onOpenProfiles={() => setProfilesOpen(true)}
           onOpenVlabs={() => {
             setParentUnlocked(false);
