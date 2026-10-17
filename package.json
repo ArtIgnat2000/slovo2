@@ -1,6 +1,6 @@
 {
   "name": "slovo2",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "private": true,
   "description": "СЛОВО 2.0 — словарные слова, 2 класс. Mobile-first офлайн PWA.",
   "type": "module",
@@ -23,8 +23,8 @@
     "promo": "OUT_DIR=docs/promo/$(date +%F) node scripts/promo/make_costumes.mjs",
     "test:adaptive": "node scripts/adaptive-test.mjs",
     "test:qr": "node scripts/qr-verify.mjs",
-    "demo:build": "tsc --noEmit -p tsconfig.demo.json && node scripts/build-demo.mjs",
-    "test:demo": "npm run demo:build && node scripts/demo-check.mjs"
+    "audio:check": "node scripts/check-audio.mjs",
+    "music:fetch": "node scripts/fetch-music.mjs"
   },
   "dependencies": {
     "idb": "^8.0.3",

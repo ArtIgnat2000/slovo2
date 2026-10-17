@@ -1,0 +1,84 @@
+name: Fetch official music
+
+# Качает MP3 каталога с официальных страниц incompetech.com (Kevin MacLeod,
+# CC BY 4.0) в public/audio/ и коммитит их в ветку, по которой запущен.
+# Запускается вручную (workflow_dispatch): нужен только при первом добавлении
+# музыки или при замене трека в src/engine/music.ts. Скрипт и правила —
+# scripts/fetch-music.mjs; сверка каталога и файлов — npm run audio:check.
+
+on:
+  # Вручную — когда workflow уже на main (workflow_dispatch).
+  # И автоматически — любой push, который меняет сам этот файл: так аудио можно
+  # докачать в ветке ещё до попадания workflow в main.
+  workflow_dispatch:
+    inputs:
+      keep_original:
+        description: 'Скачать без пережатия (true) или пережать в MP3 128 кбит/с (false)'
+        required: false
+        default: 'false'
+  push:
+    paths:
+      - '.github/workflows/fetch-music.yml'
+      - 'scripts/fetch-music.mjs'
+
+concurrency:
+  group: fetch-music-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: ffmpeg (для пережатия аудио)
+        if: ${{ inputs.keep_original != 'true' }}
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - run: npm ci
+
+      - name: Скачать официальные треки
+        run: |
+          if [ "${{ inputs.keep_original }}" = "true" ]; then
+            node scripts/fetch-music.mjs --keep-original 2>&1 | tee /tmp/fetch-music.log
+          else
+            node scripts/fetch-music.mjs 2>&1 | tee /tmp/fetch-music.log
+          fi
+
+      - name: Диагностика (лог и заголовки источника)
+        if: always()
+        run: |
+          {
+            echo "=== node $(node -v) ==="
+            echo "=== log scripts/fetch-music.mjs ==="
+            cat /tmp/fetch-music.log 2>/dev/null || echo "(лога нет)"
+            echo
+            echo "=== curl -I официального файла ==="
+            curl -sI "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Carefree.mp3" | head -15
+            echo "=== curl -I без UA ==="
+            curl -sI -A "" "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Easy%20Lemon.mp3" | head -15
+          } > docs/music-fetch-debug.txt
+
+      - run: npm run audio:check
+
+      - name: Закоммитить аудио и диагностику
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/music-fetch-debug.txt
+          git add public/audio 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "Изменений нет — коммит не нужен."
+          else
+            git commit -m "Аудио: официальные треки Kevin MacLeod (incompetech.com, CC BY 4.0)"
+            git push
+          fi

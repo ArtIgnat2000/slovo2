@@ -8,6 +8,7 @@
 
 import { DEFAULT_LESSON_SIZE, LESSON_SIZE_OPTIONS } from '../../engine/scheduler';
 import { useApp } from '../../state/store';
+import { MusicCreditsToggle } from '../Credits';
 import { Choice, GroupTitle, SettingRow, Switch } from './ParentBits';
 import type { Profile } from '../../types';
 
@@ -78,11 +79,30 @@ export function SettingsTab({ profile }: { profile: Profile }) {
 
       <div className="card">
         <GroupTitle title="Звук и отклик" />
-        <SettingRow title="Звук" hint="Мелодии правильных ответов, награды и сундука.">
+        <SettingRow title="Звук" hint="Звуковые эффекты: правильный ответ, ошибка, награда и сундук.">
           <Switch
             label="Звук"
             checked={settings.sound}
             onChange={(sound) => setSettings({ sound })}
+          />
+        </SettingRow>
+        <SettingRow title="Музыка" hint="Фоновые мелодии Kevin MacLeod. Отключается отдельно от звуковых эффектов.">
+          <Switch
+            label="Музыка"
+            checked={settings.music}
+            onChange={(music) => setSettings({ music })}
+          />
+        </SettingRow>
+        <SettingRow title="Громкость музыки" hint="Умеренная громкость по умолчанию: музыка — фон, а не концерт.">
+          <Choice
+            label="Громкость музыки"
+            value={settings.musicVolume}
+            onChange={(musicVolume) => setSettings({ musicVolume })}
+            options={[
+              { value: 0.3, label: 'тихо', hint: 'Едва слышно на фоне' },
+              { value: 0.5, label: 'обычно', hint: 'Рекомендуется: слышно, но не мешает' },
+              { value: 0.75, label: 'погромче', hint: 'Для наушников и тихой комнаты' },
+            ]}
           />
         </SettingRow>
         <SettingRow title="Вибрация" hint="Короткий отклик на верные и неверные ответы (если телефон это умеет).">
@@ -92,6 +112,10 @@ export function SettingsTab({ profile }: { profile: Profile }) {
             onChange={(haptics) => setSettings({ haptics })}
           />
         </SettingRow>
+        {/* Атрибуция музыки — из приложения, без поиска по документам */}
+        <div className="credits-row">
+          <MusicCreditsToggle />
+        </div>
       </div>
 
       <div className="card">

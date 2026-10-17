@@ -25,6 +25,7 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: npm run release:check
       - run: npm ci
+      - run: npm run audio:check
       - run: npm run typecheck
       - run: npm run content:check
       - run: npm run test:adaptive

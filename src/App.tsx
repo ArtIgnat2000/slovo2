@@ -13,8 +13,8 @@ import { ShopScreen } from './ui/screens/ShopScreen';
 import { VlabsScreen } from './ui/screens/VlabsScreen';
 import { DiagnosticsScreen } from './ui/DiagnosticsScreen';
 import { setSoundEnabled } from './platform/sound';
-import { MUSIC_BY_ID } from './engine/music';
-import { playMusic, setMusicEnabled } from './platform/music';
+import { MUSIC_BY_ID, MUSIC_TRACKS, STARTER_TRACK_IDS } from './engine/music';
+import { playMusic, setMusicEnabled, setMusicVolume, warmTracks } from './platform/music';
 import { setHapticsEnabled } from './platform/haptics';
 import { applyUpdate, shouldSuggestInstall, markInstallHintShown } from './platform/pwa';
 
@@ -89,16 +89,26 @@ export default function App() {
   }, [settings.theme]);
 
   useEffect(() => {
+    // SFX и музыка — независимые контуры: эффекты остаются даже без фона,
+    // а музыку можно выключить, не потеряв отклик правильных ответов.
     setSoundEnabled(settings.sound);
-    setMusicEnabled(settings.sound);
+    setMusicEnabled(settings.music);
+    setMusicVolume(settings.musicVolume);
     setHapticsEnabled(settings.haptics);
-  }, [settings.sound, settings.haptics]);
+  }, [settings.sound, settings.music, settings.musicVolume, settings.haptics]);
 
   // Музыка принадлежит профилю ребёнка: при смене профиля фон переключается вместе с ним.
   useEffect(() => {
     const trackId = profile?.shop?.musicTrack ?? null;
-    playMusic(settings.sound && trackId ? MUSIC_BY_ID[trackId] ?? null : null);
-  }, [profile?.shop?.musicTrack, settings.sound]);
+    playMusic(settings.music && trackId ? MUSIC_BY_ID[trackId] ?? null : null);
+  }, [profile?.shop?.musicTrack, settings.music]);
+
+  // Офлайн-надёжность: стартовые и купленные треки прогреваются в кэше
+  // сервис-воркера в фоне, чтобы после установки PWA музыка играла без сети.
+  useEffect(() => {
+    const owned = new Set([...STARTER_TRACK_IDS, ...(profile?.shop?.musicOwned ?? [])]);
+    warmTracks(MUSIC_TRACKS.filter((t) => owned.has(t.id)));
+  }, [profile?.shop?.musicOwned]);
 
   useEffect(() => {
     const onUpdate = () => setUpdateReady(true);

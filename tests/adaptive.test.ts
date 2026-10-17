@@ -13,7 +13,7 @@ import './chest-skins.test';
 import './shop-tuning.test';
 // Музыкальная коллекция: оригинальные лупы, выбор и санитизация сохранения.
 import './music.test';
-import './music-synth.test';
+import './music-files.test';
 // Сейф прогресса (копии, корзина, журнал): правила storage-уровня без DOM.
 import './vault.test';
 // Реплики плавающего БУКа: длина, уникальность и приоритет подсказок.
