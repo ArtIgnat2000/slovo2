@@ -45,10 +45,23 @@ function officialMp3Url(track) {
 }
 
 async function download(url, dest) {
-  const res = await fetch(url, { redirect: 'follow', headers: { 'user-agent': 'slovo2-audio-fetch/1.0' } });
-  if (!res.ok || !res.body) throw new Error(`HTTP ${res.status} для ${url}`);
-  const file = createWriteStream(dest);
-  await finished(Readable.fromWeb(res.body).pipe(file));
+  // Сайт автора иногда рвёт соединение после нескольких файлов подряд
+  // («fetch failed» на ровном месте): повторяем с паузой, а между треками
+  // даём секунду передышки.
+  let lastErr;
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    try {
+      const res = await fetch(url, { redirect: 'follow', headers: { 'user-agent': 'slovo2-audio-fetch/1.0' } });
+      if (!res.ok || !res.body) throw new Error(`HTTP ${res.status} для ${url}`);
+      const file = createWriteStream(dest);
+      await finished(Readable.fromWeb(res.body).pipe(file));
+      return;
+    } catch (e) {
+      lastErr = e;
+      await new Promise((r) => setTimeout(r, attempt * 2500));
+    }
+  }
+  throw lastErr;
 }
 
 function looksLikeMp3(path) {
@@ -83,8 +96,14 @@ if (!keepOriginal && !ffmpeg) {
 mkdirSync(AUDIO_DIR, { recursive: true });
 
 let total = 0;
+const failed = [];
 for (const track of tracks) {
   const dest = join(AUDIO_DIR, `${track.id}.mp3`);
+  if (existsSync(dest) && statSync(dest).size > 200_000 && looksLikeMp3(dest)) {
+    total += statSync(dest).size;
+    console.log(`= ${track.id} уже скачан, пропускаю`);
+    continue;
+  }
   const tmp = `${dest}.download`;
   const url = officialMp3Url(track);
   process.stdout.write(`↓ ${track.id} (${track.originalTitle}) … `);
@@ -112,8 +131,14 @@ for (const track of tracks) {
     rmSync(`${dest}.tmp.mp3`, { force: true });
     console.error(`✗ ${e.message}`);
     console.error(`  источник: ${url} (страница трека: ${track.sourceUrl})`);
-    process.exit(1);
+    failed.push(track.id);
   }
+  await new Promise((r) => setTimeout(r, 1000));
+}
+
+if (failed.length) {
+  console.error(`\n✗ не скачаны: ${failed.join(', ')} — повторите запуск, уже скачанное не перекачивается`);
+  process.exit(1);
 }
 
 console.log(`\n✓ аудио готово: ${tracks.length} файлов, всего ${(total / 1048576).toFixed(1)} МБ в public/audio/`);

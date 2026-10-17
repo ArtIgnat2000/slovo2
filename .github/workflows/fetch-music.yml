@@ -19,6 +19,7 @@ on:
   push:
     paths:
       - '.github/workflows/fetch-music.yml'
+      - 'scripts/fetch-music.mjs'
 
 concurrency:
   group: fetch-music-${{ github.ref }}
