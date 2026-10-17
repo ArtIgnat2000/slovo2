@@ -1,6 +1,6 @@
 {
   "name": "slovo2",
-  "version": "0.12.3",
+  "version": "0.13.0",
   "private": true,
   "description": "СЛОВО 2.0 — словарные слова, 2 класс. Mobile-first офлайн PWA.",
   "type": "module",
@@ -10,7 +10,7 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "preview:build": "VITE_BASE=/ vite build --outDir preview",
-    "preview:show": "python3 -m http.server 8080 --bind 0.0.0.0 --directory preview",
+    "preview:show": "python3 scripts/preview_server.py --port 8080 --directory preview",
     "typecheck": "tsc --noEmit",
     "release:check": "node scripts/release-check.mjs",
     "test:release": "node --test tests/release-check.test.mjs",
@@ -22,7 +22,9 @@
     "chests:art": "node scripts/process-chest-art.mjs",
     "promo": "OUT_DIR=docs/promo/$(date +%F) node scripts/promo/make_costumes.mjs",
     "test:adaptive": "node scripts/adaptive-test.mjs",
-    "test:qr": "node scripts/qr-verify.mjs"
+    "test:qr": "node scripts/qr-verify.mjs",
+    "demo:build": "tsc --noEmit -p tsconfig.demo.json && node scripts/build-demo.mjs",
+    "test:demo": "npm run demo:build && node scripts/demo-check.mjs"
   },
   "dependencies": {
     "idb": "^8.0.3",

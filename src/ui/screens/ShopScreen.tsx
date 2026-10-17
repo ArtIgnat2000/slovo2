@@ -27,8 +27,14 @@ import { ConfirmDialog } from '../Bits';
 import { sfx } from '../../platform/sound';
 import { haptic } from '../../platform/haptics';
 import type { ShopItem } from '../../engine/shop';
-import { MUSIC_TRACKS, MUSIC_BY_ID, type MusicTrack } from '../../engine/music';
+import { MUSIC_TRACKS, MUSIC_BY_ID, tracksByShelf, type MusicShelf, type MusicTrack } from '../../engine/music';
 import { playMusic } from '../../platform/music';
+
+/** Полки музыкального магазина: тренд отдельно, дальше вся коллекция. */
+const MUSIC_SHELVES: { shelf: MusicShelf; title: string; note: string }[] = [
+  { shelf: 'trend', title: '🔥 Тренд 2026', note: 'Свежие жанры: своя музыка в духе времени, без чужих песен' },
+  { shelf: 'core', title: '🌿 Акустика и природа', note: 'Живые инструменты и звуки природы: гитара, калимба, флейта, струнные, лес, море, дождь' },
+];
 
 /**
  * Магазин БУКа (пункт 4 плана).
@@ -286,38 +292,48 @@ export function ShopScreen() {
         <div className="between mb">
           <div>
             <h2 style={{ margin: 0 }}>Музыкальный магазин 🎶</h2>
-            <div className="tiny muted">14 оригинальных мелодий · слушай и выбирай свою</div>
+            <div className="tiny muted">{MUSIC_TRACKS.length} оригинальных мелодий · слушай и выбирай свою</div>
           </div>
           <span className="stat-pill gems">💎 {gems}</span>
         </div>
         <div className="music-store-note">🎧 Все мелодии созданы специально для игры, работают офлайн и не используют чужие песни.</div>
-        <div className="shop-grid music-grid">
-          {MUSIC_TRACKS.map((track) => {
-            const ownedTrack = musicOwned.includes(track.id);
-            const selected = selectedMusic === track.id;
-            const previewing = previewTrack === track.id;
-            const affordable = gems >= track.price;
-            return (
-              <article key={track.id} className={`shop-item music-item ${selected ? 'on' : ''} ${ownedTrack ? 'owned' : ''}`}>
-                <div className="music-cover" aria-hidden="true"><span>{track.emoji}</span><i>♫</i></div>
-                <div className="shop-title">{track.title}</div>
-                <div className="tiny shop-desc">{track.style} · {track.bpm} BPM</div>
-                <button className="btn sm wide ghost" onClick={() => togglePreview(track)} aria-label={`${previewing ? 'Остановить' : 'Послушать'} ${track.title}`}>
-                  {previewing ? '⏸ Остановить' : '▶ Послушать'}
-                </button>
-                {ownedTrack ? (
-                  <button className={`btn sm wide ${selected ? 'green' : 'primary'}`} onClick={() => chooseMusic(selected ? null : track.id)}>
-                    {selected ? 'Играет ✓' : 'Выбрать'}
-                  </button>
-                ) : (
-                  <button className={`btn sm wide ${affordable ? 'primary' : 'ghost'}`} disabled={!affordable} onClick={() => setAskMusic(track)}>
-                    {track.price === 0 ? 'Забрать бесплатно' : affordable ? `Купить · 💎${track.price}` : `Ещё ${track.price - gems} 💎`}
-                  </button>
-                )}
-              </article>
-            );
-          })}
-        </div>
+        {/* Полки: трендовые жанры отдельно — ребёнку важно «то, что сейчас у всех» */}
+        {MUSIC_SHELVES.map(({ shelf, title, note }) => (
+          <div className="music-shelf" key={shelf}>
+            <h3 className="music-shelf-title">{title}</h3>
+            {note && <div className="tiny muted music-shelf-note">{note}</div>}
+            <div className="shop-grid music-grid">
+              {tracksByShelf(shelf).map((track) => {
+                const ownedTrack = musicOwned.includes(track.id);
+                const selected = selectedMusic === track.id;
+                const previewing = previewTrack === track.id;
+                const affordable = gems >= track.price;
+                return (
+                  <article key={track.id} className={`shop-item music-item ${selected ? 'on' : ''} ${ownedTrack ? 'owned' : ''}`}>
+                    <div className="music-cover" aria-hidden="true"><span>{track.emoji}</span><i>♫</i></div>
+                    {track.tag && <span className="music-tag">{track.tag}</span>}
+                    <div className="shop-title">{track.title}</div>
+                    <div className="tiny shop-desc">{track.style} · {track.bpm} BPM</div>
+                    {/* Одна строка для взрослых: на каком тренде трек и чего в нём нет */}
+                    {track.about && <div className="tiny muted music-about">{track.about}</div>}
+                    <button className="btn sm wide ghost" onClick={() => togglePreview(track)} aria-label={`${previewing ? 'Остановить' : 'Послушать'} ${track.title}`}>
+                      {previewing ? '⏸ Остановить' : '▶ Послушать'}
+                    </button>
+                    {ownedTrack ? (
+                      <button className={`btn sm wide ${selected ? 'green' : 'primary'}`} onClick={() => chooseMusic(selected ? null : track.id)}>
+                        {selected ? 'Играет ✓' : 'Выбрать'}
+                      </button>
+                    ) : (
+                      <button className={`btn sm wide ${affordable ? 'primary' : 'ghost'}`} disabled={!affordable} onClick={() => setAskMusic(track)}>
+                        {track.price === 0 ? 'Забрать бесплатно' : affordable ? `Купить · 💎${track.price}` : `Ещё ${track.price - gems} 💎`}
+                      </button>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </section>
 
       <div className="mb">

@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Аудио-лаборатория музыкального магазина БУКа — тренды 2026</title>
+<style>
+  :root {
+    --bg: #0f1220;
+    --bg-2: #171b2e;
+    --card: #1d2338;
+    --card-2: #232a45;
+    --text: #eef1ff;
+    --muted: #a3abc9;
+    --accent: #7c8cff;
+    --accent-2: #49d6a5;
+    --warn: #ffc36b;
+    --line: #2c3450;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px 20px 80px;
+    background: radial-gradient(1200px 700px at 20% -10%, #232b52 0%, var(--bg) 55%);
+    color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  header { max-width: 1120px; margin: 0 auto 18px; }
+  h1 { font-size: 24px; margin: 0 0 6px; }
+  h2 { font-size: 18px; margin: 0 0 4px; display: flex; align-items: center; gap: 8px; }
+  .sub { color: var(--muted); max-width: 900px; margin: 0 0 14px; }
+  .panel {
+    max-width: 1120px; margin: 0 auto 22px; padding: 14px 16px;
+    background: var(--bg-2); border: 1px solid var(--line); border-radius: 16px;
+    display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: center;
+  }
+  .panel label { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
+  input[type=range] { accent-color: var(--accent); }
+  .switch { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
+  .switch input { width: 18px; height: 18px; accent-color: var(--accent-2); }
+  .btn {
+    background: var(--card-2); color: var(--text); border: 1px solid var(--line);
+    border-radius: 12px; padding: 8px 14px; cursor: pointer; font-size: 14px;
+  }
+  .btn:hover { border-color: var(--accent); }
+  section { max-width: 1120px; margin: 0 auto 26px; }
+  .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(255px, 1fr)); }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+    padding: 12px 13px 13px; display: flex; flex-direction: column; gap: 7px;
+    transition: border-color .15s, transform .15s;
+  }
+  .card.playing { border-color: var(--accent-2); transform: translateY(-2px); box-shadow: 0 8px 26px rgba(73,214,165,.14); }
+  .top { display: flex; gap: 10px; align-items: flex-start; }
+  .emoji { font-size: 26px; line-height: 1; }
+  .title { font-weight: 650; font-size: 15.5px; }
+  .style { color: var(--muted); font-size: 12.5px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 6px; font-size: 11.5px; color: var(--muted); }
+  .chip { background: var(--card-2); border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px; }
+  .chip.price { color: var(--warn); }
+  .trend { font-size: 12.5px; color: #cfd6ff; background: rgba(124,140,255,.12); border-radius: 10px; padding: 6px 8px; }
+  .row { display: flex; gap: 8px; align-items: center; margin-top: auto; }
+  .play {
+    flex: 1; background: var(--accent); color: #10132a; font-weight: 700; border: 0;
+    border-radius: 12px; padding: 9px 10px; cursor: pointer; font-size: 14px;
+  }
+  .card.playing .play { background: var(--accent-2); }
+  .sting { background: var(--card-2); border: 1px solid var(--line); color: var(--text); border-radius: 12px; padding: 9px 12px; cursor: pointer; font-size: 13.5px; }
+  .sting:hover { border-color: var(--accent-2); }
+  .stings { display: flex; flex-wrap: wrap; gap: 10px; }
+  .note { color: var(--muted); font-size: 12.5px; }
+  code { background: var(--card-2); padding: 1px 5px; border-radius: 6px; font-size: 12px; }
+  .legend { color: var(--muted); font-size: 12.5px; margin-top: 6px; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <h1>🎧 Аудио-лаборатория музыкального магазина БУКа</h1>
+  <p class="sub">
+    Черновик к документу <code>docs/music-trends-2026.md</code>. Всё, что здесь звучит, — <b>оригинальные
+    синтезированные лупы</b> (Web Audio, без сэмплов, без чужих мелодий и текстов). Движок один на
+    лабораторию и приложение: <code>engine.js</code> собирается из <code>src/platform/music.ts</code>
+    командой <code>npm run demo:build</code> — расхождений в звучании быть не может. Тренды 2026 года
+    взяты как <b>жанр, темп, ритмический рисунок и повод</b>, а не как чужая песня.
+  </p>
+</header>
+
+<div class="panel">
+  <label>Громкость
+    <input id="vol" type="range" min="0" max="100" value="70">
+  </label>
+  <label class="switch"><input id="focus" type="checkbox"> Режим «Урок»</label>
+  <button class="btn" id="stop">⏹ Стоп</button>
+  <button class="btn" id="rec" title="Пишет реальный тракт движка в файл webm">⏺ Записать 10 с</button>
+  <span class="note" id="recstate"></span>
+</div>
+<div class="panel" id="recplayer" style="display:none">
+  <b>Захват мастер-шины:</b> <audio id="recaudio" controls></audio>
+  <a id="recdownload" download>скачать файл</a>
+  <span class="note" id="hint">Одновременно играет один луп — так же, как в приложении.</span>
+</div>
+
+<section>
+  <h2>🔥 Полка «Тренд 2026» — волна 1 (шесть треков)</h2>
+  <p class="sub">То, что ребёнок 8 лет узнаёт как «своё» в первые две секунды. Цены — в кристаллах (💎), доход ≈24 💎 в день.</p>
+  <div class="grid" id="grid-trend1"></div>
+</section>
+
+<section>
+  <h2>🌊 Полка «Тренд 2026» — волна 2 (шесть треков)</h2>
+  <p class="sub">Вторая партия: жанры, которые держатся дольше одного мема.</p>
+  <div class="grid" id="grid-trend2"></div>
+</section>
+
+<section>
+  <h2>📚 Полка «Для урока» (фокус, без сюрпризов)</h2>
+  <p class="sub">
+    Инструментально, ровно, 60–90 BPM, без хай-хэтов и резких дропов: под такую музыку verbal-memory
+    задачи страдают меньше всего. Это музыка, которая играет <i>во время</i> написания слова.
+  </p>
+  <div class="grid" id="grid-focus"></div>
+</section>
+
+<section>
+  <h2>🎃 Сезонные и поводы</h2>
+  <p class="sub">Живут в магазине 3–5 недель в году и возвращаются — дешёвый способ держать витрину свежей.</p>
+  <div class="grid" id="grid-season"></div>
+</section>
+
+<section>
+  <h2>🗂 Что уже есть в каталоге (для сравнения)</h2>
+  <p class="sub">Живая база 0.13.0 из <code>src/engine/music.ts</code>: акустика и чистые саундскейпы природы — чтобы сразу было слышно разницу между «просто приятно» и «узнаваемо сейчас».</p>
+  <div class="grid" id="grid-now"></div>
+</section>
+
+<section>
+  <h2>⚡ Тренд-стингеры: короткие звуки наград (не лупы)</h2>
+  <p class="sub">
+    Самая дешёвая и самая заметная часть тренда: 0,3–1,2 с оригинального мотива в момент победы.
+    Играют только на наградах, никогда — во время ввода слова.
+  </p>
+  <div class="stings">
+    <button class="sting" data-sting="sixseven">6️⃣7️⃣ «Шесть-семь» — крюк на серию из 3 правильных</button>
+    <button class="sting" data-sting="cowbell">🐮 Ковбелл-фонк — на открытие сундука</button>
+    <button class="sting" data-sting="mogu">🦆 «Утята» — волна руками на «Урок пройден»</button>
+    <button class="sting" data-sting="golden">🏆 Гимн-подъём — на корону/новый уровень слова</button>
+    <button class="sting" data-sting="bell">🔔 Первый звонок — на старт урока</button>
+  </div>
+  <p class="legend">
+    Режим «Урок» — демонстрация предложения №2 из документа: тот же трек автоматически становится тише,
+    медленнее и без перкуссии, пока ребёнок пишет слово, и возвращается к полному груву на награде.
+  </p>
+</section>
+
+<script src="engine.js"></script>
+<script>
+/* ──────────────────────────────────────────────────────────────────────────
+   Интерфейс лаборатории. Движок — НЕ копия: window.DEMO приходит из
+   engine.js, который собирается из src/platform/music.ts командой
+   `npm run demo:build`. Лаборатория и приложение звучат одинаково.
+   ────────────────────────────────────────────────────────────────────────── */
+let active = null;
+
+function refresh() {
+  document.querySelectorAll('.card').forEach((cardEl) => {
+    const on = cardEl.dataset.id === active;
+    cardEl.classList.toggle('playing', on);
+    cardEl.querySelector('.play').textContent = on ? '⏸ Остановить' : '▶ Послушать';
+  });
+}
+
+function startLoop(entry) {
+  active = entry.track.id;
+  DEMO.play(entry.track);
+  refresh();
+}
+
+function stopLoop() {
+  active = null;
+  DEMO.stop();
+  refresh();
+}
+
+function card(entry) {
+  const t = entry.track;
+  const el = document.createElement('div');
+  el.className = 'card';
+  el.dataset.id = t.id;
+  el.innerHTML = `
+    <div class="top">
+      <div class="emoji">${t.emoji}</div>
+      <div>
+        <div class="title">${t.title}</div>
+        <div class="style">${t.style}</div>
+      </div>
+    </div>
+    <div class="meta">
+      <span class="chip">${t.bpm} BPM</span>
+      <span class="chip price">${t.price === 0 ? 'бесплатно' : t.price + ' 💎'}</span>
+      <span class="chip">groove: ${t.groove}</span>
+    </div>
+    ${entry.trend ? `<div class="trend">${entry.trend}</div>` : ''}
+    ${entry.note ? `<div class="note">${entry.note}</div>` : ''}
+    <div class="row"><button class="play">▶ Послушать</button></div>`;
+  el.querySelector('.play').addEventListener('click', () => {
+    if (active === t.id) stopLoop();
+    else startLoop(entry);
+  });
+  return el;
+}
+
+DEMO.sections.forEach(({ grid, items }) => {
+  const box = document.getElementById(grid);
+  items.forEach((entry) => box.appendChild(card(entry)));
+});
+document.querySelector('.legend').insertAdjacentText('afterbegin',
+  `Движок: ${DEMO.grooveCount()} грувов, ${DEMO.trackCount()} лупов. `);
+
+const vol = document.getElementById('vol');
+const applyVolume = () => DEMO.setVolume((Number(vol.value) / 100) * 0.9);
+vol.addEventListener('input', applyVolume);
+applyVolume();
+
+document.getElementById('focus').addEventListener('change', (e) => {
+  // Луп не перезапускается: движок читает контекст на каждом шаге планировщика
+  DEMO.setFocus(e.target.checked);
+  document.getElementById('hint').textContent = e.target.checked
+    ? 'Режим «Урок»: темп ≤90, перкуссия тише, хай-хэты и ковбелл почти не звучат — тот же луп, на лету.'
+    : 'Одновременно играет один луп — так же, как в приложении.';
+});
+document.getElementById('stop').addEventListener('click', stopLoop);
+
+// Запись: MediaRecorder пишет отвод мастер-шины (тот же сигнал, что в колонки).
+// Файл скачивается как slovo2-<трек>.webm — его можно послушать в любом
+// плеере вне приложения или приложить к разбору качества звука.
+const recBtn = document.getElementById('rec');
+recBtn.addEventListener('click', () => {
+  const stream = DEMO.stream();
+  if (!stream) {
+    recBtn.textContent = '⚠ Сначала запустите трек';
+    setTimeout(() => { recBtn.textContent = '⏺ Записать 10 с'; }, 2000);
+    return;
+  }
+  const chunks = [];
+  const rec = new MediaRecorder(stream);
+  rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+  rec.onstop = () => {
+    const blob = new Blob(chunks, { type: rec.mimeType || 'audio/webm' });
+    const name = 'slovo2-' + (active || 'loop') + '.webm';
+    recBtn.disabled = false;
+    recBtn.textContent = '⏺ Записать 10 с';
+    // Плеер на странице: захват можно послушать сразу, без скачивания
+    const playerBox = document.getElementById('recplayer');
+    const audio = document.getElementById('recaudio');
+    const link = document.getElementById('recdownload');
+    const url = URL.createObjectURL(blob);
+    audio.src = url;
+    link.href = url;
+    link.download = name;
+    playerBox.style.display = '';
+    const state = document.getElementById('recstate');
+    // В iframe превью автоскачивание запрещено: шлём файл серверу,
+    // он кладёт запись в recordings/ рабочей области — разбор без скачивания
+    state.textContent = '⏫ Отправляю запись…';
+    fetch('/upload?name=' + encodeURIComponent(name), { method: 'POST', body: blob })
+      .then((r) => r.json())
+      .then((j) => {
+        state.textContent = '✓ ' + j.saved + ' в рабочей области (' + Math.round(j.bytes / 1024) + ' КБ) — можно разбирать';
+      })
+      .catch(() => {
+        state.textContent = '⚠ Сервер не принял файл: откройте лабораторию в отдельной вкладке и скачайте ссылкой';
+      });
+    if (window.top === window) {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      a.click();
+    }
+  };
+  let left = 10;
+  recBtn.disabled = true;
+  recBtn.textContent = '⏺ ' + left + ' с…';
+  const iv = setInterval(() => {
+    left -= 1;
+    if (left > 0) recBtn.textContent = '⏺ ' + left + ' с…';
+    else clearInterval(iv);
+  }, 1000);
+  rec.start();
+  setTimeout(() => rec.stop(), 10000);
+});
+document.querySelectorAll('.sting').forEach((b) => b.addEventListener('click', () => DEMO.stinger(b.dataset.sting)));
+</script>
+</body>
+</html>

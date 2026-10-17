@@ -14,6 +14,7 @@ import { Bar, Confetti, ConfirmDialog, Ring, Stars } from '../Bits';
 import { WordLetters } from '../WordView';
 import { dangerSummary } from '../../engine/word-facts';
 import { sfx } from '../../platform/sound';
+import { setMusicContext } from '../../platform/music';
 import { haptic } from '../../platform/haptics';
 import { XP, checkAchievements, starsFor } from '../../engine/rewards';
 import { COSTUME_BY_ID, PUZZLE_SIZE, type PuzzleAward } from '../../engine/puzzles';
@@ -154,6 +155,18 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
       setNudge(false);
     }
   }, [verdict]);
+
+  /**
+   * Музыка в уроке — фон, а не концерт. Пока ребёнок читает слово и подбирает
+   * буквы, трек звучит медленнее (≤ 90 BPM) и без ярких ударных; на итоговом
+   * экране возвращается полный грув — там и звучит «свой» тренд. Правила —
+   * engine/music.ts:playbackFor, разбор — docs/music-trends-2026.md.
+   */
+  useEffect(() => {
+    setMusicContext(done ? 'reward' : 'lesson');
+  }, [done]);
+  // На выходе из урока контекст возвращается: на главной и в магазине музыка играет целиком.
+  useEffect(() => () => setMusicContext('reward'), []);
 
   /**
    * Отвеченное задание остаётся на экране до «Далее», но становится неживым:
