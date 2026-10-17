@@ -16,6 +16,44 @@
     <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
     <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
     <link rel="manifest" href="./manifest.webmanifest" />
+    <!--
+      Тема объявляется до первого кадра.
+
+      Браузер читает схему страницы при загрузке, и именно тег
+      <meta name="color-scheme"> отключает собственное принудительное
+      затемнение (Chrome: «мета-тег не даёт Auto Dark Theme примениться
+      вовсе, поэтому не бывает вспышки потемневшего содержимого»). Статичный
+      тег «light dark» означал «я умею обе схемы», и браузер успевал
+      включить перекрашивание раньше, чем приложение переписывало тег.
+
+      Выбор темы лежит в IndexedDB и читается асинхронно, поэтому здесь
+      берётся его зеркало в localStorage: оно читается синхронно. Скрипт
+      повторяет логику src/platform/theme.ts — правила проверяет
+      tests/theme-ui.test.tsx (он читает этот файл и выполняет вот этот
+      самый скрипт).
+    -->
+    <script>
+      (function () {
+        try {
+          var saved = window.localStorage.getItem('slovo2-theme');
+          var theme = saved === 'light' || saved === 'dark' ? saved : 'auto';
+          var prefersDark = window.matchMedia
+            ? window.matchMedia('(prefers-color-scheme: dark)').matches
+            : false;
+          var dark = theme === 'dark' || (theme === 'auto' && prefersDark);
+          var scheme = dark ? 'only dark' : 'only light';
+          var root = document.documentElement;
+          root.setAttribute('data-theme', dark ? 'dark' : 'light');
+          root.style.colorScheme = scheme;
+          var schemeMeta = document.querySelector('meta[name="color-scheme"]');
+          if (schemeMeta) schemeMeta.setAttribute('content', scheme);
+          var themeMeta = document.querySelector('meta[name="theme-color"]');
+          if (themeMeta) themeMeta.setAttribute('content', dark ? '#171426' : '#7C5CFF');
+        } catch (error) {
+          // Хранилище недоступно (приватный режим) — тему применит приложение.
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

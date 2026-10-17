@@ -3,7 +3,7 @@
 //
 // Проверяем, что взрослому действительно есть чем поделиться:
 //  • в «Родителям» и на экране «Кто будет учиться?» есть карточка со ссылкой;
-//  • QR-код нарисован (SVG одним контуром) и его можно увеличить;
+//  • QR-код нарисован картинкой (чёрно-белый PNG) и его можно увеличить;
 //  • ссылка называется человекочитаемо и совпадает с адресом приложения;
 //  • копирование в jsdom не имеет Clipboard API — значит, ссылку показывают
 //    текстом, чтобы её можно было скопировать руками (не «кнопка-обманка»);
@@ -12,6 +12,7 @@ import { appUrl, canNativeShare, copyAppLink, linkLabel, shareApp, SHARE_TITLE }
 import { useApp } from '../src/state/store';
 import { qrEncode } from '../src/engine/qr';
 import { buttons, check, click, has, openParentSection, sleep } from './ui-helpers';
+import { decodePng, pngBytesFromDataUrl } from './qr-png-helper';
 
 const linkText = () => appUrl();
 
@@ -22,6 +23,34 @@ function shareCard(): HTMLElement | null {
 
 function bigQr(): HTMLElement | null {
   return document.querySelector('.share-zoom-art');
+}
+
+/**
+ * QR чёрный на белом? Смотрим настоящие пиксели картинки: модули должны быть
+ * чёрными, «тихая зона» — белой. Именно это ломает принудительная тёмная
+ * тема браузера, если код нарисован SVG: браузер переводит цвет SVG в одну
+ * яркость, и чёрное с белым сливается.
+ */
+function qrIsBlackOnWhite(node: Element | null): boolean {
+  if (!node || node.tagName !== 'IMG') return false;
+  const src = node.getAttribute('src') ?? '';
+  if (!src.startsWith('data:image/png;base64,')) return false;
+  let decoded;
+  try {
+    decoded = decodePng(pngBytesFromDataUrl(src));
+  } catch {
+    return false;
+  }
+  let black = 0;
+  let white = 0;
+  for (const row of decoded.pixels) {
+    for (const pixel of row) {
+      if (pixel) white += 1;
+      else black += 1;
+    }
+  }
+  const corner = decoded.pixels[0][0] && decoded.pixels[0][decoded.width - 1];
+  return corner && black > 100 && white > black;
 }
 
 export async function runShareAppChecks(): Promise<void> {
@@ -104,9 +133,14 @@ export async function runShareAppChecks(): Promise<void> {
   check('в карточке видна ссылка на приложение', has(linkLabel()), document.body.textContent?.slice(0, 200) ?? '');
   const qrArt = document.querySelector('.share-qr-art');
   check(
-    'QR-код нарисован одним контуром (без картинок и сети)',
-    !!qrArt && (qrArt.querySelector('path')?.getAttribute('d')?.length ?? 0) > 100,
-    (qrArt?.querySelector('path')?.getAttribute('d') ?? '').slice(0, 80),
+    'QR-код нарисован картинкой без сети (data-URL, а не SVG)',
+    !!qrArt && qrArt.tagName === 'IMG' && (qrArt.getAttribute('src') ?? '').startsWith('data:image/png;base64,'),
+    (qrArt?.outerHTML.slice(0, 80)) ?? '',
+  );
+  check(
+    'QR-код чёрный на белом — проверяем пиксели картинки',
+    qrIsBlackOnWhite(qrArt),
+    (qrArt?.getAttribute('src') ?? '').slice(0, 40),
   );
   check(
     'в карточке есть пошаговая инструкция для второго телефона',
@@ -114,12 +148,12 @@ export async function runShareAppChecks(): Promise<void> {
     document.body.textContent?.slice(0, 200) ?? '',
   );
 
-  check('маленький QR чёрный на белом', qrArt?.querySelector('path')?.getAttribute('fill') === '#000000' && qrArt?.querySelector('rect')?.getAttribute('fill') === '#ffffff', qrArt?.outerHTML.slice(0, 200) ?? '');
+  check('маленький QR чёрный на белом', qrIsBlackOnWhite(qrArt), qrArt?.getAttribute('src')?.slice(0, 40) ?? '');
 
   click(document.querySelector('.share-qr'));
   await sleep(40);
   check('нажатие на QR открывает крупный вид', !!bigQr(), document.body.textContent?.slice(0, 160) ?? '');
-  check('крупный QR чёрный на белом', bigQr()?.querySelector('path')?.getAttribute('fill') === '#000000' && bigQr()?.querySelector('rect')?.getAttribute('fill') === '#ffffff', bigQr()?.outerHTML.slice(0, 200) ?? '');
+  check('крупный QR чёрный на белом', qrIsBlackOnWhite(bigQr()), bigQr()?.getAttribute('src')?.slice(0, 40) ?? '');
   const closeZoom = buttons().find((b) => (b.textContent ?? '').trim() === 'Закрыть');
   click(closeZoom);
   await sleep(40);

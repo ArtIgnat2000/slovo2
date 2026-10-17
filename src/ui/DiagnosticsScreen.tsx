@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { inspectStorage, type StorageDiagnosticReport } from '../platform/diagnostics';
 import { useStorageHealth } from '../state/health';
+import { useApp } from '../state/store';
+import { browserName, detectForcedRepaint, readThemeMirror, systemPrefersDark } from '../platform/theme';
 
 interface Props {
   onClose: () => void;
@@ -46,8 +48,32 @@ function reportText(report: StorageDiagnosticReport, health: string): string {
     `В записи: профилей ${record.profiles ?? '—'}, слов ${record.words ?? '—'}, XP ${record.xp ?? '—'}`,
     `Постоянное хранилище: ${persistenceLabel(report.persisted)}`,
     `Состояние приложения: ${health}`,
+    ...themeLines(),
     ...snapshots,
   ].join('\n');
+}
+
+/**
+ * Сведения о теме.
+ *
+ * Их смысл — разделить две разные причины «серого экрана»: тёмная тема,
+ * выбранная в самом приложении, и перекрашивание страницы браузером. Во
+ * втором случае палитра приложения верна, а поверх неё наложена чужая: это
+ * видно по строке «перекрашивает ли браузер страницу» и по тому, что
+ * заявленный палитрой фон отличается от фона на экране.
+ */
+function themeLines(): string[] {
+  const root = document.documentElement;
+  const schemeMeta = document.querySelector('meta[name="color-scheme"]');
+  return [
+    `Браузер: ${browserName(navigator.userAgent)}`,
+    `Тема в настройках: ${useApp.getState().settings.theme}; на экране: ${root.dataset.theme || 'не задана'}`,
+    `Схема страницы: ${root.style.colorScheme || 'не задана'}; тег <meta color-scheme>: ${schemeMeta?.getAttribute('content') ?? 'нет тега'}`,
+    `Системная тема: ${systemPrefersDark() ? 'тёмная' : 'светлая'}`,
+    `Перекрашивает ли браузер страницу: ${detectForcedRepaint() ? 'да' : 'нет'}`,
+    `Фон на экране: ${getComputedStyle(document.body).backgroundColor || 'не вычислен'}; заявленный палитрой: ${getComputedStyle(root).getPropertyValue('--bg').trim() || 'не задан'}`,
+    `Зеркало темы в localStorage: ${readThemeMirror() ?? 'нет'}`,
+  ];
 }
 
 export function DiagnosticsScreen({ onClose }: Props) {
@@ -59,6 +85,13 @@ export function DiagnosticsScreen({ onClose }: Props) {
   const lastWriteAt = useStorageHealth((s) => s.lastWriteAt);
   const hydratedAt = useStorageHealth((s) => s.hydratedAt);
   const blockedWrites = useStorageHealth((s) => s.blockedWrites);
+  const theme = useApp((s) => s.settings.theme);
+  /** Перекрашивает ли браузер страницу поверх нашей палитры. */
+  const [repaint, setRepaint] = useState(false);
+
+  useEffect(() => {
+    setRepaint(detectForcedRepaint());
+  }, []);
 
   const refresh = useCallback(async () => {
     setChecking(true);
@@ -184,6 +217,44 @@ export function DiagnosticsScreen({ onClose }: Props) {
         <div className="kv">
           <span>Записи, остановленные защитой</span>
           <b>{blockedWrites}</b>
+        </div>
+      </section>
+
+      <section className="card mb" aria-label="Тема оформления">
+        <h2>Тема</h2>
+        <div className="kv">
+          <span>Браузер</span>
+          <b>{browserName(navigator.userAgent)}</b>
+        </div>
+        <div className="kv">
+          <span>Тема в настройках</span>
+          <b>{theme}</b>
+        </div>
+        <div className="kv">
+          <span>Тема на экране</span>
+          <b>{document.documentElement.dataset.theme ?? 'не задана'}</b>
+        </div>
+        <div className="kv">
+          <span>Схема страницы</span>
+          <b>{document.documentElement.style.colorScheme || 'не задана'}</b>
+        </div>
+        <div className="kv">
+          <span>Тег <code>color-scheme</code></span>
+          <b>{document.querySelector('meta[name="color-scheme"]')?.getAttribute('content') ?? 'нет тега'}</b>
+        </div>
+        <div className="kv">
+          <span>Системная тема</span>
+          <b>{systemPrefersDark() ? 'тёмная' : 'светлая'}</b>
+        </div>
+        <div className="kv">
+          <span>Перекраска браузером</span>
+          <b className={repaint ? 'diag-warn' : 'diag-ok'}>
+            {repaint ? 'да, браузер перекрашивает страницу' : 'нет'}
+          </b>
+        </div>
+        <div className="kv">
+          <span>Фон на экране</span>
+          <b>{getComputedStyle(document.body).backgroundColor || '—'}</b>
         </div>
       </section>
 

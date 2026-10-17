@@ -18,6 +18,7 @@ import { runPretestAuditChecks } from './pretest-audit.test';
 import { runPuzzleUiChecks } from './puzzles-ui.test';
 import { runDiagnosticsRouteChecks } from './diagnostics-ui.test';
 import { runShareAppChecks } from './share-ui.test';
+import { runThemeChecks } from './theme-ui.test';
 import { runFloatingMascotChecks } from './mascot-ui.test';
 import { runBukLessonChecks } from './buk-lesson-ui.test';
 import { runLessonArtChecks } from './lesson-art-ui.test';
@@ -803,6 +804,9 @@ async function main() {
 
   // «Передать приложение»: QR и ссылка для нового ученика (замечание 2026-10-14).
   await runShareAppChecks();
+
+  // Тема: схема страницы, первый кадр и отличие перекраски браузера от темы.
+  await runThemeChecks();
 
   // Диагностика запускается прямой ссылкой и читает хранилище, не раскрывая профиль.
   await runDiagnosticsRouteChecks();

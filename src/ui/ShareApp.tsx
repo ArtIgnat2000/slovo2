@@ -8,7 +8,7 @@ import {
   shareApp,
   type ShareOutcome,
 } from '../platform/share';
-import { QrSvg } from './QrCode';
+import { QrImage } from './QrCode';
 
 interface Props {
   /** Короткий вид — для экрана «Кто будет учиться?», без пошаговой инструкции */
@@ -66,7 +66,7 @@ export function ShareApp({ compact = false }: Props) {
             onClick={() => setZoomed(true)}
             aria-label="Показать QR-код крупно"
           >
-            <QrSvg matrix={matrix} className="share-qr-art" />
+            <QrImage matrix={matrix} className="share-qr-art" />
             <span className="tiny">Нажми, чтобы увеличить</span>
           </button>
         ) : (
@@ -123,7 +123,7 @@ export function ShareApp({ compact = false }: Props) {
           onClick={() => setZoomed(false)}
         >
           <div className="share-zoom-inner">
-            <QrSvg matrix={matrix} className="share-zoom-art" />
+            <QrImage matrix={matrix} className="share-zoom-art" />
             <div className="share-zoom-link">{linkLabel(url)}</div>
             <button className="btn primary" onClick={() => setZoomed(false)}>
               Закрыть

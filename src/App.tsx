@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useActiveProfile, useApp } from './state/store';
 import { useStorageHealth } from './state/health';
 import { StorageBanner, StorageScreen } from './ui/StorageScreen';
+import { ThemeBanner } from './ui/ThemeBanner';
 import { onExternalChange } from './platform/vault';
 import { FloatingMascot } from './ui/FloatingMascot';
 import { HomeScreen } from './ui/screens/HomeScreen';
@@ -17,6 +18,7 @@ import { MUSIC_BY_ID, MUSIC_TRACKS, STARTER_TRACK_IDS } from './engine/music';
 import { playMusic, setMusicEnabled, setMusicVolume, warmTracks } from './platform/music';
 import { setHapticsEnabled } from './platform/haptics';
 import { applyUpdate, shouldSuggestInstall, markInstallHintShown } from './platform/pwa';
+import { applyTheme, writeThemeMirror } from './platform/theme';
 
 type Tab = 'home' | 'words' | 'shop' | 'parent';
 
@@ -80,33 +82,17 @@ export default function App() {
   const [updateReady, setUpdateReady] = useState(false);
 
   useEffect(() => {
-    const applyTheme = () => {
-      const dark =
-        settings.theme === 'dark' ||
-        (settings.theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-      document.documentElement.dataset.theme = dark ? 'dark' : 'light';
-      // Явно сообщаем браузеру текущую схему: без этого Chrome на Android
-      // может «притемнять» светлую тему (auto-dark), и она выглядит серой.
-      // `only` — не просто «поддерживаем обе», а «не трогай, другой темы для
-      // этой страницы нет»: именно этого слова не хватает части браузеров,
-      // чтобы отключить собственное перекрашивание.
-      const scheme = dark ? 'only dark' : 'only light';
-      document.documentElement.style.colorScheme = scheme;
-      // Samsung Internet и некоторые Android-WebView читают принудительную
-      // тёмную тему в первую очередь по <meta name="color-scheme">, а не по
-      // инлайн-стилю: без обновления самого тега «Force dark mode for web
-      // content» перекрашивает страницу даже при выбранной светлой теме и
-      // светлой системной теме (см. отчёт пользователя: Samsung Internet,
-      // системная тема светлая, в приложении выбрано «светлая», экран тёмный).
-      const schemeMeta = document.querySelector('meta[name="color-scheme"]');
-      schemeMeta?.setAttribute('content', scheme);
-      const meta = document.querySelector('meta[name="theme-color"]');
-      meta?.setAttribute('content', dark ? '#171426' : '#7C5CFF');
+    const apply = () => {
+      applyTheme(settings.theme);
     };
-    applyTheme();
+    apply();
+    // Зеркало выбора темы в localStorage: инлайн-скрипт в index.html читает
+    // его до первого кадра — схема страницы должна быть объявлена сразу,
+    // иначе браузер успевает включить собственное перекрашивание.
+    writeThemeMirror(settings.theme);
     if (settings.theme === 'auto') {
       const media = window.matchMedia('(prefers-color-scheme: dark)');
-      const handler = () => applyTheme();
+      const handler = () => apply();
       // Современный API + фолбэк для старых WebView
       if (typeof media.addEventListener === 'function') media.addEventListener('change', handler);
       else media.addListener(handler);
@@ -238,6 +224,7 @@ export default function App() {
   return (
     <div className="app">
       <StorageBanner />
+      <ThemeBanner />
       {profilesOpen ? (
         <ProfilesScreen onClose={() => setProfilesOpen(false)} manage={parentUnlocked} />
       ) : tab === 'home' ? (
