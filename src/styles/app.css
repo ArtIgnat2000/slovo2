@@ -4983,3 +4983,255 @@ p {
   margin-bottom: 4px;
   line-height: 1.3;
 }
+
+/* ── Стиль оформления: неоновая аркада ─────────────────────────────────────
+   Палитра задана токенами в tokens.css. Здесь — элементы, которым нужны
+   характерные для ссылки Луи Брайля сетка, подсветка и тёмный текст на ярких
+   розово-голубых кнопках. Классическая тема остаётся без переопределений. */
+:root[data-theme-style='neon'] .app {
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(90deg, var(--neon-grid-x) 1px, transparent 1px),
+    linear-gradient(var(--neon-grid-y) 1px, transparent 1px),
+    radial-gradient(120% 60% at 15% 0%, var(--bg-glow-1) 0%, transparent 55%),
+    radial-gradient(100% 55% at 100% 0%, var(--bg-glow-2) 0%, transparent 60%);
+  background-size: 40px 40px, 40px 40px, auto, auto;
+  background-repeat: repeat, repeat, no-repeat, no-repeat;
+}
+
+:root[data-theme-style='neon'] .card:not(.flat),
+:root[data-theme-style='neon'] .dialog,
+:root[data-theme-style='neon'] .clue-hero {
+  backdrop-filter: blur(10px);
+}
+
+:root[data-theme-style='neon'] .home-hero {
+  border: 1px solid var(--line);
+  box-shadow: 0 0 18px var(--neon-primary-glow), 0 6px 0 var(--primary);
+}
+:root[data-theme-style='neon'] .home-hero:active {
+  box-shadow: 0 0 12px var(--neon-primary-glow), 0 3px 0 var(--primary);
+}
+
+:root[data-theme-style='neon'] .btn.primary,
+:root[data-theme-style='neon'] .home-hero-cta,
+:root[data-theme-style='neon'] .choice-item.on,
+:root[data-theme-style='neon'] .chip.on {
+  color: var(--neon-primary-ink);
+}
+:root[data-theme-style='neon'] .btn.primary {
+  box-shadow: 0 0 16px var(--neon-primary-glow), 0 5px 0 var(--neon-primary-depth);
+}
+:root[data-theme-style='neon'] .btn.primary:active {
+  box-shadow: 0 0 10px var(--neon-primary-glow), 0 2px 0 var(--neon-primary-depth);
+}
+:root[data-theme-style='neon'] .home-hero-cta {
+  box-shadow: 0 0 16px var(--neon-primary-glow), 0 4px 0 var(--neon-primary-depth);
+}
+:root[data-theme-style='neon'] .home-hero:active .home-hero-cta {
+  box-shadow: 0 0 10px var(--neon-primary-glow), 0 2px 0 var(--neon-primary-depth);
+}
+:root[data-theme-style='neon'] .choice-item.on {
+  box-shadow: 0 0 12px var(--neon-primary-glow);
+}
+:root[data-theme-style='neon'] .tab.on {
+  text-shadow: 0 0 10px var(--neon-primary-glow);
+}
+:root[data-theme-style='neon'] h1,
+:root[data-theme-style='neon'] h2 {
+  text-shadow: 0 0 10px var(--neon-primary-glow);
+}
+:root[data-theme-style='neon'] .tabs {
+  backdrop-filter: blur(12px);
+  box-shadow: 0 -4px 18px var(--neon-primary-glow);
+}
+:root[data-theme-style='neon'] .btn.green,
+:root[data-theme-style='neon'] .option.ok,
+:root[data-theme-style='neon'] .syllable.done,
+:root[data-theme-style='neon'] .ring-check {
+  color: var(--neon-success-ink);
+}
+:root[data-theme-style='neon'] .option.bad {
+  color: var(--neon-danger-ink);
+}
+:root[data-theme-style='neon'] .goal-over,
+:root[data-theme-style='neon'] .stat-pill.fire,
+:root[data-theme-style='neon'] .stat-pill.repair {
+  color: var(--orange-ink);
+}
+:root[data-theme-style='neon'] .word-chip.good,
+:root[data-theme-style='neon'] .slot.ok {
+  color: var(--green);
+}
+:root[data-theme-style='neon'] .chest {
+  color: var(--neon-primary-ink);
+}
+
+/* ── Витрина «Фоны»: выбор общего оформления приложения ──────────────────── */
+.background-theme-grid {
+  align-items: stretch;
+}
+.background-theme-card {
+  min-width: 0;
+  padding: 10px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg-2);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+  box-shadow: var(--shadow);
+}
+.background-theme-card.selected {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  box-shadow: var(--shadow), 0 0 0 2px color-mix(in srgb, var(--primary) 18%, transparent);
+}
+.background-theme-preview {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  height: 88px;
+  padding: 6px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--line) 30%, transparent);
+  overflow: hidden;
+}
+.background-theme-pane {
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--preview-light);
+}
+.background-theme-pane.dark {
+  background: var(--preview-dark);
+}
+.background-theme-pane::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 20% 20%, var(--preview-secondary), transparent 58%);
+  opacity: 0.34;
+}
+.background-theme-pane.dark::before {
+  opacity: 0.42;
+}
+.background-theme-mini-card {
+  position: absolute;
+  left: 7px;
+  right: 7px;
+  bottom: 7px;
+  height: 30px;
+  border: 1px solid color-mix(in srgb, var(--preview-accent) 32%, transparent);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+.background-theme-mini-card::before {
+  content: '';
+  display: block;
+  width: 45%;
+  height: 4px;
+  margin: 7px 0 0 6px;
+  border-radius: 5px;
+  background: var(--preview-accent);
+  box-shadow: 0 7px 0 color-mix(in srgb, var(--preview-secondary) 78%, white);
+}
+.background-theme-pane.dark .background-theme-mini-card {
+  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.1);
+}
+.background-theme-pane.dark .background-theme-mini-card::before {
+  box-shadow: 0 7px 0 var(--preview-secondary);
+}
+.background-theme-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  font-size: var(--fs-sm);
+  font-weight: 800;
+  line-height: 1.15;
+}
+.background-theme-desc {
+  flex: 1;
+  min-height: 54px;
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--fs-xs);
+  line-height: 1.35;
+}
+.background-theme-label {
+  color: var(--ink-3);
+  font-size: 12px;
+  font-weight: 700;
+}
+.background-theme-card .btn {
+  min-height: 42px;
+  padding: 8px;
+  font-size: var(--fs-xs);
+}
+
+/* У других оформлений свой фоновой мотив; токены управляют цветами всех экранов. */
+:root[data-theme-style='space'] .app {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(circle at 18% 22%, var(--space-star) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 72% 18%, var(--space-star) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 48% 78%, var(--space-star) 0 1px, transparent 1.6px),
+    radial-gradient(120% 60% at 15% 0%, var(--bg-glow-1) 0%, transparent 55%),
+    radial-gradient(100% 55% at 100% 0%, var(--bg-glow-2) 0%, transparent 60%);
+  background-size: 110px 130px, 170px 160px, 220px 210px, auto, auto;
+  background-repeat: repeat, repeat, repeat, no-repeat, no-repeat;
+}
+:root[data-theme-style='ocean'] .app {
+  background-color: var(--bg);
+  background-image:
+    repeating-linear-gradient(168deg, transparent 0 38px, var(--ocean-wave) 39px 41px, transparent 42px 84px),
+    radial-gradient(120% 60% at 15% 0%, var(--bg-glow-1) 0%, transparent 55%),
+    radial-gradient(100% 55% at 100% 0%, var(--bg-glow-2) 0%, transparent 60%);
+  background-size: 180px 180px, auto, auto;
+  background-repeat: repeat, no-repeat, no-repeat;
+}
+
+/* Яркие акценты тёмных вариантов получают тёмный текст на заливках. */
+:root[data-theme='dark'][data-theme-style='space'] .btn.primary,
+:root[data-theme='dark'][data-theme-style='space'] .home-hero-cta,
+:root[data-theme='dark'][data-theme-style='space'] .choice-item.on,
+:root[data-theme='dark'][data-theme-style='space'] .chip.on,
+:root[data-theme='dark'][data-theme-style='space'] .vlabs-promo-icon,
+:root[data-theme='dark'][data-theme-style='space'] .vlabs-badge,
+:root[data-theme='dark'][data-theme-style='forest'] .btn.primary,
+:root[data-theme='dark'][data-theme-style='forest'] .home-hero-cta,
+:root[data-theme='dark'][data-theme-style='forest'] .choice-item.on,
+:root[data-theme='dark'][data-theme-style='forest'] .chip.on,
+:root[data-theme='dark'][data-theme-style='forest'] .vlabs-promo-icon,
+:root[data-theme='dark'][data-theme-style='forest'] .vlabs-badge,
+:root[data-theme='dark'][data-theme-style='ocean'] .btn.primary,
+:root[data-theme='dark'][data-theme-style='ocean'] .home-hero-cta,
+:root[data-theme='dark'][data-theme-style='ocean'] .choice-item.on,
+:root[data-theme='dark'][data-theme-style='ocean'] .chip.on,
+:root[data-theme='dark'][data-theme-style='ocean'] .vlabs-promo-icon,
+:root[data-theme='dark'][data-theme-style='ocean'] .vlabs-badge {
+  color: var(--theme-primary-ink);
+}
+:root[data-theme='dark'][data-theme-style='space'] .btn.green,
+:root[data-theme='dark'][data-theme-style='space'] .option.ok,
+:root[data-theme='dark'][data-theme-style='space'] .syllable.done,
+:root[data-theme='dark'][data-theme-style='space'] .ring-check,
+:root[data-theme='dark'][data-theme-style='forest'] .btn.green,
+:root[data-theme='dark'][data-theme-style='forest'] .option.ok,
+:root[data-theme='dark'][data-theme-style='forest'] .syllable.done,
+:root[data-theme='dark'][data-theme-style='forest'] .ring-check,
+:root[data-theme='dark'][data-theme-style='ocean'] .btn.green,
+:root[data-theme='dark'][data-theme-style='ocean'] .option.ok,
+:root[data-theme='dark'][data-theme-style='ocean'] .syllable.done,
+:root[data-theme='dark'][data-theme-style='ocean'] .ring-check {
+  color: var(--theme-success-ink);
+}
+:root[data-theme='dark'][data-theme-style='space'] .option.bad,
+:root[data-theme='dark'][data-theme-style='forest'] .option.bad,
+:root[data-theme='dark'][data-theme-style='ocean'] .option.bad {
+  color: var(--theme-danger-ink);
+}

@@ -2,7 +2,15 @@ import { useCallback, useEffect, useState } from 'react';
 import { inspectStorage, type StorageDiagnosticReport } from '../platform/diagnostics';
 import { useStorageHealth } from '../state/health';
 import { useApp } from '../state/store';
-import { browserDarkModeHelp, browserName, detectForcedRepaint, readThemeMirror, repaintAssessment, systemPrefersDark } from '../platform/theme';
+import {
+  browserDarkModeHelp,
+  browserName,
+  detectForcedRepaint,
+  readThemeMirror,
+  readThemeStyleMirror,
+  repaintAssessment,
+  systemPrefersDark,
+} from '../platform/theme';
 import { isStandalone } from '../platform/pwa';
 
 interface Props {
@@ -66,13 +74,15 @@ function themeLines(): string[] {
   return [
     `Браузер: ${browser}; режим: ${isStandalone() ? 'ярлык (standalone)' : 'вкладка'}`,
     `User-Agent: ${navigator.userAgent}`,
-    `Тема в настройках: ${useApp.getState().settings.theme}; выбранная палитра: ${root.dataset.theme || 'не задана'}`,
+    `Цветовая схема в настройках: ${useApp.getState().settings.theme}; активная CSS-схема: ${root.dataset.theme || 'не задана'}`,
+    `Стиль оформления в настройках: ${useApp.getState().settings.themeStyle}; активный CSS-стиль: ${root.dataset.themeStyle || 'не задан'}`,
     `Схема страницы: ${root.style.colorScheme || 'не задана'}; тег <meta color-scheme>: ${schemeMeta?.getAttribute('content') ?? 'нет тега'}`,
     `Системная тема: ${systemPrefersDark() ? 'тёмная' : 'светлая'}`,
     `Проверка Auto Dark: ${repaintAssessment(browser, detectForcedRepaint())}`,
     `Фон по CSS: ${getComputedStyle(document.body).backgroundColor || 'не вычислен'}; токен --bg: ${getComputedStyle(root).getPropertyValue('--bg').trim() || 'не задан'}`,
     'CSS-цвета не показывают перекраску пикселей Samsung Internet.',
-    `Зеркало темы в localStorage: ${readThemeMirror() ?? 'нет'}`,
+    `Зеркало цветовой схемы в localStorage: ${readThemeMirror() ?? 'нет'}`,
+    `Зеркало стиля в localStorage: ${readThemeStyleMirror() ?? 'нет'}`,
     `Совет: ${browserDarkModeHelp(browser)}`,
   ];
 }
@@ -87,6 +97,7 @@ export function DiagnosticsScreen({ onClose }: Props) {
   const hydratedAt = useStorageHealth((s) => s.hydratedAt);
   const blockedWrites = useStorageHealth((s) => s.blockedWrites);
   const theme = useApp((s) => s.settings.theme);
+  const themeStyle = useApp((s) => s.settings.themeStyle);
   /** Признак Chrome Auto Dark; отсутствие признака не исключает фильтр Samsung. */
   const [repaint, setRepaint] = useState(() => detectForcedRepaint());
   const browser = browserName(navigator.userAgent);
@@ -136,7 +147,7 @@ export function DiagnosticsScreen({ onClose }: Props) {
       </p>
 
       <section className="card mb" aria-label="Тема оформления">
-        <h2>Тема</h2>
+        <h2>Оформление</h2>
         <div className="kv">
           <span>Браузер</span>
           <b>{browser}</b>
@@ -146,12 +157,16 @@ export function DiagnosticsScreen({ onClose }: Props) {
           <b>{isStandalone() ? 'с ярлыка' : 'во вкладке браузера'}</b>
         </div>
         <div className="kv">
-          <span>Тема в настройках</span>
+          <span>Цветовая схема в настройках</span>
           <b>{theme}</b>
         </div>
         <div className="kv">
           <span>Выбранная палитра CSS</span>
           <b>{document.documentElement.dataset.theme ?? 'не задана'}</b>
+        </div>
+        <div className="kv">
+          <span>Стиль оформления</span>
+          <b>{themeStyle} · CSS: {document.documentElement.dataset.themeStyle ?? 'не задан'}</b>
         </div>
         <div className="kv">
           <span>Схема страницы</span>

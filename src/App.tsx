@@ -19,7 +19,7 @@ import { MUSIC_BY_ID, MUSIC_TRACKS, STARTER_TRACK_IDS } from './engine/music';
 import { playMusic, setMusicEnabled, setMusicVolume, warmTracks } from './platform/music';
 import { setHapticsEnabled } from './platform/haptics';
 import { applyUpdate, shouldSuggestInstall, markInstallHintShown } from './platform/pwa';
-import { applyTheme, writeThemeMirror } from './platform/theme';
+import { applyTheme, applyThemeStyle, writeThemeMirror, writeThemeStyleMirror } from './platform/theme';
 
 type Tab = 'home' | 'words' | 'shop' | 'parent';
 
@@ -105,6 +105,13 @@ export default function App() {
       };
     }
   }, [settings.theme]);
+
+  useEffect(() => {
+    // Стиль интерфейса независим от светлой/тёмной схемы и тоже зеркалится,
+    // чтобы неоновое оформление было готово до первого кадра после запуска.
+    applyThemeStyle(settings.themeStyle);
+    writeThemeStyleMirror(settings.themeStyle);
+  }, [settings.themeStyle]);
 
   useEffect(() => {
     // SFX и музыка — независимые контуры: эффекты остаются даже без фона,

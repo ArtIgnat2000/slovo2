@@ -220,6 +220,7 @@ export async function runPretestAuditChecks(): Promise<void> {
       Array.isArray(imp.shop?.owned) &&
       importedState.settings.dailyGoal === 120 &&
       importedState.settings.theme === 'auto' &&
+      importedState.settings.themeStyle === 'classic' &&
       importedState.toast === null,
     JSON.stringify({ activeId: importedState.activeId, xp: imp?.xp, settings: importedState.settings }),
   );

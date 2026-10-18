@@ -31,6 +31,7 @@ import { dayKey, dayPlan, useApp } from '../src/state/store';
 import { questTitle } from '../src/engine/quests';
 import { ITEM_BY_ID, growthStage } from '../src/engine/shop';
 import { TINT_PALETTES, TINT_PRICE } from '../src/engine/tints';
+import { THEME_STYLES } from '../src/engine/theme-styles';
 import { masteredCount } from '../src/state/store';
 
 // Общая обвязка (клики, поиск кнопок, счётчик проверок) — в tests/ui-helpers.ts:
@@ -494,8 +495,49 @@ async function main() {
   await sleep(80);
   check('магазин открылся', has('Магазин БУКа'), body().slice(0, 200));
   check('витрина по умолчанию — полка нарядов', has('Наряды БУКа'), '');
-  check('полки — чипами, «скоро» честно помечено', has('Костюмы') && has('Музыка') && has('скоро'), '');
+  check('полки — чипами, «скоро» честно помечено', has('Костюмы') && has('Музыка') && has('Звуки') && has('скоро'), '');
+  check('полка «Фоны» активна', !!Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Фоны') && !c.hasAttribute('disabled')), '');
   check('показан баланс кристаллов', has(`💎 ${useApp.getState().profiles[0].gems}`), '');
+
+  const backgroundShelf = Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Фоны'));
+  click(backgroundShelf);
+  await sleep(30);
+  check(
+    'в «Фонах» показаны классика, неон и три дополнительных оформления',
+    document.querySelectorAll('.background-theme-card').length === THEME_STYLES.length &&
+      THEME_STYLES.every((theme) => document.querySelector(`.background-theme-card[data-theme-style="${theme.id}"]`)),
+    String(document.querySelectorAll('.background-theme-card').length),
+  );
+  const originalThemeStyle = useApp.getState().settings.themeStyle;
+  const originalColorScheme = useApp.getState().settings.theme;
+  const originalResolvedScheme = document.documentElement.dataset.theme;
+  const applyBackground = (style: (typeof THEME_STYLES)[number]['id']) =>
+    document.querySelector(`.background-theme-card[data-theme-style="${style}"] button`) as HTMLButtonElement | null;
+  const spaceThemeButton = applyBackground('space');
+  click(spaceThemeButton);
+  await sleep(50);
+  check(
+    '«Космос» из «Фоны» применяется независимо от цветовой схемы',
+    useApp.getState().settings.themeStyle === 'space' &&
+      document.documentElement.dataset.themeStyle === 'space' &&
+      useApp.getState().settings.theme === originalColorScheme &&
+      document.documentElement.dataset.theme === originalResolvedScheme,
+  );
+  const neonThemeButton = applyBackground('neon');
+  click(neonThemeButton);
+  await sleep(50);
+  check(
+    'неоновая тема из «Фоны» переключает весь интерфейс',
+    useApp.getState().settings.themeStyle === 'neon' && document.documentElement.dataset.themeStyle === 'neon',
+  );
+  const restoreThemeButton = applyBackground(originalThemeStyle);
+  click(restoreThemeButton);
+  await sleep(50);
+  check(
+    'выбранный фон сохраняется и возвращается через ту же полку',
+    useApp.getState().settings.themeStyle === originalThemeStyle && document.documentElement.dataset.themeStyle === originalThemeStyle,
+  );
+
   // Полка музыки: весь каталог, две тематические полки, честная лицензия
   click(Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Музыка'))!);
   await sleep(30);

@@ -1,4 +1,5 @@
 import { nextAdaptiveState, type Outcome } from '../engine/adaptive';
+import { isThemeStyle, type ThemeStyle } from '../engine/theme-styles';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { DailyState, DayStat, LessonSize, LessonState, Profile, ShopState, ShopSlot, ShopTuning, WeeklyState, WordState } from '../types';
@@ -84,7 +85,10 @@ export interface Settings {
   musicVolume: number;
   haptics: boolean;
   dailyGoal: number; // XP в день
+  /** Светлая/тёмная палитра; `auto` следует настройке телефона. */
   theme: 'auto' | 'light' | 'dark';
+  /** Визуальный стиль приложения, независимый от светлой/тёмной схемы. */
+  themeStyle: ThemeStyle;
   mascot: MascotMode;
   lessonHelp: LessonHelpMode;
 }
@@ -96,6 +100,7 @@ const DEFAULT_SETTINGS: Settings = {
   haptics: true,
   dailyGoal: 120,
   theme: 'auto',
+  themeStyle: 'classic',
   mascot: 'on',
   lessonHelp: 'socratic',
 };
@@ -294,6 +299,8 @@ function normalizeSettings(raw: Partial<Settings> | null | undefined): Settings 
       raw.theme === 'auto' || raw.theme === 'light' || raw.theme === 'dark'
         ? raw.theme
         : DEFAULT_SETTINGS.theme,
+    // Старые записи и неизвестные стили безопасно переходят на классический вид.
+    themeStyle: isThemeStyle(raw.themeStyle) ? raw.themeStyle : DEFAULT_SETTINGS.themeStyle,
     // Старые выгрузки и записи без поля получают 'on': поведение не меняется.
     mascot:
       raw.mascot === 'on' || raw.mascot === 'home' || raw.mascot === 'off'

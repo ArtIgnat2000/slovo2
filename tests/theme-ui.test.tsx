@@ -8,15 +8,19 @@ import path from 'node:path';
 import { check } from './ui-helpers';
 import {
   applyTheme,
+  applyThemeStyle,
   browserDarkModeHelp,
   browserName,
   detectForcedRepaint,
   readThemeMirror,
+  readThemeStyleMirror,
   repaintAssessment,
   resolveTheme,
   systemPrefersDark,
   THEME_MIRROR_KEY,
+  THEME_STYLE_MIRROR_KEY,
   writeThemeMirror,
+  writeThemeStyleMirror,
 } from '../src/platform/theme';
 
 function schemeMeta(): HTMLMetaElement | null {
@@ -44,6 +48,7 @@ function readBootScript(html: string): string {
 /** Состояние HTML до выполнения какого-либо скрипта. */
 function resetDocument(): void {
   document.documentElement.removeAttribute('data-theme');
+  document.documentElement.removeAttribute('data-theme-style');
   document.documentElement.style.colorScheme = '';
   schemeMeta()?.setAttribute('content', 'only light');
 }
@@ -53,10 +58,15 @@ export async function runThemeChecks(): Promise<void> {
 
   const originalMatchMedia = window.matchMedia;
   const originalMirror = readThemeMirror();
+  const originalStyleMirror = readThemeStyleMirror();
   const originalTheme = document.documentElement.dataset.theme;
+  const originalThemeStyle = document.documentElement.dataset.themeStyle;
   const originalScheme = document.documentElement.style.colorScheme;
   const originalMeta = schemeMeta()?.getAttribute('content') ?? null;
   const originalThemeColor = document.querySelector('meta[name="theme-color"]')?.getAttribute('content') ?? null;
+
+  // Существующие проверки цветовой схемы относятся к классическому виду.
+  applyThemeStyle('classic');
 
   // ── 1. HTML из сборки: тег должен быть безопасным уже при парсинге ──────
   const html = readIndexHtml();
@@ -113,11 +123,46 @@ export async function runThemeChecks(): Promise<void> {
   writeThemeMirror('dark');
   check('зеркало перезаписывается', readThemeMirror() === 'dark');
 
-  // ── 4. Выполняем именно скрипт из index.html ────────────────────────────
+  // ── 4. Визуальный стиль независим от цветовой схемы ─────────────────────
+  applyTheme('light');
+  check(
+    'неоновый стиль ставит атрибут и цвет светлой панели',
+    applyThemeStyle('neon') === 'neon' &&
+      document.documentElement.dataset.themeStyle === 'neon' &&
+      document.querySelector('meta[name="theme-color"]')?.getAttribute('content') === '#f0f4ff',
+  );
+  applyTheme('dark');
+  check(
+    'неоновый стиль сохраняет свой тёмный цвет панели при смене схемы',
+    document.querySelector('meta[name="theme-color"]')?.getAttribute('content') === '#0d0d1a',
+  );
+  applyThemeStyle('classic');
+  check(
+    'возврат к классическому стилю восстанавливает исходный цвет панели',
+    document.documentElement.dataset.themeStyle === 'classic' &&
+      document.querySelector('meta[name="theme-color"]')?.getAttribute('content') === '#171426',
+  );
+  applyThemeStyle('space');
+  applyTheme('light');
+  check(
+    'новый стиль «Космос» применяется к атрибуту и цвету панели',
+    document.documentElement.dataset.themeStyle === 'space' &&
+      document.querySelector('meta[name="theme-color"]')?.getAttribute('content') === '#f2efff',
+  );
+  writeThemeStyleMirror('forest');
+  check('зеркало принимает новые стили', readThemeStyleMirror() === 'forest');
+  writeThemeStyleMirror('classic');
+  check('зеркало стиля перезаписывается', readThemeStyleMirror() === 'classic');
+  window.localStorage.setItem(THEME_STYLE_MIRROR_KEY, 'future-style');
+  check('неизвестный стиль в зеркале безопасно игнорируется', readThemeStyleMirror() === null);
+
+  // ── 5. Выполняем именно скрипт из index.html ────────────────────────────
   const boot = readBootScript(html);
-  const runBoot = (mirror: string | null, prefersDark: boolean) => {
+  const runBoot = (mirror: string | null, prefersDark: boolean, styleMirror: string | null = null) => {
     if (mirror === null) window.localStorage.removeItem(THEME_MIRROR_KEY);
     else window.localStorage.setItem(THEME_MIRROR_KEY, mirror);
+    if (styleMirror === null) window.localStorage.removeItem(THEME_STYLE_MIRROR_KEY);
+    else window.localStorage.setItem(THEME_STYLE_MIRROR_KEY, styleMirror);
     window.matchMedia = ((query: string) => ({ ...originalMatchMedia(query), matches: prefersDark })) as typeof window.matchMedia;
     resetDocument();
     (window as unknown as { eval: (code: string) => void }).eval(boot);
@@ -130,21 +175,47 @@ export async function runThemeChecks(): Promise<void> {
   check(
     'явная светлая до первого кадра остаётся светлой даже при тёмной системе',
     document.documentElement.dataset.theme === 'light' &&
+      document.documentElement.dataset.themeStyle === 'classic' &&
       document.documentElement.style.colorScheme === 'only light' && schemeMeta()?.content === 'only light',
   );
   runBoot('dark', false);
   check(
     'явная тёмная до первого кадра: CSS only dark, HTML dark',
     document.documentElement.dataset.theme === 'dark' &&
+      document.documentElement.dataset.themeStyle === 'classic' &&
       document.documentElement.style.colorScheme === 'only dark' && schemeMeta()?.content === 'dark' &&
       document.querySelector('meta[name="theme-color"]')?.getAttribute('content') === '#171426',
+  );
+  runBoot('dark', false, 'neon');
+  check(
+    'зеркало стиля включает неон до первого кадра и меняет цвет панели',
+    document.documentElement.dataset.themeStyle === 'neon' &&
+      document.documentElement.dataset.theme === 'dark' &&
+      document.querySelector('meta[name="theme-color"]')?.getAttribute('content') === '#0d0d1a',
+  );
+  runBoot('light', true, 'neon');
+  check(
+    'неоновый стиль сохраняется и в светлой цветовой схеме',
+    document.documentElement.dataset.themeStyle === 'neon' &&
+      document.documentElement.dataset.theme === 'light' &&
+      document.querySelector('meta[name="theme-color"]')?.getAttribute('content') === '#f0f4ff',
+  );
+  runBoot('dark', false, 'space');
+  check(
+    'зеркало темы «Космос» работает до первого кадра',
+    document.documentElement.dataset.themeStyle === 'space' &&
+      document.querySelector('meta[name="theme-color"]')?.getAttribute('content') === '#101027',
   );
   runBoot('auto', true);
   check('сохранённое auto следует тёмной системе', document.documentElement.dataset.theme === 'dark' && schemeMeta()?.content === 'dark');
   runBoot(null, true);
   check('первый запуск следует тёмной системе', document.documentElement.dataset.theme === 'dark' && schemeMeta()?.content === 'dark');
   runBoot(null, false);
-  check('первый запуск при светлой системе остаётся светлым', document.documentElement.dataset.theme === 'light' && schemeMeta()?.content === 'only light');
+  check(
+    'первый запуск при светлой системе остаётся светлым и классическим',
+    document.documentElement.dataset.theme === 'light' &&
+      document.documentElement.dataset.themeStyle === 'classic' && schemeMeta()?.content === 'only light',
+  );
 
   const storagePrototype = Object.getPrototypeOf(window.localStorage) as Storage;
   const originalGetItem = storagePrototype.getItem;
@@ -183,11 +254,15 @@ export async function runThemeChecks(): Promise<void> {
   check('Samsung определяется по user-agent', browserName('Mozilla/5.0 (Linux; Android 13) SamsungBrowser/23.0 Chrome/115 Mobile Safari/537.36') === 'Samsung Internet');
   check('Chrome не путается с Samsung', browserName('Mozilla/5.0 (Linux; Android 13) Chrome/120 Mobile Safari/537.36') === 'Chrome');
 
-  // ── Восстанавливаем тему для остальных UI-проверок ──────────────────────
+  // ── Восстанавливаем цветовую схему и стиль для остальных UI-проверок ────
   if (originalMirror) writeThemeMirror(originalMirror);
   else window.localStorage.removeItem(THEME_MIRROR_KEY);
+  if (originalStyleMirror) writeThemeStyleMirror(originalStyleMirror);
+  else window.localStorage.removeItem(THEME_STYLE_MIRROR_KEY);
   if (originalTheme) document.documentElement.dataset.theme = originalTheme;
   else document.documentElement.removeAttribute('data-theme');
+  if (originalThemeStyle) document.documentElement.dataset.themeStyle = originalThemeStyle;
+  else document.documentElement.removeAttribute('data-theme-style');
   document.documentElement.style.colorScheme = originalScheme;
   if (originalMeta) schemeMeta()?.setAttribute('content', originalMeta);
   if (originalThemeColor) document.querySelector('meta[name="theme-color"]')?.setAttribute('content', originalThemeColor);

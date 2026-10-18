@@ -18,6 +18,8 @@ import {
 import { COSTUMES, PUZZLE_SIZE, costumeProgress, type Costume } from '../engine/puzzles';
 import { MUSIC_TRACKS, type MusicTrack } from '../engine/music';
 import { TINT_PRICE, type TintOption } from '../engine/tints';
+import { THEME_STYLES, type ThemeStyle } from '../engine/theme-styles';
+import { BackgroundThemeCard } from './BackgroundThemeCard';
 import type { ShopSlot, ShopTuning } from '../types';
 
 /**
@@ -46,7 +48,7 @@ const DEMO = {
 };
 
 type View = 'vitrina' | 'wardrobe';
-type Cat = 'outfits' | 'costumes' | 'music';
+type Cat = 'outfits' | 'costumes' | 'music' | 'backgrounds';
 
 type Detail =
   | { kind: 'item'; item: ShopItem }
@@ -232,6 +234,7 @@ function Card(props: {
 
 function Demo() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [themeStyle, setThemeStyle] = useState<ThemeStyle>('classic');
   const [width, setWidth] = useState(402);
 
   // демо-профиль
@@ -259,7 +262,8 @@ function Demo() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-  }, [theme]);
+    document.documentElement.dataset.themeStyle = themeStyle;
+  }, [theme, themeStyle]);
 
   const say = (t: Toast) => {
     setToast(t);
@@ -363,11 +367,9 @@ function Demo() {
     { id: 'outfits', title: 'Наряды', emoji: '🎩' },
     { id: 'costumes', title: 'Костюмы', emoji: '🧩' },
     { id: 'music', title: 'Музыка', emoji: '🎵' },
+    { id: 'backgrounds', title: 'Фоны', emoji: '🖼️' },
   ];
-  const soon = [
-    { title: 'Звуки', emoji: '🔊' },
-    { title: 'Фоны', emoji: '🖼️' },
-  ];
+  const soon = [{ title: 'Звуки', emoji: '🔊' }];
 
   const wornLook: Partial<Record<ShopSlot, string>> = equipped;
 
@@ -376,7 +378,7 @@ function Demo() {
       <style>{CSS}</style>
       <h1>Магазин БУКа — новая концепция</h1>
       <p className="muted">
-        Живой макет на настоящих компонентах и каталогах (аксессуары, костюмы, музыка).
+        Живой макет на настоящих компонентах и каталогах (аксессуары, костюмы, музыка и фоны).
         Демо-профиль: 💎 {gems}, куплена кепка, собран костюм «Пилот истребителя»,
         мечты: шарф и «Пикселяндия». Концепция — <code>docs/shop-concept.md</code>.
       </p>
@@ -390,7 +392,7 @@ function Demo() {
           setTuning(DEMO.tuning); setAssembled(DEMO.assembled); setWorn(DEMO.worn);
           setCollecting(DEMO.collecting); setPieces(DEMO.pieces);
           setMusicOwned(DEMO.musicOwned); setMusicTrack(DEMO.musicTrack);
-          setWishlist(DEMO.wishlist); setView('vitrina'); setCat('outfits'); setDetail(null);
+          setWishlist(DEMO.wishlist); setView('vitrina'); setCat('outfits'); setThemeStyle('classic'); setDetail(null);
           say({ emoji: '🔄', title: 'Демо сброшено', text: 'Стартовый профиль восстановлен' });
         }}>Сбросить демо</button>
       </div>
@@ -587,6 +589,23 @@ function Demo() {
                   })}
                 </div>
               </>
+            )}
+
+            {view === 'vitrina' && cat === 'backgrounds' && (
+              <section className="mz-sec" aria-label="Фоны приложения">
+                <h2>Фоны и оформление</h2>
+                <div className="tiny muted">Бесплатные стили для светлой и тёмной схемы</div>
+                <div className="shop-grid background-theme-grid" style={{ marginTop: 10 }} role="group" aria-label="Выбор оформления приложения">
+                  {THEME_STYLES.map((style) => (
+                    <BackgroundThemeCard
+                      key={style.id}
+                      theme={style}
+                      selected={themeStyle === style.id}
+                      onSelect={() => setThemeStyle(style.id)}
+                    />
+                  ))}
+                </div>
+              </section>
             )}
 
             {view === 'wardrobe' && (
@@ -899,7 +918,8 @@ function Demo() {
             <h3 style={{ marginTop: 0 }}>Что изменилось против сегодняшнего магазина</h3>
             <ul style={{ margin: 0, paddingLeft: 18 }}>
               <li><b>Витрина / Гардероб</b> — «хочу» и «моё» больше не смешаны в одной ленте</li>
-              <li><b>Чипы-полки по типу товара</b> — новый раздел (звуки, фоны) = новый чип, без переделки экрана</li>
+              <li><b>Фоны и оформление</b> — пять бесплатных стилей; светлая/тёмная схема выбирается отдельно</li>
+              <li><b>Чипы-полки по типу товара</b> — новый раздел (например, звуки) = новый чип, без переделки экрана</li>
               <li><b>Один макет карточки</b> для всех типов: арт, название, цена/статус, одно действие</li>
               <li><b>Герой-секция</b> — одна ближайшая цель копления, а не 20 ценников сразу</li>
               <li><b>Сердце 🤍</b> — мечта без давления; прогресс копления — в Гардеробе</li>
