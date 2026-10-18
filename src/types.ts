@@ -126,6 +126,8 @@ export interface ShopState {
   soundPack?: string;
   /** Тюнинг цвета купленных вещей (см. engine/shop.ts и docs/shop-tuning.md) */
   tuning?: ShopTuning;
+  /** Список желаемых товаров («Мечты 🤍», фаза 2 магазина): id вещей, костюмов или мелодий. */
+  wishlist?: string[];
 }
 
 /**
