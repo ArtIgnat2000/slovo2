@@ -30,6 +30,8 @@ import type { ShopItem } from '../../engine/shop';
 import { MUSIC_TRACKS, MUSIC_BY_ID, tracksByShelf, type MusicShelf, type MusicTrack } from '../../engine/music';
 import { playMusic } from '../../platform/music';
 import { MusicCreditsToggle } from '../Credits';
+import { THEME_STYLES, type ThemeStyle } from '../../engine/theme-styles';
+import { BackgroundThemeCard } from '../BackgroundThemeCard';
 
 /**
  * Магазин БУКа (концепция 2026-10-17, docs/shop-concept.md).
@@ -37,9 +39,8 @@ import { MusicCreditsToggle } from '../Credits';
  * Что изменилось по сравнению с «одной лентой»:
  *  • два верхних уровня — **Витрина** (чего хочу) и **Гардероб** (что моё);
  *    раньше купленное терялось в общей ленте среди продаваемого;
- *  • витрина режется **чипами-полками по типу товара** (наряды / костюмы /
- *    музыка), а не по слотам совы; новый раздел — новый чип, без переделки
- *    экрана (чипы «скоро» показывают рост честно);
+ *  • витрина режется **чипами-полками**: наряды / костюмы / музыка / фоны;
+ *    звуки пока честно отмечены «скоро», новый раздел не требует переделки экрана;
  *  • **единый макет карточки** для всех типов товара: арт, название, статус
  *    плашкой (Твоя ✓ / Надето ✓ / Собираю 4/9 / Ещё N 💎) и ОДНО действие;
  *  • подробная карточка — **sheet снизу**: крупная примерка, цена, палитра
@@ -62,18 +63,18 @@ const MUSIC_SHELVES: { shelf: MusicShelf; title: string; note: string }[] = [
 type View = 'vitrina' | 'wardrobe';
 
 /** Полки витрины — по типу товара, не по слоту совы. */
-type Cat = 'outfits' | 'costumes' | 'music';
+type Cat = 'outfits' | 'costumes' | 'music' | 'backgrounds';
 
 const CATS: { id: Cat; title: string; emoji: string }[] = [
   { id: 'outfits', title: 'Наряды', emoji: '🎩' },
   { id: 'costumes', title: 'Костюмы', emoji: '🧩' },
   { id: 'music', title: 'Музыка', emoji: '🎵' },
+  { id: 'backgrounds', title: 'Фоны', emoji: '🖼️' },
 ];
 
 /** Разделы, которых ещё нет: обещание роста, а не интерфейс. */
 const CATS_SOON = [
   { title: 'Звуки', emoji: '🔊' },
-  { title: 'Фоны', emoji: '🖼️' },
 ];
 
 /** Что открылось в подробной карточке (sheet снизу). */
@@ -178,6 +179,8 @@ export function ShopScreen() {
   const recolorItem = useApp((s) => s.recolorItem);
   const buyMusicTrack = useApp((s) => s.buyMusicTrack);
   const setMusicTrack = useApp((s) => s.setMusicTrack);
+  const themeStyle = useApp((s) => s.settings.themeStyle);
+  const setSettings = useApp((s) => s.setSettings);
   const [view, setView] = useState<View>('vitrina');
   const [cat, setCat] = useState<Cat>('outfits');
   // Подробная карточка и её палитра (палитра — только в sheet)
@@ -233,6 +236,15 @@ export function ShopScreen() {
     haptic.tap();
     setPaletteOpen(false);
     setSheet(detail);
+  };
+
+  const selectThemeStyle = (style: ThemeStyle) => {
+    if (style === themeStyle) return;
+    setSettings({ themeStyle: style });
+    sfx.tap();
+    haptic.tap();
+    const option = THEME_STYLES.find((item) => item.id === style)!;
+    showToast({ emoji: option.emoji, title: `«${option.title}» выбрана`, text: 'Оформление изменилось во всех разделах' });
   };
 
   const chooseMusic = (id: string | null) => {
@@ -715,8 +727,8 @@ export function ShopScreen() {
 
   // ── Гардероб: мои вещи ────────────────────────────────────────────────
 
-  const wardrobeRow = (target: Detail, art: ReactNode, title: string, state: string, wearing: boolean, actionLabel: string, onAction: () => void) => (
-    <div className={`shop-wear${wearing ? ' on' : ''}`} role="button" tabIndex={0} aria-label={title}
+  const wardrobeRow = (key: string, target: Detail, art: ReactNode, title: string, state: string, wearing: boolean, actionLabel: string, onAction: () => void) => (
+    <div key={key} className={`shop-wear${wearing ? ' on' : ''}`} role="button" tabIndex={0} aria-label={title}
       onClick={() => openSheet(target)}
       onKeyDown={(e) => { if (e.key === 'Enter') openSheet(target); }}>
       <span className="shop-wear-icon">{art}</span>
@@ -843,6 +855,27 @@ export function ShopScreen() {
         </section>
       )}
 
+      {view === 'vitrina' && cat === 'backgrounds' && (
+        <section className="mt" aria-label="Фоны приложения">
+          <div className="mb">
+            <h2 className="mb">Фоны и оформление</h2>
+            <p className="tiny muted">
+              Выбирай настроение приложения. Каждый стиль доступен бесплатно и подходит для светлой и тёмной схемы.
+            </p>
+          </div>
+          <div className="shop-grid background-theme-grid" role="group" aria-label="Выбор оформления приложения">
+            {THEME_STYLES.map((style) => (
+              <BackgroundThemeCard
+                key={style.id}
+                theme={style}
+                selected={themeStyle === style.id}
+                onSelect={() => selectThemeStyle(style.id)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
       {view === 'wardrobe' && (
         <>
           {/* Примерочная: кто сейчас наряжен */}
@@ -883,6 +916,7 @@ export function ShopScreen() {
                   <div className="col">
                     {items.map((item) =>
                       wardrobeRow(
+                        item.id,
                         { kind: 'item', item },
                         <Mascot mood="idle" look={{ [item.slot]: item.id }} stage={growth.index} size={44} />,
                         item.title,
@@ -909,6 +943,7 @@ export function ShopScreen() {
             <div className="col">
               {COSTUMES.filter((c) => pz.assembled.includes(c.id)).map((c) =>
                 wardrobeRow(
+                  c.id,
                   { kind: 'costume', costume: c },
                   <Mascot mood={pz.worn === c.id ? 'happy' : 'idle'} costumeId={c.id} size={44} stage={growth.index} />,
                   c.title,

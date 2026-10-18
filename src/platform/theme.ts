@@ -3,8 +3,8 @@
  *
  * Статичный <meta name="color-scheme" content="only light"> в index.html
  * защищает первый кадр от Chrome Auto Dark ещё ДО выполнения скриптов.
- * Инлайн-скрипт затем читает зеркало темы и выбирает палитру до отрисовки;
- * applyTheme поддерживает её после загрузки IndexedDB и при переключении.
+ * Инлайн-скрипт затем читает зеркала цветовой схемы и стиля; applyTheme и
+ * applyThemeStyle поддерживают их после загрузки IndexedDB и при переключении.
  *
  * Это не способ отключить принудительное затемнение Samsung Internet:
  * некоторые его версии перекрашивают готовые пиксели, игнорируя color-scheme.
@@ -13,7 +13,10 @@
  * результате проверки (см. docs/RELEASE-0.14.5.md).
  */
 
-/** Выбор в настройках: «как в телефоне», «светлая» или «тёмная». */
+import { isThemeStyle, THEME_STYLES, type ThemeStyle } from '../engine/theme-styles';
+export type { ThemeStyle } from '../engine/theme-styles';
+
+/** Выбор цветовой схемы в настройках: «как в телефоне», «светлая» или «тёмная». */
 export type ThemeSetting = 'auto' | 'light' | 'dark';
 /** Что в итоге нарисовано на экране. */
 export type ResolvedTheme = 'light' | 'dark';
@@ -28,11 +31,17 @@ export type ResolvedTheme = 'light' | 'dark';
  * схему до того, как браузер нарисует первый кадр.
  */
 export const THEME_MIRROR_KEY = 'slovo2-theme';
+/** Зеркало визуального стиля для оформления первого кадра до загрузки IndexedDB. */
+export const THEME_STYLE_MIRROR_KEY = 'slovo2-theme-style';
 
-/** Цвет системной панели приложения в тёмной теме. */
+/** Цвет системной панели приложения в классической тёмной теме. */
 export const DARK_THEME_COLOR = '#171426';
-/** Цвет системной панели приложения в светлой теме. */
+/** Цвет системной панели приложения в классической светлой теме. */
 export const LIGHT_THEME_COLOR = '#7C5CFF';
+/** Цвет системной панели в неоновой тёмной теме. */
+export const NEON_DARK_THEME_COLOR = '#0d0d1a';
+/** Цвет системной панели в неоновой светлой теме. */
+export const NEON_LIGHT_THEME_COLOR = '#f0f4ff';
 
 /** Тёмная ли системная тема телефона. */
 export function systemPrefersDark(): boolean {
@@ -70,6 +79,45 @@ export function writeThemeMirror(theme: ThemeSetting): void {
   }
 }
 
+/** Прочитать зеркало визуального стиля (null — выбор ещё не записан). */
+export function readThemeStyleMirror(): ThemeStyle | null {
+  try {
+    const raw = window.localStorage.getItem(THEME_STYLE_MIRROR_KEY);
+    return isThemeStyle(raw) ? raw : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Записать стиль, чтобы он был виден с первого кадра при следующем запуске. */
+export function writeThemeStyleMirror(style: ThemeStyle): void {
+  try {
+    window.localStorage.setItem(THEME_STYLE_MIRROR_KEY, style);
+  } catch {
+    // Без зеркала класс приложения применит стиль после загрузки IndexedDB.
+  }
+}
+
+function currentThemeStyle(): ThemeStyle {
+  const style = document.documentElement.dataset.themeStyle;
+  return isThemeStyle(style) ? style : 'classic';
+}
+
+function updateThemeColor(theme: ResolvedTheme, style: ThemeStyle): void {
+  const option = THEME_STYLES.find((item) => item.id === style) ?? THEME_STYLES[0];
+  const color = theme === 'dark' ? option.panelColor.dark : option.panelColor.light;
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', color);
+}
+
+/** Применить визуальный стиль, не меняя выбранную светлую/тёмную схему. */
+export function applyThemeStyle(style: ThemeStyle): ThemeStyle {
+  const resolved = isThemeStyle(style) ? style : 'classic';
+  const root = document.documentElement;
+  root.dataset.themeStyle = resolved;
+  updateThemeColor(root.dataset.theme === 'dark' ? 'dark' : 'light', resolved);
+  return resolved;
+}
+
 /**
  * Выбрать токены палитры, схему страницы и цвет системной панели.
  *
@@ -84,9 +132,7 @@ export function applyTheme(theme: ThemeSetting, prefersDark?: boolean): Resolved
   root.dataset.theme = resolved;
   root.style.colorScheme = resolved === 'dark' ? 'only dark' : 'only light';
   document.querySelector('meta[name="color-scheme"]')?.setAttribute('content', resolved === 'dark' ? 'dark' : 'only light');
-  document
-    .querySelector('meta[name="theme-color"]')
-    ?.setAttribute('content', resolved === 'dark' ? DARK_THEME_COLOR : LIGHT_THEME_COLOR);
+  updateThemeColor(resolved, currentThemeStyle());
   return resolved;
 }
 

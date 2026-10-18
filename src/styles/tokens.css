@@ -150,3 +150,315 @@
   --shadow: 0 6px 0 rgba(0, 0, 0, 0.25), 0 10px 24px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.45);
 }
+
+/*
+ * Неоновая аркада — отдельный стиль поверх любой цветовой схемы.
+ * Светлый вариант повторяет розово-голубую палитру проекта «Луи Брайль»,
+ * тёмный — его исходный почти чёрный фон, сетку и яркий неоновый акцент.
+ */
+[data-theme-style='neon'] {
+  --bg: #f0f4ff;
+  --bg-2: rgba(255, 255, 255, 0.84);
+  --ink: #1a1a2e;
+  --ink-2: #4a4a6a;
+  --ink-3: #717797;
+
+  --primary: #d600d6;
+  --primary-2: #0080ff;
+  --primary-soft: rgba(214, 0, 214, 0.11);
+  --green: #117a45;
+  --green-soft: rgba(46, 204, 113, 0.15);
+  --orange: #e69a00;
+  --orange-soft: rgba(255, 159, 10, 0.16);
+  --orange-ink: #875200;
+  --red: #d9365b;
+  --red-soft: rgba(231, 76, 110, 0.14);
+  --blue: #0080ff;
+  --pink: #d600d6;
+
+  --card: rgba(255, 255, 255, 0.9);
+  --line: rgba(214, 0, 214, 0.32);
+  --bg-glow-1: rgba(214, 0, 214, 0.09);
+  --bg-glow-2: rgba(0, 128, 255, 0.09);
+  --promo-glow-1: rgba(214, 0, 214, 0.12);
+  --promo-glow-2: rgba(0, 128, 255, 0.09);
+  --scratch-glow: rgba(255, 159, 10, 0.16);
+  --shadow: 0 6px 0 rgba(26, 26, 46, 0.04), 0 0 18px rgba(214, 0, 214, 0.12);
+  --shadow-lg: 0 12px 40px rgba(26, 26, 46, 0.16), 0 0 24px rgba(214, 0, 214, 0.12);
+
+  --r-sm: 12px;
+  --r-md: 18px;
+  --r-lg: 20px;
+  --art-plate: #ffffff;
+  --art-plate-glow: #ffffff;
+  --art-frame-line: rgba(214, 0, 214, 0.48);
+  --font: 'Comic Sans MS', 'Segoe UI Rounded', 'Trebuchet MS', system-ui, sans-serif;
+
+  --neon-grid-x: rgba(214, 0, 214, 0.06);
+  --neon-grid-y: rgba(0, 128, 255, 0.07);
+  --neon-primary-ink: #000000;
+  --neon-primary-depth: #980098;
+  --neon-primary-glow: rgba(214, 0, 214, 0.38);
+  --neon-success-ink: #ffffff;
+  --neon-danger-ink: #3d0c19;
+}
+
+[data-theme='dark'][data-theme-style='neon'] {
+  color-scheme: only dark;
+  --bg: #0d0d1a;
+  --bg-2: rgba(20, 20, 40, 0.86);
+  --ink: #e0ffff;
+  --ink-2: #a0c0ff;
+  --ink-3: #8d9abb;
+
+  --primary: #ff00ff;
+  --primary-2: #00ffff;
+  --primary-soft: rgba(255, 0, 255, 0.15);
+  --green: #2ecc71;
+  --green-soft: rgba(46, 204, 113, 0.17);
+  --orange: #ffd166;
+  --orange-soft: rgba(255, 209, 102, 0.15);
+  --orange-ink: #ffd166;
+  --red: #ff5c7c;
+  --red-soft: rgba(255, 92, 124, 0.17);
+  --blue: #00ffff;
+  --pink: #ff6bff;
+
+  --card: rgba(20, 20, 40, 0.88);
+  --line: rgba(255, 0, 255, 0.42);
+  --bg-glow-1: rgba(255, 0, 255, 0.12);
+  --bg-glow-2: rgba(0, 255, 255, 0.1);
+  --promo-glow-1: rgba(255, 0, 255, 0.17);
+  --promo-glow-2: rgba(0, 255, 255, 0.1);
+  --scratch-glow: rgba(255, 209, 102, 0.17);
+  --shadow: 0 0 20px rgba(255, 0, 255, 0.2), 0 8px 22px rgba(0, 255, 255, 0.08);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 28px rgba(255, 0, 255, 0.2);
+
+  --art-plate: #141428;
+  --art-plate-glow: #22203a;
+  --art-frame-line: rgba(0, 255, 255, 0.5);
+  --photo-paper: #f2ece1;
+  --photo-edge: rgba(0, 0, 0, 0.42);
+
+  --neon-grid-x: rgba(255, 0, 255, 0.08);
+  --neon-grid-y: rgba(0, 255, 255, 0.08);
+  --neon-primary-ink: #0d0d1a;
+  --neon-primary-depth: #980098;
+  --neon-primary-glow: rgba(255, 0, 255, 0.48);
+  --neon-success-ink: #10291c;
+  --neon-danger-ink: #350813;
+}
+
+/* Космос: прохладное индиго с голубыми звёздными акцентами. */
+[data-theme-style='space'] {
+  --bg: #f2efff;
+  --bg-2: rgba(255, 255, 255, 0.86);
+  --ink: #211b3b;
+  --ink-2: #625b82;
+  --ink-3: #8b83a8;
+  --primary: #6846db;
+  --primary-2: #39bde8;
+  --primary-soft: rgba(104, 70, 219, 0.11);
+  --green: #168650;
+  --green-soft: rgba(46, 204, 113, 0.14);
+  --orange: #d88d12;
+  --orange-soft: rgba(255, 191, 71, 0.18);
+  --orange-ink: #80500d;
+  --red: #d9365b;
+  --red-soft: rgba(231, 76, 110, 0.14);
+  --blue: #248fe0;
+  --pink: #c45cff;
+  --card: rgba(255, 255, 255, 0.9);
+  --line: rgba(104, 70, 219, 0.3);
+  --bg-glow-1: rgba(120, 87, 255, 0.13);
+  --bg-glow-2: rgba(54, 216, 255, 0.1);
+  --promo-glow-1: rgba(120, 87, 255, 0.13);
+  --promo-glow-2: rgba(54, 216, 255, 0.1);
+  --scratch-glow: rgba(255, 191, 71, 0.16);
+  --shadow: 0 6px 0 rgba(33, 27, 59, 0.04), 0 0 18px rgba(104, 70, 219, 0.1);
+  --shadow-lg: 0 12px 40px rgba(33, 27, 59, 0.16), 0 0 22px rgba(104, 70, 219, 0.12);
+  --art-plate: #ffffff;
+  --art-plate-glow: #ffffff;
+  --art-frame-line: rgba(104, 70, 219, 0.4);
+  --space-star: rgba(104, 70, 219, 0.24);
+}
+
+[data-theme='dark'][data-theme-style='space'] {
+  --bg: #101027;
+  --bg-2: rgba(25, 23, 54, 0.88);
+  --ink: #eff3ff;
+  --ink-2: #bec4ef;
+  --ink-3: #929ac3;
+  --primary: #a78bfa;
+  --primary-2: #36d8ff;
+  --primary-soft: rgba(120, 87, 255, 0.18);
+  --theme-primary-ink: #171229;
+  --theme-success-ink: #10291c;
+  --theme-danger-ink: #350813;
+  --green: #55d995;
+  --green-soft: rgba(46, 204, 113, 0.16);
+  --orange: #ffd166;
+  --orange-soft: rgba(255, 209, 102, 0.15);
+  --orange-ink: #ffd166;
+  --red: #ff6d87;
+  --red-soft: rgba(255, 92, 124, 0.16);
+  --blue: #56c7ff;
+  --pink: #d39aff;
+  --card: rgba(25, 23, 54, 0.9);
+  --line: rgba(167, 139, 250, 0.36);
+  --bg-glow-1: rgba(120, 87, 255, 0.2);
+  --bg-glow-2: rgba(54, 216, 255, 0.12);
+  --promo-glow-1: rgba(120, 87, 255, 0.21);
+  --promo-glow-2: rgba(54, 216, 255, 0.12);
+  --scratch-glow: rgba(255, 209, 102, 0.16);
+  --shadow: 0 0 20px rgba(120, 87, 255, 0.18), 0 8px 22px rgba(54, 216, 255, 0.07);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.48), 0 0 26px rgba(120, 87, 255, 0.2);
+  --art-plate: #191936;
+  --art-plate-glow: #292653;
+  --art-frame-line: rgba(54, 216, 255, 0.5);
+  --photo-paper: #f2ece1;
+  --photo-edge: rgba(0, 0, 0, 0.42);
+  --space-star: rgba(255, 255, 255, 0.42);
+}
+
+/* Лесная сказка: ясный зелёный и янтарные солнечные детали. */
+[data-theme-style='forest'] {
+  --bg: #f1f8e9;
+  --bg-2: rgba(255, 255, 255, 0.86);
+  --ink: #1e3225;
+  --ink-2: #526b58;
+  --ink-3: #809483;
+  --primary: #238452;
+  --primary-2: #55b96e;
+  --primary-soft: rgba(35, 132, 82, 0.12);
+  --green: #16834c;
+  --green-soft: rgba(46, 204, 113, 0.15);
+  --orange: #b87400;
+  --orange-soft: rgba(255, 191, 71, 0.18);
+  --orange-ink: #80500d;
+  --red: #ce3d54;
+  --red-soft: rgba(231, 76, 110, 0.14);
+  --blue: #3b82a5;
+  --pink: #df7193;
+  --card: rgba(255, 255, 255, 0.9);
+  --line: rgba(35, 132, 82, 0.25);
+  --bg-glow-1: rgba(126, 190, 91, 0.17);
+  --bg-glow-2: rgba(255, 191, 71, 0.11);
+  --promo-glow-1: rgba(126, 190, 91, 0.15);
+  --promo-glow-2: rgba(255, 191, 71, 0.12);
+  --scratch-glow: rgba(255, 191, 71, 0.18);
+  --shadow: 0 6px 0 rgba(30, 50, 37, 0.04), 0 0 18px rgba(35, 132, 82, 0.1);
+  --shadow-lg: 0 12px 40px rgba(30, 50, 37, 0.16), 0 0 22px rgba(35, 132, 82, 0.11);
+  --art-plate: #fbfff8;
+  --art-plate-glow: #ffffff;
+  --art-frame-line: rgba(35, 132, 82, 0.36);
+}
+
+[data-theme='dark'][data-theme-style='forest'] {
+  --bg: #11231d;
+  --bg-2: rgba(25, 48, 38, 0.9);
+  --ink: #eef8e7;
+  --ink-2: #bdd4bd;
+  --ink-3: #91ad96;
+  --primary: #55cf8e;
+  --primary-2: #f4bb48;
+  --primary-soft: rgba(55, 155, 93, 0.2);
+  --theme-primary-ink: #0e2616;
+  --theme-success-ink: #10291c;
+  --theme-danger-ink: #350813;
+  --green: #55d995;
+  --green-soft: rgba(46, 204, 113, 0.17);
+  --orange: #f4bb48;
+  --orange-soft: rgba(244, 187, 72, 0.16);
+  --orange-ink: #ffd166;
+  --red: #ff7182;
+  --red-soft: rgba(255, 92, 124, 0.16);
+  --blue: #69c8c2;
+  --pink: #f19aba;
+  --card: rgba(25, 48, 38, 0.9);
+  --line: rgba(116, 202, 136, 0.34);
+  --bg-glow-1: rgba(74, 155, 92, 0.19);
+  --bg-glow-2: rgba(244, 187, 72, 0.1);
+  --promo-glow-1: rgba(74, 155, 92, 0.21);
+  --promo-glow-2: rgba(244, 187, 72, 0.12);
+  --scratch-glow: rgba(244, 187, 72, 0.16);
+  --shadow: 0 0 20px rgba(74, 155, 92, 0.18), 0 8px 22px rgba(244, 187, 72, 0.06);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.46), 0 0 26px rgba(74, 155, 92, 0.18);
+  --art-plate: #1a3126;
+  --art-plate-glow: #244633;
+  --art-frame-line: rgba(116, 202, 136, 0.46);
+  --photo-paper: #f2ece1;
+  --photo-edge: rgba(0, 0, 0, 0.42);
+}
+
+/* Океан: чистые голубые поверхности и бирюзовый акцент. */
+[data-theme-style='ocean'] {
+  --bg: #ecf8ff;
+  --bg-2: rgba(255, 255, 255, 0.88);
+  --ink: #17303d;
+  --ink-2: #4d6b79;
+  --ink-3: #7995a1;
+  --primary: #067a98;
+  --primary-2: #36b8c7;
+  --primary-soft: rgba(7, 135, 168, 0.11);
+  --green: #16834c;
+  --green-soft: rgba(46, 204, 113, 0.15);
+  --orange: #b87500;
+  --orange-soft: rgba(255, 191, 71, 0.18);
+  --orange-ink: #80500d;
+  --red: #ce3d54;
+  --red-soft: rgba(231, 76, 110, 0.14);
+  --blue: #1976c9;
+  --pink: #d96094;
+  --card: rgba(255, 255, 255, 0.9);
+  --line: rgba(7, 135, 168, 0.27);
+  --bg-glow-1: rgba(72, 199, 216, 0.16);
+  --bg-glow-2: rgba(77, 163, 229, 0.11);
+  --promo-glow-1: rgba(72, 199, 216, 0.15);
+  --promo-glow-2: rgba(77, 163, 229, 0.11);
+  --scratch-glow: rgba(255, 191, 71, 0.16);
+  --shadow: 0 6px 0 rgba(23, 48, 61, 0.04), 0 0 18px rgba(7, 135, 168, 0.1);
+  --shadow-lg: 0 12px 40px rgba(23, 48, 61, 0.16), 0 0 22px rgba(7, 135, 168, 0.12);
+  --art-plate: #ffffff;
+  --art-plate-glow: #ffffff;
+  --art-frame-line: rgba(7, 135, 168, 0.4);
+  --ocean-wave: rgba(7, 135, 168, 0.06);
+}
+
+[data-theme='dark'][data-theme-style='ocean'] {
+  --bg: #0b2030;
+  --bg-2: rgba(17, 43, 59, 0.9);
+  --ink: #e7f8ff;
+  --ink-2: #b2d5e4;
+  --ink-3: #84aab9;
+  --primary: #48c7d8;
+  --primary-2: #4d9fe5;
+  --primary-soft: rgba(30, 139, 164, 0.2);
+  --theme-primary-ink: #081e2b;
+  --theme-success-ink: #10291c;
+  --theme-danger-ink: #350813;
+  --green: #55d995;
+  --green-soft: rgba(46, 204, 113, 0.16);
+  --orange: #ffd166;
+  --orange-soft: rgba(255, 209, 102, 0.15);
+  --orange-ink: #ffd166;
+  --red: #ff7182;
+  --red-soft: rgba(255, 92, 124, 0.16);
+  --blue: #69bdff;
+  --pink: #f18bb1;
+  --card: rgba(17, 43, 59, 0.9);
+  --line: rgba(72, 199, 216, 0.34);
+  --bg-glow-1: rgba(72, 199, 216, 0.17);
+  --bg-glow-2: rgba(77, 159, 229, 0.15);
+  --promo-glow-1: rgba(72, 199, 216, 0.19);
+  --promo-glow-2: rgba(77, 159, 229, 0.14);
+  --scratch-glow: rgba(255, 209, 102, 0.16);
+  --shadow: 0 0 20px rgba(72, 199, 216, 0.16), 0 8px 22px rgba(77, 159, 229, 0.08);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.46), 0 0 26px rgba(72, 199, 216, 0.18);
+  --art-plate: #112b3b;
+  --art-plate-glow: #174154;
+  --art-frame-line: rgba(72, 199, 216, 0.48);
+  --photo-paper: #f2ece1;
+  --photo-edge: rgba(0, 0, 0, 0.42);
+  --ocean-wave: rgba(72, 199, 216, 0.08);
+}

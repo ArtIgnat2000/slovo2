@@ -118,6 +118,12 @@ export async function runParentUiChecks(): Promise<void> {
     document.querySelector('.parent-panel')?.textContent?.slice(0, 200) ?? '',
   );
 
+  check(
+    'в родительских настройках остаётся выбор светлой/тёмной цветовой схемы',
+    has('Цветовая схема') && has('светлая') && has('тёмная'),
+    document.querySelector('.parent-panel')?.textContent?.slice(0, 220) ?? '',
+  );
+
   const help = document.querySelector('.theme-help') as HTMLDetailsElement | null;
   check('из настроек можно узнать, почему светлая тема серая',
     !!help && help.querySelector('summary')?.textContent?.includes('Светлая тема всё равно серая?') === true);
