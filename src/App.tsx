@@ -14,7 +14,7 @@ import { ShopScreen } from './ui/screens/ShopScreen';
 import { VlabsScreen } from './ui/screens/VlabsScreen';
 import { DiagnosticsScreen } from './ui/DiagnosticsScreen';
 import type { ParentTabId } from './ui/parent/ParentBits';
-import { setSoundEnabled } from './platform/sound';
+import { setSoundEnabled, setSoundPack } from './platform/sound';
 import { MUSIC_BY_ID, MUSIC_TRACKS, STARTER_TRACK_IDS } from './engine/music';
 import { playMusic, setMusicEnabled, setMusicVolume, warmTracks } from './platform/music';
 import { setHapticsEnabled } from './platform/haptics';
@@ -127,6 +127,11 @@ export default function App() {
     const trackId = profile?.shop?.musicTrack ?? null;
     playMusic(settings.music && trackId ? MUSIC_BY_ID[trackId] ?? null : null);
   }, [profile?.shop?.musicTrack, settings.music]);
+
+  // «Звуки» тоже принадлежат профилю: мелодии ответа переключаются вместе с ребёнком.
+  useEffect(() => {
+    setSoundPack(profile?.shop?.soundPack);
+  }, [profile?.shop?.soundPack]);
 
   // Офлайн-надёжность: стартовые и купленные треки прогреваются в кэше
   // сервис-воркера в фоне, чтобы после установки PWA музыка играла без сети.

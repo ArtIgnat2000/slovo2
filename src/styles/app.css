@@ -5033,6 +5033,26 @@ p {
   .music-cover { height: 86px; }
 }
 
+/* Магазин → «Звуки» (0.17.0): наборы мелодий правильного ответа и ошибки.
+   Карточка — музыкальная, но обложка своя, и под названием две кнопки
+   «послушать»: ✓ верный ответ и ✗ ошибка. */
+.sound-cover {
+  background: linear-gradient(135deg, #34c3a0, #5b8cff 55%, #a77bff);
+}
+.sound-try {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  width: 100%;
+}
+.sound-try .btn {
+  min-width: 0;
+  white-space: nowrap;
+}
+.music-item .sound-try .btn {
+  min-height: 32px;
+}
+
 /* «Авторы и лицензии»: атрибуция музыки CC BY — доступна из приложения */
 .credits-row {
   margin-top: var(--sp-3);
