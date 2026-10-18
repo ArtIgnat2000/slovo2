@@ -1,11 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { masteredCount, useActiveProfile, useApp, useLook } from '../../state/store';
 import { plural } from '../../engine/quests';
 import {
   SHOP_ITEMS,
   SLOT_TITLE,
   canBuy,
-  closestItem,
   growthStage,
   isOwned,
   isWearing,
@@ -20,6 +19,7 @@ import {
   activeCostume,
   costumeProgress,
   normalizePuzzle,
+  type Costume,
 } from '../../engine/puzzles';
 import { TINT_PRICE, type TintOption } from '../../engine/tints';
 import { TintPicker } from '../TintPicker';
@@ -31,11 +31,56 @@ import { MUSIC_TRACKS, MUSIC_BY_ID, tracksByShelf, type MusicShelf, type MusicTr
 import { playMusic } from '../../platform/music';
 import { MusicCreditsToggle } from '../Credits';
 
+/**
+ * Магазин БУКа (концепция 2026-10-17, docs/shop-concept.md).
+ *
+ * Что изменилось по сравнению с «одной лентой»:
+ *  • два верхних уровня — **Витрина** (чего хочу) и **Гардероб** (что моё);
+ *    раньше купленное терялось в общей ленте среди продаваемого;
+ *  • витрина режется **чипами-полками по типу товара** (наряды / костюмы /
+ *    музыка), а не по слотам совы; новый раздел — новый чип, без переделки
+ *    экрана (чипы «скоро» показывают рост честно);
+ *  • **единый макет карточки** для всех типов товара: арт, название, статус
+ *    плашкой (Твоя ✓ / Надето ✓ / Собираю 4/9 / Ещё N 💎) и ОДНО действие;
+ *  • подробная карточка — **sheet снизу**: крупная примерка, цена, палитра
+ *    цветов. Палитра больше не раскрывается инлайн (верстка не прыгает);
+ *  • музыка — отдельная полка (была половиной экрана), примерка и строка
+ *    «для взрослых» — в sheet;
+ *  • костюмы: активный сбор — крупно сверху, остальные — сеткой.
+ *
+ * Догматы продукта не менялись: покупка — через ConfirmDialog, купленное
+ * сразу надевается, красить можно только своё, 1 💎 за новый оттенок.
+ */
+
 /** Полки музыкального магазина: спокойный фон отдельно от весёлой коллекции. */
 const MUSIC_SHELVES: { shelf: MusicShelf; title: string; note: string }[] = [
   { shelf: 'calm', title: '🌿 Спокойный фон', note: 'Ровные мелодии для занятий и меню: не мешают читать, писать и думать' },
   { shelf: 'fun', title: '🎉 Коллекция и награды', note: 'Весёлые записи за прохождение уроков: их открывают за кристаллы' },
 ];
+
+/** Верхние уровни магазина: «чего хочу» и «что моё». */
+type View = 'vitrina' | 'wardrobe';
+
+/** Полки витрины — по типу товара, не по слоту совы. */
+type Cat = 'outfits' | 'costumes' | 'music';
+
+const CATS: { id: Cat; title: string; emoji: string }[] = [
+  { id: 'outfits', title: 'Наряды', emoji: '🎩' },
+  { id: 'costumes', title: 'Костюмы', emoji: '🧩' },
+  { id: 'music', title: 'Музыка', emoji: '🎵' },
+];
+
+/** Разделы, которых ещё нет: обещание роста, а не интерфейс. */
+const CATS_SOON = [
+  { title: 'Звуки', emoji: '🔊' },
+  { title: 'Фоны', emoji: '🖼️' },
+];
+
+/** Что открылось в подробной карточке (sheet снизу). */
+type Detail =
+  | { kind: 'item'; item: ShopItem }
+  | { kind: 'costume'; costume: Costume }
+  | { kind: 'track'; track: MusicTrack };
 
 /** «3:25» — длительность записи на карточке. */
 function fmtTime(seconds: number): string {
@@ -44,28 +89,82 @@ function fmtTime(seconds: number): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-/**
- * Магазин БУКа (пункт 4 плана).
- *
- * Решения:
- *  • продаём «аксессуары БУКа» — трата кристаллов даёт видимую награду
- *    (наряженная сова и в уроках, и на главной);
- *  • вход — отдельная вкладка внизу (на главной уже плотно: цель, задания, путь);
- *  • покупка — через тот же ConfirmDialog, что и выход из урока: промах пальцем
- *    не должен тратить кристаллы, которые ребёнок копил несколько дней;
- *  • купленное сразу надевается: лишний тап для «надеть» не нужен;
- *  • тюнинг (2026-10-05): у купленной вещи можно открыть палитру и сменить цвет.
- *    Новый оттенок стоит TINT_PRICE 💎 и спрашивает подтверждение, переключение
- *    между уже открытыми — бесплатно и без диалога (правила — engine/tints.ts).
- */
-/**
- * Что можно красить из магазина: аксессуар (id из SHOP_ITEMS) или собранный
- * костюм (id из COSTUMES). И у того, и у другого есть id и название — этого
- * хватает и движку, и палитре.
- */
+/** Что можно красить: аксессуар (id из SHOP_ITEMS) или костюм (id из COSTUMES). */
 interface TintTarget {
   id: string;
   title: string;
+}
+
+/**
+ * Единый макет карточки товара — один на все типы.
+ * Состояние читается плашкой-ценником и подписью кнопки, не только цветом
+ * (WCAG 1.4.1); тап по карточке открывает подробный sheet.
+ */
+function ShopCard(props: {
+  badge?: string;
+  art: ReactNode;
+  title: string;
+  desc?: string;
+  /** Дополнительный класс карточки: on (надето), owned (куплено), current (собираем) */
+  cardCls?: string;
+  /** Между подписью и ценой — например, точки прогресса пазла */
+  extra?: ReactNode;
+  priceLabel?: string;
+  afford?: boolean;
+  actionLabel: string;
+  actionTone: 'primary' | 'green' | 'ghost';
+  actionDisabled?: boolean;
+  onOpen: () => void;
+  onAction: () => void;
+}) {
+  return (
+    <article
+      className={`shop-item${props.cardCls ? ` ${props.cardCls}` : ''}`}
+      role="button"
+      tabIndex={0}
+      aria-label={props.title}
+      onClick={props.onOpen}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') props.onOpen();
+      }}
+    >
+      {props.badge && <span className="shop-badge">{props.badge}</span>}
+      <div className="shop-icon">{props.art}</div>
+      <div className="shop-title">{props.title}</div>
+      {props.desc && <div className="tiny shop-desc">{props.desc}</div>}
+      {props.extra}
+      {props.priceLabel && (
+        <span className={`shop-price${props.afford ? ' afford' : ''}`}>{props.priceLabel}</span>
+      )}
+      <button
+        className={`btn sm wide ${props.actionTone}`}
+        disabled={props.actionDisabled}
+        onClick={(e) => {
+          e.stopPropagation();
+          props.onAction();
+        }}
+      >
+        {props.actionLabel}
+      </button>
+    </article>
+  );
+}
+
+/** Подробная карточка снизу: примерка крупно, цена, действие, краски. */
+function Sheet(props: { onClose: () => void; children: React.ReactNode }) {
+  return (
+    <div className="shop-sheet-veil" role="presentation" onClick={props.onClose}>
+      <div
+        className="shop-sheet"
+        role="dialog"
+        aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="shop-sheet-grab" aria-hidden="true" />
+        {props.children}
+      </div>
+    </div>
+  );
 }
 
 export function ShopScreen() {
@@ -79,14 +178,40 @@ export function ShopScreen() {
   const recolorItem = useApp((s) => s.recolorItem);
   const buyMusicTrack = useApp((s) => s.buyMusicTrack);
   const setMusicTrack = useApp((s) => s.setMusicTrack);
+  const [view, setView] = useState<View>('vitrina');
+  const [cat, setCat] = useState<Cat>('outfits');
+  // Подробная карточка и её палитра (палитра — только в sheet)
+  const [sheet, setSheet] = useState<Detail | null>(null);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const [ask, setAsk] = useState<ShopItem | null>(null);
   const [askMusic, setAskMusic] = useState<MusicTrack | null>(null);
-  const [musicPicker, setMusicPicker] = useState(false);
-  const [previewTrack, setPreviewTrack] = useState<string | null>(null);
-  // Открытая палитра (id вещи магазина или костюма) и подтверждение платного оттенка
-  const [palette, setPalette] = useState<string | null>(null);
   const [askTint, setAskTint] = useState<{ target: TintTarget; tint: TintOption } | null>(null);
+  const [previewTrack, setPreviewTrack] = useState<string | null>(null);
   const [mood, setMood] = useState<'idle' | 'happy' | 'dance'>('idle');
+
+  /** Sheet закрывается по фону, по Escape и — если играла примерка —
+   *  возвратом к выбранной мелодии (примерка не остаётся «висеть»). */
+  const closeSheet = () => {
+    setSheet(null);
+    setPaletteOpen(false);
+    if (previewTrack) {
+      setPreviewTrack(null);
+      const selected = profile?.shop?.musicTrack ?? null;
+      playMusic(selected ? MUSIC_BY_ID[selected] ?? null : null);
+    }
+  };
+
+  useEffect(() => {
+    if (!sheet) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeSheet();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // closeSheet читает profile и previewTrack — замыкает на снимке,
+    // но Escape лишь закрывает sheet, свежесть данных здесь не критична.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sheet]);
 
   if (!profile) return null;
 
@@ -94,8 +219,6 @@ export function ShopScreen() {
   const gems = profile.gems;
   const mastered = masteredCount(profile);
   const growth = growthStage(mastered);
-  const next = closestItem(owned);
-  const left = next ? missingGems(next, gems) : 0;
 
   // Пазлы костюмов (engine/puzzles.ts): прогресс храним по каждому костюму,
   // поэтому смена цели сборки безопасна — ребёнок ничего не теряет.
@@ -105,12 +228,18 @@ export function ShopScreen() {
   const musicOwned = profile.shop?.musicOwned ?? [];
   const selectedMusic = profile.shop?.musicTrack ?? null;
 
+  const openSheet = (detail: Detail) => {
+    sfx.tap();
+    haptic.tap();
+    setPaletteOpen(false);
+    setSheet(detail);
+  };
+
   const chooseMusic = (id: string | null) => {
     const track = id ? MUSIC_BY_ID[id] : null;
     playMusic(track ?? null);
     setMusicTrack(id);
     setPreviewTrack(null);
-    setMusicPicker(false);
     sfx.tap();
     if (track) showToast({ emoji: track.emoji, title: `${track.title} играет!`, text: 'БУК будет слушать её и в других разделах' });
     else showToast({ emoji: '🔇', title: 'Музыка выключена' });
@@ -225,271 +354,613 @@ export function ShopScreen() {
     }
   };
 
+  // ── Карточки витрины ────────────────────────────────────────────────
+
+  const itemCard = (item: ShopItem) => {
+    const owned_ = isOwned(owned, item.id);
+    const wearing = isWearing(look, item);
+    const affordable = canBuy(item, gems);
+    return (
+      <ShopCard
+        key={item.id}
+        art={<Mascot mood="idle" look={{ [item.slot]: item.id }} stage={growth.index} size={64} />}
+        title={item.title}
+        desc={item.desc}
+        cardCls={wearing ? 'on' : owned_ ? 'owned' : undefined}
+        priceLabel={owned_ ? 'Твоя ✓' : `💎 ${item.price}`}
+        afford={affordable}
+        actionLabel={
+          owned_
+            ? wearing
+              ? 'Надето ✓'
+              : 'Надеть'
+            : affordable
+              ? `Купить · 💎${item.price}`
+              : `Ещё ${missingGems(item, gems)} 💎`
+        }
+        actionTone={owned_ ? (wearing ? 'green' : 'ghost') : affordable ? 'primary' : 'ghost'}
+        actionDisabled={!owned_ && !affordable}
+        onOpen={() => openSheet({ kind: 'item', item })}
+        onAction={() => {
+          if (owned_) tapWear(item);
+          else if (affordable) {
+            sfx.tap();
+            setAsk(item);
+          } else {
+            sfx.hint();
+            showToast({
+              emoji: '💎',
+              title: `До «${item.title}» ещё ${missingGems(item, gems)} 💎`,
+              text: 'Кристаллы дают за задания дня и сундук — загляни на главную',
+            });
+          }
+        }}
+      />
+    );
+  };
+
+  const costumeCard = (c: Costume) => {
+    const done = pz.assembled.includes(c.id);
+    const prog = costumeProgress(pz, c.id);
+    const isCurrent = !done && collecting === c.id;
+    const wearing = pz.worn === c.id;
+    return (
+      <ShopCard
+        key={c.id}
+        badge={isCurrent ? 'Собираю' : undefined}
+        cardCls={`costume-card${done ? (wearing ? ' on' : ' owned') : isCurrent ? ' current' : ''}`}
+        art={
+          // Несобранный костюм помечен классом pz-locked, но рисуется В ЦВЕТЕ:
+          // раньше он был серым силуэтом, и ребёнку было не выбрать «тот самый».
+          <div className={done ? '' : 'pz-locked'}>
+            <Mascot mood={wearing ? 'happy' : 'idle'} costumeId={c.id} size={64} stage={growth.index} />
+          </div>
+        }
+        title={c.title}
+        desc={c.desc}
+        extra={
+          // Доты прогресса — на карточке: видно, сколько фрагментов
+          // уже есть, не открывая подробную карточку.
+          done ? undefined : (
+            <div className="pz-dots" role="img" aria-label={`${prog} из ${PUZZLE_SIZE} фрагментов`}>
+              {Array.from({ length: PUZZLE_SIZE }, (_, i) => (
+                <i key={i} className={`pz-dot${i < prog ? ' on' : ''}`} />
+              ))}
+            </div>
+          )
+        }
+        priceLabel={done ? 'Собран ✓' : `${prog}/${PUZZLE_SIZE} 🧩`}
+        afford={done}
+        actionLabel={
+          done
+            ? wearing
+              ? 'Надето ✓'
+              : 'Надеть'
+            : isCurrent
+              ? `Собираю · ${prog}/${PUZZLE_SIZE}`
+              : prog > 0
+                ? `Продолжить · ${prog}/${PUZZLE_SIZE}`
+                : 'Собирать'
+        }
+        actionTone={done ? (wearing ? 'green' : 'ghost') : isCurrent ? 'primary' : 'ghost'}
+        onOpen={() => openSheet({ kind: 'costume', costume: c })}
+        onAction={() => {
+          if (done) tapCostume(c.id);
+          else tapPickCostume(c.id);
+        }}
+      />
+    );
+  };
+
+  const trackCard = (track: MusicTrack) => {
+    const ownedTrack = musicOwned.includes(track.id);
+    const selected = selectedMusic === track.id;
+    const affordable = gems >= track.price;
+    return (
+      <ShopCard
+        key={track.id}
+        art={
+          <div className="music-cover" aria-hidden="true">
+            <span>{track.emoji}</span>
+            <i>♫</i>
+            {previewTrack === track.id && (
+              <span className="shop-eq"><i /><i /><i /></span>
+            )}
+          </div>
+        }
+        title={track.title}
+        desc={`${fmtTime(track.seconds)} · ${track.shelf === 'calm' ? 'спокойный фон' : 'награда'}`}
+        cardCls={`music-item${selected ? ' on' : ownedTrack ? ' owned' : ''}`}
+        priceLabel={ownedTrack ? 'Твоя ✓' : `💎 ${track.price}`}
+        afford={affordable}
+        actionLabel={
+          ownedTrack
+            ? selected
+              ? 'Играет ✓'
+              : 'Выбрать'
+            : affordable
+              ? `Купить · 💎${track.price}`
+              : `Ещё ${track.price - gems} 💎`
+        }
+        actionTone={ownedTrack ? (selected ? 'green' : 'ghost') : affordable ? 'primary' : 'ghost'}
+        actionDisabled={!ownedTrack && !affordable}
+        onOpen={() => openSheet({ kind: 'track', track })}
+        onAction={() => {
+          if (ownedTrack) {
+            chooseMusic(selected ? null : track.id);
+          } else if (affordable) {
+            sfx.tap();
+            setAskMusic(track);
+          } else {
+            sfx.hint();
+            showToast({
+              emoji: '💎',
+              title: `До «${track.title}» ещё ${track.price - gems} 💎`,
+              text: 'Кристаллы дают за задания дня и сундук — загляни на главную',
+            });
+          }
+        }}
+      />
+    );
+  };
+
+  // ── Sheet: содержимое по типу товара ──────────────────────────────────
+
+  const sheetBody = (() => {
+    if (!sheet) return null;
+    if (sheet.kind === 'item') {
+      const item = sheet.item;
+      const owned_ = isOwned(owned, item.id);
+      const wearing = isWearing(look, item);
+      const affordable = canBuy(item, gems);
+      return (
+        <>
+          <div className="shop-bigart">
+            <Mascot mood="happy" look={{ [item.slot]: item.id }} costumeId={null} stage={growth.index} size={150} />
+          </div>
+          <h2 style={{ margin: '0 0 2px' }}>{item.title}</h2>
+          <p className="tiny muted" style={{ marginTop: 0 }}>{item.desc}</p>
+          <div className="row mb">
+            <span className={`shop-price${affordable ? ' afford' : ''}`}>💎 {item.price}</span>
+            <span className="tiny muted grow" style={{ alignSelf: 'center' }}>
+              {owned_ ? 'Уже в гардеробе' : `У тебя ${gems} 💎`}
+            </span>
+          </div>
+          <div className="row mb">
+            {owned_ ? (
+              <button
+                className={`btn lg grow ${wearing ? 'green' : 'primary'}`}
+                onClick={() => {
+                  tapWear(item);
+                  closeSheet();
+                }}
+              >
+                {wearing ? 'Снять' : 'Надеть'}
+              </button>
+            ) : (
+              <button
+                className="btn lg grow primary"
+                disabled={!affordable}
+                onClick={() => {
+                  closeSheet();
+                  sfx.tap();
+                  setAsk(item);
+                }}
+              >
+                {affordable ? `Купить за 💎${item.price}` : `Ещё ${missingGems(item, gems)} 💎`}
+              </button>
+            )}
+          </div>
+          {owned_ && (
+            <>
+              <button
+                className="btn lg wide ghost mb"
+                aria-expanded={paletteOpen}
+                onClick={() => {
+                  sfx.tap();
+                  setPaletteOpen((o) => !o);
+                }}
+              >
+                {paletteOpen ? '🎨 Готово' : '🎨 Цвет'}
+              </button>
+              {paletteOpen && (
+                <TintPicker
+                  caption="Цвет"
+                  targetId={item.id}
+                  title={item.title}
+                  tuning={profile.shop?.tuning}
+                  onPick={(tint, unlocked) => tapTint({ id: item.id, title: item.title }, tint, unlocked)}
+                />
+              )}
+            </>
+          )}
+        </>
+      );
+    }
+    if (sheet.kind === 'costume') {
+      const c = sheet.costume;
+      const done = pz.assembled.includes(c.id);
+      const prog = costumeProgress(pz, c.id);
+      const wearing = pz.worn === c.id;
+      const isCurrent = !done && collecting === c.id;
+      return (
+        <>
+          <div className="shop-bigart">
+            <Mascot mood="happy" costumeId={c.id} size={150} stage={growth.index} />
+          </div>
+          <h2 style={{ margin: '0 0 2px' }}>{c.title}</h2>
+          <p className="tiny muted" style={{ marginTop: 0 }}>{c.desc}</p>
+          {done ? (
+            <div className="row mb">
+              <button
+                className={`btn lg grow ${wearing ? 'green' : 'primary'}`}
+                onClick={() => {
+                  tapCostume(c.id);
+                  closeSheet();
+                }}
+              >
+                {wearing ? 'Снять' : 'Надеть'}
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="mb">
+                <div className="tiny">Фрагментов: {prog} из {PUZZLE_SIZE}</div>
+                <div className="pz-dots" role="img" aria-label={`${prog} из ${PUZZLE_SIZE} фрагментов`}>
+                  {Array.from({ length: PUZZLE_SIZE }, (_, i) => (
+                    <i key={i} className={`pz-dot${i < prog ? ' on' : ''}`} />
+                  ))}
+                </div>
+                <div className="shop-progress"><i style={{ width: `${(prog / PUZZLE_SIZE) * 100}%` }} /></div>
+                <div className="tiny muted" style={{ marginTop: 4 }}>
+                  Купить нельзя: за каждый завершённый урок — +1 🧩
+                </div>
+              </div>
+              <div className="row mb">
+                <button
+                  className={`btn lg grow ${isCurrent ? 'green' : 'primary'}`}
+                  onClick={() => {
+                    tapPickCostume(c.id);
+                    closeSheet();
+                  }}
+                >
+                  {isCurrent ? 'Собираю ✓' : prog > 0 ? 'Продолжить сборку' : 'Собирать'}
+                </button>
+              </div>
+            </>
+          )}
+          {done && (
+            <>
+              <button
+                className="btn lg wide ghost mb"
+                aria-expanded={paletteOpen}
+                onClick={() => {
+                  sfx.tap();
+                  setPaletteOpen((o) => !o);
+                }}
+              >
+                {paletteOpen ? '🎨 Готово' : '🎨 Акцент'}
+              </button>
+              {paletteOpen && (
+                <TintPicker
+                  caption="Акцент"
+                  targetId={c.id}
+                  title={c.title}
+                  tuning={profile.shop?.tuning}
+                  onPick={(tint, unlocked) => tapTint({ id: c.id, title: c.title }, tint, unlocked)}
+                />
+              )}
+            </>
+          )}
+        </>
+      );
+    }
+    // track
+    const track = sheet.track;
+    const ownedTrack = musicOwned.includes(track.id);
+    const selected = selectedMusic === track.id;
+    const previewing = previewTrack === track.id;
+    const affordable = gems >= track.price;
+    return (
+      <>
+        <div className="shop-bigart">
+          <div className="music-cover music-cover-lg" aria-hidden="true">
+            <span>{track.emoji}</span>
+            <i>♫</i>
+            {previewing && <span className="shop-eq"><i /><i /><i /></span>}
+          </div>
+        </div>
+        <h2 style={{ margin: '0 0 2px' }}>{track.title}</h2>
+        <p className="tiny muted" style={{ marginTop: 0 }}>
+          «{track.originalTitle}» · {track.artist} · {fmtTime(track.seconds)}
+        </p>
+        <div className="row mb">
+          <span className={`shop-price${affordable ? ' afford' : ''}`}>💎 {track.price}</span>
+          <span className="tiny muted grow" style={{ alignSelf: 'center' }}>
+            {ownedTrack ? 'В коллекции' : track.price === 0 ? 'Бесплатно' : `У тебя ${gems} 💎`}
+          </span>
+        </div>
+        <div className="row mb">
+          <button className="btn lg grow ghost" onClick={() => togglePreview(track)}>
+            {previewing ? '⏸ Остановить' : '▶ Послушать'}
+          </button>
+          {ownedTrack ? (
+            <button
+              className={`btn lg grow ${selected ? 'green' : 'primary'}`}
+              onClick={() => {
+                chooseMusic(selected ? null : track.id);
+                closeSheet();
+              }}
+            >
+              {selected ? 'Играет ✓' : 'Выбрать'}
+            </button>
+          ) : (
+            <button
+              className="btn lg grow primary"
+              disabled={!affordable}
+              onClick={() => {
+                closeSheet();
+                sfx.tap();
+                setAskMusic(track);
+              }}
+            >
+              {track.price === 0 ? 'Забрать бесплатно' : affordable ? `Купить за 💎${track.price}` : `Ещё ${track.price - gems} 💎`}
+            </button>
+          )}
+        </div>
+        {track.about && <p className="tiny muted">{track.about}</p>}
+      </>
+    );
+  })();
+
+  // ── Гардероб: мои вещи ────────────────────────────────────────────────
+
+  const wardrobeRow = (target: Detail, art: ReactNode, title: string, state: string, wearing: boolean, actionLabel: string, onAction: () => void) => (
+    <div className={`shop-wear${wearing ? ' on' : ''}`} role="button" tabIndex={0} aria-label={title}
+      onClick={() => openSheet(target)}
+      onKeyDown={(e) => { if (e.key === 'Enter') openSheet(target); }}>
+      <span className="shop-wear-icon">{art}</span>
+      <span className="grow" style={{ minWidth: 0 }}>
+        <span className="shop-title">{title}</span>
+        <span className="tiny muted">{state}</span>
+      </span>
+      <button
+        className={`btn sm ${wearing ? 'green' : 'ghost'}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          onAction();
+        }}
+      >
+        {actionLabel}
+      </button>
+    </div>
+  );
+
+  const ownedBySlot = (slot: string) =>
+    SHOP_ITEMS.filter((i) => i.slot === slot && isOwned(owned, i.id));
+
   return (
     <div className="screen">
-      <div className="row mb">
-        <h1 className="grow" style={{ margin: 0 }}>
-          Магазин БУКа 🎩
-        </h1>
-        <div className="stat-pill gems">💎 {gems}</div>
-      </div>
-
-      <div className="card mb shop-stage">
-        <button
-          className="shop-mascot"
-          aria-label="Нажми, чтобы выбрать музыку для БУКа"
-          aria-expanded={musicPicker}
-          onClick={() => {
-            sfx.hint();
-            haptic.tap();
-            setMusicPicker((open) => !open);
-          }}
-        >
-          <Mascot mood={mood} look={look} stage={growth.index} size={132} />
-        </button>
-        <div className="grow center">
-          <div style={{ fontWeight: 800 }}>
-            {growth.title} · {owned.length ? 'наряд БУКа' : 'без обновок'}
-          </div>
-          <div className="tiny">{growth.desc}</div>
-          <div className="tiny" style={{ marginTop: 4 }}>
-            {growth.nextAt
-              ? `Освоено ${mastered} ${plural(mastered, 'слово', 'слова', 'слов')} · до ступени выше ${growth.nextAt - mastered}`
-              : `Освоено ${mastered} ${plural(mastered, 'слово', 'слова', 'слов')} — самая высокая ступень ✨`}
-          </div>
-          <div className="tiny" style={{ marginTop: 4 }}>
-            {next
-              ? left > 0
-                ? `Ещё ${left} 💎 — и купишь «${next.title}»`
-                : `Хватает на «${next.title}»!`
-              : 'Весь гардероб собран ✨'}
-            {' · '}куплено на {wardrobeValue(owned)} 💎
-          </div>
-          <button className="btn sm primary music-open" onClick={() => setMusicPicker((open) => !open)}>
-            🎵 {selectedMusic ? `Играет: ${MUSIC_BY_ID[selectedMusic]?.title ?? 'музыка'}` : 'Выбрать музыку'}
-          </button>
-          <div className="tiny">Или нажми на БУКа, чтобы открыть свою музыкальную коллекцию</div>
+      {/* ── Шапка: название и баланс — и больше ничего ─────────────────── */}
+      <div className="shop-sticky">
+        <div className="row mb">
+          <h1 className="grow" style={{ margin: 0 }}>
+            Магазин БУКа 🎩
+          </h1>
+          <div className="stat-pill gems">💎 {gems}</div>
         </div>
+        <div className="shop-seg" role="tablist" aria-label="Витрина или гардероб">
+          <button role="tab" aria-selected={view === 'vitrina'} className={view === 'vitrina' ? 'on' : ''} onClick={() => setView('vitrina')}>
+            🛍️ Витрина
+          </button>
+          <button role="tab" aria-selected={view === 'wardrobe'} className={view === 'wardrobe' ? 'on' : ''} onClick={() => setView('wardrobe')}>
+            👕 Гардероб · {owned.length + pz.assembled.length + musicOwned.length}
+          </button>
+        </div>
+        {view === 'vitrina' && (
+          <div className="shop-cats" role="tablist" aria-label="Разделы магазина">
+            {CATS.map((c) => (
+              <button key={c.id} role="tab" aria-selected={cat === c.id} className={`chip${cat === c.id ? ' on' : ''}`} onClick={() => setCat(c.id)}>
+                {c.emoji} {c.title}
+              </button>
+            ))}
+            {CATS_SOON.map((c) => (
+              <button key={c.title} className="chip" disabled title="Скоро" aria-label={`${c.title} — скоро`}>
+                {c.emoji} {c.title} · скоро
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {musicPicker && (
-        <section className="card mb music-picker" aria-label="Музыка БУКа">
-          <div className="between mb">
-            <div>
-              <h2 style={{ margin: 0 }}>Музыка БУКа 🎵</h2>
-              <div className="tiny">Выбирай из своей коллекции</div>
-            </div>
-            <button className="btn sm ghost" onClick={() => setMusicPicker(false)}>Готово</button>
+      {view === 'vitrina' && cat === 'outfits' && (
+        <section className="mt" aria-label="Наряды">
+          <div className="mb">
+            <h2 className="mb">Наряды БУКа</h2>
+            <div className="tiny muted">Купленное сразу надевается · тап по карточке — подробнее</div>
           </div>
-          <button className={`music-choice ${selectedMusic === null ? 'selected' : ''}`} onClick={() => chooseMusic(null)}>
-            <span className="music-emoji">🔇</span><span className="grow"><b>Тишина</b><small>Выключить фоновую музыку</small></span>
-            {selectedMusic === null && <span aria-label="Выбрано">✓</span>}
-          </button>
-          {MUSIC_TRACKS.filter((track) => musicOwned.includes(track.id)).map((track) => (
-            <button key={track.id} className={`music-choice ${selectedMusic === track.id ? 'selected' : ''}`} onClick={() => chooseMusic(track.id)}>
-              <span className="music-emoji">{track.emoji}</span>
-              <span className="grow"><b>{track.title}</b><small>«{track.originalTitle}»</small></span>
-              {selectedMusic === track.id && <span aria-label="Выбрано">✓</span>}
-            </button>
-          ))}
-          {musicOwned.length === 0 && <p className="tiny">Пока нет мелодий. Загляни в музыкальный магазин ниже!</p>}
+          <div className="shop-grid">{SHOP_ITEMS.map(itemCard)}</div>
         </section>
       )}
 
-      <section className="mb music-store">
-        <div className="between mb">
-          <div>
-            <h2 style={{ margin: 0 }}>Музыкальный магазин 🎶</h2>
-            <div className="tiny muted">{MUSIC_TRACKS.length} мелодий Kevin MacLeod · слушай и выбирай свою</div>
-          </div>
-          <span className="stat-pill gems">💎 {gems}</span>
-        </div>
-        <div className="music-store-note">
-          🎧 Настоящие записи Kevin MacLeod — они работают офлайн и используются по лицензии CC BY 4.0
-          (автор указан в разделе «Авторы и лицензии»).
-        </div>
-        <div className="mb"><MusicCreditsToggle /></div>
-        {/* Полки: спокойный фон отдельно — у каждого своё место в игре */}
-        {MUSIC_SHELVES.map(({ shelf, title, note }) => (
-          <div className="music-shelf" key={shelf}>
-            <h3 className="music-shelf-title">{title}</h3>
-            {note && <div className="tiny muted music-shelf-note">{note}</div>}
-            <div className="shop-grid music-grid">
-              {tracksByShelf(shelf).map((track) => {
-                const ownedTrack = musicOwned.includes(track.id);
-                const selected = selectedMusic === track.id;
-                const previewing = previewTrack === track.id;
-                const affordable = gems >= track.price;
-                return (
-                  <article key={track.id} className={`shop-item music-item ${selected ? 'on' : ''} ${ownedTrack ? 'owned' : ''}`}>
-                    <div className="music-cover" aria-hidden="true"><span>{track.emoji}</span><i>♫</i></div>
-                    {track.tag && <span className="music-tag">{track.tag}</span>}
-                    <div className="shop-title">{track.title}</div>
-                    <div className="tiny shop-desc">«{track.originalTitle}» · {fmtTime(track.seconds)}</div>
-                    {/* Одна строка для взрослых: на каком тренде трек и чего в нём нет */}
-                    {track.about && <div className="tiny muted music-about">{track.about}</div>}
-                    <button className="btn sm wide ghost" onClick={() => togglePreview(track)} aria-label={`${previewing ? 'Остановить' : 'Послушать'} ${track.title}`}>
-                      {previewing ? '⏸ Остановить' : '▶ Послушать'}
-                    </button>
-                    {ownedTrack ? (
-                      <button className={`btn sm wide ${selected ? 'green' : 'primary'}`} onClick={() => chooseMusic(selected ? null : track.id)}>
-                        {selected ? 'Играет ✓' : 'Выбрать'}
-                      </button>
-                    ) : (
-                      <button className={`btn sm wide ${affordable ? 'primary' : 'ghost'}`} disabled={!affordable} onClick={() => setAskMusic(track)}>
-                        {track.price === 0 ? 'Забрать бесплатно' : affordable ? `Купить · 💎${track.price}` : `Ещё ${track.price - gems} 💎`}
-                      </button>
-                    )}
-                  </article>
-                );
-              })}
+      {view === 'vitrina' && cat === 'costumes' && (
+        <section className="mt" aria-label="Костюмы">
+          <div className="mb">
+            <h2 className="mb">Костюмы · пазлы</h2>
+            <div className="tiny muted">
+              Завершённый урок — фрагмент пазла. Собери {PUZZLE_SIZE} — БУК получит новый костюм 🧩
             </div>
           </div>
-        ))}
-      </section>
-
-      <div className="mb">
-        <h2 className="mb">Костюмы · пазлы</h2>
-        <div className="tiny muted" style={{ marginTop: '-6px', marginBottom: 10 }}>
-          Завершённый урок — фрагмент пазла. Собери {PUZZLE_SIZE} — БУК получит новый костюм 🧩
-        </div>
-        {allCostumesDone && (
-          <div className="card tiny mb" style={{ textAlign: 'center' }}>
-            ✨ Вся коллекция собрана! Теперь за каждый урок — +{OVERFLOW_GEMS} 💎
-          </div>
-        )}
-        <div className="shop-grid costume-grid">
-          {COSTUMES.map((c) => {
-            const done = pz.assembled.includes(c.id);
-            const prog = costumeProgress(pz, c.id);
-            const isCurrent = !done && collecting === c.id;
-            const wearing = pz.worn === c.id;
+          {allCostumesDone && (
+            <div className="card tiny mb" style={{ textAlign: 'center' }}>
+              ✨ Вся коллекция собрана! Теперь за каждый урок — +{OVERFLOW_GEMS} 💎
+            </div>
+          )}
+          {(() => {
+            const activeId = collecting;
+            const activeCostumeObj = activeId ? COSTUMES.find((c) => c.id === activeId) : null;
+            const prog = activeCostumeObj ? costumeProgress(pz, activeCostumeObj.id) : 0;
+            if (!activeCostumeObj) return null;
             return (
-              <div key={c.id} className={`shop-item costume-card ${done ? 'owned' : ''} ${wearing ? 'on' : ''} ${isCurrent ? 'current' : ''}`}>
-                {/* Несобранный костюм помечен классом pz-locked, но рисуется В ЦВЕТЕ:
-                    раньше он был серым силуэтом, и ребёнку было не выбрать «тот самый». */}
-                <div className={`shop-icon${done ? '' : ' pz-locked'}`}>
-                  <Mascot mood={wearing ? 'happy' : 'idle'} costumeId={c.id} size={64} stage={growth.index} />
-                </div>
-                <div className="shop-title">{c.title}</div>
-                <div className="tiny shop-desc">{c.desc}</div>
-                {!done && (
-                  <div className="pz-dots" role="img" aria-label={`${prog} из ${PUZZLE_SIZE} фрагментов`}>
-                    {Array.from({ length: PUZZLE_SIZE }, (_, i) => (
-                      <i key={i} className={`pz-dot${i < prog ? ' on' : ''}`} />
-                    ))}
+              <div className="shop-collect mb">
+                <Mascot mood="idle" costumeId={activeCostumeObj.id} size={56} stage={growth.index} />
+                <div className="grow" style={{ minWidth: 0 }}>
+                  <b>Собираем сейчас: {activeCostumeObj.title}</b>
+                  <div className="tiny muted">{activeCostumeObj.desc}</div>
+                  <div className="shop-progress"><i style={{ width: `${(prog / PUZZLE_SIZE) * 100}%` }} /></div>
+                  <div className="tiny" style={{ marginTop: 4 }}>
+                    Фрагментов: {prog} из {PUZZLE_SIZE} — за каждый урок
                   </div>
-                )}
-                {done ? (
-                  <>
-                    <button className={`btn sm wide ${wearing ? 'green' : 'ghost'}`} onClick={() => tapCostume(c.id)}>
-                      {wearing ? 'Надето ✓' : 'Надеть'}
-                    </button>
-                    {/* у собранного костюма красим только акцент: свечение и плащ */}
-                    <button
-                      className={`btn sm wide ${palette === c.id ? 'primary' : 'ghost'}`}
-                      aria-expanded={palette === c.id}
-                      onClick={() => {
-                        sfx.tap();
-                        setPalette(palette === c.id ? null : c.id);
-                      }}
-                    >
-                      {palette === c.id ? '🎨 Готово' : '🎨 Акцент'}
-                    </button>
-                    {palette === c.id && (
-                      <TintPicker
-                        caption="Акцент"
-                        targetId={c.id}
-                        title={c.title}
-                        tuning={profile.shop?.tuning}
-                        onPick={(tint, unlocked) => tapTint({ id: c.id, title: c.title }, tint, unlocked)}
-                      />
-                    )}
-                  </>
-                ) : (
-                  <button className={`btn sm wide ${isCurrent ? 'primary' : 'ghost'}`} onClick={() => tapPickCostume(c.id)}>
-                    {isCurrent
-                      ? `Собираю · ${prog}/${PUZZLE_SIZE}`
-                      : prog > 0
-                        ? `Продолжить · ${prog}/${PUZZLE_SIZE}`
-                        : 'Собирать'}
-                  </button>
-                )}
+                </div>
               </div>
             );
-          })}
-        </div>
-      </div>
+          })()}
+          <div className="shop-grid costume-grid">{COSTUMES.map(costumeCard)}</div>
+        </section>
+      )}
 
-      {(Object.keys(SLOT_TITLE) as (keyof typeof SLOT_TITLE)[]).map((slot) => {
-        const items = SHOP_ITEMS.filter((i) => i.slot === slot);
-        if (!items.length) return null;
-        return (
-          <div key={slot} className="mb">
-            <h2 className="mb">{SLOT_TITLE[slot]}</h2>
-            <div className="shop-grid">
-              {items.map((item) => {
-                const owned_ = isOwned(owned, item.id);
-                const wearing = isWearing(look, item);
-                const affordable = canBuy(item, gems);
-                return (
-                  <div key={item.id} className={`shop-item ${wearing ? 'on' : ''} ${owned_ ? 'owned' : ''}`}>
-                    <div className="shop-icon">
-                      <Mascot mood="idle" look={{ [item.slot]: item.id }} stage={growth.index} size={64} />
-                    </div>
-                    <div className="shop-title">{item.title}</div>
-                    <div className="tiny shop-desc">{item.desc}</div>
-                    {owned_ ? (
-                      <>
-                        <button className={`btn sm wide ${wearing ? 'green' : 'ghost'}`} onClick={() => tapWear(item)}>
-                          {wearing ? 'Надето ✓' : 'Надеть'}
-                        </button>
-                        {/* Палитра только у купленной вещи: сначала вещь — потом краски */}
-                        <button
-                          className={`btn sm wide ${palette === item.id ? 'primary' : 'ghost'}`}
-                          aria-expanded={palette === item.id}
-                          onClick={() => {
-                            sfx.tap();
-                            setPalette(palette === item.id ? null : item.id);
-                          }}
-                        >
-                          {palette === item.id ? '🎨 Готово' : '🎨 Цвет'}
-                        </button>
-                        {palette === item.id && (
-                          <TintPicker
-                            caption="Цвет"
-                            targetId={item.id}
-                            title={item.title}
-                            tuning={profile.shop?.tuning}
-                            onPick={(tint, unlocked) => tapTint({ id: item.id, title: item.title }, tint, unlocked)}
-                          />
-                        )}
-                      </>
-                    ) : (
-                      <button
-                        className={`btn sm wide ${affordable ? 'primary' : 'ghost'}`}
-                        disabled={!affordable}
-                        onClick={() => {
-                          sfx.tap();
-                          setAsk(item);
-                        }}
-                      >
-                        {affordable ? `Купить · 💎${item.price}` : `Ещё ${missingGems(item, gems)} 💎`}
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
+      {view === 'vitrina' && cat === 'music' && (
+        <section className="mt" aria-label="Музыка">
+          <div className="between mb">
+            <div>
+              <h2 style={{ margin: 0 }}>Музыка БУКа 🎵</h2>
+              <div className="tiny muted">{MUSIC_TRACKS.length} мелодий Kevin MacLeod · слушай перед покупкой</div>
             </div>
           </div>
-        );
-      })}
+          <div className="music-store-note">
+            🎧 Настоящие записи Kevin MacLeod — они работают офлайн и используются по лицензии CC BY 4.0
+            (автор указан в разделе «Авторы и лицензии»).
+          </div>
+          <div className="mb"><MusicCreditsToggle /></div>
+          {/* Полки: спокойный фон отдельно — у каждого своё место в игре */}
+          {MUSIC_SHELVES.map(({ shelf, title, note }) => (
+            <div className="music-shelf" key={shelf}>
+              <h3 className="music-shelf-title">{title}</h3>
+              {note && <div className="tiny muted music-shelf-note">{note}</div>}
+              <div className="shop-grid music-grid">{tracksByShelf(shelf).map(trackCard)}</div>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {view === 'wardrobe' && (
+        <>
+          {/* Примерочная: кто сейчас наряжен */}
+          <div className="card mb shop-stage">
+            <button className="shop-mascot" aria-label="БУК в твоём наряде" onClick={() => { sfx.hint(); haptic.tap(); setMood('dance'); setTimeout(() => setMood('idle'), 1800); }}>
+              <Mascot mood={mood} look={look} costumeId={pz.worn} stage={growth.index} size={132} />
+            </button>
+            <div className="grow center">
+              <div style={{ fontWeight: 800 }}>
+                {growth.title} · мой наряд
+              </div>
+              <div className="tiny">{growth.desc}</div>
+              <div className="tiny" style={{ marginTop: 4 }}>
+                {growth.nextAt
+                  ? `Освоено ${mastered} ${plural(mastered, 'слово', 'слова', 'слов')} · до ступени выше ${growth.nextAt - mastered}`
+                  : `Освоено ${mastered} ${plural(mastered, 'слово', 'слова', 'слов')} — самая высокая ступень ✨`}
+              </div>
+              <div className="tiny" style={{ marginTop: 4 }}>
+                {owned.length ? `Наряд куплен на ${wardrobeValue(owned)} 💎` : 'Пока без обновок — витрина ➜'}
+              </div>
+            </div>
+          </div>
+
+          {/* Мои наряды: по слотам, только купленное */}
+          <section className="mb" aria-label="Мои наряды">
+            <h2 className="mb">Мои наряды</h2>
+            {owned.length === 0 && (
+              <div className="card tiny mb" style={{ textAlign: 'center' }}>
+                Пока пусто. Купленное в витрине сразу попадает сюда 🎩
+              </div>
+            )}
+            {(Object.keys(SLOT_TITLE) as (keyof typeof SLOT_TITLE)[]).map((slot) => {
+              const items = ownedBySlot(slot);
+              if (!items.length) return null;
+              return (
+                <div key={slot} className="mb">
+                  <h3 className="music-shelf-title">{SLOT_TITLE[slot]}</h3>
+                  <div className="col">
+                    {items.map((item) =>
+                      wardrobeRow(
+                        { kind: 'item', item },
+                        <Mascot mood="idle" look={{ [item.slot]: item.id }} stage={growth.index} size={44} />,
+                        item.title,
+                        item.desc,
+                        isWearing(look, item),
+                        isWearing(look, item) ? 'Снять' : 'Надеть',
+                        () => tapWear(item),
+                      ),
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </section>
+
+          {/* Мои костюмы: собранное */}
+          <section className="mb" aria-label="Мои костюмы">
+            <h2 className="mb">Мои костюмы</h2>
+            {pz.assembled.length === 0 && (
+              <div className="card tiny mb" style={{ textAlign: 'center' }}>
+                Пока ни одного костюма. Каждый урок приносит фрагмент 🧩
+              </div>
+            )}
+            <div className="col">
+              {COSTUMES.filter((c) => pz.assembled.includes(c.id)).map((c) =>
+                wardrobeRow(
+                  { kind: 'costume', costume: c },
+                  <Mascot mood={pz.worn === c.id ? 'happy' : 'idle'} costumeId={c.id} size={44} stage={growth.index} />,
+                  c.title,
+                  c.desc,
+                  pz.worn === c.id,
+                  pz.worn === c.id ? 'Снять' : 'Надеть',
+                  () => tapCostume(c.id),
+                ),
+              )}
+            </div>
+          </section>
+
+          {/* Моя музыка: коллекция и выбор фона */}
+          <section className="mb" aria-label="Моя музыка">
+            <h2 className="mb">Моя музыка</h2>
+            {selectedMusic && (
+              <button className="music-choice" onClick={() => chooseMusic(null)}>
+                <span className="music-emoji">🔇</span>
+                <span className="grow"><b>Тишина</b><small>Выключить фоновую музыку</small></span>
+              </button>
+            )}
+            {MUSIC_TRACKS.filter((t) => musicOwned.includes(t.id)).map((track) => (
+              <button
+                key={track.id}
+                className={`music-choice${selectedMusic === track.id ? ' selected' : ''}`}
+                onClick={() => chooseMusic(selectedMusic === track.id ? null : track.id)}
+              >
+                <span className="music-emoji">{track.emoji}</span>
+                <span className="grow"><b>{track.title}</b><small>«{track.originalTitle}»</small></span>
+                {selectedMusic === track.id && <span aria-label="Выбрано">✓</span>}
+              </button>
+            ))}
+            {musicOwned.length === 0 && (
+              <p className="tiny">Пока нет мелодий. Витрина ➜ полка «Музыка» — две стартовые бесплатно.</p>
+            )}
+          </section>
+        </>
+      )}
 
       <p className="tiny center">
         Кристаллы 💎 дают за задания дня и сундук — загляни на главную.
         <br />
         БУК растёт, когда ты осваиваешь слова: сейчас — {growth.title.toLowerCase()}.
       </p>
+
+      {/* ── Подробная карточка (sheet снизу) ───────────────────────────── */}
+      {sheet && (
+        <Sheet onClose={closeSheet}>
+          <h2 className="sr-only">Подробно о товаре</h2>
+          {sheetBody}
+        </Sheet>
+      )}
 
       {askMusic && (
         <ConfirmDialog
