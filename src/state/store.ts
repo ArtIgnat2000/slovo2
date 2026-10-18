@@ -2,7 +2,7 @@ import { nextAdaptiveState, type Outcome } from '../engine/adaptive';
 import { isThemeStyle, type ThemeStyle } from '../engine/theme-styles';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { DailyState, DayStat, LessonSize, LessonState, Profile, ShopState, ShopSlot, ShopTuning, WeeklyState, WordState } from '../types';
+import type { DailyState, DayStat, LessonSize, LessonState, Profile, ShopState, ShopSlot, ShopTuning, StudyAnswerMeta, StudySession, StudySessionStatus, WeeklyState, WordState } from '../types';
 import { applyAnswer, initState } from '../engine/srs';
 import { idbStorage } from '../platform/storage';
 import { GEMS_PER_STREAK, levelOf } from '../engine/rewards';
@@ -36,6 +36,7 @@ import {
 } from '../engine/puzzles';
 import { activeChestSkin, skinById, skinState, type ChestSkinId } from '../engine/chests';
 import { DEFAULT_LESSON_SIZE } from '../engine/scheduler';
+import { normalizeStudySessions, STUDY_SESSION_RETENTION_DAYS } from '../engine/study';
 import {
   addTrash,
   emptyVault,
@@ -114,7 +115,10 @@ export interface Toast {
 }
 
 function emptyDay(): DayStat {
-  return { xp: 0, correct: 0, wrong: 0, lessons: 0, flawless: 0, reviewCorrect: 0, reviewWords: [] };
+  return {
+    xp: 0, correct: 0, wrong: 0, lessons: 0, flawless: 0, reviewCorrect: 0, reviewWords: [],
+    activeSeconds: 0, tasks: 0, errorWords: {}, recoveredWords: [],
+  };
 }
 
 /** Старые записи дня (до заданий дня) не имеют полей серии — достраиваем на чтении. */
@@ -219,6 +223,7 @@ function newProfile(name: string, avatar: string): Profile {
     lessons: {},
     errors: {},
     days: {},
+    studySessions: [],
     achievements: [],
     lessonSize: DEFAULT_LESSON_SIZE,
     daily: { day: dayKey(), claimed: [], chestsToday: 0, bonusChestsClaimed: 0, chestsTotal: 0 },
@@ -228,6 +233,23 @@ function newProfile(name: string, avatar: string): Profile {
     shop: { owned: [], equipped: {}, musicOwned: [...STARTER_TRACK_IDS], musicTrack: STARTER_TRACK_IDS[0] },
     puzzle: { pieces: {}, collecting: null, assembled: [], worn: null },
   };
+}
+
+function normalizeDays(raw: unknown, today: string): Record<string, DayStat> {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const cutoffDate = new Date(`${today}T12:00:00`);
+  cutoffDate.setDate(cutoffDate.getDate() - (STUDY_SESSION_RETENTION_DAYS - 1));
+  const cutoff = dayKey(cutoffDate);
+  return Object.fromEntries(Object.entries(raw as Record<string, unknown>).map(([key, value]) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return [key, value as DayStat];
+    const stat = value as DayStat;
+    if (key >= cutoff) return [key, stat];
+    // Сохраняем дневные итоги, но удаляем подробные слова ошибок старше 30 дней.
+    const aggregate = { ...stat };
+    delete aggregate.errorWords;
+    delete aggregate.recoveredWords;
+    return [key, aggregate];
+  }));
 }
 
 function normalizeProfile(raw: Partial<Profile> | null | undefined): Profile | null {
@@ -255,7 +277,8 @@ function normalizeProfile(raw: Partial<Profile> | null | undefined): Profile | n
     words: raw.words && typeof raw.words === 'object' ? raw.words : {},
     lessons: raw.lessons && typeof raw.lessons === 'object' ? raw.lessons : {},
     errors: raw.errors && typeof raw.errors === 'object' ? raw.errors : {},
-    days: raw.days && typeof raw.days === 'object' ? raw.days : {},
+    days: normalizeDays(raw.days, dayKey()),
+    studySessions: normalizeStudySessions(raw.studySessions, dayKey()),
     achievements: Array.isArray(raw.achievements) ? raw.achievements.filter((a): a is string => typeof a === 'string') : [],
     weekly: normalizeWeekly(raw.weekly, base.weekly!),
     lessonSize:
@@ -325,7 +348,11 @@ interface AppState {
   renameProfile: (id: string, name: string, avatar: string) => void;
 
   touchDay: () => void;
-  answer: (wordId: string, quality: number, review?: boolean) => void;
+  startStudySession: (session: StudySession) => void;
+  recordStudyTask: (sessionId: string) => void;
+  addStudyTime: (sessionId: string, seconds: number) => void;
+  finishStudySession: (sessionId: string, status: Exclude<StudySessionStatus, 'active' | 'interrupted'>) => void;
+  answer: (wordId: string, quality: number, review?: boolean, tracking?: StudyAnswerMeta) => void;
   /** Завершённый обычный урок открывает бонусный сундук и может выдать пороги недели. */
   finishLesson: (lessonId: string, pct: number) => WeeklyMilestone[];
   addXp: (n: number) => void;
@@ -614,7 +641,76 @@ export const useApp = create<AppState>()(
           }),
         ),
 
-      answer: (wordId, quality, review = false) =>
+      startStudySession: (session) =>
+        set((s) =>
+          patchActive(s, (p) => {
+            const today = dayKey();
+            const cutoffDate = new Date(`${today}T12:00:00`);
+            cutoffDate.setDate(cutoffDate.getDate() - (STUDY_SESSION_RETENTION_DAYS - 1));
+            const cutoff = dayKey(cutoffDate);
+            const previous = (p.studySessions ?? [])
+              .filter((item) => item.day >= cutoff && item.day <= today && item.id !== session.id)
+              .map((item) => item.status === 'active'
+                ? { ...item, status: 'interrupted' as const, endedAt: item.lastActivityAt }
+                : item);
+            return {
+              ...p,
+              studySessions: [...previous, { ...session, status: 'active' }],
+            };
+          }),
+        ),
+
+      recordStudyTask: (sessionId) =>
+        set((s) =>
+          patchActive(s, (p) => {
+            const today = dayKey();
+            const day = readDay(p, today);
+            return {
+              ...p,
+              studySessions: (p.studySessions ?? []).map((item) => item.id === sessionId && item.status === 'active'
+                ? { ...item, tasks: item.tasks + 1, lastActivityAt: Date.now() }
+                : item),
+              days: { ...p.days, [today]: { ...day, tasks: (day.tasks ?? 0) + 1 } },
+            };
+          }),
+        ),
+
+      addStudyTime: (sessionId, seconds) => {
+        const count = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
+        if (count === 0) return;
+        set((s) =>
+          patchActive(s, (p) => {
+            const now = Date.now();
+            const today = dayKey();
+            const day = readDay(p, today);
+            return {
+              ...p,
+              studySessions: (p.studySessions ?? []).map((item) => item.id === sessionId && item.status === 'active'
+                ? { ...item, activeSeconds: item.activeSeconds + count, lastActivityAt: now }
+                : item),
+              days: {
+                ...p.days,
+                [today]: { ...day, activeSeconds: (day.activeSeconds ?? 0) + count },
+              },
+            };
+          }),
+        );
+      },
+
+      finishStudySession: (sessionId, status) =>
+        set((s) =>
+          patchActive(s, (p) => {
+            const now = Date.now();
+            return {
+              ...p,
+              studySessions: (p.studySessions ?? []).map((item) => item.id === sessionId && item.status === 'active'
+                ? { ...item, status, endedAt: now, lastActivityAt: now }
+                : item),
+            };
+          }),
+        ),
+
+      answer: (wordId, quality, review = false, tracking) =>
         set((s) =>
           patchActive(s, (p) => {
             const prev: WordState = p.words[wordId] ?? initState();
@@ -626,18 +722,50 @@ export const useApp = create<AppState>()(
             // не «замораживает» счётчик (точность измеряет задание «без ошибок»).
             const doneWords = day.reviewWords ?? [];
             const reviewWords = review && !doneWords.includes(wordId) ? [...doneWords, wordId] : doneWords;
+            const dayErrorWords = { ...(day.errorWords ?? {}) };
+            if (!ok) dayErrorWords[wordId] = (dayErrorWords[wordId] ?? 0) + 1;
+            const recoveredWords = ok && tracking?.reason === 'repair' && !day.recoveredWords?.includes(wordId)
+              ? [...(day.recoveredWords ?? []), wordId]
+              : day.recoveredWords ?? [];
+            const studySessions = tracking
+              ? (p.studySessions ?? []).map((item) => {
+                  if (item.id !== tracking.sessionId || item.status !== 'active') return item;
+                  const errorWords = { ...item.errorWords };
+                  const taskKindErrors = { ...item.taskKindErrors };
+                  if (!ok) {
+                    errorWords[wordId] = (errorWords[wordId] ?? 0) + 1;
+                    taskKindErrors[tracking.taskKind] = (taskKindErrors[tracking.taskKind] ?? 0) + 1;
+                  }
+                  return {
+                    ...item,
+                    tasks: item.tasks + 1,
+                    correct: item.correct + (ok ? 1 : 0),
+                    wrong: item.wrong + (ok ? 0 : 1),
+                    errorWords,
+                    taskKindErrors,
+                    recoveredWords: ok && tracking.reason === 'repair' && !item.recoveredWords.includes(wordId)
+                      ? [...item.recoveredWords, wordId]
+                      : item.recoveredWords,
+                    lastActivityAt: Date.now(),
+                  };
+                })
+              : p.studySessions;
             return {
               ...p,
               // План дня фиксируется здесь же (readDaily), до того как слово изменит состояние
               daily: readDaily(p),
               words: { ...p.words, [wordId]: next },
               errors: ok ? p.errors : { ...p.errors, [wordId]: (p.errors[wordId] ?? 0) + 1 },
+              studySessions,
               days: {
                 ...p.days,
                 [today]: {
                   ...day,
                   correct: day.correct + (ok ? 1 : 0),
                   wrong: day.wrong + (ok ? 0 : 1),
+                  tasks: (day.tasks ?? 0) + (tracking ? 1 : 0),
+                  errorWords: dayErrorWords,
+                  recoveredWords,
                   // задание «без ошибок»: лучшая серия за день; текущая хранится отдельно
                   ...nextRun(day, ok),
                   reviewCorrect: day.reviewCorrect + (ok && review ? 1 : 0),

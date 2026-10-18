@@ -1,5 +1,6 @@
 import { effectiveCards, recordAttempt, type Attempts } from '../../engine/adaptive';
 import { scheduleWordImages } from '../../platform/word-images';
+import { createStudySessionId, StudyClock } from '../../engine/study';
 import { useEffect, useRef, useState } from 'react';
 import type { Profile, Task, WordState } from '../../types';
 import { LESSON_BY_ID, LESSONS, REVIEW, WORD_BY_ID, WORDS } from '../../content/words';
@@ -74,6 +75,40 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
   };
   const stats = useRef<Stats>({ correct: 0, wrong: 0, xp: 0 });
   const started = useRef(false);
+  const sessionId = useRef<string | null>(null);
+  const studyClock = useRef<StudyClock | null>(null);
+  if (!studyClock.current) {
+    studyClock.current = new StudyClock(
+      () => {
+        if (!runProfile) return;
+        const now = Date.now();
+        const id = createStudySessionId(now);
+        sessionId.current = id;
+        useApp.getState().startStudySession({
+          id,
+          day: dayKey(),
+          startedAt: now,
+          activeSeconds: 0,
+          mode: lessonId === REVIEW.id ? 'review' : 'lesson',
+          ...(lessonId !== REVIEW.id ? { lessonId } : {}),
+          tasks: 0,
+          correct: 0,
+          wrong: 0,
+          errorWords: {},
+          taskKindErrors: {},
+          recoveredWords: [],
+          lastActivityAt: now,
+          status: 'active',
+        });
+      },
+      (seconds) => {
+        if (sessionId.current) useApp.getState().addStudyTime(sessionId.current, seconds);
+      },
+      (status) => {
+        if (sessionId.current) useApp.getState().finishStudySession(sessionId.current, status);
+      },
+    );
+  }
   const [queue, setQueue] = useState<Task[]>(() => buildQueue(profile, lessonId));
   // Число заданий в исходном плане урока. Задания-отработки после ошибок
   // вставляются в очередь и раньше «раздували» total — полоска прогресса ехала назад.
@@ -224,6 +259,33 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
     };
   }, [helpMode, task?.uid]);
 
+  // Учёт активного времени: таймер запускается первым взаимодействием, а не
+  // открытием урока. Фон и периоды бездействия не засчитываются. Статус
+  // незавершённой сессии после перезапуска нормализуется как «прервана».
+  useEffect(() => {
+    const el = screenRef.current;
+    if (!el) return;
+    const activity = () => studyClock.current?.activity();
+    const pause = () => studyClock.current?.flush(true);
+    const onVisibility = () => {
+      if (document.visibilityState !== 'visible') pause();
+    };
+    el.addEventListener('pointerdown', activity);
+    el.addEventListener('keydown', activity);
+    el.addEventListener('input', activity);
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pagehide', pause);
+    const checkpoint = window.setInterval(() => studyClock.current?.flush(), 15_000);
+    return () => {
+      el.removeEventListener('pointerdown', activity);
+      el.removeEventListener('keydown', activity);
+      el.removeEventListener('input', activity);
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pagehide', pause);
+      window.clearInterval(checkpoint);
+    };
+  }, []);
+
   /**
    * Тихая пауза: 20 с без действий и БУК в шапке предлагает помощь (без звука).
    * Один раз на карточку, не на экране вердикта, не после отказа.
@@ -280,10 +342,12 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
   const onSolve = (rawQuality: number | null) => {
     if (!task || finalized.current || solvedTasks.current.has(task.uid)) return;
     solvedTasks.current.add(task.uid);
+    studyClock.current?.activity();
     ensureTouchedToday();
     const quality = withHelp(rawQuality);
     if (quality !== null) recordAttempt(observed.current, attempts.current, task.uid, task.reason === 'repair', quality);
     if (quality === null) {
+      if (sessionId.current) useApp.getState().recordStudyTask(sessionId.current);
       setVerdict(null);
       goNext();
       return;
@@ -291,7 +355,11 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
     const ok = quality >= 3;
     // Повторёнными считаем и слова из режима «Повторение», и вставки-повторения
     // внутри обычного урока: задание дня — «повтори N слов», где бы это ни случилось
-    answer(task.wordId, quality, lessonId === REVIEW.id || task.reason === 'review');
+    answer(task.wordId, quality, lessonId === REVIEW.id || task.reason === 'review', sessionId.current ? {
+      sessionId: sessionId.current,
+      taskKind: task.kind,
+      reason: task.reason,
+    } : undefined);
 
     if (ok) {
       const gain = quality >= 5 ? XP.task : XP.taskWithHint;
@@ -337,6 +405,7 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
   const finish = () => {
     if (finalized.current) return;
     let weeklyAwardGems = 0;
+    studyClock.current?.finish('completed');
     ensureTouchedToday();
     finalizeAdaptive('finish');
     const { correct, wrong } = stats.current;
@@ -509,6 +578,7 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
       <div ref={taskRef} className={`lesson-task ${verdict ? 'is-frozen' : ''}`}>
         <TaskView key={task.uid} task={task} word={word} onSolve={onSolve} onAttempt={(quality) => {
         if (!finalized.current) {
+          studyClock.current?.activity();
           ensureTouchedToday();
           recordAttempt(observed.current, attempts.current, task.uid, task.reason === 'repair', withHelp(quality) ?? 0);
         }
@@ -569,7 +639,7 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
           stayLabel="Продолжить урок ▶"
           leaveLabel="Выйти"
           onStay={() => setAskExit(false)}
-          onLeave={() => { finalizeAdaptive('quit'); onExit(); }}
+          onLeave={() => { studyClock.current?.finish('stopped'); finalizeAdaptive('quit'); onExit(); }}
         />
       )}
     </div>
