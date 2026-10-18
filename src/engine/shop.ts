@@ -6,7 +6,9 @@
 // а академическая шапочка — цель на пару дней. Картинки — в ui/MascotLook.tsx,
 // здесь только правила и цены (чистая логика без React).
 
-import type { ShopSlot } from '../types';
+import type { PuzzleState, ShopSlot } from '../types';
+import { COSTUMES, type Costume, costumeProgress, normalizePuzzle, activeCostume } from './puzzles';
+import { MUSIC_TRACKS, type MusicTrack } from './music';
 
 export interface ShopItem {
   id: string;
@@ -102,3 +104,95 @@ export function closestItem(owned: string[]): ShopItem | null {
   if (!left.length) return null;
   return left.reduce((best, i) => (i.price < best.price ? i : best), left[0]);
 }
+
+export type HeroTarget =
+  | { kind: 'item'; item: ShopItem }
+  | { kind: 'costume'; costume: Costume; progress: number }
+  | { kind: 'track'; track: MusicTrack };
+
+/**
+ * Герой витрины (фаза 2 магазина): одна главная цель копления вместо десятков ценников.
+ *
+ * Приоритет выбора:
+ * 1. Некупленный аксессуар БУКа с наименьшей ценой (closestItem).
+ * 2. Если все аксессуары куплены — собираемый сейчас или ближайший костюм (puzzle).
+ * 3. Если все костюмы собраны — самый дешёвый некупленный музыкальный трек.
+ * 4. Если абсолютно весь каталог собран — null («Весь гардероб собран ✨»).
+ */
+export function resolveHero(
+  owned: string[],
+  puzzle?: PuzzleState | null,
+  musicOwned?: string[],
+): HeroTarget | null {
+  const item = closestItem(owned);
+  if (item) {
+    return { kind: 'item', item };
+  }
+
+  if (puzzle) {
+    const pz = normalizePuzzle(puzzle);
+    const unassembled = COSTUMES.filter((c) => !pz.assembled.includes(c.id));
+    if (unassembled.length > 0) {
+      const active = activeCostume(pz);
+      const target = (active && unassembled.find((c) => c.id === active)) || unassembled[0];
+      return {
+        kind: 'costume',
+        costume: target,
+        progress: costumeProgress(pz, target.id),
+      };
+    }
+  }
+
+  const unownedTracks = MUSIC_TRACKS.filter((t) => !(musicOwned ?? []).includes(t.id));
+  if (unownedTracks.length > 0) {
+    const cheapest = unownedTracks.reduce(
+      (best, t) => (t.price < best.price ? t : best),
+      unownedTracks[0],
+    );
+    return { kind: 'track', track: cheapest };
+  }
+
+  return null;
+}
+
+/**
+ * Нормализация списка мечт (Wishlist 🤍):
+ *  • убирает дубликаты;
+ *  • отбрасывает неизвестные id (чужие версии или некорректные данные);
+ *  • исключает купленные вещи, собранные костюмы и купленные треки (ребёнок не мечтает о своём);
+ *  • возвращает пустой массив при некорректном входе.
+ */
+export function normalizeWishlist(
+  raw: unknown,
+  ownedItems: string[] = [],
+  assembledCostumes: string[] = [],
+  ownedTracks: string[] = [],
+): string[] {
+  if (!Array.isArray(raw)) return [];
+  const validIds = new Set([
+    ...SHOP_ITEMS.map((i) => i.id),
+    ...COSTUMES.map((c) => c.id),
+    ...MUSIC_TRACKS.map((t) => t.id),
+  ]);
+  const ownedSet = new Set([
+    ...ownedItems,
+    ...assembledCostumes,
+    ...ownedTracks,
+  ]);
+  const result: string[] = [];
+  for (const item of raw) {
+    if (typeof item !== 'string') continue;
+    const id = item.trim();
+    if (!id || !validIds.has(id)) continue;
+    if (ownedSet.has(id)) continue;
+    if (!result.includes(id)) {
+      result.push(id);
+    }
+  }
+  return result;
+}
+
+export function isWished(wishlist: string[] | undefined, id: string): boolean {
+  return Boolean(wishlist && wishlist.includes(id));
+}
+

@@ -1986,6 +1986,129 @@ p {
   color: var(--primary);
 }
 
+/* ── Герой витрины и Мечты (фаза 2 магазина) ────────────────────────────── */
+.shop-hero {
+  position: relative;
+  margin-bottom: 14px;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--promo-glow-1), var(--promo-glow-2));
+  border: 2px solid color-mix(in srgb, var(--primary) 28%, transparent);
+  display: flex;
+  gap: 14px;
+  padding: 14px;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.shop-hero:active {
+  transform: scale(0.98);
+}
+@media (prefers-reduced-motion: reduce) {
+  .shop-hero:active {
+    transform: none;
+  }
+}
+.shop-hero-art {
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.shop-hero-body {
+  min-width: 0;
+}
+.shop-hero-body .shop-badge {
+  position: static;
+  display: inline-block;
+  margin-bottom: 4px;
+}
+.shop-hero-title {
+  font-size: var(--fs-md);
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.shop-heart {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 2;
+  border: none;
+  background: transparent;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: var(--r-pill);
+  line-height: 1;
+  min-width: 38px;
+  min-height: 38px;
+  display: grid;
+  place-items: center;
+  touch-action: manipulation;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+.shop-heart:active {
+  transform: scale(1.15);
+}
+.shop-heart.on {
+  opacity: 1;
+  filter: drop-shadow(0 1px 2px rgba(124, 58, 237, 0.4));
+}
+.shop-heart:not(.on) {
+  opacity: 0.5;
+  filter: grayscale(0.6);
+}
+.shop-heart:hover {
+  opacity: 0.9;
+}
+@media (prefers-reduced-motion: reduce) {
+  .shop-heart:active {
+    transform: none;
+  }
+}
+
+.wishlist-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.wishlist-card {
+  position: relative;
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg-2);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+.wishlist-card:active {
+  transform: scale(0.97);
+}
+@media (prefers-reduced-motion: reduce) {
+  .wishlist-card:active {
+    transform: none;
+  }
+}
+.wishlist-card.afford {
+  border-color: color-mix(in srgb, var(--primary) 65%, transparent);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--primary) 12%, transparent);
+}
+.wishlist-card-art {
+  height: 72px;
+  display: grid;
+  place-items: center;
+}
+.wishlist-progress-row {
+  width: 100%;
+  margin: 4px 0 2px;
+}
+
 /* Подробная карточка — sheet снизу: примерка крупно, цена,
    действие и палитра в одном месте; верстка под ним не прыгает. */
 .shop-sheet-veil {

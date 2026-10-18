@@ -30,7 +30,7 @@ import { resolvePhotoSize, resolveWordCardVariant } from '../src/ui/WordView';
 import { buildLesson, lessonCardLimit } from '../src/engine/scheduler';
 import { dayKey, dayPlan, useApp } from '../src/state/store';
 import { questTitle } from '../src/engine/quests';
-import { ITEM_BY_ID, growthStage } from '../src/engine/shop';
+import { ITEM_BY_ID, SHOP_ITEMS, growthStage } from '../src/engine/shop';
 import { TINT_PALETTES, TINT_PRICE } from '../src/engine/tints';
 import { THEME_STYLES } from '../src/engine/theme-styles';
 import { masteredCount } from '../src/state/store';
@@ -647,6 +647,21 @@ async function main() {
   await sleep(30);
   click(Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Наряды'))!);
   await sleep(30);
+  check('герой-секция видна на витрине нарядов', !!document.querySelector('.shop-hero'), '');
+  check('герой показывает ближайшую цель', has('Ближайшая цель'), '');
+
+  // Мечты 🤍: сердечко добавляет товар в вишлист
+  const wishItem = SHOP_ITEMS.find((i) => i.id === 'scarf')!;
+  const scarfCard = Array.from(document.querySelectorAll('.shop-item')).find((c) => (c.textContent ?? '').includes(wishItem.title));
+  const heartBtn = scarfCard?.querySelector('.shop-heart') as HTMLButtonElement | null;
+  check('сердечко есть на карточке наряда', !!heartBtn, '');
+  if (heartBtn) {
+    click(heartBtn);
+    await sleep(40);
+    check('товар добавлен в wishlist профиля', (useApp.getState().profiles[0].shop?.wishlist ?? []).includes('scarf'), '');
+    check('сердечко подсвечено', heartBtn.classList.contains('on'), '');
+  }
+
   const gemsInShop = useApp.getState().profiles[0].gems;
   const buyBtn = Array.from(document.querySelectorAll('.shop-item:not(.music-item):not(.costume-card) button'))
     .find((button) => (button.textContent ?? '').includes('Купить')) as HTMLButtonElement | undefined;
@@ -678,6 +693,7 @@ async function main() {
     click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Гардероб'))!);
     await sleep(30);
     check('купленная вещь живёт в гардеробе по слотам', has('Головные уборы'), '');
+    check('секция «Мечты 🤍» отображает отложенную вещь', has('Мечты 🤍') && has(wishItem.title) && !!document.querySelector('.wishlist-card'), '');
     click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Витрина'))!);
     await sleep(30);
 

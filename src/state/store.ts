@@ -24,11 +24,12 @@ import {
   type ChestKind,
   type PlannedQuest,
 } from '../engine/quests';
-import { ITEM_BY_ID, isOwned } from '../engine/shop';
+import { ITEM_BY_ID, isOwned, normalizeWishlist } from '../engine/shop';
 import { migrateMusicShop, MUSIC_BY_ID, STARTER_TRACK_IDS } from '../engine/music';
 import { DEFAULT_SOUND_PACK, normalizeSoundShop, SOUND_PACK_BY_ID, STARTER_SOUND_IDS } from '../engine/sounds';
 import { normalizeTuning, recolor, type RecolorOutcome } from '../engine/tints';
 import {
+  COSTUMES,
   awardLessonPiece,
   chooseCollecting,
   normalizePuzzle,
@@ -208,6 +209,7 @@ function readShop(p: Profile): ShopState {
     ...normalizeSoundShop(p.shop),
     // краски некупленных вещей, чужие id и акценты несобранных костюмов отбрасываем
     tuning: normalizeTuning(p.shop?.tuning, [...owned, ...assembled]),
+    wishlist: normalizeWishlist(p.shop?.wishlist, owned, assembled, music.musicOwned),
   };
 }
 
@@ -240,6 +242,7 @@ function newProfile(name: string, avatar: string): Profile {
       musicTrack: STARTER_TRACK_IDS[0],
       soundOwned: [...STARTER_SOUND_IDS],
       soundPack: DEFAULT_SOUND_PACK,
+      wishlist: [],
     },
     puzzle: { pieces: {}, collecting: null, assembled: [], worn: null },
   };
@@ -272,40 +275,42 @@ function normalizeProfile(raw: Partial<Profile> | null | undefined): Profile | n
     ? raw.shop.owned.filter((x): x is string => typeof x === 'string')
     : [];
   const puzzle = normalizePuzzle(raw.puzzle);
-  return {
-    ...base,
-    ...raw,
-    id: raw.id,
-    name: base.name,
-    avatar: base.avatar,
-    createdAt: typeof raw.createdAt === 'number' && Number.isFinite(raw.createdAt) ? raw.createdAt : base.createdAt,
-    xp: typeof raw.xp === 'number' && Number.isFinite(raw.xp) && raw.xp >= 0 ? raw.xp : 0,
-    gems: typeof raw.gems === 'number' && Number.isFinite(raw.gems) && raw.gems >= 0 ? raw.gems : 0,
-    streak: typeof raw.streak === 'number' && Number.isFinite(raw.streak) && raw.streak >= 0 ? raw.streak : 0,
-    lastDay: typeof raw.lastDay === 'string' ? raw.lastDay : '',
-    freezes: typeof raw.freezes === 'number' && Number.isFinite(raw.freezes) && raw.freezes >= 0 ? raw.freezes : 0,
-    words: raw.words && typeof raw.words === 'object' ? raw.words : {},
-    lessons: raw.lessons && typeof raw.lessons === 'object' ? raw.lessons : {},
-    errors: raw.errors && typeof raw.errors === 'object' ? raw.errors : {},
-    days: normalizeDays(raw.days, dayKey()),
-    studySessions: normalizeStudySessions(raw.studySessions, dayKey()),
-    achievements: Array.isArray(raw.achievements) ? raw.achievements.filter((a): a is string => typeof a === 'string') : [],
-    weekly: normalizeWeekly(raw.weekly, base.weekly!),
-    lessonSize:
-      raw.lessonSize === 'short' || raw.lessonSize === 'standard' || raw.lessonSize === 'full'
-        ? raw.lessonSize
-        : DEFAULT_LESSON_SIZE,
-    shop: {
-      owned,
-      equipped: raw.shop?.equipped && typeof raw.shop.equipped === 'object' ? raw.shop.equipped : {},
-      // Миграция каталога музыки: старые покупки дают новые треки, выбор
-      // ребёнка (включая «Тишина») сохраняется — см. engine/music.ts.
-      ...migrateMusicShop(raw.shop),
-      ...normalizeSoundShop(raw.shop),
-      tuning: normalizeTuning(raw.shop?.tuning, [...owned, ...puzzle.assembled]),
-    },
-    puzzle,
-  };
+    const music = migrateMusicShop(raw.shop);
+    return {
+      ...base,
+      ...raw,
+      id: raw.id,
+      name: base.name,
+      avatar: base.avatar,
+      createdAt: typeof raw.createdAt === 'number' && Number.isFinite(raw.createdAt) ? raw.createdAt : base.createdAt,
+      xp: typeof raw.xp === 'number' && Number.isFinite(raw.xp) && raw.xp >= 0 ? raw.xp : 0,
+      gems: typeof raw.gems === 'number' && Number.isFinite(raw.gems) && raw.gems >= 0 ? raw.gems : 0,
+      streak: typeof raw.streak === 'number' && Number.isFinite(raw.streak) && raw.streak >= 0 ? raw.streak : 0,
+      lastDay: typeof raw.lastDay === 'string' ? raw.lastDay : '',
+      freezes: typeof raw.freezes === 'number' && Number.isFinite(raw.freezes) && raw.freezes >= 0 ? raw.freezes : 0,
+      words: raw.words && typeof raw.words === 'object' ? raw.words : {},
+      lessons: raw.lessons && typeof raw.lessons === 'object' ? raw.lessons : {},
+      errors: raw.errors && typeof raw.errors === 'object' ? raw.errors : {},
+      days: normalizeDays(raw.days, dayKey()),
+      studySessions: normalizeStudySessions(raw.studySessions, dayKey()),
+      achievements: Array.isArray(raw.achievements) ? raw.achievements.filter((a): a is string => typeof a === 'string') : [],
+      weekly: normalizeWeekly(raw.weekly, base.weekly!),
+      lessonSize:
+        raw.lessonSize === 'short' || raw.lessonSize === 'standard' || raw.lessonSize === 'full'
+          ? raw.lessonSize
+          : DEFAULT_LESSON_SIZE,
+      shop: {
+        owned,
+        equipped: raw.shop?.equipped && typeof raw.shop.equipped === 'object' ? raw.shop.equipped : {},
+        // Миграция каталога музыки: старые покупки дают новые треки, выбор
+        // ребёнка (включая «Тишина») сохраняется — см. engine/music.ts.
+        ...music,
+        ...normalizeSoundShop(raw.shop),
+        tuning: normalizeTuning(raw.shop?.tuning, [...owned, ...puzzle.assembled]),
+        wishlist: normalizeWishlist(raw.shop?.wishlist, owned, puzzle.assembled, music.musicOwned),
+      },
+      puzzle,
+    };
 }
 
 function normalizeSettings(raw: Partial<Settings> | null | undefined): Settings {
@@ -387,6 +392,8 @@ interface AppState {
 
   /** Купить аксессуар у БУКа. Возвращает false, если кристаллов не хватает. */
   buyItem: (id: string) => boolean;
+  /** Добавить/убрать предмет из списка «Мечты 🤍» (Wishlist). Возвращает true, если добавлен. */
+  toggleWishlist: (id: string) => boolean;
   /** Купить мелодию из музыкального магазина (однократно; открытый трек остаётся в профиле). */
   buyMusicTrack: (id: string) => boolean;
   /** Выбрать купленную мелодию для БУКа; null — выключить музыку. */
@@ -955,11 +962,44 @@ export const useApp = create<AppState>()(
                 owned: [...shop.owned, id],
                 // купленное сразу надевается — ребёнку не нужно ещё раз тапать
                 equipped: { ...shop.equipped, [item.slot]: id },
+                wishlist: shop.wishlist?.filter((x) => x !== id),
               },
             };
           }),
         );
         return true;
+      },
+
+      toggleWishlist: (id) => {
+        const p = getActive(get());
+        if (!p) return false;
+        const shop = readShop(p);
+        const pz = normalizePuzzle(p.puzzle);
+        const music = migrateMusicShop(p.shop);
+        const ownedSet = new Set([...shop.owned, ...pz.assembled, ...music.musicOwned]);
+        if (ownedSet.has(id)) return false;
+        const isValid = Boolean(ITEM_BY_ID[id] || COSTUMES.find((c) => c.id === id) || MUSIC_BY_ID[id]);
+        if (!isValid) return false;
+
+        const currentWishlist = shop.wishlist ?? [];
+        const exists = currentWishlist.includes(id);
+        const nextWishlist = exists
+          ? currentWishlist.filter((x) => x !== id)
+          : [...currentWishlist, id];
+
+        set((s) =>
+          patchActive(s, (prof) => {
+            const curShop = readShop(prof);
+            return {
+              ...prof,
+              shop: {
+                ...curShop,
+                wishlist: nextWishlist,
+              },
+            };
+          }),
+        );
+        return !exists;
       },
 
       buyMusicTrack: (id) => {
@@ -973,7 +1013,11 @@ export const useApp = create<AppState>()(
           return {
             ...prof,
             gems: prof.gems - track.price,
-            shop: { ...current, musicOwned: [...(current.musicOwned ?? []), id] },
+            shop: {
+              ...current,
+              musicOwned: [...(current.musicOwned ?? []), id],
+              wishlist: current.wishlist?.filter((x) => x !== id),
+            },
           };
         }));
         return true;
@@ -1047,7 +1091,21 @@ export const useApp = create<AppState>()(
         if (!prof) return null;
         const { puzzle, award } = awardLessonPiece(prof.puzzle);
         set((st) =>
-          patchActive(st, (p) => ({ ...p, puzzle, gems: p.gems + award.gems })),
+          patchActive(st, (p) => {
+            const currentShop = readShop(p);
+            const nextWishlist = award.costumeId
+              ? currentShop.wishlist?.filter((x) => x !== award.costumeId)
+              : currentShop.wishlist;
+            return {
+              ...p,
+              puzzle,
+              gems: p.gems + award.gems,
+              shop: {
+                ...currentShop,
+                wishlist: nextWishlist,
+              },
+            };
+          }),
         );
         return award;
       },

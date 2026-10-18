@@ -2,13 +2,16 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { masteredCount, useActiveProfile, useApp, useLook } from '../../state/store';
 import { plural } from '../../engine/quests';
 import {
+  ITEM_BY_ID,
   SHOP_ITEMS,
   SLOT_TITLE,
   canBuy,
   growthStage,
   isOwned,
   isWearing,
+  isWished,
   missingGems,
+  resolveHero,
   wardrobeValue,
 } from '../../engine/shop';
 import { Mascot } from '../Mascot';
@@ -115,6 +118,8 @@ function ShopCard(props: {
   actionLabel: string;
   actionTone: 'primary' | 'green' | 'ghost';
   actionDisabled?: boolean;
+  wished?: boolean;
+  onWish?: () => void;
   onOpen: () => void;
   onAction: () => void;
 }) {
@@ -147,6 +152,19 @@ function ShopCard(props: {
       >
         {props.actionLabel}
       </button>
+      {props.onWish && (
+        <button
+          type="button"
+          className={`shop-heart${props.wished ? ' on' : ''}`}
+          aria-label={props.wished ? `Убрать «${props.title}» из мечт` : `Добавить «${props.title}» в мечты`}
+          onClick={(e) => {
+            e.stopPropagation();
+            props.onWish!();
+          }}
+        >
+          {props.wished ? '💜' : '🤍'}
+        </button>
+      )}
     </article>
   );
 }
@@ -181,6 +199,7 @@ export function ShopScreen() {
   const buySoundPack = useApp((s) => s.buySoundPack);
   const setSoundPack = useApp((s) => s.setSoundPack);
   const setMusicTrack = useApp((s) => s.setMusicTrack);
+  const toggleWishlist = useApp((s) => s.toggleWishlist);
   const themeStyle = useApp((s) => s.settings.themeStyle);
   const setSettings = useApp((s) => s.setSettings);
   const [view, setView] = useState<View>('vitrina');
@@ -235,6 +254,27 @@ export function ShopScreen() {
   const selectedMusic = profile.shop?.musicTrack ?? null;
   const soundOwned = profile.shop?.soundOwned ?? [];
   const selectedSound = profile.shop?.soundPack ?? 'classic';
+  const wishlist = profile.shop?.wishlist ?? [];
+  const hero = resolveHero(owned, profile.puzzle, musicOwned);
+
+  const tapWish = (id: string, title: string) => {
+    sfx.tap();
+    haptic.tap();
+    const added = toggleWishlist(id);
+    if (added) {
+      showToast({
+        emoji: '🤍',
+        title: `«${title}» — в мечтах!`,
+        text: 'Прогресс копления виден в Гардеробе',
+      });
+    } else {
+      showToast({
+        emoji: '🤍',
+        title: 'Убрали из мечт',
+        text: `«${title}» больше не в списке желаний`,
+      });
+    }
+  };
 
   const openSheet = (detail: Detail) => {
     sfx.tap();
@@ -409,6 +449,7 @@ export function ShopScreen() {
     const owned_ = isOwned(owned, item.id);
     const wearing = isWearing(look, item);
     const affordable = canBuy(item, gems);
+    const wished = isWished(wishlist, item.id);
     return (
       <ShopCard
         key={item.id}
@@ -418,6 +459,8 @@ export function ShopScreen() {
         cardCls={wearing ? 'on' : owned_ ? 'owned' : undefined}
         priceLabel={owned_ ? 'Твоя ✓' : `💎 ${item.price}`}
         afford={affordable}
+        wished={wished}
+        onWish={!owned_ ? () => tapWish(item.id, item.title) : undefined}
         actionLabel={
           owned_
             ? wearing
@@ -453,11 +496,14 @@ export function ShopScreen() {
     const prog = costumeProgress(pz, c.id);
     const isCurrent = !done && collecting === c.id;
     const wearing = pz.worn === c.id;
+    const wished = isWished(wishlist, c.id);
     return (
       <ShopCard
         key={c.id}
         badge={isCurrent ? 'Собираю' : undefined}
         cardCls={`costume-card${done ? (wearing ? ' on' : ' owned') : isCurrent ? ' current' : ''}`}
+        wished={wished}
+        onWish={!done ? () => tapWish(c.id, c.title) : undefined}
         art={
           // Несобранный костюм помечен классом pz-locked, но рисуется В ЦВЕТЕ:
           // раньше он был серым силуэтом, и ребёнку было не выбрать «тот самый».
@@ -505,9 +551,12 @@ export function ShopScreen() {
     const ownedTrack = musicOwned.includes(track.id);
     const selected = selectedMusic === track.id;
     const affordable = gems >= track.price;
+    const wished = isWished(wishlist, track.id);
     return (
       <ShopCard
         key={track.id}
+        wished={wished}
+        onWish={!ownedTrack ? () => tapWish(track.id, track.title) : undefined}
         art={
           <div className="music-cover" aria-hidden="true">
             <span>{track.emoji}</span>
@@ -679,6 +728,15 @@ export function ShopScreen() {
               </button>
             )}
           </div>
+          {!owned_ && (
+            <button
+              type="button"
+              className="btn lg wide ghost mb"
+              onClick={() => tapWish(item.id, item.title)}
+            >
+              {isWished(wishlist, item.id) ? '💜 В мечтах — убрать' : '🤍 В мечты'}
+            </button>
+          )}
           {owned_ && (
             <>
               <button
@@ -755,6 +813,13 @@ export function ShopScreen() {
                   {isCurrent ? 'Собираю ✓' : prog > 0 ? 'Продолжить сборку' : 'Собирать'}
                 </button>
               </div>
+              <button
+                type="button"
+                className="btn lg wide ghost mb"
+                onClick={() => tapWish(c.id, c.title)}
+              >
+                {isWished(wishlist, c.id) ? '💜 В мечтах — убрать' : '🤍 В мечты'}
+              </button>
             </>
           )}
           {done && (
@@ -888,6 +953,15 @@ export function ShopScreen() {
             </button>
           )}
         </div>
+        {!ownedTrack && (
+          <button
+            type="button"
+            className="btn lg wide ghost mb"
+            onClick={() => tapWish(track.id, track.title)}
+          >
+            {isWished(wishlist, track.id) ? '💜 В мечтах — убрать' : '🤍 В мечты'}
+          </button>
+        )}
         {track.about && <p className="tiny muted">{track.about}</p>}
       </>
     );
@@ -950,6 +1024,209 @@ export function ShopScreen() {
 
       {view === 'vitrina' && cat === 'outfits' && (
         <section className="mt" aria-label="Наряды">
+          {/* ── Герой витрины: одна ближайшая цель ───────────────────────── */}
+          {hero && hero.kind === 'item' && (() => {
+            const affordable = canBuy(hero.item, gems);
+            const missing = missingGems(hero.item, gems);
+            const wished = isWished(wishlist, hero.item.id);
+            return (
+              <article
+                className="shop-hero"
+                role="button"
+                tabIndex={0}
+                aria-label={`Ближайшая цель: ${hero.item.title}`}
+                onClick={() => openSheet({ kind: 'item', item: hero.item })}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') openSheet({ kind: 'item', item: hero.item });
+                }}
+              >
+                <button
+                  type="button"
+                  className={`shop-heart${wished ? ' on' : ''}`}
+                  aria-label={wished ? `Убрать «${hero.item.title}» из мечт` : `Добавить «${hero.item.title}» в мечты`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    tapWish(hero.item.id, hero.item.title);
+                  }}
+                >
+                  {wished ? '💜' : '🤍'}
+                </button>
+                <div className="shop-hero-art">
+                  <Mascot mood="idle" look={{ [hero.item.slot]: hero.item.id }} stage={growth.index} size={96} />
+                </div>
+                <div className="shop-hero-body grow">
+                  <span className="shop-badge">🎯 Ближайшая цель</span>
+                  <div className="shop-hero-title">{hero.item.title}</div>
+                  <div className="tiny muted">{hero.item.desc}</div>
+                  <div className="tiny" style={{ marginTop: 4, fontWeight: 700 }}>
+                    {affordable
+                      ? `Хватает! ${hero.item.price} 💎 — и он твой`
+                      : `У тебя ${gems} 💎 · ещё ${missing} 💎`}
+                  </div>
+                  <button
+                    type="button"
+                    className="btn sm primary mt"
+                    style={{ marginTop: 8 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (affordable) {
+                        sfx.tap();
+                        setAsk(hero.item);
+                      } else {
+                        sfx.tap();
+                        haptic.tap();
+                        if (!wished) {
+                          toggleWishlist(hero.item.id);
+                          showToast({
+                            emoji: '🤍',
+                            title: 'Копим!',
+                            text: `«${hero.item.title}»: ещё ${missing} 💎. В списке «Мечты» в Гардеробе`,
+                          });
+                        } else {
+                          showToast({
+                            emoji: '💎',
+                            title: `До «${hero.item.title}» ещё ${missing} 💎`,
+                            text: 'Кристаллы дают за задания дня и сундук — загляни на главную',
+                          });
+                        }
+                      }
+                    }}
+                  >
+                    {affordable ? `Купить · 💎${hero.item.price}` : `Копить — ещё ${missing} 💎`}
+                  </button>
+                </div>
+              </article>
+            );
+          })()}
+
+          {hero && hero.kind === 'costume' && (
+            <article
+              className="shop-hero"
+              role="button"
+              tabIndex={0}
+              aria-label={`Следующая цель: ${hero.costume.title}`}
+              onClick={() => {
+                setView('vitrina');
+                setCat('costumes');
+                openSheet({ kind: 'costume', costume: hero.costume });
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  setView('vitrina');
+                  setCat('costumes');
+                  openSheet({ kind: 'costume', costume: hero.costume });
+                }
+              }}
+            >
+              <div className="shop-hero-art">
+                <div className="pz-locked">
+                  <Mascot mood="idle" costumeId={hero.costume.id} stage={growth.index} size={96} />
+                </div>
+              </div>
+              <div className="shop-hero-body grow">
+                <span className="shop-badge">🎯 Следующая цель</span>
+                <div className="shop-hero-title">{hero.costume.title}</div>
+                <div className="tiny muted">{hero.costume.desc}</div>
+                <div className="tiny" style={{ marginTop: 4, fontWeight: 700 }}>
+                  Фрагментов: {hero.progress} из {PUZZLE_SIZE} 🧩
+                </div>
+                <button
+                  type="button"
+                  className="btn sm primary mt"
+                  style={{ marginTop: 8 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setView('vitrina');
+                    setCat('costumes');
+                    tapPickCostume(hero.costume.id);
+                  }}
+                >
+                  Собирать костюм ➜
+                </button>
+              </div>
+            </article>
+          )}
+
+          {hero && hero.kind === 'track' && (() => {
+            const affordable = gems >= hero.track.price;
+            const missing = Math.max(0, hero.track.price - gems);
+            const wished = isWished(wishlist, hero.track.id);
+            return (
+              <article
+                className="shop-hero"
+                role="button"
+                tabIndex={0}
+                aria-label={`Следующая цель: ${hero.track.title}`}
+                onClick={() => {
+                  setView('vitrina');
+                  setCat('music');
+                  openSheet({ kind: 'track', track: hero.track });
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    setView('vitrina');
+                    setCat('music');
+                    openSheet({ kind: 'track', track: hero.track });
+                  }
+                }}
+              >
+                <div className="shop-hero-art">
+                  <div className="music-cover" style={{ width: 84, height: 84, fontSize: 36 }}>
+                    <span>{hero.track.emoji}</span>
+                    <i>♫</i>
+                  </div>
+                </div>
+                <div className="shop-hero-body grow">
+                  <span className="shop-badge">🎯 Следующая цель</span>
+                  <div className="shop-hero-title">{hero.track.title}</div>
+                  <div className="tiny muted">«{hero.track.originalTitle}» · Kevin MacLeod</div>
+                  <div className="tiny" style={{ marginTop: 4, fontWeight: 700 }}>
+                    {affordable
+                      ? `Хватает! ${hero.track.price} 💎 — и мелодия твоя`
+                      : `У тебя ${gems} 💎 · ещё ${missing} 💎`}
+                  </div>
+                  <button
+                    type="button"
+                    className="btn sm primary mt"
+                    style={{ marginTop: 8 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (affordable) {
+                        sfx.tap();
+                        setAskMusic(hero.track);
+                      } else {
+                        sfx.tap();
+                        haptic.tap();
+                        if (!wished) {
+                          toggleWishlist(hero.track.id);
+                          showToast({
+                            emoji: '🤍',
+                            title: 'Копим!',
+                            text: `«${hero.track.title}»: ещё ${missing} 💎. В списке «Мечты» в Гардеробе`,
+                          });
+                        } else {
+                          showToast({
+                            emoji: '💎',
+                            title: `До «${hero.track.title}» ещё ${missing} 💎`,
+                            text: 'Кристаллы дают за задания дня и сундук — загляни на главную',
+                          });
+                        }
+                      }
+                    }}
+                  >
+                    {affordable ? `Купить · 💎${hero.track.price}` : `Копить — ещё ${missing} 💎`}
+                  </button>
+                </div>
+              </article>
+            );
+          })()}
+
+          {!hero && (
+            <div className="card tiny mb" style={{ textAlign: 'center' }}>
+              ✨ Весь гардероб собран! Все наряды, костюмы и музыка у тебя.
+            </div>
+          )}
+
           <div className="mb">
             <h2 className="mb">Наряды БУКа</h2>
             <div className="tiny muted">Купленное сразу надевается · тап по карточке — подробнее</div>
@@ -1175,6 +1452,200 @@ export function ShopScreen() {
               </button>
             ))}
             <p className="tiny muted">Больше наборов — витрина ➜ полка «Звуки».</p>
+          </section>
+
+          {/* Мечты 🤍: список желаний с прогрессом накопления */}
+          <section className="mb" aria-label="Мечты">
+            <div className="between mb">
+              <div>
+                <h2 style={{ margin: 0 }}>Мечты 🤍</h2>
+                <div className="tiny muted">Отмечай сердцем — видно, к чему копить</div>
+              </div>
+            </div>
+            {wishlist.length === 0 ? (
+              <div className="card tiny mb" style={{ textAlign: 'center' }}>
+                Пока ничего не отложено. Нажми 🤍 на карточке в витрине — и вещь появится здесь с прогрессом накопления ✨
+              </div>
+            ) : (
+              <div className="wishlist-grid">
+                {wishlist.map((id) => {
+                  const item = ITEM_BY_ID[id];
+                  const track = MUSIC_BY_ID[id];
+                  const costume = COSTUMES.find((c) => c.id === id);
+
+                  if (item) {
+                    const left = missingGems(item, gems);
+                    const canGet = left === 0;
+                    const pct = Math.min(100, Math.round((gems / item.price) * 100));
+                    return (
+                      <div
+                        key={id}
+                        className={`wishlist-card${canGet ? ' afford' : ''}`}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`${item.title} в мечтах`}
+                        onClick={() => openSheet({ kind: 'item', item })}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') openSheet({ kind: 'item', item });
+                        }}
+                      >
+                        <button
+                          type="button"
+                          className="shop-heart on"
+                          aria-label={`Убрать «${item.title}» из мечт`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            tapWish(item.id, item.title);
+                          }}
+                        >
+                          💜
+                        </button>
+                        <div className="wishlist-card-art">
+                          <Mascot mood="idle" look={{ [item.slot]: item.id }} stage={growth.index} size={64} />
+                        </div>
+                        <div className="shop-title">{item.title}</div>
+                        <div className="shop-progress wishlist-progress-row">
+                          <i style={{ width: `${pct}%` }} />
+                        </div>
+                        <div className="tiny muted">
+                          {canGet ? 'Можно брать! ✨' : `Ещё ${left} 💎 (есть ${gems}/${item.price})`}
+                        </div>
+                        <button
+                          type="button"
+                          className={`btn sm wide ${canGet ? 'primary' : 'ghost'}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (canGet) {
+                              sfx.tap();
+                              setAsk(item);
+                            } else {
+                              openSheet({ kind: 'item', item });
+                            }
+                          }}
+                        >
+                          {canGet ? `Купить · 💎${item.price}` : `Ещё ${left} 💎`}
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  if (track) {
+                    const left = Math.max(0, track.price - gems);
+                    const canGet = left === 0;
+                    const pct = Math.min(100, Math.round((gems / track.price) * 100));
+                    return (
+                      <div
+                        key={id}
+                        className={`wishlist-card${canGet ? ' afford' : ''}`}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`${track.title} в мечтах`}
+                        onClick={() => openSheet({ kind: 'track', track })}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') openSheet({ kind: 'track', track });
+                        }}
+                      >
+                        <button
+                          type="button"
+                          className="shop-heart on"
+                          aria-label={`Убрать «${track.title}» из мечт`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            tapWish(track.id, track.title);
+                          }}
+                        >
+                          💜
+                        </button>
+                        <div className="wishlist-card-art">
+                          <div className="music-cover" style={{ width: 56, height: 56, fontSize: 24 }}>
+                            <span>{track.emoji}</span>
+                            <i>♫</i>
+                          </div>
+                        </div>
+                        <div className="shop-title">{track.title}</div>
+                        <div className="shop-progress wishlist-progress-row">
+                          <i style={{ width: `${pct}%` }} />
+                        </div>
+                        <div className="tiny muted">
+                          {canGet ? 'Можно брать! ✨' : `Ещё ${left} 💎 (есть ${gems}/${track.price})`}
+                        </div>
+                        <button
+                          type="button"
+                          className={`btn sm wide ${canGet ? 'primary' : 'ghost'}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (canGet) {
+                              sfx.tap();
+                              setAskMusic(track);
+                            } else {
+                              openSheet({ kind: 'track', track });
+                            }
+                          }}
+                        >
+                          {canGet ? `Купить · 💎${track.price}` : `Ещё ${left} 💎`}
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  if (costume) {
+                    const prog = costumeProgress(pz, costume.id);
+                    const pct = Math.min(100, Math.round((prog / PUZZLE_SIZE) * 100));
+                    return (
+                      <div
+                        key={id}
+                        className="wishlist-card"
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`${costume.title} в мечтах`}
+                        onClick={() => openSheet({ kind: 'costume', costume })}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') openSheet({ kind: 'costume', costume });
+                        }}
+                      >
+                        <button
+                          type="button"
+                          className="shop-heart on"
+                          aria-label={`Убрать «${costume.title}» из мечт`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            tapWish(costume.id, costume.title);
+                          }}
+                        >
+                          💜
+                        </button>
+                        <div className="wishlist-card-art">
+                          <div className="pz-locked">
+                            <Mascot mood="idle" costumeId={costume.id} stage={growth.index} size={64} />
+                          </div>
+                        </div>
+                        <div className="shop-title">{costume.title}</div>
+                        <div className="shop-progress wishlist-progress-row">
+                          <i style={{ width: `${pct}%` }} />
+                        </div>
+                        <div className="tiny muted">
+                          {prog} из {PUZZLE_SIZE} 🧩 · за уроки
+                        </div>
+                        <button
+                          type="button"
+                          className="btn sm wide ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setView('vitrina');
+                            setCat('costumes');
+                            tapPickCostume(costume.id);
+                          }}
+                        >
+                          К сборке
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  return null;
+                })}
+              </div>
+            )}
           </section>
         </>
       )}
