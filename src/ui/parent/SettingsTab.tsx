@@ -80,7 +80,7 @@ export function SettingsTab({ profile, onOpenDiagnostics }: { profile: Profile; 
 
       <div className="card">
         <GroupTitle title="Звук и отклик" />
-        <SettingRow title="Звук" hint="Звуковые эффекты: правильный ответ, ошибка, награда и сундук.">
+        <SettingRow title="Звук" hint="Звуковые эффекты: правильный ответ, ошибка, награда и сундук. Мелодии ответа ребёнок выбирает в магазине → «Звуки».">
           <Switch
             label="Звук"
             checked={settings.sound}

@@ -26,6 +26,7 @@ import {
 } from '../engine/quests';
 import { ITEM_BY_ID, isOwned } from '../engine/shop';
 import { migrateMusicShop, MUSIC_BY_ID, STARTER_TRACK_IDS } from '../engine/music';
+import { DEFAULT_SOUND_PACK, normalizeSoundShop, SOUND_PACK_BY_ID, STARTER_SOUND_IDS } from '../engine/sounds';
 import { normalizeTuning, recolor, type RecolorOutcome } from '../engine/tints';
 import {
   awardLessonPiece,
@@ -203,6 +204,8 @@ function readShop(p: Profile): ShopState {
     equipped: p.shop?.equipped ?? {},
     musicOwned: music.musicOwned,
     musicTrack: music.musicTrack,
+    // «Звуки»: старые профили получают стартовые наборы и классику
+    ...normalizeSoundShop(p.shop),
     // краски некупленных вещей, чужие id и акценты несобранных костюмов отбрасываем
     tuning: normalizeTuning(p.shop?.tuning, [...owned, ...assembled]),
   };
@@ -230,7 +233,14 @@ function newProfile(name: string, avatar: string): Profile {
     weekly: { week: weekStartKey(), claimed: [] },
     // Новому профилю — стартовая мелодия: музыка играет с первого дня,
     // а «Тишина» остаётся одним нажатием в коллекции БУКа.
-    shop: { owned: [], equipped: {}, musicOwned: [...STARTER_TRACK_IDS], musicTrack: STARTER_TRACK_IDS[0] },
+    shop: {
+      owned: [],
+      equipped: {},
+      musicOwned: [...STARTER_TRACK_IDS],
+      musicTrack: STARTER_TRACK_IDS[0],
+      soundOwned: [...STARTER_SOUND_IDS],
+      soundPack: DEFAULT_SOUND_PACK,
+    },
     puzzle: { pieces: {}, collecting: null, assembled: [], worn: null },
   };
 }
@@ -291,6 +301,7 @@ function normalizeProfile(raw: Partial<Profile> | null | undefined): Profile | n
       // Миграция каталога музыки: старые покупки дают новые треки, выбор
       // ребёнка (включая «Тишина») сохраняется — см. engine/music.ts.
       ...migrateMusicShop(raw.shop),
+      ...normalizeSoundShop(raw.shop),
       tuning: normalizeTuning(raw.shop?.tuning, [...owned, ...puzzle.assembled]),
     },
     puzzle,
@@ -380,6 +391,10 @@ interface AppState {
   buyMusicTrack: (id: string) => boolean;
   /** Выбрать купленную мелодию для БУКа; null — выключить музыку. */
   setMusicTrack: (id: string | null) => void;
+  /** Купить набор «Звуков» (мелодии правильного ответа и ошибки); однократно. */
+  buySoundPack: (id: string) => boolean;
+  /** Выбрать открытый набор «Звуков» для уроков. */
+  setSoundPack: (id: string) => void;
   /** Надеть/снять аксессуар: повторный тап по надетой вещи снимает её */
   toggleEquip: (id: string) => void;
   /**
@@ -969,6 +984,30 @@ export const useApp = create<AppState>()(
           const shop = readShop(prof);
           if (id !== null && (!MUSIC_BY_ID[id] || !shop.musicOwned?.includes(id))) return prof;
           return { ...prof, shop: { ...shop, musicTrack: id } };
+        })),
+
+      buySoundPack: (id) => {
+        const pack = SOUND_PACK_BY_ID[id];
+        const p = getActive(get());
+        if (!pack || !p) return false;
+        const shop = readShop(p);
+        if (shop.soundOwned?.includes(id) || p.gems < pack.price) return false;
+        set((s) => patchActive(s, (prof) => {
+          const current = readShop(prof);
+          return {
+            ...prof,
+            gems: prof.gems - pack.price,
+            shop: { ...current, soundOwned: [...(current.soundOwned ?? []), id] },
+          };
+        }));
+        return true;
+      },
+
+      setSoundPack: (id) =>
+        set((s) => patchActive(s, (prof) => {
+          const shop = readShop(prof);
+          if (!SOUND_PACK_BY_ID[id] || !shop.soundOwned?.includes(id)) return prof;
+          return { ...prof, shop: { ...shop, soundPack: id } };
         })),
 
       toggleEquip: (id) =>

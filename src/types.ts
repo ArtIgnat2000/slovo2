@@ -121,6 +121,9 @@ export interface ShopState {
   /** Купленные музыкальные лупы и выбранный для БУКа фон. */
   musicOwned?: string[];
   musicTrack?: string | null;
+  /** Раздел «Звуки»: открытые наборы мелодий ответа и выбранный (engine/sounds.ts). */
+  soundOwned?: string[];
+  soundPack?: string;
   /** Тюнинг цвета купленных вещей (см. engine/shop.ts и docs/shop-tuning.md) */
   tuning?: ShopTuning;
 }

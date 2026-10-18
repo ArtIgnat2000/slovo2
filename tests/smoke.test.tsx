@@ -25,6 +25,7 @@ import { runLessonArtChecks } from './lesson-art-ui.test';
 import { runVerdictChecks } from './verdict-ui.test';
 import { LESSONS, WORDS } from '../src/content/words';
 import { MUSIC_TRACKS } from '../src/engine/music';
+import { SOUND_PACKS, STARTER_SOUND_IDS } from '../src/engine/sounds';
 import { resolvePhotoSize, resolveWordCardVariant } from '../src/ui/WordView';
 import { buildLesson, lessonCardLimit } from '../src/engine/scheduler';
 import { dayKey, dayPlan, useApp } from '../src/state/store';
@@ -497,7 +498,11 @@ async function main() {
   await sleep(80);
   check('магазин открылся', has('Магазин БУКа'), body().slice(0, 200));
   check('витрина по умолчанию — полка нарядов', has('Наряды БУКа'), '');
-  check('полки — чипами, «скоро» честно помечено', has('Костюмы') && has('Музыка') && has('Звуки') && has('скоро'), '');
+  check(
+    'полки — чипами, «Звуки» уже открыты',
+    has('Костюмы') && has('Музыка') && !!Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Звуки') && !c.hasAttribute('disabled')) && !has('скоро'),
+    '',
+  );
   check('полка «Фоны» активна', !!Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Фоны') && !c.hasAttribute('disabled')), '');
   check('показан баланс кристаллов', has(`💎 ${useApp.getState().profiles[0].gems}`), '');
 
@@ -581,6 +586,46 @@ async function main() {
     await sleep(30);
   }
 
+  // Полка «Звуки»: мелодии правильного ответа и ошибки
+  click(Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Звуки'))!);
+  await sleep(30);
+  check('в «Звуках» показаны все наборы', document.querySelectorAll('.sound-item').length === SOUND_PACKS.length, String(document.querySelectorAll('.sound-item').length));
+  check('у каждого набора — «послушать» верный ответ и ошибку', document.querySelectorAll('.sound-item .sound-try button').length === SOUND_PACKS.length * 2, '');
+  check('новый профиль звучит классикой', useApp.getState().profiles[0].shop?.soundPack === 'classic', String(useApp.getState().profiles[0].shop?.soundPack));
+  const xyloCard = Array.from(document.querySelectorAll('.sound-item')).find((card) => (card.textContent ?? '').includes('Ксилофон'));
+  const xyloPick = Array.from(xyloCard?.querySelectorAll('button') ?? []).find((b) => (b.textContent ?? '').includes('Выбрать')) as HTMLButtonElement | undefined;
+  check('стартовый «Ксилофон» выбирается бесплатно', !!xyloPick, '');
+  if (xyloPick) click(xyloPick);
+  await sleep(30);
+  check('выбранный набор звуков сохраняется в профиле', useApp.getState().profiles[0].shop?.soundPack === 'xylophone', String(useApp.getState().profiles[0].shop?.soundPack));
+  const paidSound = SOUND_PACKS.find((p) => p.price > 0)!;
+  const gemsBeforeSound = useApp.getState().profiles[0].gems;
+  useApp.setState((s) => ({ profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, gems: Math.max(p.gems, paidSound.price) } : p)) }));
+  await sleep(30);
+  const paidCard = Array.from(document.querySelectorAll('.sound-item')).find((card) => (card.textContent ?? '').includes(paidSound.title));
+  const paidBuy = Array.from(paidCard?.querySelectorAll('button') ?? []).find((b) => (b.textContent ?? '').includes('Купить')) as HTMLButtonElement | undefined;
+  check('платный набор звуков можно купить', !!paidBuy, '');
+  if (paidBuy) {
+    const gemsNow = useApp.getState().profiles[0].gems;
+    click(paidBuy);
+    await sleep(30);
+    check('покупка звуков спрашивает подтверждение', has(`Купить звуки «${paidSound.title}»`), '');
+    click(btnText(`Купить за 💎${paidSound.price}`));
+    await sleep(50);
+    const soundBought = useApp.getState().profiles[0];
+    check(
+      'покупка звуков списывает кристаллы, открывает и включает набор',
+      soundBought.gems === gemsNow - paidSound.price && !!soundBought.shop?.soundOwned?.includes(paidSound.id) && soundBought.shop?.soundPack === paidSound.id,
+      `gems=${soundBought.gems}, pack=${soundBought.shop?.soundPack}`,
+    );
+    check('повторная покупка звуков не списывает кристаллы', useApp.getState().buySoundPack(paidSound.id) === false, '');
+  }
+  // Возвращаем как было: остальные проверки магазина считают кристаллы
+  useApp.setState((s) => ({
+    profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, gems: gemsBeforeSound, shop: { ...p.shop!, soundOwned: [...STARTER_SOUND_IDS], soundPack: 'classic' } } : p)),
+  }));
+  await sleep(30);
+
   // Гардероб: примерочная и коллекция музыки (единственный вход — полка)
   click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Гардероб'))!);
   await sleep(30);
@@ -597,6 +642,7 @@ async function main() {
   if (silenceRow) click(silenceRow);
   await sleep(30);
   check('музыку можно выключить из коллекции', useApp.getState().profiles[0].shop?.musicTrack === null, String(useApp.getState().profiles[0].shop?.musicTrack));
+  check('гардероб показывает «Мои звуки» со стартовыми наборами', has('Мои звуки') && document.querySelectorAll('.sound-choice').length === STARTER_SOUND_IDS.length, '');
   click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Витрина'))!);
   await sleep(30);
   click(Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Наряды'))!);

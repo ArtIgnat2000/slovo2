@@ -24,7 +24,8 @@ import {
 import { TINT_PRICE, type TintOption } from '../../engine/tints';
 import { TintPicker } from '../TintPicker';
 import { ConfirmDialog } from '../Bits';
-import { sfx } from '../../platform/sound';
+import { previewSoundCue, sfx } from '../../platform/sound';
+import { SOUND_PACKS, type SoundCue, type SoundPack } from '../../engine/sounds';
 import { haptic } from '../../platform/haptics';
 import type { ShopItem } from '../../engine/shop';
 import { MUSIC_TRACKS, MUSIC_BY_ID, tracksByShelf, type MusicShelf, type MusicTrack } from '../../engine/music';
@@ -39,8 +40,10 @@ import { BackgroundThemeCard } from '../BackgroundThemeCard';
  * Что изменилось по сравнению с «одной лентой»:
  *  • два верхних уровня — **Витрина** (чего хочу) и **Гардероб** (что моё);
  *    раньше купленное терялось в общей ленте среди продаваемого;
- *  • витрина режется **чипами-полками**: наряды / костюмы / музыка / фоны;
- *    звуки пока честно отмечены «скоро», новый раздел не требует переделки экрана;
+ *  • витрина режется **чипами-полками**: наряды / костюмы / музыка / фоны /
+ *    звуки; новый раздел не требует переделки экрана;
+ *  • «Звуки» (0.17.0) — наборы мелодий правильного ответа и ошибки
+ *    (engine/sounds.ts): послушать оба отклика можно прямо на карточке;
  *  • **единый макет карточки** для всех типов товара: арт, название, статус
  *    плашкой (Твоя ✓ / Надето ✓ / Собираю 4/9 / Ещё N 💎) и ОДНО действие;
  *  • подробная карточка — **sheet снизу**: крупная примерка, цена, палитра
@@ -63,25 +66,22 @@ const MUSIC_SHELVES: { shelf: MusicShelf; title: string; note: string }[] = [
 type View = 'vitrina' | 'wardrobe';
 
 /** Полки витрины — по типу товара, не по слоту совы. */
-type Cat = 'outfits' | 'costumes' | 'music' | 'backgrounds';
+type Cat = 'outfits' | 'costumes' | 'music' | 'sounds' | 'backgrounds';
 
 const CATS: { id: Cat; title: string; emoji: string }[] = [
   { id: 'outfits', title: 'Наряды', emoji: '🎩' },
   { id: 'costumes', title: 'Костюмы', emoji: '🧩' },
   { id: 'music', title: 'Музыка', emoji: '🎵' },
+  { id: 'sounds', title: 'Звуки', emoji: '🔊' },
   { id: 'backgrounds', title: 'Фоны', emoji: '🖼️' },
-];
-
-/** Разделы, которых ещё нет: обещание роста, а не интерфейс. */
-const CATS_SOON = [
-  { title: 'Звуки', emoji: '🔊' },
 ];
 
 /** Что открылось в подробной карточке (sheet снизу). */
 type Detail =
   | { kind: 'item'; item: ShopItem }
   | { kind: 'costume'; costume: Costume }
-  | { kind: 'track'; track: MusicTrack };
+  | { kind: 'track'; track: MusicTrack }
+  | { kind: 'sound'; pack: SoundPack };
 
 /** «3:25» — длительность записи на карточке. */
 function fmtTime(seconds: number): string {
@@ -178,6 +178,8 @@ export function ShopScreen() {
   const showToast = useApp((s) => s.showToast);
   const recolorItem = useApp((s) => s.recolorItem);
   const buyMusicTrack = useApp((s) => s.buyMusicTrack);
+  const buySoundPack = useApp((s) => s.buySoundPack);
+  const setSoundPack = useApp((s) => s.setSoundPack);
   const setMusicTrack = useApp((s) => s.setMusicTrack);
   const themeStyle = useApp((s) => s.settings.themeStyle);
   const setSettings = useApp((s) => s.setSettings);
@@ -188,6 +190,7 @@ export function ShopScreen() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [ask, setAsk] = useState<ShopItem | null>(null);
   const [askMusic, setAskMusic] = useState<MusicTrack | null>(null);
+  const [askSound, setAskSound] = useState<SoundPack | null>(null);
   const [askTint, setAskTint] = useState<{ target: TintTarget; tint: TintOption } | null>(null);
   const [previewTrack, setPreviewTrack] = useState<string | null>(null);
   const [mood, setMood] = useState<'idle' | 'happy' | 'dance'>('idle');
@@ -230,6 +233,8 @@ export function ShopScreen() {
   const allCostumesDone = COSTUMES.every((c) => pz.assembled.includes(c.id));
   const musicOwned = profile.shop?.musicOwned ?? [];
   const selectedMusic = profile.shop?.musicTrack ?? null;
+  const soundOwned = profile.shop?.soundOwned ?? [];
+  const selectedSound = profile.shop?.soundPack ?? 'classic';
 
   const openSheet = (detail: Detail) => {
     sfx.tap();
@@ -281,6 +286,38 @@ export function ShopScreen() {
       showToast({ emoji: track.emoji, title: `«${track.title}» теперь твоя!`, text: 'БУК уже включил новую музыку' });
     } else {
       showToast({ emoji: '💎', title: 'Не хватает кристаллов', text: `Нужно ещё ${Math.max(0, track.price - gems)} 💎` });
+    }
+  };
+
+  // ── «Звуки»: мелодии правильного ответа и ошибки ─────────────────────
+
+  /** Послушать отклик набора. Выключенный у родителя звук — честная подсказка. */
+  const tryCue = (pack: SoundPack, cue: SoundCue) => {
+    haptic.tap();
+    if (!previewSoundCue(pack.id, cue)) {
+      showToast({ emoji: '🔇', title: 'Звук выключен', text: 'Включить можно в разделе для взрослых → Настройки → Звук' });
+    }
+  };
+
+  const chooseSound = (pack: SoundPack) => {
+    setSoundPack(pack.id);
+    previewSoundCue(pack.id, 'correct');
+    haptic.tap();
+    showToast({ emoji: pack.emoji, title: `«${pack.title}» звучит в уроках`, text: 'Так БУК отзовётся на верный ответ и на ошибку' });
+  };
+
+  const confirmSoundBuy = () => {
+    if (!askSound) return;
+    const pack = askSound;
+    const ok = buySoundPack(pack.id);
+    setAskSound(null);
+    if (ok) {
+      setSoundPack(pack.id);
+      previewSoundCue(pack.id, 'correct');
+      haptic.correct();
+      showToast({ emoji: pack.emoji, title: `«${pack.title}» теперь твои!`, text: 'Новые звуки уже включены в уроках' });
+    } else {
+      showToast({ emoji: '💎', title: 'Не хватает кристаллов', text: `Нужно ещё ${Math.max(0, pack.price - gems)} 💎` });
     }
   };
 
@@ -516,6 +553,85 @@ export function ShopScreen() {
     );
   };
 
+  /** Две кнопки «послушать»: верный ответ и ошибка — прямо на карточке. */
+  const cueButtons = (pack: SoundPack, size: 'sm' | 'lg') => (
+    <div className={`sound-try${size === 'lg' ? ' sound-try-lg' : ''}`}>
+      <button
+        type="button"
+        className={`btn ${size} ghost`}
+        aria-label={`Послушать «${pack.title}»: правильный ответ`}
+        onClick={(e) => {
+          e.stopPropagation();
+          tryCue(pack, 'correct');
+        }}
+      >
+        ▶ ✓{size === 'lg' ? ' Верно' : ''}
+      </button>
+      <button
+        type="button"
+        className={`btn ${size} ghost`}
+        aria-label={`Послушать «${pack.title}»: ошибка`}
+        onClick={(e) => {
+          e.stopPropagation();
+          tryCue(pack, 'wrong');
+        }}
+      >
+        ▶ ✗{size === 'lg' ? ' Ошибка' : ''}
+      </button>
+    </div>
+  );
+
+  const soundCard = (pack: SoundPack) => {
+    const ownedPack = soundOwned.includes(pack.id);
+    const selected = selectedSound === pack.id;
+    const affordable = gems >= pack.price;
+    return (
+      <ShopCard
+        key={pack.id}
+        art={
+          <div className="music-cover sound-cover" aria-hidden="true">
+            <span>{pack.emoji}</span>
+            <i>♪</i>
+          </div>
+        }
+        title={pack.title}
+        desc={pack.desc}
+        cardCls={`music-item sound-item${selected ? ' on' : ownedPack ? ' owned' : ''}`}
+        extra={cueButtons(pack, 'sm')}
+        priceLabel={ownedPack ? 'Твои ✓' : `💎 ${pack.price}`}
+        afford={affordable}
+        actionLabel={
+          ownedPack
+            ? selected
+              ? 'Звучит ✓'
+              : 'Выбрать'
+            : affordable
+              ? `Купить · 💎${pack.price}`
+              : `Ещё ${pack.price - gems} 💎`
+        }
+        actionTone={ownedPack ? (selected ? 'green' : 'ghost') : affordable ? 'primary' : 'ghost'}
+        actionDisabled={!ownedPack && !affordable}
+        onOpen={() => openSheet({ kind: 'sound', pack })}
+        onAction={() => {
+          if (ownedPack) {
+            if (!selected) chooseSound(pack);
+            else tryCue(pack, 'correct');
+          } else if (affordable) {
+            sfx.tap();
+            setAskSound(pack);
+          } else {
+            sfx.hint();
+            showToast({
+              emoji: '💎',
+              title: `До «${pack.title}» ещё ${pack.price - gems} 💎`,
+              text: 'Кристаллы дают за задания дня и сундук — загляни на главную',
+            });
+          }
+        }}
+      />
+    );
+  };
+
   // ── Sheet: содержимое по типу товара ──────────────────────────────────
 
   const sheetBody = (() => {
@@ -667,6 +783,58 @@ export function ShopScreen() {
         </>
       );
     }
+    if (sheet.kind === 'sound') {
+      const pack = sheet.pack;
+      const ownedPack = soundOwned.includes(pack.id);
+      const selected = selectedSound === pack.id;
+      const affordable = gems >= pack.price;
+      return (
+        <>
+          <div className="shop-bigart">
+            <div className="music-cover music-cover-lg sound-cover" aria-hidden="true">
+              <span>{pack.emoji}</span>
+              <i>♪</i>
+            </div>
+          </div>
+          <h2 style={{ margin: '0 0 2px' }}>{pack.title}</h2>
+          <p className="tiny muted" style={{ marginTop: 0 }}>{pack.desc} · звуки правильного ответа и ошибки</p>
+          <div className="row mb">
+            <span className={`shop-price${affordable ? ' afford' : ''}`}>💎 {pack.price}</span>
+            <span className="tiny muted grow" style={{ alignSelf: 'center' }}>
+              {ownedPack ? 'В коллекции' : pack.price === 0 ? 'Бесплатно' : `У тебя ${gems} 💎`}
+            </span>
+          </div>
+          <div className="mb">{cueButtons(pack, 'lg')}</div>
+          <div className="row mb">
+            {ownedPack ? (
+              <button
+                className={`btn lg grow ${selected ? 'green' : 'primary'}`}
+                disabled={selected}
+                onClick={() => {
+                  chooseSound(pack);
+                  closeSheet();
+                }}
+              >
+                {selected ? 'Звучит в уроках ✓' : 'Выбрать'}
+              </button>
+            ) : (
+              <button
+                className="btn lg grow primary"
+                disabled={!affordable}
+                onClick={() => {
+                  closeSheet();
+                  sfx.tap();
+                  setAskSound(pack);
+                }}
+              >
+                {affordable ? `Купить за 💎${pack.price}` : `Ещё ${pack.price - gems} 💎`}
+              </button>
+            )}
+          </div>
+          <p className="tiny muted">{pack.about}</p>
+        </>
+      );
+    }
     // track
     const track = sheet.track;
     const ownedTrack = musicOwned.includes(track.id);
@@ -766,7 +934,7 @@ export function ShopScreen() {
             🛍️ Витрина
           </button>
           <button role="tab" aria-selected={view === 'wardrobe'} className={view === 'wardrobe' ? 'on' : ''} onClick={() => setView('wardrobe')}>
-            👕 Гардероб · {owned.length + pz.assembled.length + musicOwned.length}
+            👕 Гардероб · {owned.length + pz.assembled.length + musicOwned.length + soundOwned.length}
           </button>
         </div>
         {view === 'vitrina' && (
@@ -774,11 +942,6 @@ export function ShopScreen() {
             {CATS.map((c) => (
               <button key={c.id} role="tab" aria-selected={cat === c.id} className={`chip${cat === c.id ? ' on' : ''}`} onClick={() => setCat(c.id)}>
                 {c.emoji} {c.title}
-              </button>
-            ))}
-            {CATS_SOON.map((c) => (
-              <button key={c.title} className="chip" disabled title="Скоро" aria-label={`${c.title} — скоро`}>
-                {c.emoji} {c.title} · скоро
               </button>
             ))}
           </div>
@@ -852,6 +1015,22 @@ export function ShopScreen() {
               <div className="shop-grid music-grid">{tracksByShelf(shelf).map(trackCard)}</div>
             </div>
           ))}
+        </section>
+      )}
+
+      {view === 'vitrina' && cat === 'sounds' && (
+        <section className="mt" aria-label="Звуки">
+          <div className="mb">
+            <h2 style={{ margin: 0 }}>Звуки БУКа 🔊</h2>
+            <div className="tiny muted">
+              {SOUND_PACKS.length} наборов · мелодия за правильный ответ ✓ и за ошибку ✗ · слушай перед покупкой
+            </div>
+          </div>
+          <div className="music-store-note">
+            🎶 Выбранный набор звучит в уроках, заданиях и квестах. Мелодия ошибки всегда мягкая и короткая:
+            это подсказка «попробуй иначе», а не наказание.
+          </div>
+          <div className="shop-grid music-grid">{SOUND_PACKS.map(soundCard)}</div>
         </section>
       )}
 
@@ -980,6 +1159,23 @@ export function ShopScreen() {
               <p className="tiny">Пока нет мелодий. Витрина ➜ полка «Музыка» — две стартовые бесплатно.</p>
             )}
           </section>
+
+          {/* Мои звуки: какой набор звучит за ответы в уроках */}
+          <section className="mb" aria-label="Мои звуки">
+            <h2 className="mb">Мои звуки</h2>
+            {SOUND_PACKS.filter((p) => soundOwned.includes(p.id)).map((pack) => (
+              <button
+                key={pack.id}
+                className={`music-choice sound-choice${selectedSound === pack.id ? ' selected' : ''}`}
+                onClick={() => (selectedSound === pack.id ? tryCue(pack, 'correct') : chooseSound(pack))}
+              >
+                <span className="music-emoji">{pack.emoji}</span>
+                <span className="grow"><b>{pack.title}</b><small>{pack.desc}</small></span>
+                {selectedSound === pack.id && <span aria-label="Выбрано">✓</span>}
+              </button>
+            ))}
+            <p className="tiny muted">Больше наборов — витрина ➜ полка «Звуки».</p>
+          </section>
         </>
       )}
 
@@ -1006,6 +1202,18 @@ export function ShopScreen() {
           leaveLabel="Не сейчас"
           onStay={confirmMusicBuy}
           onLeave={() => setAskMusic(null)}
+        />
+      )}
+
+      {askSound && (
+        <ConfirmDialog
+          emoji={askSound.emoji}
+          title={`Купить звуки «${askSound.title}»?`}
+          text={`Отдашь ${askSound.price} 💎 из ${gems}. Новые звуки сразу зазвучат в уроках.`}
+          stayLabel={`Купить за 💎${askSound.price}`}
+          leaveLabel="Не сейчас"
+          onStay={confirmSoundBuy}
+          onLeave={() => setAskSound(null)}
         />
       )}
 
