@@ -4,6 +4,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import type { DailyState, DayStat, LessonSize, LessonState, Profile, ShopState, ShopSlot, ShopTuning, WeeklyState, WordState } from '../types';
 import { applyAnswer, initState } from '../engine/srs';
 import { idbStorage } from '../platform/storage';
+import { normalizePalette, type PaletteId } from '../platform/theme';
 import { GEMS_PER_STREAK, levelOf } from '../engine/rewards';
 import { dayKey, prevDay } from '../engine/day';
 import { settleWeeklyRewards, weekStartKey, type WeeklyMilestone } from '../engine/weekly-rewards';
@@ -84,7 +85,10 @@ export interface Settings {
   musicVolume: number;
   haptics: boolean;
   dailyGoal: number; // XP в день
+  /** Яркость: «как в телефоне», светлая или тёмная. */
   theme: 'auto' | 'light' | 'dark';
+  /** Тема-стиль: классика, неон, космос или море (см. platform/theme.ts). */
+  palette: PaletteId;
   mascot: MascotMode;
   lessonHelp: LessonHelpMode;
 }
@@ -96,6 +100,7 @@ const DEFAULT_SETTINGS: Settings = {
   haptics: true,
   dailyGoal: 120,
   theme: 'auto',
+  palette: 'classic',
   mascot: 'on',
   lessonHelp: 'socratic',
 };
@@ -294,6 +299,8 @@ function normalizeSettings(raw: Partial<Settings> | null | undefined): Settings 
       raw.theme === 'auto' || raw.theme === 'light' || raw.theme === 'dark'
         ? raw.theme
         : DEFAULT_SETTINGS.theme,
+    // Старые выгрузки и записи без темы получают классическую: вид не меняется.
+    palette: normalizePalette(raw.palette),
     // Старые выгрузки и записи без поля получают 'on': поведение не меняется.
     mascot:
       raw.mascot === 'on' || raw.mascot === 'home' || raw.mascot === 'off'

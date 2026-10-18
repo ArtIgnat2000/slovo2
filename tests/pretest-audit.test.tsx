@@ -207,7 +207,7 @@ export async function runPretestAuditChecks(): Promise<void> {
       } as never,
     ],
     activeId: 'non_existent_id',
-    settings: { dailyGoal: -50, theme: 'invalid' as never, sound: true, haptics: false },
+    settings: { dailyGoal: -50, theme: 'invalid' as never, palette: 'bogus' as never, sound: true, haptics: false },
   });
   const importedState = useApp.getState();
   const imp = importedState.profiles[0];
@@ -220,6 +220,7 @@ export async function runPretestAuditChecks(): Promise<void> {
       Array.isArray(imp.shop?.owned) &&
       importedState.settings.dailyGoal === 120 &&
       importedState.settings.theme === 'auto' &&
+      importedState.settings.palette === 'classic' &&
       importedState.toast === null,
     JSON.stringify({ activeId: importedState.activeId, xp: imp?.xp, settings: importedState.settings }),
   );

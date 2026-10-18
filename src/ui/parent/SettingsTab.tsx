@@ -10,6 +10,7 @@ import { DEFAULT_LESSON_SIZE, LESSON_SIZE_OPTIONS } from '../../engine/scheduler
 import { useApp } from '../../state/store';
 import { MusicCreditsToggle } from '../Credits';
 import { ThemeHelp } from '../ThemeHelp';
+import { PALETTES, PALETTE_IDS } from '../../platform/theme';
 import { Choice, GroupTitle, SettingRow, Switch } from './ParentBits';
 import type { Profile } from '../../types';
 
@@ -121,9 +122,24 @@ export function SettingsTab({ profile, onOpenDiagnostics }: { profile: Profile; 
 
       <div className="card">
         <GroupTitle title="Вид" />
-        <SettingRow title="Тема" hint="Светлая, тёмная или как в телефоне.">
+        <SettingRow
+          title="Тема"
+          hint="Как выглядит приложение: цвета, свечение и фоновый узор. Каждая тема есть в светлом и тёмном виде."
+        >
           <Choice
             label="Тема оформления"
+            value={settings.palette}
+            onChange={(palette) => setSettings({ palette })}
+            options={PALETTE_IDS.map((id) => ({
+              value: id,
+              label: PALETTES[id].title,
+              hint: PALETTES[id].hint,
+            }))}
+          />
+        </SettingRow>
+        <SettingRow title="Яркость" hint="Светлая, тёмная или как в телефоне. Действует на любую тему.">
+          <Choice
+            label="Яркость"
             value={settings.theme}
             onChange={(theme) => setSettings({ theme })}
             options={[

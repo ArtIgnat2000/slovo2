@@ -1,10 +1,16 @@
 /**
  * Тема оформления и объявление схемы браузеру.
  *
+ * Оформление складывается из двух независимых выборов:
+ *  • **яркость** (`ThemeSetting`): «как в телефоне», светлая или тёмная;
+ *  • **тема-стиль** (`PaletteId`): классика, неон, космос или море — палитра,
+ *    свечение и фоновый узор. У каждой темы есть свой светлый и тёмный вариант.
+ *
  * Статичный <meta name="color-scheme" content="only light"> в index.html
  * защищает первый кадр от Chrome Auto Dark ещё ДО выполнения скриптов.
- * Инлайн-скрипт затем читает зеркало темы и выбирает палитру до отрисовки;
- * applyTheme поддерживает её после загрузки IndexedDB и при переключении.
+ * Инлайн-скрипт затем читает зеркала выбора и ставит `data-theme` и
+ * `data-palette` до отрисовки; applyTheme поддерживает их после загрузки
+ * IndexedDB и при переключении.
  *
  * Это не способ отключить принудительное затемнение Samsung Internet:
  * некоторые его версии перекрашивают готовые пиксели, игнорируя color-scheme.
@@ -19,20 +25,79 @@ export type ThemeSetting = 'auto' | 'light' | 'dark';
 export type ResolvedTheme = 'light' | 'dark';
 
 /**
- * Ключ зеркала темы в localStorage.
+ * Тема-стиль оформления. Значения живут в атрибуте `data-palette` и в CSS
+ * (tokens.css: `[data-palette='…']`); новые темы добавляются в оба места
+ * и в PALETTES ниже — больше нигде.
+ */
+export type PaletteId = 'classic' | 'neon' | 'space' | 'sea';
+
+/** Тема по умолчанию: та, что была в приложении до появления выбора. */
+export const DEFAULT_PALETTE: PaletteId = 'classic';
+
+/**
+ * Ключ зеркала выбора темы в localStorage.
  *
  * Основное хранилище настроек — IndexedDB, и оно читается асинхронно: к
  * первому кадру ответ ещё не пришёл. Но объявить схему нужно до первой
- * отрисовки, поэтому выбор темы дублируется в localStorage — он читается
- * синхронно, и инлайн-скрипт в index.html успевает поставить `data-theme` и
- * схему до того, как браузер нарисует первый кадр.
+ * отрисовки, поэтому выбор дублируется в localStorage — он читается
+ * синхронно, и инлайн-скрипт в index.html успевает поставить `data-theme`,
+ * `data-palette` и схему до того, как браузер нарисует первый кадр.
  */
 export const THEME_MIRROR_KEY = 'slovo2-theme';
+/** Ключ зеркала темы-стиля (см. THEME_MIRROR_KEY). */
+export const PALETTE_MIRROR_KEY = 'slovo2-palette';
 
-/** Цвет системной панели приложения в тёмной теме. */
-export const DARK_THEME_COLOR = '#171426';
-/** Цвет системной панели приложения в светлой теме. */
-export const LIGHT_THEME_COLOR = '#7C5CFF';
+/** Описание темы-стиля для настроек и метатега системной панели. */
+export interface PaletteInfo {
+  id: PaletteId;
+  /** Название для настроек — его читает и родитель, и ребёнок. */
+  title: string;
+  /** Чем тема отличается от других: подпись в настройках. */
+  hint: string;
+  /** Цвет системной панели для светлого и тёмного варианта темы. */
+  themeColor: Record<ResolvedTheme, string>;
+}
+
+/** Все темы в порядке показа в настройках. */
+export const PALETTES: Record<PaletteId, PaletteInfo> = {
+  classic: {
+    id: 'classic',
+    title: 'Классическая',
+    hint: 'Тёплый крем и сирень — как сегодня.',
+    themeColor: { light: '#7C5CFF', dark: '#171426' },
+  },
+  neon: {
+    id: 'neon',
+    title: 'Неоновая',
+    hint: 'Неон-аркада: магента, циан, светящиеся заголовки и сетка.',
+    themeColor: { light: '#d600d6', dark: '#0d0d1a' },
+  },
+  space: {
+    id: 'space',
+    title: 'Космос',
+    hint: 'Ночное небо: индиго, фиолетовое свечение и звёзды.',
+    themeColor: { light: '#4f46e5', dark: '#0b1026' },
+  },
+  sea: {
+    id: 'sea',
+    title: 'Морская',
+    hint: 'Бирюза, волны и морской бриз.',
+    themeColor: { light: '#0d9488', dark: '#062a33' },
+  },
+};
+
+/** id тем в порядке показа в настройках. */
+export const PALETTE_IDS: PaletteId[] = ['classic', 'neon', 'space', 'sea'];
+
+/** Провести тему через грязные данные (выгрузки, старые профили). */
+export function normalizePalette(raw: unknown): PaletteId {
+  return typeof raw === 'string' && (PALETTE_IDS as string[]).includes(raw) ? (raw as PaletteId) : DEFAULT_PALETTE;
+}
+
+/** Цвет системной панели для темы и яркости. */
+export function themeColorFor(palette: PaletteId, resolved: ResolvedTheme): string {
+  return PALETTES[normalizePalette(palette)].themeColor[resolved];
+}
 
 /** Тёмная ли системная тема телефона. */
 export function systemPrefersDark(): boolean {
@@ -43,14 +108,14 @@ export function systemPrefersDark(): boolean {
   }
 }
 
-/** Какая палитра на экране при таком выборе в настройках. */
+/** Какая яркость на экране при таком выборе в настройках. */
 export function resolveTheme(theme: ThemeSetting, prefersDark: boolean = systemPrefersDark()): ResolvedTheme {
   if (theme === 'dark') return 'dark';
   if (theme === 'light') return 'light';
   return prefersDark ? 'dark' : 'light';
 }
 
-/** Прочитать зеркало выбора темы (null — зеркала ещё нет). */
+/** Прочитать зеркало выбора яркости (null — зеркала ещё нет). */
 export function readThemeMirror(): ThemeSetting | null {
   try {
     const raw = window.localStorage.getItem(THEME_MIRROR_KEY);
@@ -61,10 +126,33 @@ export function readThemeMirror(): ThemeSetting | null {
   }
 }
 
-/** Записать зеркало выбора темы, чтобы следующий запуск начался сразу с него. */
+/** Записать зеркало выбора яркости, чтобы следующий запуск начался сразу с него. */
 export function writeThemeMirror(theme: ThemeSetting): void {
   try {
     window.localStorage.setItem(THEME_MIRROR_KEY, theme);
+  } catch {
+    // Без зеркала приложение всё равно применит тему — просто чуть позже.
+  }
+}
+
+/** Прочитать зеркало выбора темы-стиля (null — зеркала ещё нет). */
+export function readPaletteMirror(): PaletteId | null {
+  try {
+    const raw = window.localStorage.getItem(PALETTE_MIRROR_KEY);
+    return raw === null ? null : normalizePalette(raw);
+  } catch {
+    // Приватный режим или запрет хранилища: тему применит приложение позже.
+    return null;
+  }
+}
+
+/**
+ * Записать зеркало выбора темы-стиля. Неизвестное значение пишется как
+ * классическая: инлайн-скрипт в index.html проверяет значение строго.
+ */
+export function writePaletteMirror(palette: PaletteId): void {
+  try {
+    window.localStorage.setItem(PALETTE_MIRROR_KEY, normalizePalette(palette));
   } catch {
     // Без зеркала приложение всё равно применит тему — просто чуть позже.
   }
@@ -78,15 +166,16 @@ export function writeThemeMirror(theme: ThemeSetting): void {
  * Samsung Internet может проигнорировать оба объявления при включённой
  * принудительной тёмной теме веб-контента.
  */
-export function applyTheme(theme: ThemeSetting, prefersDark?: boolean): ResolvedTheme {
+export function applyTheme(theme: ThemeSetting, palette: PaletteId = DEFAULT_PALETTE, prefersDark?: boolean): ResolvedTheme {
   const resolved = resolveTheme(theme, prefersDark);
   const root = document.documentElement;
   root.dataset.theme = resolved;
+  root.dataset.palette = normalizePalette(palette);
   root.style.colorScheme = resolved === 'dark' ? 'only dark' : 'only light';
   document.querySelector('meta[name="color-scheme"]')?.setAttribute('content', resolved === 'dark' ? 'dark' : 'only light');
   document
     .querySelector('meta[name="theme-color"]')
-    ?.setAttribute('content', resolved === 'dark' ? DARK_THEME_COLOR : LIGHT_THEME_COLOR);
+    ?.setAttribute('content', themeColorFor(palette, resolved));
   return resolved;
 }
 

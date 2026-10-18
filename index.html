@@ -27,15 +27,24 @@
       затемнением может игнорировать оба объявления: его настройку нельзя
       выключить со страницы.
 
-      Настройки лежат в IndexedDB и читаются асинхронно; зеркало выбора темы
-      в localStorage доступно сразу. Логика повторяет src/platform/theme.ts;
+      Оформление — два выбора: яркость (auto/light/dark) и тема-стиль
+      (classic/neon/space/sea). Оба лежат в IndexedDB и читаются асинхронно;
+      зеркала выбора в localStorage доступны сразу. Логика повторяет
+      src/platform/theme.ts (PALETTES — таблица цветов панели);
       tests/theme-ui.test.tsx проверяет этот скрипт из настоящего index.html.
     -->
     <script>
       (function () {
         var saved = null;
+        var palette = 'classic';
         var prefersDark = false;
         try { saved = window.localStorage.getItem('slovo2-theme'); } catch (error) { /* нет доступа к хранилищу */ }
+        try {
+          var rawPalette = window.localStorage.getItem('slovo2-palette');
+          if (rawPalette === 'classic' || rawPalette === 'neon' || rawPalette === 'space' || rawPalette === 'sea') {
+            palette = rawPalette;
+          }
+        } catch (error) { /* нет доступа к хранилищу — остаётся классическая */ }
         try {
           prefersDark = !!window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
         } catch (error) { /* нет системной темы — используем светлую */ }
@@ -43,11 +52,20 @@
         var dark = theme === 'dark' || (theme === 'auto' && prefersDark);
         var root = document.documentElement;
         root.setAttribute('data-theme', dark ? 'dark' : 'light');
+        root.setAttribute('data-palette', palette);
         root.style.colorScheme = dark ? 'only dark' : 'only light';
         var schemeMeta = document.querySelector('meta[name="color-scheme"]');
         if (schemeMeta) schemeMeta.setAttribute('content', dark ? 'dark' : 'only light');
+        // Цвета панели — как themeColor в PALETTES (src/platform/theme.ts).
+        var panelColors = {
+          classic: { light: '#7C5CFF', dark: '#171426' },
+          neon: { light: '#d600d6', dark: '#0d0d1a' },
+          space: { light: '#4f46e5', dark: '#0b1026' },
+          sea: { light: '#0d9488', dark: '#062a33' }
+        };
+        var colors = panelColors[palette];
         var themeMeta = document.querySelector('meta[name="theme-color"]');
-        if (themeMeta) themeMeta.setAttribute('content', dark ? '#171426' : '#7C5CFF');
+        if (themeMeta) themeMeta.setAttribute('content', dark ? colors.dark : colors.light);
       })();
     </script>
   </head>

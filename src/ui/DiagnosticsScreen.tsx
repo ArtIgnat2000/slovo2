@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { inspectStorage, type StorageDiagnosticReport } from '../platform/diagnostics';
 import { useStorageHealth } from '../state/health';
 import { useApp } from '../state/store';
-import { browserDarkModeHelp, browserName, detectForcedRepaint, readThemeMirror, repaintAssessment, systemPrefersDark } from '../platform/theme';
+import { browserDarkModeHelp, browserName, detectForcedRepaint, normalizePalette, PALETTES, readPaletteMirror, readThemeMirror, repaintAssessment, systemPrefersDark } from '../platform/theme';
 import { isStandalone } from '../platform/pwa';
 
 interface Props {
@@ -63,16 +63,18 @@ function themeLines(): string[] {
   const root = document.documentElement;
   const browser = browserName(navigator.userAgent);
   const schemeMeta = document.querySelector('meta[name="color-scheme"]');
+  const settings = useApp.getState().settings;
   return [
     `Браузер: ${browser}; режим: ${isStandalone() ? 'ярлык (standalone)' : 'вкладка'}`,
     `User-Agent: ${navigator.userAgent}`,
-    `Тема в настройках: ${useApp.getState().settings.theme}; выбранная палитра: ${root.dataset.theme || 'не задана'}`,
+    `Яркость в настройках: ${settings.theme}; data-theme: ${root.dataset.theme || 'не задана'}`,
+    `Оформление в настройках: ${PALETTES[normalizePalette(settings.palette)].title}; data-palette: ${root.dataset.palette || 'не задано'}`,
     `Схема страницы: ${root.style.colorScheme || 'не задана'}; тег <meta color-scheme>: ${schemeMeta?.getAttribute('content') ?? 'нет тега'}`,
     `Системная тема: ${systemPrefersDark() ? 'тёмная' : 'светлая'}`,
     `Проверка Auto Dark: ${repaintAssessment(browser, detectForcedRepaint())}`,
     `Фон по CSS: ${getComputedStyle(document.body).backgroundColor || 'не вычислен'}; токен --bg: ${getComputedStyle(root).getPropertyValue('--bg').trim() || 'не задан'}`,
     'CSS-цвета не показывают перекраску пикселей Samsung Internet.',
-    `Зеркало темы в localStorage: ${readThemeMirror() ?? 'нет'}`,
+    `Зеркало темы в localStorage: ${readThemeMirror() ?? 'нет'}; зеркало оформления: ${readPaletteMirror() ?? 'нет'}`,
     `Совет: ${browserDarkModeHelp(browser)}`,
   ];
 }
@@ -87,6 +89,7 @@ export function DiagnosticsScreen({ onClose }: Props) {
   const hydratedAt = useStorageHealth((s) => s.hydratedAt);
   const blockedWrites = useStorageHealth((s) => s.blockedWrites);
   const theme = useApp((s) => s.settings.theme);
+  const palette = useApp((s) => s.settings.palette);
   /** Признак Chrome Auto Dark; отсутствие признака не исключает фильтр Samsung. */
   const [repaint, setRepaint] = useState(() => detectForcedRepaint());
   const browser = browserName(navigator.userAgent);
@@ -147,11 +150,19 @@ export function DiagnosticsScreen({ onClose }: Props) {
         </div>
         <div className="kv">
           <span>Тема в настройках</span>
+          <b>{PALETTES[normalizePalette(palette)].title}</b>
+        </div>
+        <div className="kv">
+          <span>Яркость в настройках</span>
           <b>{theme}</b>
         </div>
         <div className="kv">
-          <span>Выбранная палитра CSS</span>
+          <span>Выбранная палитра CSS (data-theme)</span>
           <b>{document.documentElement.dataset.theme ?? 'не задана'}</b>
+        </div>
+        <div className="kv">
+          <span>Тема-стиль (data-palette)</span>
+          <b>{document.documentElement.dataset.palette ?? 'не задана'}</b>
         </div>
         <div className="kv">
           <span>Схема страницы</span>

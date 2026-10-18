@@ -10,8 +10,13 @@
   --primary: #7c5cff;
   --primary-2: #9b84ff;
   --primary-soft: #ece7ff;
+  /* Тень «объёмной» кнопки primary и текст поверх неё: вынесены в токены,
+     чтобы темы (неон, космос, море) могли держать контраст своей краски. */
+  --primary-deep: #5b3ede;
+  --on-primary: #fff;
   --green: #22c55e;
   --green-soft: #dcfce7;
+  --green-deep: #158f43;
   --orange: #ff9f0a;
   --orange-soft: #ffedd5;
   --red: #f43f5e;
@@ -31,6 +36,16 @@
   --scratch-glow: #fef3c7;
   --shadow: 0 6px 0 rgba(36, 31, 54, 0.06), 0 10px 24px rgba(36, 31, 54, 0.07);
   --shadow-lg: 0 12px 40px rgba(36, 31, 54, 0.16);
+
+  /* ── Эффекты тем-стилей ──────────────────────────────────────────────────
+     Два декоративных слоя, которые есть не у каждой темы:
+       --title-glow — свечение заголовков (у классики выключено: none);
+       --page-grid  — фоновый узор .app поверх радиальных подсветок
+                      (светящаяся сетка неона, звёзды космоса, волны моря).
+     Оба задаются целиком (включая размер в repeating-градиентах), поэтому
+     числу фоновых слоёв .app всегда одинаково — ничего не «съезжает». */
+  --title-glow: none;
+  --page-grid: none;
 
   --r-sm: 14px;
   --r-md: 20px;
@@ -149,4 +164,265 @@
   --photo-edge: rgba(0, 0, 0, 0.35);
   --shadow: 0 6px 0 rgba(0, 0, 0, 0.25), 0 10px 24px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+/* ── Темы-стили оформления ──────────────────────────────────────────────────
+   Яркость (data-theme) и тема-стиль (data-palette) независимы: у каждой темы
+   есть свой светлый и тёмный вариант. Классика — это :root/[data-theme='dark']
+   выше; остальные темы перекрывают их блоками ниже.
+
+   Порядок и специфичность:
+     [data-palette='neon']                 — тёмный вариант темы (он же база);
+     [data-palette='neon'][data-theme='light'] — светлый вариант (специфичность
+     выше, поэтому перекрывает базу только в светлой яркости).
+
+   Как добавить новую тему: 1) id в PaletteId и PALETTES (src/platform/theme.ts);
+   2) два блока здесь — светлый и тёмный наборы цветов; 3) id в проверку
+   инлайн-скрипта index.html и в его таблицу panelColors; 4) больше ничего —
+   настройки, зеркало и метатеги читают PALETTES. */
+
+[data-palette='neon'] {
+  /* Неон-аркада (тёмный вариант): магента, циан, светящаяся сетка.
+     Палитра — по мотивам неон-страницы «Луи Брайль» (Lyu_Brail). */
+  --bg: #0d0d1a;
+  --bg-2: #141428;
+  --ink: #e0ffff;
+  --ink-2: #a0c0ff;
+  --ink-3: #6f86c4;
+  --card: rgba(20, 20, 40, 0.85);
+  --line: rgba(255, 0, 255, 0.38);
+  --primary: #ff00ff;
+  --primary-2: #ff4dff;
+  --primary-soft: rgba(255, 0, 255, 0.16);
+  --primary-deep: #a800a8;
+  --on-primary: #0d0d1a;
+  --green: #2ecc71;
+  --green-soft: rgba(46, 204, 113, 0.16);
+  --green-deep: #27ae60;
+  --orange: #ffb347;
+  --orange-soft: rgba(255, 179, 71, 0.14);
+  --orange-ink: #ffd27a;
+  --red: #ff5a6e;
+  --red-soft: rgba(255, 90, 110, 0.16);
+  --blue: #00e5ff;
+  --pink: #ff4fd8;
+  --bg-glow-1: rgba(255, 0, 255, 0.12);
+  --bg-glow-2: rgba(0, 255, 255, 0.12);
+  --promo-glow-1: rgba(255, 0, 255, 0.2);
+  --promo-glow-2: rgba(0, 255, 255, 0.16);
+  --scratch-glow: rgba(0, 255, 255, 0.18);
+  --shadow: 0 0 18px rgba(255, 0, 255, 0.25);
+  --shadow-lg: 0 0 40px rgba(255, 0, 255, 0.35);
+  --art-plate: #1b1533;
+  --art-plate-glow: #2a2148;
+  --art-frame-line: rgba(255, 0, 255, 0.35);
+  --title-glow: 0 0 12px rgba(255, 0, 255, 0.9), 0 0 24px rgba(0, 255, 255, 0.6);
+  --page-grid:
+    repeating-linear-gradient(90deg, rgba(255, 0, 255, 0.08) 0 1px, transparent 1px 40px),
+    repeating-linear-gradient(180deg, rgba(0, 255, 255, 0.08) 0 1px, transparent 1px 40px);
+}
+
+[data-palette='neon'][data-theme='light'] {
+  /* Неон-аркада (светлый вариант): бледно-голубой фон, сиреневая магента. */
+  --bg: #f0f4ff;
+  --bg-2: #ffffff;
+  --ink: #1a1a2e;
+  --ink-2: #4a4a6a;
+  --ink-3: #8a8ab0;
+  --card: rgba(255, 255, 255, 0.9);
+  --line: rgba(214, 0, 214, 0.35);
+  --primary: #d600d6;
+  --primary-2: #e632e6;
+  --primary-soft: #fbe2fb;
+  --primary-deep: #a400a4;
+  --on-primary: #fff;
+  --green: #27ae60;
+  --green-soft: #dcf7e7;
+  --green-deep: #1e8c4c;
+  --orange: #f59e0b;
+  --orange-soft: #ffedd5;
+  --orange-ink: #b45309;
+  --red: #e74c3c;
+  --red-soft: #ffe4e6;
+  --blue: #0080ff;
+  --pink: #ff4fd8;
+  --bg-glow-1: rgba(214, 0, 214, 0.08);
+  --bg-glow-2: rgba(0, 128, 255, 0.08);
+  --promo-glow-1: rgba(214, 0, 214, 0.12);
+  --promo-glow-2: rgba(0, 128, 255, 0.1);
+  --scratch-glow: rgba(0, 128, 255, 0.12);
+  --shadow: 0 0 16px rgba(214, 0, 214, 0.18);
+  --shadow-lg: 0 0 36px rgba(214, 0, 214, 0.25);
+  --art-plate: #ffffff;
+  --art-plate-glow: #f3e9ff;
+  --art-frame-line: rgba(214, 0, 214, 0.3);
+  --title-glow: 0 0 10px rgba(214, 0, 214, 0.45), 0 0 20px rgba(0, 128, 255, 0.3);
+  --page-grid:
+    repeating-linear-gradient(90deg, rgba(214, 0, 214, 0.07) 0 1px, transparent 1px 40px),
+    repeating-linear-gradient(180deg, rgba(0, 128, 255, 0.07) 0 1px, transparent 1px 40px);
+}
+
+[data-palette='space'] {
+  /* Космос (тёмный вариант): ночное небо, фиолетовое свечение, звёзды. */
+  --bg: #0b1026;
+  --bg-2: #131a38;
+  --ink: #e8ecff;
+  --ink-2: #a7b0d8;
+  --ink-3: #757fb8;
+  --card: #171f42;
+  --line: #2c3568;
+  --primary: #8b5cf6;
+  --primary-2: #a78bfa;
+  --primary-soft: #272154;
+  --primary-deep: #5b21b6;
+  --on-primary: #fff;
+  --green: #34d399;
+  --green-soft: #12352d;
+  --green-deep: #14785a;
+  --orange: #fbbf24;
+  --orange-soft: #3a2c10;
+  --orange-ink: #fcd34d;
+  --red: #fb7185;
+  --red-soft: #3f1a26;
+  --blue: #38bdf8;
+  --pink: #f472b6;
+  --bg-glow-1: rgba(56, 189, 248, 0.14);
+  --bg-glow-2: rgba(139, 92, 246, 0.2);
+  --promo-glow-1: rgba(139, 92, 246, 0.26);
+  --promo-glow-2: rgba(56, 189, 248, 0.16);
+  --scratch-glow: rgba(56, 189, 248, 0.18);
+  --shadow: 0 6px 0 rgba(0, 0, 0, 0.28), 0 10px 24px rgba(2, 6, 23, 0.5);
+  --shadow-lg: 0 12px 40px rgba(2, 6, 23, 0.6);
+  --art-plate: #1a2348;
+  --art-plate-glow: #273264;
+  --art-frame-line: #3a4680;
+  --title-glow: 0 0 14px rgba(139, 92, 246, 0.55);
+  --page-grid:
+    radial-gradient(circle at 18% 22%, rgba(255, 255, 255, 0.5) 0 1.2px, transparent 1.8px),
+    radial-gradient(circle at 72% 12%, rgba(255, 255, 255, 0.4) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 42% 68%, rgba(255, 255, 255, 0.35) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 85% 55%, rgba(167, 139, 250, 0.5) 0 1.2px, transparent 1.8px),
+    radial-gradient(circle at 30% 90%, rgba(56, 189, 248, 0.45) 0 1px, transparent 1.6px);
+}
+
+[data-palette='space'][data-theme='light'] {
+  /* Космос (светлый вариант): дневное небо с редкими звёздами. */
+  --bg: #eef2ff;
+  --bg-2: #ffffff;
+  --ink: #1e2148;
+  --ink-2: #4c527e;
+  --ink-3: #8a90b8;
+  --card: #ffffff;
+  --line: #d5dcf5;
+  --primary: #6d28d9;
+  --primary-2: #7c3aed;
+  --primary-soft: #ede9fe;
+  --primary-deep: #4c1d95;
+  --on-primary: #fff;
+  --green: #10b981;
+  --green-soft: #d6f5e8;
+  --green-deep: #0d9f72;
+  --orange: #f59e0b;
+  --orange-soft: #ffedd5;
+  --orange-ink: #b45309;
+  --red: #ef4444;
+  --red-soft: #ffe4e6;
+  --blue: #3b82f6;
+  --pink: #f472b6;
+  --bg-glow-1: rgba(124, 58, 237, 0.1);
+  --bg-glow-2: rgba(56, 189, 248, 0.12);
+  --promo-glow-1: rgba(124, 58, 237, 0.14);
+  --promo-glow-2: rgba(56, 189, 248, 0.12);
+  --scratch-glow: rgba(124, 58, 237, 0.12);
+  --shadow: 0 6px 0 rgba(30, 33, 72, 0.08), 0 10px 24px rgba(30, 33, 72, 0.1);
+  --shadow-lg: 0 12px 40px rgba(30, 33, 72, 0.18);
+  --art-plate: #f6f8ff;
+  --art-plate-glow: #ffffff;
+  --art-frame-line: #d5dcf5;
+  --title-glow: 0 0 12px rgba(109, 40, 217, 0.35);
+  --page-grid:
+    radial-gradient(circle at 20% 30%, rgba(109, 40, 217, 0.35) 0 1.2px, transparent 1.8px),
+    radial-gradient(circle at 75% 18%, rgba(56, 189, 248, 0.35) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 45% 72%, rgba(109, 40, 217, 0.28) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 85% 58%, rgba(56, 189, 248, 0.3) 0 1.2px, transparent 1.8px);
+}
+
+[data-palette='sea'] {
+  /* Море (тёмный вариант): глубина, бирюзовое свечение, волны. */
+  --bg: #062a33;
+  --bg-2: #0b3742;
+  --ink: #e6fbf8;
+  --ink-2: #9fc9c9;
+  --ink-3: #6f9aa0;
+  --card: #0e3f4b;
+  --line: #1c5460;
+  --primary: #2dd4bf;
+  --primary-2: #5eead4;
+  --primary-soft: #12444d;
+  --primary-deep: #14827a;
+  --on-primary: #062a33;
+  --green: #34d399;
+  --green-soft: #12352d;
+  --green-deep: #14785a;
+  --orange: #fbbf24;
+  --orange-soft: #3a2c10;
+  --orange-ink: #fcd34d;
+  --red: #fb7185;
+  --red-soft: #3f1a26;
+  --blue: #38bdf8;
+  --pink: #f472b6;
+  --bg-glow-1: rgba(45, 212, 191, 0.16);
+  --bg-glow-2: rgba(56, 189, 248, 0.16);
+  --promo-glow-1: rgba(45, 212, 191, 0.22);
+  --promo-glow-2: rgba(56, 189, 248, 0.18);
+  --scratch-glow: rgba(45, 212, 191, 0.18);
+  --shadow: 0 6px 0 rgba(0, 0, 0, 0.25), 0 10px 24px rgba(0, 20, 25, 0.45);
+  --shadow-lg: 0 12px 40px rgba(0, 20, 25, 0.55);
+  --art-plate: #114a57;
+  --art-plate-glow: #1a5c6b;
+  --art-frame-line: #236b7a;
+  --title-glow: 0 0 14px rgba(45, 212, 191, 0.45);
+  --page-grid:
+    repeating-linear-gradient(180deg, rgba(230, 251, 248, 0.05) 0 2px, transparent 2px 18px),
+    repeating-linear-gradient(172deg, rgba(56, 189, 248, 0.05) 0 1px, transparent 1px 26px);
+}
+
+[data-palette='sea'][data-theme='light'] {
+  /* Море (светлый вариант): пена, бирюзовая мелководная вода. */
+  --bg: #e7f8f7;
+  --bg-2: #ffffff;
+  --ink: #0f3d47;
+  --ink-2: #3d6b75;
+  --ink-3: #7fa3ab;
+  --card: #ffffff;
+  --line: #c9e9e6;
+  --primary: #0d9488;
+  --primary-2: #14b8a6;
+  --primary-soft: #d2f4f0;
+  --primary-deep: #0f766e;
+  --on-primary: #fff;
+  --green: #10b981;
+  --green-soft: #d6f5e8;
+  --green-deep: #0d9f72;
+  --orange: #f59e0b;
+  --orange-soft: #fdeecd;
+  --orange-ink: #b45309;
+  --red: #ef4444;
+  --red-soft: #fde3e3;
+  --blue: #0284c7;
+  --pink: #f472b6;
+  --bg-glow-1: rgba(45, 212, 191, 0.2);
+  --bg-glow-2: rgba(56, 189, 248, 0.18);
+  --promo-glow-1: rgba(45, 212, 191, 0.22);
+  --promo-glow-2: rgba(56, 189, 248, 0.16);
+  --scratch-glow: rgba(45, 212, 191, 0.18);
+  --shadow: 0 6px 0 rgba(15, 61, 71, 0.08), 0 10px 24px rgba(15, 61, 71, 0.1);
+  --shadow-lg: 0 12px 40px rgba(15, 61, 71, 0.18);
+  --art-plate: #f2fbfa;
+  --art-plate-glow: #ffffff;
+  --art-frame-line: #c9e9e6;
+  --title-glow: none;
+  --page-grid:
+    repeating-linear-gradient(180deg, rgba(13, 148, 136, 0.06) 0 2px, transparent 2px 18px),
+    repeating-linear-gradient(172deg, rgba(2, 132, 199, 0.05) 0 1px, transparent 1px 26px);
 }

@@ -117,6 +117,11 @@ export async function runParentUiChecks(): Promise<void> {
       has('Что делает сова БУК, если ребёнок просит помощи'),
     document.querySelector('.parent-panel')?.textContent?.slice(0, 200) ?? '',
   );
+  check(
+    'в «Виде» выбирают тему оформления и яркость',
+    has('Классическая') && has('Неоновая') && has('Космос') && has('Морская') && has('Яркость'),
+    document.querySelector('.parent-panel')?.textContent?.slice(0, 300) ?? '',
+  );
 
   const help = document.querySelector('.theme-help') as HTMLDetailsElement | null;
   check('из настроек можно узнать, почему светлая тема серая',

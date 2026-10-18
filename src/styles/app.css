@@ -34,10 +34,15 @@ button {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  background:
+  background-color: var(--bg);
+  /* Фоновый узор темы (сетка неона, звёзды космоса, волны моря) лежит
+     поверх радиальных подсветок. У классики --page-grid: none — слой пуст,
+     композиция не меняется. Размер зашит в сами градиенты (repeating-*),
+     поэтому background-size не нужен и слои не «съезжают». */
+  background-image:
+    var(--page-grid),
     radial-gradient(120% 60% at 15% 0%, var(--bg-glow-1) 0%, transparent 55%),
-    radial-gradient(100% 55% at 100% 0%, var(--bg-glow-2) 0%, transparent 60%),
-    var(--bg);
+    radial-gradient(100% 55% at 100% 0%, var(--bg-glow-2) 0%, transparent 60%);
 }
 
 .screen {
@@ -65,6 +70,11 @@ h2,
 h3 {
   margin: 0 0 8px;
   letter-spacing: -0.02em;
+}
+h1,
+h2 {
+  /* Свечение заголовков — эффект темы (у классики --title-glow: none). */
+  text-shadow: var(--title-glow);
 }
 h1 {
   font-size: var(--fs-xl);
@@ -152,20 +162,20 @@ p {
 }
 .btn.primary {
   background: var(--primary);
-  color: #fff;
-  box-shadow: 0 5px 0 #5b3ede;
+  color: var(--on-primary);
+  box-shadow: 0 5px 0 var(--primary-deep);
 }
 .btn.primary:active {
-  box-shadow: 0 2px 0 #5b3ede;
+  box-shadow: 0 2px 0 var(--primary-deep);
   transform: translateY(3px);
 }
 .btn.green {
   background: var(--green);
   color: #fff;
-  box-shadow: 0 5px 0 #158f43;
+  box-shadow: 0 5px 0 var(--green-deep);
 }
 .btn.green:active {
-  box-shadow: 0 2px 0 #158f43;
+  box-shadow: 0 2px 0 var(--green-deep);
   transform: translateY(3px);
 }
 .btn.ghost {
@@ -207,7 +217,7 @@ p {
 }
 .chip.on {
   background: var(--primary);
-  color: #fff;
+  color: var(--on-primary);
   border-color: var(--primary);
 }
 
@@ -397,13 +407,13 @@ p {
   min-height: 52px;
   border-radius: var(--r-md);
   background: var(--primary);
-  color: #fff;
+  color: var(--on-primary);
   font-size: var(--fs-md);
   font-weight: 800;
-  box-shadow: 0 4px 0 #5b3ede;
+  box-shadow: 0 4px 0 var(--primary-deep);
 }
 .home-hero:active .home-hero-cta {
-  box-shadow: 0 2px 0 #5b3ede;
+  box-shadow: 0 2px 0 var(--primary-deep);
 }
 
 .home-goal .streak-days {
@@ -3403,7 +3413,7 @@ p {
   place-items: center;
   font-size: 22px;
   background: var(--primary);
-  color: #fff;
+  color: var(--on-primary);
   flex: none;
 }
 .vlabs-promo-title {
@@ -3427,7 +3437,7 @@ p {
   padding: 6px 12px;
   border-radius: var(--r-pill);
   background: var(--primary);
-  color: #fff;
+  color: var(--on-primary);
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.02em;
@@ -4409,7 +4419,7 @@ p {
 .choice-item.on {
   border-color: var(--primary);
   background: var(--primary);
-  color: #fff;
+  color: var(--on-primary);
 }
 .choice-item:focus-visible {
   outline: 3px solid var(--primary);

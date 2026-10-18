@@ -19,7 +19,7 @@ import { MUSIC_BY_ID, MUSIC_TRACKS, STARTER_TRACK_IDS } from './engine/music';
 import { playMusic, setMusicEnabled, setMusicVolume, warmTracks } from './platform/music';
 import { setHapticsEnabled } from './platform/haptics';
 import { applyUpdate, shouldSuggestInstall, markInstallHintShown } from './platform/pwa';
-import { applyTheme, writeThemeMirror } from './platform/theme';
+import { applyTheme, writePaletteMirror, writeThemeMirror } from './platform/theme';
 
 type Tab = 'home' | 'words' | 'shop' | 'parent';
 
@@ -87,12 +87,13 @@ export default function App() {
 
   useEffect(() => {
     const apply = () => {
-      applyTheme(settings.theme);
+      applyTheme(settings.theme, settings.palette);
     };
     apply();
-    // Зеркало выбора темы для следующего запуска: статичный meta уже
+    // Зеркала выбора для следующего запуска: статичный meta уже
     // объявляет only light, инлайн-скрипт уточняет выбор до первого кадра.
     writeThemeMirror(settings.theme);
+    writePaletteMirror(settings.palette);
     if (settings.theme === 'auto') {
       const media = window.matchMedia('(prefers-color-scheme: dark)');
       const handler = () => apply();
@@ -104,7 +105,7 @@ export default function App() {
         else media.removeListener(handler);
       };
     }
-  }, [settings.theme]);
+  }, [settings.theme, settings.palette]);
 
   useEffect(() => {
     // SFX и музыка — независимые контуры: эффекты остаются даже без фона,
