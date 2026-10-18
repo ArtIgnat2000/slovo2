@@ -91,6 +91,9 @@ export async function runPuzzleUiChecks(playLesson: (second?: boolean) => Promis
 
   // Магазин БУКа: сетка костюмов, прогресс и примерка
   await goTab('БУК');
+  // Полка костюмов — чип в витрине (концепция 2026-10-17)
+  click(Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Костюмы'))!);
+  await sleep(30);
   const cards = () => Array.from(document.querySelectorAll('.costume-card'));
   check('пазлы: в магазине 10 карточек костюмов', cards().length === 10, String(cards().length));
   const snowCard = cards().find((el) => (el.textContent ?? '').includes(COSTUMES[1].title));
@@ -173,7 +176,9 @@ export async function runPuzzleUiChecks(playLesson: (second?: boolean) => Promis
   check('пазлы: «Надеть» возвращает костюм', active().puzzle?.worn === COSTUMES[0].id, String(active().puzzle?.worn));
 
   // ── Акцент костюма: свечение и плащ за 1 💎 (тюнинг, engine/tints.ts) ───────
-  // Костюм COSTUMES[0] уже собран и надет; у несобранного (COSTUMES[1]) палитры быть не должно.
+  // Костюм COSTUMES[0] уже собран и надет; у несобранного (COSTUMES[1]) палитры
+  // быть не должно. Палитра живёт в подробной карточке (sheet):
+  // тап по карточке костюма → «🎨 Акцент».
   useApp.setState((s) => ({
     profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, gems: 5 } : p)),
   }));
@@ -182,25 +187,42 @@ export async function runPuzzleUiChecks(playLesson: (second?: boolean) => Promis
     Array.from(document.querySelectorAll('.costume-card')).find((el) =>
       (el.textContent ?? '').includes(COSTUMES.find((c) => c.id === id)!.title),
     );
-  const cardButton = (id: string, text: string) =>
-    (Array.from(costumeCard(id)?.querySelectorAll('button') ?? []).find((b) =>
+  const openSheet = (id: string) => {
+    click(costumeCard(id)!);
+  };
+  const closeSheet = () => {
+    document.querySelector('.shop-sheet-veil')?.click();
+  };
+  const sheetButton = (text: string) =>
+    (Array.from(document.querySelector('.shop-sheet')?.querySelectorAll('button') ?? []).find((b) =>
       (b.textContent ?? '').includes(text),
     ) ?? null) as HTMLButtonElement | null;
-  const cardSwatches = (id: string) =>
-    Array.from(costumeCard(id)?.querySelectorAll('.tint-swatch') ?? []) as HTMLButtonElement[];
+  const sheetSwatches = () =>
+    Array.from(document.querySelectorAll('.shop-sheet .tint-swatch')) as HTMLButtonElement[];
   const accentTitle = COSTUME_PALETTES[COSTUMES[0].id].extra[0];
 
-  check('акцент: у собранного костюма есть кнопка «🎨 Акцент»', !!cardButton(COSTUMES[0].id, '🎨 Акцент'), '');
+  openSheet(COSTUMES[0].id);
+  await sleep(30);
+  check('акцент: у собранного костюма в sheet есть «🎨 Акцент»', !!sheetButton('🎨 Акцент'), '');
+  check('акцент: в sheet собранного костюма палитра закрыта', sheetSwatches().length === 0, '');
+  closeSheet();
+  await sleep(30);
+  openSheet(COSTUMES[1].id);
+  await sleep(30);
   check(
-    'акцент: у несобранного костюма палитры нет',
-    !cardButton(COSTUMES[1].id, '🎨 Акцент') && cardSwatches(COSTUMES[1].id).length === 0,
+    'акцент: у несобранного костюма в sheet палитры нет',
+    !sheetButton('🎨 Акцент') && sheetSwatches().length === 0,
     '',
   );
-  click(cardButton(COSTUMES[0].id, '🎨 Акцент'));
+  closeSheet();
+  await sleep(30);
+  openSheet(COSTUMES[0].id);
+  await sleep(30);
+  click(sheetButton('🎨 Акцент'));
   await sleep(60);
-  check('акцент: палитра из 4 оттенков', cardSwatches(COSTUMES[0].id).length === 4, `кружков: ${cardSwatches(COSTUMES[0].id).length}`);
+  check('акцент: палитра из 4 оттенков', sheetSwatches().length === 4, `кружков: ${sheetSwatches().length}`);
   const gemsBeforeAccent = active().gems;
-  click(cardSwatches(COSTUMES[0].id)[1]);
+  click(sheetSwatches()[1]);
   await sleep(60);
   check('акцент: новый оттенок спрашивает подтверждение', has('Открыть цвет'), body().slice(0, 160));
   click(btnText('Открыть за'));
@@ -226,14 +248,14 @@ export async function runPuzzleUiChecks(playLesson: (second?: boolean) => Promis
     `${COSTUMES[0].body} / ${COSTUMES[0].wing}`,
   );
   // База и уже открытый акцент — бесплатно (та же экономика, что у аксессуаров)
-  click(cardSwatches(COSTUMES[0].id)[0]);
+  click(sheetSwatches()[0]);
   await sleep(50);
   check(
     'акцент: возврат к базовому бесплатен',
     active().gems === gemsBeforeAccent - TINT_PRICE && !active().shop?.tuning?.current?.[COSTUMES[0].id],
     JSON.stringify(active().shop?.tuning),
   );
-  click(cardSwatches(COSTUMES[0].id)[1]);
+  click(sheetSwatches()[1]);
   await sleep(50);
   check(
     'акцент: переключение на открытый акцент бесплатно',
@@ -245,7 +267,7 @@ export async function runPuzzleUiChecks(playLesson: (second?: boolean) => Promis
   // и выбранный цвет должны пережить загрузку профиля из IndexedDB.
   const costumeId = COSTUMES[0].id;
   const secondAccent = COSTUME_PALETTES[costumeId].extra[1];
-  click(cardSwatches(costumeId)[2]);
+  click(sheetSwatches()[2]);
   await sleep(60);
   check('акцент: покупка второго оттенка просит подтверждение', has('Открыть цвет'), body().slice(0, 160));
   click(btnText('Открыть за'));
@@ -269,6 +291,8 @@ export async function runPuzzleUiChecks(playLesson: (second?: boolean) => Promis
       (active().shop?.tuning?.unlocked?.[costumeId] ?? []).includes(secondAccent.id),
     JSON.stringify({ puzzle: active().puzzle, tuning: active().shop?.tuning }),
   );
+  closeSheet();
+  await sleep(30);
 
   // Покупка новой вещи не должна перезаписывать гардероб без уже открытых красок.
   useApp.setState((s) => ({

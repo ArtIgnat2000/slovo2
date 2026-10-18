@@ -493,8 +493,12 @@ async function main() {
   click(shopTab!);
   await sleep(80);
   check('магазин открылся', has('Магазин БУКа'), body().slice(0, 200));
-  check('видны разделы гардероба', has('Головные уборы') && has('На шею'), '');
+  check('витрина по умолчанию — полка нарядов', has('Наряды БУКа'), '');
+  check('полки — чипами, «скоро» честно помечено', has('Костюмы') && has('Музыка') && has('скоро'), '');
   check('показан баланс кристаллов', has(`💎 ${useApp.getState().profiles[0].gems}`), '');
+  // Полка музыки: весь каталог, две тематические полки, честная лицензия
+  click(Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Музыка'))!);
+  await sleep(30);
   check('в музыкальном магазине все мелодии каталога', document.querySelectorAll('.music-item').length === MUSIC_TRACKS.length, String(document.querySelectorAll('.music-item').length));
   check('полки «Спокойный фон» и «Коллекция» разведены', has('Спокойный фон') && has('Коллекция и награды'), '');
   check('магазин честно называет лицензию', has('CC BY 4.0') && has('Kevin MacLeod'), '');
@@ -511,20 +515,6 @@ async function main() {
   check('раздел объясняет отсутствие исключительных прав', has('не даёт исключительных прав'), '');
   if (creditsBtn) click(creditsBtn);
   await sleep(30);
-  click(document.querySelector('.shop-mascot') as HTMLButtonElement);
-  await sleep(30);
-  check('тап по БУКу открывает выбор своей музыки', !!document.querySelector('.music-picker'), '');
-  const musicChoice = Array.from(document.querySelectorAll('.music-picker .music-choice'))
-    .find((button) => (button.textContent ?? '').includes('Лимончик')) as HTMLButtonElement | undefined;
-  check('коллекция предлагает стартовые мелодии', !!musicChoice, '');
-  if (musicChoice) click(musicChoice);
-  await sleep(30);
-  check('выбранная музыка сохраняется в профиле', useApp.getState().profiles[0].shop?.musicTrack === 'easy-lemon', String(useApp.getState().profiles[0].shop?.musicTrack));
-  click(document.querySelector('.shop-mascot') as HTMLButtonElement);
-  await sleep(30);
-  click(Array.from(document.querySelectorAll('.music-picker .music-choice')).find((button) => (button.textContent ?? '').includes('Тишина')) as HTMLButtonElement);
-  await sleep(30);
-  check('музыку можно выключить из коллекции', useApp.getState().profiles[0].shop?.musicTrack === null, String(useApp.getState().profiles[0].shop?.musicTrack));
   const gemsBeforeMusic = useApp.getState().profiles[0].gems;
   const neonCard = Array.from(document.querySelectorAll('.music-item')).find((card) => (card.textContent ?? '').includes('Весёлый переулок'));
   const neonBuy = Array.from(neonCard?.querySelectorAll('button') ?? []).find((button) => (button.textContent ?? '').includes('Купить')) as HTMLButtonElement | undefined;
@@ -547,8 +537,28 @@ async function main() {
     await sleep(30);
   }
 
+  // Гардероб: примерочная и коллекция музыки (единственный вход — полка)
+  click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Гардероб'))!);
+  await sleep(30);
+  check('гардероб: примерочная с БУком', has('мой наряд'), '');
+  check('гардероб: честная пустота, когда ничего не куплено', has('Пока без обновок'), '');
+  const musicChoice = Array.from(document.querySelectorAll('.music-choice'))
+    .find((button) => (button.textContent ?? '').includes('Лимончик')) as HTMLButtonElement | undefined;
+  check('коллекция предлагает стартовые мелодии', !!musicChoice, '');
+  if (musicChoice) click(musicChoice);
+  await sleep(30);
+  check('выбранная музыка сохраняется в профиле', useApp.getState().profiles[0].shop?.musicTrack === 'easy-lemon', String(useApp.getState().profiles[0].shop?.musicTrack));
+  const silenceRow = Array.from(document.querySelectorAll('.music-choice')).find((button) => (button.textContent ?? '').includes('Тишина'));
+  check('у играющей мелодии есть строка «Тишина»', !!silenceRow, '');
+  if (silenceRow) click(silenceRow);
+  await sleep(30);
+  check('музыку можно выключить из коллекции', useApp.getState().profiles[0].shop?.musicTrack === null, String(useApp.getState().profiles[0].shop?.musicTrack));
+  click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Витрина'))!);
+  await sleep(30);
+  click(Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Наряды'))!);
+  await sleep(30);
   const gemsInShop = useApp.getState().profiles[0].gems;
-  const buyBtn = Array.from(document.querySelectorAll('.shop-item:not(.music-item) button'))
+  const buyBtn = Array.from(document.querySelectorAll('.shop-item:not(.music-item):not(.costume-card) button'))
     .find((button) => (button.textContent ?? '').includes('Купить')) as HTMLButtonElement | undefined;
   check('есть доступная покупка', !!buyBtn, `кристаллов: ${gemsInShop}`);
   if (buyBtn) {
@@ -574,8 +584,16 @@ async function main() {
     click(btnText('Надеть')!);
     await sleep(50);
     check('надевание обратно работает', Object.keys(useApp.getState().profiles[0].shop?.equipped ?? {}).length === 1, '');
+    // Купленное живёт в гардеробе, сгруппированное по слотам
+    click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Гардероб'))!);
+    await sleep(30);
+    check('купленная вещь живёт в гардеробе по слотам', has('Головные уборы'), '');
+    click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Витрина'))!);
+    await sleep(30);
 
     // ── Тюнинг цвета купленной вещи: 1 💎 за оттенок, дальше бесплатно ────────
+    // Палитра живёт в подробной карточке (sheet), а не на витрине:
+    // сначала вещь — потом краски.
     const ownedIds = useApp.getState().profiles[0].shop?.owned ?? [];
     const itemId = ownedIds[0];
     const itemTitle = ITEM_BY_ID[itemId].title;
@@ -584,11 +602,22 @@ async function main() {
       Array.from(document.querySelectorAll('.shop-item'))
         .find((el) => (el.textContent ?? '').includes(itemTitle))
         ?.querySelector('.shop-icon svg')?.innerHTML ?? '';
-    check(
-      'тюнинг: кнопка «🎨 Цвет» есть только у купленных вещей',
-      buttons().filter((b) => (b.textContent ?? '').includes('🎨 Цвет')).length === ownedIds.length,
-      `кнопок: ${buttons().filter((b) => (b.textContent ?? '').includes('🎨 Цвет')).length}, куплено: ${ownedIds.length}`,
-    );
+    const vitrinaCard = (title: string) =>
+      Array.from(document.querySelectorAll('.shop-item:not(.music-item):not(.costume-card)'))
+        .find((el) => (el.textContent ?? '').includes(title));
+    const closeSheet = () => {
+      document.querySelector('.shop-sheet-veil')?.click();
+    };
+    // У некупленной вещи палитры нет даже в sheet
+    click(vitrinaCard('Шарфик')!);
+    await sleep(30);
+    check('тюнинг: у некупленной вещи палитры нет', !buttons().some((b) => (b.textContent ?? '').includes('🎨 Цвет')), '');
+    closeSheet();
+    await sleep(30);
+    check('тюнинг: карточка купленной вещи открывает sheet', !!vitrinaCard(itemTitle), '');
+    click(vitrinaCard(itemTitle)!);
+    await sleep(30);
+    check('тюнинг: в sheet купленной вещи есть «🎨 Цвет»', !!btnText('🎨 Цвет'), '');
     click(btnText('🎨 Цвет'));
     await sleep(60);
     check('тюнинг: палитра из 4 оттенков', paids().length === 4, `кружков: ${paids().length}`);
@@ -663,11 +692,16 @@ async function main() {
     await sleep(30);
     click(btnText('🎨 Готово'));
     await sleep(40);
+    closeSheet();
+    await sleep(30);
   }
   const expensive = buttons().find((b) => (b.textContent ?? '').includes('Ещё') && b.className.includes('btn'));
   check('на дорогие вещи кнопка показывает, сколько не хватает', !!expensive, '');
 
   // ── Рост БУКа (пункт 5) ───────────────────────────────────────────────────
+  // Ступень роста живёт в примерочной гардероба
+  click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Гардероб'))!);
+  await sleep(30);
   check('магазин показывает ступень роста', /Птенец|Ученик|Знаток|Магистр/.test(body()), body().slice(0, 300));
   const before = useApp.getState().profiles[0];
   const stageBefore = growthStage(masteredCount(before)).index;

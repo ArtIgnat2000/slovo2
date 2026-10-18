@@ -122,18 +122,21 @@ export default defineConfig(({ command }) => ({
     target: 'es2019',
     cssCodeSplit: false,
     reportCompressedSize: false,
-    /**
-     * Кроме приложения собираем витрину вариантов карточки слова: она нужна для
-     * дизайн-ревью и должна открываться по обычной ссылке в той же сборке,
-     * потому что параметры адреса в предпросмотре песочницы до приложения
-     * не доходят. Адрес витрины: /docs/word-cards/cards-demo.html
-     */
-    rollupOptions: {
-      input: {
-        main: fileURLToPath(new URL('./index.html', import.meta.url)),
-        cardsDemo: fileURLToPath(new URL('./docs/word-cards/cards-demo.html', import.meta.url)),
+        /**
+         * Кроме приложения собираем витрины для дизайн-ревью: варианты
+         * карточки слова и концепцию магазина. Они открываются по обычной
+         * ссылке в той же сборке, потому что параметры адреса в
+         * предпросмотре песочницы до приложения не доходят:
+         *   /docs/word-cards/cards-demo.html
+         *   /docs/shop-concept/shop-demo.html
+         */
+      rollupOptions: {
+        input: {
+          main: fileURLToPath(new URL('./index.html', import.meta.url)),
+          cardsDemo: fileURLToPath(new URL('./docs/word-cards/cards-demo.html', import.meta.url)),
+          shopDemo: fileURLToPath(new URL('./docs/shop-concept/shop-demo.html', import.meta.url)),
+        },
       },
-    },
   },
   server: {
     host: '0.0.0.0',
