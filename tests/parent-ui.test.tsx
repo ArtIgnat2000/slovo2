@@ -8,7 +8,8 @@
 //  • разрушительное действие живёт отдельно, в разделе «Прогресс»;
 //  • ошибка в примере-замке показывается на месте, а не модальным окном.
 import { body, btnText, buttons, check, click, has, openParentSection, sleep } from './ui-helpers';
-import { useApp } from '../src/state/store';
+import { dayKey, useApp } from '../src/state/store';
+import { WORDS } from '../src/content/words';
 
 const store = () => useApp.getState();
 
@@ -213,7 +214,33 @@ export async function runParentUiChecks(): Promise<void> {
     body().slice(0, 200),
   );
 
-  // 8. Возврат на главную: раздел снова под замком (это же проверяет аудит выше).
+  // 8. Отчёт «сегодня»: отдельная запись сессии и ошибки в конкретном слове.
+  const profileId = store().activeId;
+  const originalProfile = store().profiles.find((p) => p.id === profileId);
+  const sessionId = 'parent-report-test';
+  const now = Date.now();
+  const word = WORDS[0];
+  if (profileId && originalProfile) {
+    store().startStudySession({
+      id: sessionId, day: dayKey(), startedAt: now, activeSeconds: 0,
+      mode: 'lesson', lessonId: 'report-test', tasks: 0, correct: 0, wrong: 0,
+      errorWords: {}, taskKindErrors: {}, recoveredWords: [], lastActivityAt: now, status: 'active',
+    });
+    store().answer(word.id, 1, false, { sessionId, taskKind: 'write', reason: 'learn' });
+    store().answer(word.id, 5, false, { sessionId, taskKind: 'write', reason: 'repair' });
+    store().addStudyTime(sessionId, 132);
+    store().finishStudySession(sessionId, 'completed');
+    await sleep(60);
+    check('сегодняшний отчёт показывает оценку активного времени и сессии', has('2 мин') && has('Занятия сегодня'), body().slice(0, 300));
+    check('разбор показывает слово с ошибкой и успешный повтор', has(word.text) && has('После ошибки верно повторил'), body().slice(0, 400));
+    check('сессия показывает результат и вид задания, без записи ответа ребёнка', has('1 верно · 1 ошибка') && has('напиши слово'), body().slice(0, 500));
+    useApp.setState((s) => ({
+      profiles: s.profiles.map((p) => p.id === profileId ? originalProfile : p),
+    }));
+    await sleep(40);
+  }
+
+  // 9. Возврат на главную: раздел снова под замком (это же проверяет аудит выше).
   const lessonsTab = buttons().find((b) => (b.textContent ?? '').includes('Уроки') && b.className.includes('tab'));
   click(lessonsTab);
   await sleep(60);

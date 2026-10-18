@@ -66,6 +66,46 @@ export interface DayStat {
    * ошибка в повторении не должна «замораживать» прогресс (см. PLAN, 2026-09-29).
    */
   reviewWords?: string[];
+  /** Оценка активного времени в приложении за локальный день; не мера внимания. */
+  activeSeconds?: number;
+  /** Число закрытых карточек в занятии, включая знакомство; точность считается по ответам. */
+  tasks?: number;
+  /** Ошибочные ответы по словам за этот день: wordId → количество. */
+  errorWords?: Record<string, number>;
+  /** Уникальные слова, которые после ошибки были правильно отработаны. */
+  recoveredWords?: string[];
+}
+
+export type StudySessionStatus = 'active' | 'completed' | 'stopped' | 'interrupted';
+
+/** Компактная локальная запись одного урока или повторения для дневного отчёта. */
+export interface StudySession {
+  id: string;
+  day: string;
+  startedAt: number;
+  endedAt?: number;
+  /** Оценка времени взаимодействия в видимой вкладке, с отсечением пауз. */
+  activeSeconds: number;
+  mode: 'lesson' | 'review';
+  lessonId?: string;
+  tasks: number;
+  correct: number;
+  wrong: number;
+  /** wordId → число ошибок в этой сессии; не сохраняем введённый текст. */
+  errorWords: Record<string, number>;
+  /** Ошибочные ответы по виду задания. */
+  taskKindErrors: Partial<Record<TaskKind, number>>;
+  /** Уникальные слова, успешно решённые в отработке после ошибки. */
+  recoveredWords: string[];
+  /** Меняется при ответе или добавлении времени; при перезапуске сессия прервана. */
+  lastActivityAt: number;
+  status: StudySessionStatus;
+}
+
+export interface StudyAnswerMeta {
+  sessionId: string;
+  taskKind: TaskKind;
+  reason: TaskReason;
 }
 
 /** Слоты, по которым БУК может носить вещи: шапка, очки, шея, значок. */
@@ -177,6 +217,8 @@ export interface Profile {
   lessons: Record<string, LessonState>;
   errors: Record<string, number>;
   days: Record<string, DayStat>;
+  /** Локальная история занятий, последние 30 дней. */
+  studySessions?: StudySession[];
   achievements: string[];
   /** Размер базовой очереди урока; у старых профилей по умолчанию «standard». */
   lessonSize?: LessonSize;

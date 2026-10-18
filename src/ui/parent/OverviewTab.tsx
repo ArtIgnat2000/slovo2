@@ -5,14 +5,14 @@
 // Никаких настроек здесь нет: настройки — это решения, а не отчёт.
 
 import { ACHIEVEMENTS } from '../../engine/rewards';
-import { WORDS, WORD_BY_ID } from '../../content/words';
+import { LESSON_BY_ID, WORDS, WORD_BY_ID } from '../../content/words';
 import { lastDays } from '../../engine/day';
 import { dayKey, masteredCount, todayStat } from '../../state/store';
 import { activeStudyDays } from '../../engine/weekly-rewards';
 import { plural } from '../../engine/quests';
 import { Bar } from '../Bits';
 import { GroupTitle, StatTile } from './ParentBits';
-import type { Profile } from '../../types';
+import type { Profile, StudySession, TaskKind } from '../../types';
 
 interface Props {
   profile: Profile;
@@ -23,9 +23,69 @@ interface Props {
 }
 
 const WEEKDAY_SHORT = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+const TASK_KIND_LABEL: Record<TaskKind, string> = {
+  intro: 'знакомство', syllables: 'слоги', gap: 'окошко', build: 'собери слово',
+  write: 'напиши слово', visual: 'зрительный диктант', fix: 'исправь ошибку',
+};
+
+function formatStudyTime(seconds: number): string {
+  if (seconds <= 0) return '—';
+  if (seconds < 60) return '<1 мин';
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes} мин`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest === 0 ? `${hours} ч` : `${hours} ч ${rest} мин`;
+}
+
+function SessionDetails({ session }: { session: StudySession }) {
+  const errors = Object.entries(session.errorWords).sort((a, b) => b[1] - a[1]);
+  const kindErrors = Object.entries(session.taskKindErrors)
+    .filter(([, count]) => (count ?? 0) > 0)
+    .sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0));
+  const label = session.mode === 'review'
+    ? 'Повторение'
+    : LESSON_BY_ID[session.lessonId ?? '']?.title ?? 'Урок';
+  const status = session.status === 'completed' ? 'пройдено'
+    : session.status === 'stopped' ? 'остановлено'
+      : session.status === 'interrupted' ? 'прервано' : 'идёт';
+  const start = new Date(session.startedAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  return (
+    <details className="study-session">
+      <summary>
+        <span><b>{start} · {label}</b><small>{formatStudyTime(session.activeSeconds)} · {status}</small></span>
+        <span className="study-session-score">{session.correct} верно · {session.wrong} {plural(session.wrong, 'ошибка', 'ошибки', 'ошибок')}</span>
+      </summary>
+      <div className="study-session-detail">
+        <div>{session.tasks} {plural(session.tasks, 'задание', 'задания', 'заданий')} · {session.correct} верно · {session.wrong} {plural(session.wrong, 'ошибка', 'ошибки', 'ошибок')}</div>
+        {errors.length > 0 && (
+          <div className="study-session-errors">
+            <b>Ошибки в словах:</b> {errors.map(([id, count]) => `${WORD_BY_ID[id]?.text ?? id} · ${count}`).join(', ')}
+          </div>
+        )}
+        {kindErrors.length > 0 && (
+          <div className="study-session-errors">
+            <b>В каких заданиях:</b> {kindErrors.map(([kind, count]) => `${TASK_KIND_LABEL[kind as TaskKind]} · ${count}`).join(', ')}
+          </div>
+        )}
+        {session.recoveredWords.length > 0 && (
+          <div className="study-session-recovered">
+            После ошибки верно повторил: {session.recoveredWords.map((id) => WORD_BY_ID[id]?.text ?? id).join(', ')}
+          </div>
+        )}
+      </div>
+    </details>
+  );
+}
 
 export function OverviewTab({ profile, onOpenWords, onOpenSection }: Props) {
   const today = todayStat(profile);
+  const todaySessions = (profile.studySessions ?? [])
+    .filter((session) => session.day === dayKey())
+    .sort((a, b) => b.startedAt - a.startedAt);
+  const todayErrorWords = Object.entries(today.errorWords ?? {}).sort((a, b) => b[1] - a[1]);
+  const todayAnswered = today.correct + today.wrong;
+  const todayAccuracy = todayAnswered >= 5 ? Math.round((today.correct / todayAnswered) * 100) : null;
   const mastered = masteredCount(profile);
   const totalOk = Object.values(profile.words).reduce((sum, w) => sum + w.ok, 0);
   const totalWrong = Object.values(profile.words).reduce((sum, w) => sum + w.wrong, 0);
@@ -48,18 +108,62 @@ export function OverviewTab({ profile, onOpenWords, onOpenSection }: Props) {
 
   return (
     <div className="parent-stack">
-      {/* Сегодня — то, ради чего родитель вообще открывает приложение. */}
+      {/* Сегодня — время, фактически записанные действия и результат именно за этот день. */}
       <div className="card">
         <GroupTitle title="Сегодня" hint={new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })} />
-        <div className="stat-grid">
-          <StatTile
-            value={String(today.xp)}
-            label="XP за сегодня"
-            hint={today.xp > 0 ? `верных ответов: ${today.correct}` : 'занятий пока не было'}
-            tone={today.xp > 0 ? 'good' : 'plain'}
-          />
-          <StatTile value={String(today.lessons)} label="уроков" hint={`за неделю: ${weekLessons}`} />
-          <StatTile value={String(profile.streak)} label="дней подряд" hint={`активных на этой неделе: ${active} из 7`} />
+        {todayAnswered === 0 && todaySessions.length === 0 && (today.tasks ?? 0) === 0 && today.xp === 0 && today.lessons === 0 ? (
+          <p className="setting-hint">Занятий сегодня ещё не было · XP за сегодня: 0.</p>
+        ) : (
+          <>
+            <div className="stat-grid">
+              <StatTile
+                value={formatStudyTime(today.activeSeconds ?? 0)}
+                label="активное время"
+                hint="примерно · паузы не считаются"
+                tone={(today.activeSeconds ?? 0) > 0 ? 'good' : 'plain'}
+              />
+              <StatTile
+                value={String(todaySessions.length)}
+                label={plural(todaySessions.length, 'сессия', 'сессии', 'сессий')}
+                hint={todaySessions.length ? 'урок или повторение' : 'нет сохранённых сессий'}
+              />
+              <StatTile
+                value={String(today.tasks ?? 0)}
+                label="заданий сделано"
+                hint="включая повторения"
+              />
+            </div>
+            <div className="study-today-lines">
+              <div className="kv"><span>Ответы сегодня</span><b>{today.correct} верно · {today.wrong} {plural(today.wrong, 'ошибка', 'ошибки', 'ошибок')}</b></div>
+              <div className="kv"><span>Точность сегодня</span><b>{todayAccuracy === null ? todayAnswered === 0 ? 'пока нет ответов' : `мало ответов (${todayAnswered})` : `${todayAccuracy}% (${todayAnswered} ответов)`}</b></div>
+              <div className="kv"><span>Завершено уроков</span><b>{today.lessons}</b></div>
+              <div className="kv"><span>XP за сегодня</span><b>⚡ {today.xp}</b></div>
+            </div>
+            {todayErrorWords.length > 0 && (
+              <div className="study-today-errors">
+                <div className="setting-title">Ошибки сегодня · {todayErrorWords.length} {plural(todayErrorWords.length, 'слово', 'слова', 'слов')}</div>
+                <div className="wordlist">
+                  {todayErrorWords.slice(0, 6).map(([id, count]) => (
+                    <span className="word-chip study-error" key={id}>{WORD_BY_ID[id]?.text ?? id} · {count}</span>
+                  ))}
+                </div>
+                {today.recoveredWords?.length ? (
+                  <p className="study-session-recovered">После ошибки верно повторил: {today.recoveredWords.map((id) => WORD_BY_ID[id]?.text ?? id).join(', ')}</p>
+                ) : (
+                  <p className="setting-hint">Ошибка — часть обучения. Эти слова приложение вернёт на повторение.</p>
+                )}
+              </div>
+            )}
+          </>
+        )}
+        {todaySessions.length > 0 && (
+          <div className="study-session-list">
+            <div className="study-session-list-title">Занятия сегодня</div>
+            {todaySessions.map((session) => <SessionDetails key={session.id} session={session} />)}
+          </div>
+        )}
+        <div className="study-today-streak">
+          Серия: {profile.streak} {plural(profile.streak, 'день', 'дня', 'дней')} подряд · активных на неделе: {active} из 7
         </div>
       </div>
 
@@ -96,7 +200,7 @@ export function OverviewTab({ profile, onOpenWords, onOpenSection }: Props) {
           <StatTile value={`${trained}`} label="начато" hint="хотя бы раз отвечал" />
           <StatTile
             value={attempts > 0 ? `${accuracy}%` : '—'}
-            label="точность"
+            label="точность за всё время"
             hint={attempts > 0 ? `${totalOk} верно · ${totalWrong} с ошибкой` : 'ещё нет ответов'}
           />
         </div>
@@ -111,8 +215,8 @@ export function OverviewTab({ profile, onOpenWords, onOpenSection }: Props) {
       {/* Разбор слабых мест: конкретные слова, а не «мало занимался». */}
       <div className="card">
         <GroupTitle
-          title="Что подтянуть"
-          hint={weak.length ? 'Слова, где ребёнок ошибался чаще всего' : undefined}
+          title="Что подтянуть за всё время"
+          hint={weak.length ? 'Накопленные ошибки по словам; ошибки за сегодня — выше' : undefined}
         />
         {weak.length > 0 ? (
           <>

@@ -33,6 +33,7 @@ import { ITEM_BY_ID, growthStage } from '../src/engine/shop';
 import { TINT_PALETTES, TINT_PRICE } from '../src/engine/tints';
 import { THEME_STYLES } from '../src/engine/theme-styles';
 import { masteredCount } from '../src/state/store';
+import { runStudyEngineChecks } from './study.test';
 
 // Общая обвязка (клики, поиск кнопок, счётчик проверок) — в tests/ui-helpers.ts:
 // её же использует блок интеграционных проверок адаптации.
@@ -215,6 +216,7 @@ async function main() {
   // Как в main.tsx: сначала дожидаемся чтения сохранения. Сторож записи держит
   // запись замороженной до подтверждённого чтения, иначе тесты писали бы впустую.
   await useApp.persist.rehydrate();
+  runStudyEngineChecks();
 
   // ── Первый запуск: профиля ещё нет ──────────────────────────────────────────
   // Здесь ловится «пустой экран» с GitHub Pages. useLook() возвращал литерал {}
