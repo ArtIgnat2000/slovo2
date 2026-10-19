@@ -30,7 +30,7 @@ import { resolvePhotoSize, resolveWordCardVariant } from '../src/ui/WordView';
 import { buildLesson, lessonCardLimit } from '../src/engine/scheduler';
 import { dayKey, dayPlan, useApp } from '../src/state/store';
 import { questTitle } from '../src/engine/quests';
-import { ITEM_BY_ID, SHOP_ITEMS, growthStage } from '../src/engine/shop';
+import { ITEM_BY_ID, SHOP_ITEMS, TOY_ITEMS, growthStage } from '../src/engine/shop';
 import { TINT_PALETTES, TINT_PRICE } from '../src/engine/tints';
 import { THEME_STYLES } from '../src/engine/theme-styles';
 import { masteredCount } from '../src/state/store';
@@ -544,6 +544,77 @@ async function main() {
     'выбранный фон сохраняется и возвращается через ту же полку',
     useApp.getState().settings.themeStyle === originalThemeStyle && document.documentElement.dataset.themeStyle === originalThemeStyle,
   );
+
+  // ── Полка «Техника»: телефоны, машины и корабли (0.19.0) ────────────────
+  const toyShelf = Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Техника'));
+  check('в витрине есть полка «Техника»', !!toyShelf, '');
+  if (toyShelf) click(toyShelf);
+  await sleep(30);
+  check(
+    '«Техника»: все товары каталога на полке',
+    document.querySelectorAll('.shop-item.toy-item').length === TOY_ITEMS.length,
+    `${document.querySelectorAll('.shop-item.toy-item').length}/${TOY_ITEMS.length}`,
+  );
+  check('«Техника»: три подполки — телефоны, машины, корабли', has('Телефоны') && has('Машины') && has('Корабли'), '');
+  check(
+    '«Техника»: каждая вещь стоит в арочной нише с лампой и подиумом',
+    document.querySelectorAll('.shop-case').length === TOY_ITEMS.length &&
+      document.querySelectorAll('.shop-case-lamp').length === TOY_ITEMS.length &&
+      document.querySelectorAll('.shop-case-podium').length === TOY_ITEMS.length,
+    `ниш: ${document.querySelectorAll('.shop-case').length}/${TOY_ITEMS.length}`,
+  );
+  check(
+    '«Техника»: витрина-бутик из трёх подполок, машины — мята, корабли — небо',
+    document.querySelectorAll('.shop-boutique').length >= 3 &&
+      !!document.querySelector('.shop-boutique-mint') &&
+      !!document.querySelector('.shop-boutique-sky'),
+    `витрин: ${document.querySelectorAll('.shop-boutique').length}`,
+  );
+  check(
+    '«Техника»: сцена как в референсе — три арки, гараж, пирс, витрина с телефоном',
+    !!document.querySelector('.tech-stage') &&
+      document.querySelectorAll('.tech-bay').length === 3 &&
+      !!document.querySelector('.tech-garage') &&
+      !!document.querySelector('.tech-pier') &&
+      !!document.querySelector('.tech-shelf'),
+    `арок: ${document.querySelectorAll('.tech-bay').length}`,
+  );
+  check(
+    '«Техника»: у каждой арки бумажная бирка, на сцене стоит БУК',
+    document.querySelectorAll('.tech-tag').length === 3 &&
+      !!document.querySelector('.tech-buk .mascot'),
+    `бирки: ${document.querySelectorAll('.tech-tag').length}`,
+  );
+  check('«Техника»: на полках есть смартфон, джип и пароход', has('Смартфон') && has('Джип') && has('Пароход'), '');
+  check(
+    '«Техника»: картинка рисуется кодом в базовом цвете',
+    (document.querySelector('.shop-item.toy-item svg')?.innerHTML ?? '').includes('#3b82f6'),
+    document.querySelector('.shop-item.toy-item svg')?.innerHTML.slice(0, 80) ?? 'нет svg',
+  );
+  check('«Техника»: видна ближайшая покупка и её цена', has('Ближайшая покупка') && has('💎 25'), '');
+
+  // Покупка вещи кладёт её в слот `toy` и сразу ставит рядом с БУКом.
+  const gemsBeforeToy = useApp.getState().profiles[0].gems;
+  const ownedBeforeToy = [...(useApp.getState().profiles[0].shop?.owned ?? [])];
+  useApp.setState((s) => ({
+    profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, gems: Math.max(p.gems, 35) } : p)),
+  }));
+  await sleep(30);
+  const toyBought = useApp.getState().buyItem('car-racer');
+  await sleep(30);
+  check(
+    'вещь покупается и занимает слот «Техника»',
+    toyBought && useApp.getState().profiles[0].shop?.equipped?.toy === 'car-racer',
+    JSON.stringify(useApp.getState().profiles[0].shop?.equipped),
+  );
+  check('купленная вещь показывает «У БУКа ✓»', has('У БУКа ✓'), '');
+  // Возвращаем профиль: следующие блоки считают покупки нарядов с нуля.
+  useApp.setState((s) => ({
+    profiles: s.profiles.map((p) =>
+      p.id === s.activeId ? { ...p, gems: gemsBeforeToy, shop: { ...p.shop!, owned: ownedBeforeToy, equipped: {} } } : p,
+    ),
+  }));
+  await sleep(30);
 
   // Полка музыки: весь каталог, две тематические полки, честная лицензия
   click(Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Музыка'))!);

@@ -8,8 +8,8 @@
 //     и купленных/собранных вещей (критерий 3 §15 docs/shop-concept.md).
 import assert from 'node:assert/strict';
 import {
-  SHOP_ITEMS,
-  ITEM_BY_ID,
+  OUTFIT_ITEMS,
+  TOY_ITEMS,
   closestItem,
   resolveHero,
   normalizeWishlist,
@@ -31,9 +31,19 @@ const afterTwo = closestItem(['cap', 'bow']);
 assert.equal(afterTwo?.id, 'scarf');
 assert.equal(afterTwo?.price, 30);
 
-// Когда все 6 нарядов куплены — null
-const allOutfitIds = SHOP_ITEMS.map((i) => i.id);
+// Когда все 6 нарядов куплены — null (техника с другой полки героя не подменяет)
+const allOutfitIds = OUTFIT_ITEMS.map((i) => i.id);
 assert.equal(closestItem(allOutfitIds), null);
+assert.equal(OUTFIT_ITEMS.length, 6, 'на полке нарядов осталось шесть вещей');
+
+// Техника выбирается только явно: на полке «Техника» своя ближайшая покупка.
+const firstToy = closestItem([], 'toy');
+assert.ok(firstToy && firstToy.kind === 'toy', 'у пустой коллекции игрушек есть ближайшая');
+assert.equal(firstToy?.price, 25, 'самая дешёвая вещь техники — за 25 💎');
+assert.ok(firstToy?.toy === 'phone' || firstToy?.toy === 'ship');
+assert.equal(closestItem(TOY_ITEMS.map((item) => item.id), 'toy'), null, 'вся техника куплена — цели нет');
+// Купленные наряды не мешают игрушечной цели и наоборот
+assert.ok(closestItem(allOutfitIds, 'toy'), 'техника остаётся доступной после полного гардероба');
 
 // ── 2. resolveHero ─────────────────────────────────────────────────────────
 
@@ -115,15 +125,20 @@ assert.deepEqual(
   ['scarf'],
 );
 
-// Можно мечтать о нарядах, костюмах и треках одновременно
+// Можно мечтать о нарядах, костюмах, треках и технике одновременно
 assert.deepEqual(
   normalizeWishlist(
-    ['glasses', 'snow-guard', 'happy-alley'],
+    ['glasses', 'snow-guard', 'happy-alley', 'car-racer'],
     [],
     [],
     [],
   ),
-  ['glasses', 'snow-guard', 'happy-alley'],
+  ['glasses', 'snow-guard', 'happy-alley', 'car-racer'],
+);
+// Купленная вещь из мечт исчезает
+assert.deepEqual(
+  normalizeWishlist(['car-racer', 'ship-paper'], ['car-racer'], [], []),
+  ['ship-paper'],
 );
 
 // ── 4. isWished helper ─────────────────────────────────────────────────────

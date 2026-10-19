@@ -5,10 +5,21 @@
 // один день занятий (3 задания + сундук ≈ 24 💎) даёт простой аксессуар,
 // а академическая шапочка — цель на пару дней. Картинки — в ui/MascotLook.tsx,
 // здесь только правила и цены (чистая логика без React).
+//
+// 0.19.0: витрина стала магазином с полками, а к нарядам добавилась третья
+// ветка — техника (телефоны, машины, корабли). Вещь живёт в слоте `toy`,
+// её видно рядом с БУКом на главной, в уроках и в гардеробе. Каталог по-прежнему
+// один: покупка, вишлист, тюнинг и выгрузка работают одинаково для всех вещей.
 
 import type { PuzzleState, ShopSlot } from '../types';
 import { COSTUMES, type Costume, costumeProgress, normalizePuzzle, activeCostume } from './puzzles';
 import { MUSIC_TRACKS, type MusicTrack } from './music';
+
+/** Полка витрины: наряды или техника. Костюмы/музыка/звуки живут отдельно. */
+export type ShopItemKind = 'outfit' | 'toy';
+
+/** Подполки техники: телефоны, машины и корабли. */
+export type ToyKind = 'phone' | 'car' | 'ship';
 
 export interface ShopItem {
   id: string;
@@ -17,6 +28,12 @@ export interface ShopItem {
   /** Как объяснить покупку ребёнку — без канцелярита */
   desc: string;
   price: number;
+  /** Наряд или техника. Без поля считается нарядом (старые данные/тесты). */
+  kind?: ShopItemKind;
+  /** Для техники — на какую подполку её ставить. */
+  toy?: ToyKind;
+  /** Эмодзи для диалогов и тостов (у нарядов её нет — там 🎩). */
+  emoji?: string;
 }
 
 export const SLOT_TITLE: Record<ShopSlot, string> = {
@@ -24,18 +41,66 @@ export const SLOT_TITLE: Record<ShopSlot, string> = {
   face: 'Очки',
   neck: 'На шею',
   badge: 'Значки',
+  toy: 'Техника',
 };
 
+/** Полки техники: порядок и подписи для витрины. */
+export const TOY_SHELVES: { id: ToyKind; title: string; emoji: string; note: string }[] = [
+  {
+    id: 'phone',
+    title: 'Телефоны',
+    emoji: '📱',
+    note: 'Позвонить, поиграть и показать БУКу смешные картинки',
+  },
+  {
+    id: 'car',
+    title: 'Машины',
+    emoji: '🚗',
+    note: 'Гоночная, джип и такси — на любой случай',
+  },
+  {
+    id: 'ship',
+    title: 'Корабли',
+    emoji: '⛵',
+    note: 'От бумажного кораблика до настоящего парохода',
+  },
+];
+
 export const SHOP_ITEMS: ShopItem[] = [
-  { id: 'cap', slot: 'head', title: 'Кепка', desc: 'БУК становится спортивным', price: 20 },
-  { id: 'bow', slot: 'neck', title: 'Бантик', desc: 'Нарядный бант на шею', price: 20 },
-  { id: 'scarf', slot: 'neck', title: 'Шарфик', desc: 'Тёплый, как в январе', price: 30 },
-  { id: 'glasses', slot: 'face', title: 'Умные очки', desc: 'В таких всё видно правильно', price: 35 },
-  { id: 'medal', slot: 'badge', title: 'Медаль', desc: 'За то, что не сдаёшься', price: 45 },
-  { id: 'grad', slot: 'head', title: 'Шапочка магистра', desc: 'Самая умная шапка в совиной школе', price: 60 },
+  // ── Наряды (полка «Наряды») ──────────────────────────────────────────────
+  { id: 'cap', slot: 'head', kind: 'outfit', title: 'Кепка', desc: 'БУК становится спортивным', price: 20 },
+  { id: 'bow', slot: 'neck', kind: 'outfit', title: 'Бантик', desc: 'Нарядный бант на шею', price: 20 },
+  { id: 'scarf', slot: 'neck', kind: 'outfit', title: 'Шарфик', desc: 'Тёплый, как в январе', price: 30 },
+  { id: 'glasses', slot: 'face', kind: 'outfit', title: 'Умные очки', desc: 'В таких всё видно правильно', price: 35 },
+  { id: 'medal', slot: 'badge', kind: 'outfit', title: 'Медаль', desc: 'За то, что не сдаёшься', price: 45 },
+  { id: 'grad', slot: 'head', kind: 'outfit', title: 'Шапочка магистра', desc: 'Самая умная шапка в совиной школе', price: 60 },
+  // ── Техника (полка «Техника»): телефоны ─────────────────────────────────
+  { id: 'phone-smart', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'Смартфон', desc: 'С экраном, камерой и весёлыми кнопками', price: 25 },
+  { id: 'phone-flip', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'Раскладушка', desc: 'Открывается — и можно звонить', price: 30 },
+  { id: 'phone-retro', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '☎️', title: 'Ретро-телефон', desc: 'С диском, как у бабушки на полке', price: 55 },
+  // ── Техника: машины ──────────────────────────────────────────────────────
+  { id: 'car-racer', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🏎️', title: 'Гоночная машина', desc: 'Самая быстрая на полке', price: 35 },
+  { id: 'car-jeep', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚙', title: 'Джип', desc: 'Проедет где угодно — хоть по ковру', price: 40 },
+  { id: 'car-taxi', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚕', title: 'Такси', desc: 'С шашечками и фонариком на крыше', price: 50 },
+  // ── Техника: корабли ─────────────────────────────────────────────────────
+  { id: 'ship-paper', slot: 'toy', kind: 'toy', toy: 'ship', emoji: '⛵', title: 'Бумажный кораблик', desc: 'Сложен из листа бумаги и держится на воде', price: 25 },
+  { id: 'ship-sail', slot: 'toy', kind: 'toy', toy: 'ship', emoji: '⛵', title: 'Парусник', desc: 'Ловит ветер белыми парусами', price: 45 },
+  { id: 'ship-steam', slot: 'toy', kind: 'toy', toy: 'ship', emoji: '🚢', title: 'Пароход', desc: 'Пыхтит трубой и катает БУКа', price: 60 },
 ];
 
 export const ITEM_BY_ID: Record<string, ShopItem> = Object.fromEntries(SHOP_ITEMS.map((i) => [i.id, i]));
+
+/** Наряды и техника — одним фильтром, чтобы витрина не смешивала полки. */
+export const OUTFIT_ITEMS = SHOP_ITEMS.filter((item) => item.kind !== 'toy');
+export const TOY_ITEMS = SHOP_ITEMS.filter((item) => item.kind === 'toy');
+
+export function isToy(item: ShopItem): boolean {
+  return item.kind === 'toy';
+}
+
+export function toysByShelf(kind: ToyKind): ShopItem[] {
+  return TOY_ITEMS.filter((item) => item.toy === kind);
+}
 
 export function isOwned(owned: string[], id: string): boolean {
   return owned.includes(id);
@@ -98,9 +163,12 @@ export function growthStage(mastered: number): GrowthStage {
 /**
  * Самая дешёвая вещь, которой ещё нет: «Ещё 8 💎 — и купишь Шарфик».
  * Помогает ребёнку понять, зачем копить (в этом и смысл траты валюты).
+ *
+ * `kind` по умолчанию — наряды: герой живёт на полке «Наряды» и не должен
+ * уводить ребёнка на вещь с другой полки. Техника выбирается отдельно.
  */
-export function closestItem(owned: string[]): ShopItem | null {
-  const left = SHOP_ITEMS.filter((i) => !isOwned(owned, i.id));
+export function closestItem(owned: string[], kind: ShopItemKind = 'outfit'): ShopItem | null {
+  const left = SHOP_ITEMS.filter((i) => (i.kind ?? 'outfit') === kind && !isOwned(owned, i.id));
   if (!left.length) return null;
   return left.reduce((best, i) => (i.price < best.price ? i : best), left[0]);
 }
@@ -114,17 +182,20 @@ export type HeroTarget =
  * Герой витрины (фаза 2 магазина): одна главная цель копления вместо десятков ценников.
  *
  * Приоритет выбора:
- * 1. Некупленный аксессуар БУКа с наименьшей ценой (closestItem).
- * 2. Если все аксессуары куплены — собираемый сейчас или ближайший костюм (puzzle).
+ * 1. Некупленный наряд БУКа с наименьшей ценой (closestItem, полка «Наряды»).
+ * 2. Если все наряды куплены — собираемый сейчас или ближайший костюм (puzzle).
  * 3. Если все костюмы собраны — самый дешёвый некупленный музыкальный трек.
  * 4. Если абсолютно весь каталог собран — null («Весь гардероб собран ✨»).
+ *
+ * Техника в героя не попадает намеренно: это отдельная полка со своей витриной,
+ * иначе «Ближайшая цель» на полке нарядов предлагала бы кораблик.
  */
 export function resolveHero(
   owned: string[],
   puzzle?: PuzzleState | null,
   musicOwned?: string[],
 ): HeroTarget | null {
-  const item = closestItem(owned);
+  const item = closestItem(owned, 'outfit');
   if (item) {
     return { kind: 'item', item };
   }

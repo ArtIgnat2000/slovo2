@@ -2,7 +2,7 @@
 // санитизация профиля. Чистая логика без React — идёт в adaptive-контур,
 // интерфейс магазина проверяет смоук (блок «Магазин БУКа»).
 import assert from 'node:assert/strict';
-import { SHOP_ITEMS } from '../src/engine/shop';
+import { OUTFIT_ITEMS, SHOP_ITEMS, TOY_ITEMS } from '../src/engine/shop';
 import { COSTUMES } from '../src/engine/puzzles';
 import {
   BASE_TINT,
@@ -35,9 +35,34 @@ const EXPECTED_BASE: Record<string, [string, string, string]> = {
   medal: ['#3b82f6', '#f4a51a', '#e8901a'],
 };
 
-const shopItemIds = SHOP_ITEMS.map((item) => item.id);
-assert.equal(shopItemIds.length, Object.keys(EXPECTED_BASE).length, 'список вещей и ожидаемых палитр разошёлся');
+// Техника 0.19.0: телефоны, машины и корабли. База та же, что на витрине;
+// цвета обязаны совпадать с ui/ToyArt.tsx, иначе у ребёнка «перекрасится»
+// только что купленная вещь.
+const EXPECTED_TOY_BASE: Record<string, [string, string, string]> = {
+  'phone-smart': ['#3b82f6', '#0f2a66', '#a7f3d0'],
+  'phone-flip': ['#ff6fb5', '#7a2048', '#ffe066'],
+  'phone-retro': ['#e63946', '#7f1d1d', '#ffe8c2'],
+  'car-racer': ['#ef4444', '#1f2937', '#ffd166'],
+  'car-jeep': ['#4d7c0f', '#1c2a0a', '#d9b382'],
+  'car-taxi': ['#f5c542', '#1f2937', '#111827'],
+  'ship-paper': ['#f8fafc', '#bfdbfe', '#ef4444'],
+  'ship-sail': ['#1d4ed8', '#f8fafc', '#b45309'],
+  'ship-steam': ['#1e40af', '#dc2626', '#fde68a'],
+};
 
+assert.equal(OUTFIT_ITEMS.length, Object.keys(EXPECTED_BASE).length, 'список нарядов и ожидаемых палитр разошёлся');
+assert.equal(TOY_ITEMS.length, Object.keys(EXPECTED_TOY_BASE).length, 'список игрушек и ожидаемых палитр разошёлся');
+assert.equal(SHOP_ITEMS.length, OUTFIT_ITEMS.length + TOY_ITEMS.length, 'каталог потерял вещь при разделении на полки');
+assert.equal(new Set(SHOP_ITEMS.map((item) => item.id)).size, SHOP_ITEMS.length, 'id товаров должны быть уникальны');
+assert.ok(OUTFIT_ITEMS.every((item) => item.kind !== 'toy'), 'на полке нарядов не должно быть игрушек');
+assert.ok(TOY_ITEMS.every((item) => item.kind === 'toy' && item.toy), 'у каждой вещи есть подполка (телефон/машина/корабль)');
+assert.deepEqual(
+  [...new Set(TOY_ITEMS.map((item) => item.toy))].sort(),
+  ['car', 'phone', 'ship'],
+  'техника должна быть трёх видов: телефоны, машины, корабли',
+);
+
+const shopItemIds = SHOP_ITEMS.map((item) => item.id);
 for (const id of shopItemIds) {
   const palette = TINT_PALETTES[id];
   assert.ok(palette, `у вещи ${id} нет палитры`);
@@ -45,7 +70,9 @@ for (const id of shopItemIds) {
   assert.equal(options.length, 4, `${id}: оттенков должно быть 4 (база + 3)`);
   assert.equal(options[0].id, BASE_TINT, `${id}: базовый оттенок идёт первым`);
   assert.equal(new Set(options.map((t) => t.id)).size, 4, `${id}: id оттенков уникальны`);
-  assert.deepEqual(palette.base.colors, EXPECTED_BASE[id], `${id}: базовые цвета поехали`);
+  const expected = EXPECTED_BASE[id] ?? EXPECTED_TOY_BASE[id];
+  assert.ok(expected, `${id}: нет ожидаемых базовых цветов`);
+  assert.deepEqual(palette.base.colors, expected, `${id}: базовые цвета поехали`);
   const titles = new Set(options.map((t) => t.title));
   assert.equal(titles.size, 4, `${id}: названия оттенков уникальны`);
   for (const tint of options) {

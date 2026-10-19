@@ -4,6 +4,7 @@ import { COSTUME_BY_ID } from '../engine/puzzles';
 import { accessoryColors, costumeAccent } from '../engine/tints';
 import { useShopTuning, useWornCostume } from '../state/store';
 import { CostumeCape, CostumeHead, CostumeProp, MascotAccessory, SLOT_ORDER } from './MascotLook';
+import { MascotToy } from './ToyArt';
 
 export type Mood = 'idle' | 'happy' | 'excited' | 'sad' | 'think' | 'dance';
 
@@ -207,6 +208,8 @@ export const Mascot = React.forwardRef<HTMLDivElement, Props>(function Mascot(
           })}
         {cst && <CostumeHead c={cst} accent={accent} />}
         {cst && <CostumeProp c={cst} accent={accent} />}
+        {/* Техника (0.19.0): телефон в крыле, машина/корабль у лапок. */}
+        {look?.toy && <MascotToy id={look.toy} colors={accessoryColors(look.toy, tuning)} />}
       </svg>
     </div>
   );
