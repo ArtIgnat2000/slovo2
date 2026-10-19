@@ -50,7 +50,7 @@ export const TOY_SHELVES: { id: ToyKind; title: string; emoji: string; note: str
     id: 'car',
     title: 'Авто',
     emoji: '🚗',
-    note: 'Гоночная, джип, такси — и семь легендарных машин: БМВ, Брабус, Мерседес, Майбах, Роллс-Ройс, Ламборджини и Бугати',
+    note: 'Цветные карандашные рисунки машин с характером: флагманский седан, спортивный седан, квадратный внедорожник, двухцветный лимузин, парадный лимузин, гиперкар, суперкар, болид, скалолаз и жёлтый кэб',
   },
   {
     id: 'phone',
@@ -79,17 +79,17 @@ export const SHOP_ITEMS: ShopItem[] = [
   { id: 'phone-flip', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'Раскладушка', desc: 'Открывается — и можно звонить', price: 30 },
   { id: 'phone-retro', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '☎️', title: 'Ретро-телефон', desc: 'С диском, как у бабушки на полке', price: 55 },
   // ── Техника: машины ──────────────────────────────────────────────────────
-  { id: 'car-racer', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🏎️', title: 'Гоночная машина', desc: 'Самая быстрая на полке', price: 35 },
-  { id: 'car-jeep', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚙', title: 'Джип', desc: 'Проедет где угодно — хоть по ковру', price: 40 },
-  { id: 'car-taxi', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚕', title: 'Такси', desc: 'С шашечками и фонариком на крыше', price: 50 },
-  // ── Авто: легендарные марки (0.20.0) ─────────────────────────────────────
-  { id: 'car-mercedes', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Мерседес', desc: 'Серебристый лимузин со звездой на решётке', price: 55 },
-  { id: 'car-bmw', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'БМВ', desc: 'Синий седан с «ноздрями» и острыми фарами', price: 60 },
-  { id: 'car-brabus', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Брабус', desc: 'Чёрный, с красной нитью по борту и карбоном', price: 65 },
-  { id: 'car-maybach', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Майбах', desc: 'Двухцветный лимузин с золотой отделкой', price: 70 },
-  { id: 'car-rolls', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Роллс-Ройс', desc: 'С «Парфеноном» на носу и фигуркой на капоте', price: 80 },
-  { id: 'car-lambo', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Ламборджини', desc: 'Жёлтый клин с антикрылом и Y-фарами', price: 85 },
-  { id: 'car-bugatti', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Бугати', desc: 'Гиперкар с подковой решётки и двумя цветами кузова', price: 90 },
+  { id: 'car-racer', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🏎️', title: 'Болид', desc: 'Гоночная машина: открытые колёса и антикрыло', price: 35 },
+  { id: 'car-jeep', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚙', title: 'Скалолаз', desc: 'Квадратный внедорожник: семь прорезей и зубастые шины', price: 40 },
+  { id: 'car-taxi', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚕', title: 'Жёлтый кэб', desc: 'Городское такси: шашечки и фонарик на крыше', price: 50 },
+  // ── Авто с характером (0.21.0; цвет и имена без брендов — 0.21.1) ────────
+  { id: 'car-mercedes', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Звезда', desc: 'Флагманский седан: звезда, хром, тишина салона', price: 55 },
+  { id: 'car-bmw', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Стрела', desc: 'Спортивный седан: длинный капот и четыре выхлопа', price: 60 },
+  { id: 'car-brabus', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Кубик', desc: 'Квадратный богатырь: карбон и огромные диски', price: 65 },
+  { id: 'car-maybach', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Адмирал', desc: 'Двухцветный лимузин: чёрный верх и золотой низ', price: 70 },
+  { id: 'car-rolls', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Лорд', desc: 'Парадный лимузин: огромная решётка и фигурка на капоте', price: 80 },
+  { id: 'car-lambo', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Бык', desc: 'Зелёный суперкар: Y-фары и антикрыло', price: 85 },
+  { id: 'car-bugatti', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Молния', desc: 'Голубой гиперкар: подкова решётки и C-линия по борту', price: 90 },
   // ── Техника: корабли ─────────────────────────────────────────────────────
   { id: 'ship-paper', slot: 'toy', kind: 'toy', toy: 'ship', emoji: '⛵', title: 'Бумажный кораблик', desc: 'Сложен из листа бумаги и держится на воде', price: 25 },
   { id: 'ship-sail', slot: 'toy', kind: 'toy', toy: 'ship', emoji: '⛵', title: 'Парусник', desc: 'Ловит ветер белыми парусами', price: 45 },

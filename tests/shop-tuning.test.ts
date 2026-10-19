@@ -10,6 +10,7 @@ import {
   TINT_PALETTES,
   TINT_PRICE,
   accessoryColors,
+  carPencilTint,
   costumeAccent,
   currentTint,
   normalizeTuning,
@@ -51,8 +52,8 @@ const EXPECTED_TOY_BASE: Record<string, [string, string, string]> = {
   'car-brabus': ['#151a23', '#0a0d13', '#e11d48'],
   'car-maybach': ['#111827', '#0b1220', '#c9a227'],
   'car-rolls': ['#0f3d33', '#08120f', '#d4af37'],
-  'car-lambo': ['#facc15', '#111827', '#e2e8f0'],
-  'car-bugatti': ['#1e3a8a', '#0a1226', '#cbd5e1'],
+  'car-lambo': ['#3fae2a', '#111827', '#e2e8f0'],
+  'car-bugatti': ['#2563eb', '#0a1226', '#cbd5e1'],
   'ship-paper': ['#f8fafc', '#bfdbfe', '#ef4444'],
   'ship-sail': ['#1d4ed8', '#f8fafc', '#b45309'],
   'ship-steam': ['#1e40af', '#dc2626', '#fde68a'],
@@ -75,6 +76,22 @@ assert.equal(TOY_SHELVES[0].title, 'Авто', 'первая полка назы
 const carIds = toysByShelf('car').map((item) => item.id);
 for (const id of ['car-bmw', 'car-brabus', 'car-mercedes', 'car-lambo', 'car-rolls', 'car-maybach', 'car-bugatti']) {
   assert.ok(carIds.includes(id), `в разделе авто нет ${id}`);
+}
+// 0.21.1: имена машин — по характеру, без точных обозначений брендов.
+// id остаются техническими (по ним лежат картинки и профили), но всё, что
+// видит ребёнок, не должно называть марку или модель.
+assert.deepEqual(
+  toysByShelf('car').map((item) => item.title),
+  ['Болид', 'Скалолаз', 'Жёлтый кэб', 'Звезда', 'Стрела', 'Кубик', 'Адмирал', 'Лорд', 'Бык', 'Молния'],
+  'названия машин должны отражать характер, а не бренд',
+);
+const BRAND_WORDS =
+  /мерседес|майбах|брабус|роллс|ройс|ламборджини|бугати|бмв|mercedes|maybach|brabus|rolls|royce|lamborghini|bugatti|jeep|джип|ford|форд|crown victoria|phantom|chiron|aventador|wrangler|rubicon|s-класс|\bm5\b/i;
+for (const item of toysByShelf('car')) {
+  assert.ok(
+    !BRAND_WORDS.test(`${item.title} ${item.desc}`),
+    `${item.id}: в названии или описании осталось точное обозначение бренда`,
+  );
 }
 
 const shopItemIds = SHOP_ITEMS.map((item) => item.id);
@@ -280,5 +297,28 @@ assert.deepEqual(
   ],
 );
 assert.equal(currentTint(mixed, 'dark-lord')?.title, 'Сиреневый');
+
+// ── Машины: цветной карандашный рисунок и тюнинг (0.21.1) ──────────────────
+// Рисунки машин — цветная графика конкретных моделей (public/cars/*.webp).
+// Базовый оттенок — это сам рисунок, поэтому carPencilTint возвращает null:
+// иначе «Звезда» по умолчанию перекрашивалась бы в один цвет и теряла
+// цветные детали (хром, салон, тени).
+assert.equal(carPencilTint('car-mercedes', undefined), null, 'без тюнинга — рисунок в своих цветах');
+assert.equal(carPencilTint('car-mercedes', { current: {}, unlocked: {} }), null, 'нет записи — база');
+assert.equal(
+  carPencilTint('car-mercedes', { current: { 'car-mercedes': BASE_TINT }, unlocked: {} }),
+  null,
+  'явная база — тоже рисунок в своих цветах',
+);
+for (const id of ['car-mercedes', 'car-bmw', 'car-brabus', 'car-maybach', 'car-rolls', 'car-lambo', 'car-bugatti']) {
+  const extra = TINT_PALETTES[id].extra[0];
+  assert.equal(
+    carPencilTint(id, { current: { [id]: extra.id }, unlocked: { [id]: [extra.id] } }),
+    extra.colors[0],
+    `${id}: выбранный оттенок должен стать цветом карандаша`,
+  );
+}
+// Неизвестная вещь — красить нечего
+assert.equal(carPencilTint('nope', undefined), null);
 
 console.log('✓ тюнинг: палитры, 1 💎 за оттенок, бесплатное переключение, акценты костюмов и санитизация');

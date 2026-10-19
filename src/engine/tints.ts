@@ -112,9 +112,9 @@ export const TINT_PALETTES: Record<string, TintPalette<ItemTint>> = {
   },
 
   // ── Техника (0.19.0): телефоны, машины, корабли ──────────────────────────
-  // 0.20.0: полка «Авто» — семь легендарных марок, у каждой свой рисунок;
+  // 0.21.1: машины нарисованы цветным карандашом, у каждой свой цвет кузова;
   // Те же три роли цвета, что у нарядов: [корпус, тень/стекло, акцент].
-  // Красить можно только купленное; база — та же, что на витрине.
+  // Красить можно только купленное; база — цвет, в котором машина нарисована.
   'phone-smart': {
     base: { id: BASE_TINT, title: 'Голубой', colors: ['#3b82f6', '#0f2a66', '#a7f3d0'] },
     extra: [
@@ -163,9 +163,9 @@ export const TINT_PALETTES: Record<string, TintPalette<ItemTint>> = {
       { id: 'sky', title: 'Голубое', colors: ['#60a5fa', '#1e3a8a', '#f8fafc'] },
     ],
   },
-  // ── Авто легендарных марок (0.20.0) ─────────────────────────────────────
+  // ── Авто с характером (0.21.0; цвет и имена без брендов — 0.21.1) ────────
   // Цвета те же три роли, что у остальной техники: [кузов, стекло/тень, хром].
-  // База — ровно та машина, что нарисована в ui/CarArt.tsx.
+  // База — ровно тот цвет, в котором машина нарисована в public/cars/*.webp.
   'car-mercedes': {
     base: { id: BASE_TINT, title: 'Серебристый', colors: ['#cbd5e1', '#111827', '#e2e8f0'] },
     extra: [
@@ -191,7 +191,7 @@ export const TINT_PALETTES: Record<string, TintPalette<ItemTint>> = {
     ],
   },
   'car-maybach': {
-    base: { id: BASE_TINT, title: 'Чёрно-белый', colors: ['#111827', '#0b1220', '#c9a227'] },
+    base: { id: BASE_TINT, title: 'Чёрно-золотой', colors: ['#111827', '#0b1220', '#c9a227'] },
     extra: [
       { id: 'bordo', title: 'Бордовый', colors: ['#6b1f3a', '#16070c', '#e0b04a'] },
       { id: 'blue', title: 'Синий', colors: ['#1e2f5a', '#0a1226', '#d4af37'] },
@@ -207,15 +207,15 @@ export const TINT_PALETTES: Record<string, TintPalette<ItemTint>> = {
     ],
   },
   'car-lambo': {
-    base: { id: BASE_TINT, title: 'Жёлтый', colors: ['#facc15', '#111827', '#e2e8f0'] },
+    base: { id: BASE_TINT, title: 'Зелёный', colors: ['#3fae2a', '#111827', '#e2e8f0'] },
     extra: [
+      { id: 'yellow', title: 'Жёлтый', colors: ['#facc15', '#111827', '#e2e8f0'] },
       { id: 'orange', title: 'Оранжевый', colors: ['#ea580c', '#111827', '#fde68a'] },
-      { id: 'green', title: 'Зелёный', colors: ['#65a30d', '#0b1220', '#d9f99d'] },
       { id: 'black', title: 'Чёрный', colors: ['#1f2937', '#0b1220', '#f8fafc'] },
     ],
   },
   'car-bugatti': {
-    base: { id: BASE_TINT, title: 'Синий', colors: ['#1e3a8a', '#0a1226', '#cbd5e1'] },
+    base: { id: BASE_TINT, title: 'Синий', colors: ['#2563eb', '#0a1226', '#cbd5e1'] },
     extra: [
       { id: 'black', title: 'Чёрный', colors: ['#1f2937', '#06090f', '#cbd5e1'] },
       { id: 'red', title: 'Красный', colors: ['#b91c1c', '#1a0606', '#e5e7eb'] },
@@ -367,6 +367,24 @@ export function accessoryColors(
   const id = tuning?.current?.[targetId];
   const chosen = id && id !== BASE_TINT ? palette.extra.find((tint) => tint.id === id) : null;
   return (chosen ?? palette.base).colors;
+}
+
+/**
+ * Цвет «цветного карандаша» для рисунков машин (0.21.0, цвет — 0.21.1).
+ *
+ * Машины уже нарисованы цветным карандашом: базовый оттенок — это сам рисунок,
+ * поэтому для базы возвращаем null и не перекрашиваем его. Выбранный платный
+ * оттенок ложится на рисунок лёгким цветным слоем (см. `ui/CarArt.tsx`) —
+ * как будто ребёнок взял другой карандаш и прошёлся по кузову, сохранив
+ * штриховку, блики и светотень.
+ */
+export function carPencilTint(targetId: string, tuning: ShopTuning | undefined): string | null {
+  const palette = TINT_PALETTES[targetId];
+  if (!palette) return null;
+  const id = tuning?.current?.[targetId];
+  if (!id || id === BASE_TINT) return null;
+  const chosen = palette.extra.find((tint) => tint.id === id);
+  return chosen ? chosen.colors[0] : null;
 }
 
 /** Акцент костюма с учётом выбранного оттенка (для отрисовки). */

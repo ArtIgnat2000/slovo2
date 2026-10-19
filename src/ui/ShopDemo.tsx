@@ -4,6 +4,7 @@ import '../styles/tokens.css';
 import '../styles/app.css';
 import { Mascot } from './Mascot';
 import { TintPicker } from './TintPicker';
+import { CarArt, carAlt, carKind, carNote, hasCarArt } from './CarArt';
 import { ConfirmDialog } from './Bits';
 import { plural } from '../engine/quests';
 import {
@@ -25,7 +26,7 @@ import { ToyArt } from './ToyArt';
 import { TechScene } from './TechScene';
 import { COSTUMES, PUZZLE_SIZE, costumeProgress, type Costume } from '../engine/puzzles';
 import { MUSIC_TRACKS, type MusicTrack } from '../engine/music';
-import { TINT_PRICE, type TintOption } from '../engine/tints';
+import { TINT_PRICE, carPencilTint, type TintOption } from '../engine/tints';
 import { THEME_STYLES, type ThemeStyle } from '../engine/theme-styles';
 import { BackgroundThemeCard } from './BackgroundThemeCard';
 import type { ShopSlot, ShopTuning } from '../types';
@@ -565,7 +566,7 @@ function Demo() {
                 </div>
                 {/* Сцена как в приложении: гараж, пирс и витрина с телефоном */}
                 <div className="mz-shelf" style={{ paddingTop: 0 }}>
-                  <TechScene onOpen={openItem} owned={owned} look={equipped} />
+                  <TechScene onOpen={openItem} owned={owned} look={equipped} tuning={tuning} />
                 </div>
                 {toyGoal && (
                   <div style={{ padding: '0 14px' }}>
@@ -602,7 +603,7 @@ function Demo() {
                             <Card
                               key={item.id}
                               toy
-                              art={<ToyArt id={item.id} size={82} />}
+                              art={<ToyArt id={item.id} size={82} tuning={tuning} />}
                               title={item.title}
                               desc={item.desc}
                               state={st}
@@ -804,7 +805,7 @@ function Demo() {
                         key={item.id}
                         toy
                         state={isWearing(equipped, item) ? 'worn' : 'owned'}
-                        art={<ToyArt id={item.id} size={82} />}
+                        art={<ToyArt id={item.id} size={82} tuning={tuning} />}
                         title={item.title}
                         desc={item.desc}
                         priceLabel={isWearing(equipped, item) ? 'У БУКа ✓' : 'Куплена ✓'}
@@ -878,7 +879,7 @@ function Demo() {
                         <div className="mz-card" key={id} style={{ cursor: 'default' }}>
                           <div className="mz-art">
                             {isToy(item)
-                              ? <ToyArt id={item.id} size={64} />
+                              ? <ToyArt id={item.id} size={64} tuning={tuning} />
                               : <Mascot mood="idle" look={{ [item.slot]: item.id }} costumeId={null} stage={growth.index} size={64} />}
                           </div>
                           <div className="shop-title">{item.title}</div>
@@ -940,10 +941,25 @@ function Demo() {
                   return (
                     <>
                       <div className={`mz-bigart${isToy(item) ? ' shop-bigart-toy' : ''}`}>
-                        <Mascot mood="happy" look={{ [item.slot]: item.id }} costumeId={null} stage={growth.index} size={150} />
+                        {hasCarArt(item.id) ? (
+                          <CarArt id={item.id} tint={carPencilTint(item.id, tuning)} alt={carAlt(item.id, item.title)} />
+                        ) : (
+                          <Mascot mood="happy" look={{ [item.slot]: item.id }} costumeId={null} stage={growth.index} size={150} />
+                        )}
                       </div>
                       <h2 style={{ margin: '0 0 2px' }}>{item.title}</h2>
                       <p className="tiny muted" style={{ marginTop: 0 }}>{item.desc}</p>
+                      {carKind(item.id) && (
+                        <p className="tiny muted">
+                          <b>{carKind(item.id)}</b> · рисунок цветным карандашом
+                          {carNote(item.id) && (
+                            <>
+                              <br />
+                              {carNote(item.id)}
+                            </>
+                          )}
+                        </p>
+                      )}
                       {isToy(item) && (
                         <p className="tiny muted">
                           БУК заберёт покупку с собой — её будет видно на главной и в уроках.

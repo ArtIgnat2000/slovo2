@@ -87,11 +87,16 @@ await new Promise((r) => setTimeout(r, 100));
 expect('Авто', 'подполка авто');
 expect('Телефоны', 'подполка телефонов');
 expect('Корабли', 'подполка кораблей');
-expect('БМВ', 'карточка БМВ');
-expect('Роллс-Ройс', 'карточка Роллс-Ройса');
+expect('Стрела', 'карточка спортивного седана');
+expect('Лорд', 'карточка парадного лимузина');
+expect('Звезда', 'карточка флагманского седана');
+expect('Молния', 'карточка гиперкара');
 expect('Ближайшая покупка', 'подсказка о ближайшей покупке');
 expect('Смартфон', 'карточка смартфона');
-expect('Гоночная машина', 'карточка гоночной машины');
+expect('Болид', 'карточка гоночной машины');
+for (const brand of ['БМВ', 'Мерседес', 'Брабус', 'Майбах', 'Роллс-Ройс', 'Ламборджини', 'Бугати', 'BMW', 'Mercedes', 'Brabus', 'Maybach', 'Rolls', 'Lamborghini', 'Bugatti']) {
+  if (text().includes(brand)) problems.push('бренд в витрине: ' + brand);
+}
 expect('Пароход', 'карточка парохода');
 if (!document.querySelector('.shop-boutique .shop-case-lamp')) problems.push('нет лампы в нише витрины');
 if (!document.querySelector('.shop-boutique .shop-case-podium')) problems.push('нет подиума под вещью');
@@ -159,6 +164,11 @@ await build({
   outfile: path.join(out, 'check.mjs'),
   logLevel: 'warning',
   external: ['jsdom', 'fake-indexeddb'],
+  // Vite подставляет import.meta.env целиком; в тесте задаём тот же объект
+  // руками — витрина читает BASE_URL для рисунков машин (public/cars/*.webp).
+  define: {
+    'import.meta.env': JSON.stringify({ BASE_URL: '/', MODE: 'test', DEV: true, PROD: false }),
+  },
 });
 
 const res = spawnSync(process.execPath, [path.join(out, 'check.mjs')], { stdio: 'inherit', cwd: root });

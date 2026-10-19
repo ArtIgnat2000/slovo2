@@ -585,35 +585,46 @@ async function main() {
       !!document.querySelector('.tech-buk .mascot'),
     `бирки: ${document.querySelectorAll('.tech-tag').length}`,
   );
-  check('«Техника»: на полках есть смартфон, джип и пароход', has('Смартфон') && has('Джип') && has('Пароход'), '');
+  check('«Техника»: на полках есть смартфон, скалолаз и пароход', has('Смартфон') && has('Скалолаз') && has('Пароход'), '');
+  // 0.21.1: имена машин выбраны по характеру, без точных брендов.
   check(
-    '«Авто»: семь легендарных марок стоят на полке',
-    ['БМВ', 'Брабус', 'Мерседес', 'Майбах', 'Роллс-Ройс', 'Ламборджини', 'Бугати'].every((title) => has(title)),
+    '«Авто»: десять машин с именами-характерами стоят на полке',
+    ['Звезда', 'Стрела', 'Кубик', 'Адмирал', 'Лорд', 'Бык', 'Молния', 'Болид', 'Скалолаз', 'Жёлтый кэб'].every(
+      (title) => has(title),
+    ),
     '',
   );
-  // Каждая марка должна читаться своим силуэтом, а не перекраской одного кузова.
+  // 0.21.0: каждая машина — отдельный цветной карандашный рисунок настоящей
+  // модели (public/cars/*.webp), а не общий силуэт с перекраской.
   {
-    const carTitles = /БМВ|Мерседес|Брабус|Майбах|Роллс-Ройс|Ламборджини|Бугати|Гоночная машина|Джип|Такси/;
+    const carTitles = /Звезда|Стрела|Кубик|Адмирал|Лорд|Бык|Молния|Болид|Скалолаз|Жёлтый кэб/;
     const carArt = Array.from(document.querySelectorAll('.shop-item.toy-item'))
       .filter((el) => carTitles.test(el.textContent ?? ''))
-      .map((el) => el.querySelector('svg')?.innerHTML ?? '');
+      .map((el) => el.querySelector('img')?.getAttribute('src') ?? '');
     check(
-      '«Авто»: у каждой машины свой силуэт и детали',
-      carArt.length === 10 && new Set(carArt).size === carArt.length,
+      '«Авто»: у каждой машины свой цветной рисунок реальной модели',
+      carArt.length === 10 &&
+        new Set(carArt).size === carArt.length &&
+        carArt.every((src) => /\/cars\/car-[a-z]+\.webp$/.test(src)),
       `уникальных рисунков: ${new Set(carArt).size}/${carArt.length}`,
     );
   }
   check(
-    '«Техника»: картинка рисуется кодом в базовом цвете',
-    (document.querySelector('.shop-item.toy-item svg')?.innerHTML ?? '').includes('#ef4444'),
-    document.querySelector('.shop-item.toy-item svg')?.innerHTML.slice(0, 80) ?? 'нет svg',
+    '«Техника»: рисунок машины ставится на подиум как картинка с прозрачным фоном',
+    document.querySelectorAll('.shop-case .shop-icon > .car-art > img').length === 10,
+    `рисунков в нишах: ${document.querySelectorAll('.shop-case .shop-icon > .car-art > img').length}`,
   );
-  check(
-    '«Авто»: машины нарисованы подробно — тени, стёкла и хром градиентами',
-    /linearGradient/.test(document.querySelector('.shop-item.toy-item svg')?.innerHTML ?? '') &&
-      /mask/.test(document.querySelector('.shop-item.toy-item svg')?.innerHTML ?? ''),
-    document.querySelector('.shop-item.toy-item svg')?.innerHTML.slice(0, 120) ?? 'нет svg',
-  );
+  // Телефоны и корабли остались ручным SVG в базовом цвете — этот путь жив.
+  {
+    const phoneCard = Array.from(document.querySelectorAll('.shop-item.toy-item')).find((el) =>
+      (el.textContent ?? '').includes('Смартфон'),
+    );
+    check(
+      '«Техника»: телефон по-прежнему рисуется кодом в базовом цвете',
+      (phoneCard?.querySelector('svg')?.innerHTML ?? '').includes('#3b82f6'),
+      phoneCard?.querySelector('svg')?.innerHTML.slice(0, 80) ?? 'нет svg',
+    );
+  }
   check('«Техника»: видна ближайшая покупка и её цена', has('Ближайшая покупка') && has('💎 25'), '');
 
   // Покупка вещи кладёт её в слот `toy` и сразу ставит рядом с БУКом.
