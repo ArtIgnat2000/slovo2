@@ -7,7 +7,7 @@
 // здесь только правила и цены (чистая логика без React).
 //
 // 0.19.0: витрина стала магазином с полками, а к нарядам добавилась третья
-// ветка — техника (телефоны, машины, корабли). Вещь живёт в слоте `toy`,
+// ветка — техника (авто, телефоны, корабли). Вещь живёт в слоте `toy`,
 // её видно рядом с БУКом на главной, в уроках и в гардеробе. Каталог по-прежнему
 // один: покупка, вишлист, тюнинг и выгрузка работают одинаково для всех вещей.
 
@@ -18,7 +18,7 @@ import { MUSIC_TRACKS, type MusicTrack } from './music';
 /** Полка витрины: наряды или техника. Костюмы/музыка/звуки живут отдельно. */
 export type ShopItemKind = 'outfit' | 'toy';
 
-/** Подполки техники: телефоны, машины и корабли. */
+/** Подполки техники в порядке витрины: авто, телефоны, корабли. */
 export type ToyKind = 'phone' | 'car' | 'ship';
 
 export interface ShopItem {
@@ -47,16 +47,16 @@ export const SLOT_TITLE: Record<ShopSlot, string> = {
 /** Полки техники: порядок и подписи для витрины. */
 export const TOY_SHELVES: { id: ToyKind; title: string; emoji: string; note: string }[] = [
   {
+    id: 'car',
+    title: 'Авто',
+    emoji: '🚗',
+    note: 'Гоночная, джип, такси — и семь легендарных машин: БМВ, Брабус, Мерседес, Майбах, Роллс-Ройс, Ламборджини и Бугати',
+  },
+  {
     id: 'phone',
     title: 'Телефоны',
     emoji: '📱',
     note: 'Позвонить, поиграть и показать БУКу смешные картинки',
-  },
-  {
-    id: 'car',
-    title: 'Машины',
-    emoji: '🚗',
-    note: 'Гоночная, джип и такси — на любой случай',
   },
   {
     id: 'ship',
@@ -82,6 +82,14 @@ export const SHOP_ITEMS: ShopItem[] = [
   { id: 'car-racer', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🏎️', title: 'Гоночная машина', desc: 'Самая быстрая на полке', price: 35 },
   { id: 'car-jeep', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚙', title: 'Джип', desc: 'Проедет где угодно — хоть по ковру', price: 40 },
   { id: 'car-taxi', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚕', title: 'Такси', desc: 'С шашечками и фонариком на крыше', price: 50 },
+  // ── Авто: легендарные марки (0.20.0) ─────────────────────────────────────
+  { id: 'car-mercedes', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Мерседес', desc: 'Серебристый лимузин со звездой на решётке', price: 55 },
+  { id: 'car-bmw', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'БМВ', desc: 'Синий седан с «ноздрями» и острыми фарами', price: 60 },
+  { id: 'car-brabus', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Брабус', desc: 'Чёрный, с красной нитью по борту и карбоном', price: 65 },
+  { id: 'car-maybach', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Майбах', desc: 'Двухцветный лимузин с золотой отделкой', price: 70 },
+  { id: 'car-rolls', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Роллс-Ройс', desc: 'С «Парфеноном» на носу и фигуркой на капоте', price: 80 },
+  { id: 'car-lambo', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Ламборджини', desc: 'Жёлтый клин с антикрылом и Y-фарами', price: 85 },
+  { id: 'car-bugatti', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Бугати', desc: 'Гиперкар с подковой решётки и двумя цветами кузова', price: 90 },
   // ── Техника: корабли ─────────────────────────────────────────────────────
   { id: 'ship-paper', slot: 'toy', kind: 'toy', toy: 'ship', emoji: '⛵', title: 'Бумажный кораблик', desc: 'Сложен из листа бумаги и держится на воде', price: 25 },
   { id: 'ship-sail', slot: 'toy', kind: 'toy', toy: 'ship', emoji: '⛵', title: 'Парусник', desc: 'Ловит ветер белыми парусами', price: 45 },

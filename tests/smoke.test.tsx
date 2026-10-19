@@ -545,7 +545,7 @@ async function main() {
     useApp.getState().settings.themeStyle === originalThemeStyle && document.documentElement.dataset.themeStyle === originalThemeStyle,
   );
 
-  // ── Полка «Техника»: телефоны, машины и корабли (0.19.0) ────────────────
+  // ── Полка «Техника»: авто, телефоны и корабли (0.20.0) ─────────────────
   const toyShelf = Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Техника'));
   check('в витрине есть полка «Техника»', !!toyShelf, '');
   if (toyShelf) click(toyShelf);
@@ -555,7 +555,7 @@ async function main() {
     document.querySelectorAll('.shop-item.toy-item').length === TOY_ITEMS.length,
     `${document.querySelectorAll('.shop-item.toy-item').length}/${TOY_ITEMS.length}`,
   );
-  check('«Техника»: три подполки — телефоны, машины, корабли', has('Телефоны') && has('Машины') && has('Корабли'), '');
+  check('«Техника»: три подполки — авто, телефоны, корабли', has('Авто') && has('Телефоны') && has('Корабли'), '');
   check(
     '«Техника»: каждая вещь стоит в арочной нише с лампой и подиумом',
     document.querySelectorAll('.shop-case').length === TOY_ITEMS.length &&
@@ -564,7 +564,7 @@ async function main() {
     `ниш: ${document.querySelectorAll('.shop-case').length}/${TOY_ITEMS.length}`,
   );
   check(
-    '«Техника»: витрина-бутик из трёх подполок, машины — мята, корабли — небо',
+    '«Техника»: витрина-бутик из трёх подполок, авто — мята, корабли — небо',
     document.querySelectorAll('.shop-boutique').length >= 3 &&
       !!document.querySelector('.shop-boutique-mint') &&
       !!document.querySelector('.shop-boutique-sky'),
@@ -587,9 +587,32 @@ async function main() {
   );
   check('«Техника»: на полках есть смартфон, джип и пароход', has('Смартфон') && has('Джип') && has('Пароход'), '');
   check(
+    '«Авто»: семь легендарных марок стоят на полке',
+    ['БМВ', 'Брабус', 'Мерседес', 'Майбах', 'Роллс-Ройс', 'Ламборджини', 'Бугати'].every((title) => has(title)),
+    '',
+  );
+  // Каждая марка должна читаться своим силуэтом, а не перекраской одного кузова.
+  {
+    const carTitles = /БМВ|Мерседес|Брабус|Майбах|Роллс-Ройс|Ламборджини|Бугати|Гоночная машина|Джип|Такси/;
+    const carArt = Array.from(document.querySelectorAll('.shop-item.toy-item'))
+      .filter((el) => carTitles.test(el.textContent ?? ''))
+      .map((el) => el.querySelector('svg')?.innerHTML ?? '');
+    check(
+      '«Авто»: у каждой машины свой силуэт и детали',
+      carArt.length === 10 && new Set(carArt).size === carArt.length,
+      `уникальных рисунков: ${new Set(carArt).size}/${carArt.length}`,
+    );
+  }
+  check(
     '«Техника»: картинка рисуется кодом в базовом цвете',
-    (document.querySelector('.shop-item.toy-item svg')?.innerHTML ?? '').includes('#3b82f6'),
+    (document.querySelector('.shop-item.toy-item svg')?.innerHTML ?? '').includes('#ef4444'),
     document.querySelector('.shop-item.toy-item svg')?.innerHTML.slice(0, 80) ?? 'нет svg',
+  );
+  check(
+    '«Авто»: машины нарисованы подробно — тени, стёкла и хром градиентами',
+    /linearGradient/.test(document.querySelector('.shop-item.toy-item svg')?.innerHTML ?? '') &&
+      /mask/.test(document.querySelector('.shop-item.toy-item svg')?.innerHTML ?? ''),
+    document.querySelector('.shop-item.toy-item svg')?.innerHTML.slice(0, 120) ?? 'нет svg',
   );
   check('«Техника»: видна ближайшая покупка и её цена', has('Ближайшая покупка') && has('💎 25'), '');
 
