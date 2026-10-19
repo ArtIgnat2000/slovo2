@@ -87,11 +87,16 @@ await new Promise((r) => setTimeout(r, 100));
 expect('Авто', 'подполка авто');
 expect('Телефоны', 'подполка телефонов');
 expect('Корабли', 'подполка кораблей');
-expect('БМВ', 'карточка БМВ');
-expect('Роллс-Ройс', 'карточка Роллс-Ройса');
+expect('Стрела', 'карточка спортивного седана');
+expect('Лорд', 'карточка парадного лимузина');
+expect('Звезда', 'карточка флагманского седана');
+expect('Молния', 'карточка гиперкара');
 expect('Ближайшая покупка', 'подсказка о ближайшей покупке');
 expect('Смартфон', 'карточка смартфона');
-expect('Гоночная машина', 'карточка гоночной машины');
+expect('Болид', 'карточка гоночной машины');
+for (const brand of ['БМВ', 'Мерседес', 'Брабус', 'Майбах', 'Роллс-Ройс', 'Ламборджини', 'Бугати', 'BMW', 'Mercedes', 'Brabus', 'Maybach', 'Rolls', 'Lamborghini', 'Bugatti']) {
+  if (text().includes(brand)) problems.push('бренд в витрине: ' + brand);
+}
 expect('Пароход', 'карточка парохода');
 if (!document.querySelector('.shop-boutique .shop-case-lamp')) problems.push('нет лампы в нише витрины');
 if (!document.querySelector('.shop-boutique .shop-case-podium')) problems.push('нет подиума под вещью');

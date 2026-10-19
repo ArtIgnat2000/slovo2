@@ -22,7 +22,7 @@ import {
 } from '../../engine/shop';
 import { Mascot } from '../Mascot';
 import { ToyArt } from '../ToyArt';
-import { CarArt, carModel, hasCarArt } from '../CarArt';
+import { CarArt, carAlt, carKind, hasCarArt } from '../CarArt';
 import { TechScene } from '../TechScene';
 import {
   COSTUMES,
@@ -763,12 +763,12 @@ export function ShopScreen() {
         <>
           <div className={`shop-bigart${toy ? ' shop-bigart-toy' : ''}`}>
             {hasCarArt(item.id) ? (
-              // Машина — карандашный рисунок настоящей модели крупно, как лист
-              // в паспарту. Сову не подмешиваем: на витрине это товар.
+              // Машина — цветной карандашный рисунок настоящей модели крупно,
+              // как лист в паспарту. Сову не подмешиваем: на витрине это товар.
               <CarArt
                 id={item.id}
                 tint={carPencilTint(item.id, profile.shop?.tuning)}
-                alt={carModel(item.id) ?? item.title}
+                alt={carAlt(item.id, item.title)}
               />
             ) : (
               <Mascot mood="happy" look={{ [item.slot]: item.id }} costumeId={null} stage={growth.index} size={150} />
@@ -776,9 +776,9 @@ export function ShopScreen() {
           </div>
           <h2 style={{ margin: '0 0 2px' }}>{item.title}</h2>
           <p className="tiny muted" style={{ marginTop: 0 }}>{item.desc}</p>
-          {carModel(item.id) && (
+          {carKind(item.id) && (
             <p className="tiny muted">
-              <b>{carModel(item.id)}</b> · рисунок карандашом
+              <b>{carKind(item.id)}</b> · рисунок цветным карандашом
             </p>
           )}
           {toy && (

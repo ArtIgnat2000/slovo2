@@ -4,7 +4,7 @@ import '../styles/tokens.css';
 import '../styles/app.css';
 import { Mascot } from './Mascot';
 import { TintPicker } from './TintPicker';
-import { CarArt, carModel, hasCarArt } from './CarArt';
+import { CarArt, carAlt, carKind, hasCarArt } from './CarArt';
 import { ConfirmDialog } from './Bits';
 import { plural } from '../engine/quests';
 import {
@@ -942,16 +942,16 @@ function Demo() {
                     <>
                       <div className={`mz-bigart${isToy(item) ? ' shop-bigart-toy' : ''}`}>
                         {hasCarArt(item.id) ? (
-                          <CarArt id={item.id} tint={carPencilTint(item.id, tuning)} alt={carModel(item.id) ?? item.title} />
+                          <CarArt id={item.id} tint={carPencilTint(item.id, tuning)} alt={carAlt(item.id, item.title)} />
                         ) : (
                           <Mascot mood="happy" look={{ [item.slot]: item.id }} costumeId={null} stage={growth.index} size={150} />
                         )}
                       </div>
                       <h2 style={{ margin: '0 0 2px' }}>{item.title}</h2>
                       <p className="tiny muted" style={{ marginTop: 0 }}>{item.desc}</p>
-                      {carModel(item.id) && (
+                      {carKind(item.id) && (
                         <p className="tiny muted">
-                          <b>{carModel(item.id)}</b> · рисунок карандашом
+                          <b>{carKind(item.id)}</b> · рисунок цветным карандашом
                         </p>
                       )}
                       {isToy(item) && (
