@@ -168,6 +168,8 @@ const CSS = `
   display: grid; place-items: center; padding: 12px; margin-bottom: 10px;
 }
 .mz-bigart .mascot { position: static; z-index: auto; animation: none; }
+/* Мечты и плашка сбора: сова — картинка в потоке, а не плавающий БУК (0.21.2) */
+.mz-art .mascot, .mz-collect .mascot { position: static; z-index: auto; animation: none; }
 .mz-row { display: flex; gap: 8px; }
 .mz-row .btn { flex: 1; }
 .mz-toast {

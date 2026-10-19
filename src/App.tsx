@@ -157,13 +157,20 @@ export default function App() {
    * держат в памяти своё состояние и пишут запись целиком: проснувшаяся
    * вчерашняя копия затирала свежий прогресс. Договорились так: кто записал —
    * тот сообщил остальным, а вернувшаяся в фокус копия сначала перечитывает
-   * сохранение. Во время урока не трогаем ничего: там своё состояние.
+   * сохранение. Во время урока не трогаем ничего: там своё состояние — но
+   * запрос на синхронизацию ЗАПОМИНАЕМ и выполняем сразу после урока, чтобы
+   * устаревшая копия не стирала чужие свежие покупки своей записью
+   * (0.21.2, жалоба «пропадает купленная музыка»).
    */
   const inLesson = useRef(false);
   inLesson.current = lessonId !== null;
+  const syncPending = useRef(false);
   useEffect(() => {
     const sync = () => {
-      if (inLesson.current) return;
+      if (inLesson.current) {
+        syncPending.current = true;
+        return;
+      }
       void Promise.resolve(useApp.persist.rehydrate()).catch(() => undefined);
     };
     const offExternal = onExternalChange(sync);
@@ -176,6 +183,15 @@ export default function App() {
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, []);
+
+  // Урок закончился — выполняем отложенную во время урока синхронизацию.
+  // Чтение стоит в одной очереди с записями сторожа (platform/vault.ts),
+  // поэтому собственные итоги урока оно не теряет.
+  useEffect(() => {
+    if (lessonId !== null || !syncPending.current) return;
+    syncPending.current = false;
+    void Promise.resolve(useApp.persist.rehydrate()).catch(() => undefined);
+  }, [lessonId]);
 
   const closeDiagnostics = () => {
     const url = new URL(window.location.href);
