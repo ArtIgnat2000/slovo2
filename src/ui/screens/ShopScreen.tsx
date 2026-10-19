@@ -22,6 +22,7 @@ import {
 } from '../../engine/shop';
 import { Mascot } from '../Mascot';
 import { ToyArt } from '../ToyArt';
+import { CarArt, carModel, hasCarArt } from '../CarArt';
 import { TechScene } from '../TechScene';
 import {
   COSTUMES,
@@ -32,7 +33,7 @@ import {
   normalizePuzzle,
   type Costume,
 } from '../../engine/puzzles';
-import { TINT_PRICE, type TintOption } from '../../engine/tints';
+import { TINT_PRICE, carPencilTint, type TintOption } from '../../engine/tints';
 import { TintPicker } from '../TintPicker';
 import { ConfirmDialog } from '../Bits';
 import { previewSoundCue, sfx } from '../../platform/sound';
@@ -514,7 +515,7 @@ export function ShopScreen() {
         key={item.id}
         art={
           toy ? (
-            <ToyArt id={item.id} size={82} />
+            <ToyArt id={item.id} size={82} tuning={profile.shop?.tuning} />
           ) : (
             <Mascot mood="idle" look={{ [item.slot]: item.id }} stage={growth.index} size={64} />
           )
@@ -761,10 +762,25 @@ export function ShopScreen() {
       return (
         <>
           <div className={`shop-bigart${toy ? ' shop-bigart-toy' : ''}`}>
-            <Mascot mood="happy" look={{ [item.slot]: item.id }} costumeId={null} stage={growth.index} size={150} />
+            {hasCarArt(item.id) ? (
+              // Машина — карандашный рисунок настоящей модели крупно, как лист
+              // в паспарту. Сову не подмешиваем: на витрине это товар.
+              <CarArt
+                id={item.id}
+                tint={carPencilTint(item.id, profile.shop?.tuning)}
+                alt={carModel(item.id) ?? item.title}
+              />
+            ) : (
+              <Mascot mood="happy" look={{ [item.slot]: item.id }} costumeId={null} stage={growth.index} size={150} />
+            )}
           </div>
           <h2 style={{ margin: '0 0 2px' }}>{item.title}</h2>
           <p className="tiny muted" style={{ marginTop: 0 }}>{item.desc}</p>
+          {carModel(item.id) && (
+            <p className="tiny muted">
+              <b>{carModel(item.id)}</b> · рисунок карандашом
+            </p>
+          )}
           {toy && (
             <p className="tiny muted">
               БУК заберёт покупку с собой — её будет видно на главной и в уроках.
@@ -1317,7 +1333,12 @@ export function ShopScreen() {
               Три полки: авто, телефоны и корабли. Купленное сразу появляется у БУКа — на главной и в уроках.
             </div>
           </div>
-          <TechScene onOpen={(item) => openSheet({ kind: 'item', item })} owned={owned} look={look} />
+          <TechScene
+            onOpen={(item) => openSheet({ kind: 'item', item })}
+            owned={owned}
+            look={look}
+            tuning={profile.shop?.tuning}
+          />
           {toyGoal && (
             <div className="shop-tech-goal">
               <span className="shop-tech-goal-icon" aria-hidden="true">
@@ -1529,7 +1550,7 @@ export function ShopScreen() {
                 wardrobeRow(
                   item.id,
                   { kind: 'item', item },
-                  <ToyArt id={item.id} size={44} />,
+                  <ToyArt id={item.id} size={44} tuning={profile.shop?.tuning} />,
                   item.title,
                   item.desc,
                   isWearing(look, item),
@@ -1654,7 +1675,7 @@ export function ShopScreen() {
                         </button>
                         <div className="wishlist-card-art">
                           {isToy(item) ? (
-                            <ToyArt id={item.id} size={64} />
+                            <ToyArt id={item.id} size={64} tuning={profile.shop?.tuning} />
                           ) : (
                             <Mascot mood="idle" look={{ [item.slot]: item.id }} stage={growth.index} size={64} />
                           )}

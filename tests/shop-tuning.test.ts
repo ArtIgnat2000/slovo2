@@ -10,6 +10,7 @@ import {
   TINT_PALETTES,
   TINT_PRICE,
   accessoryColors,
+  carPencilTint,
   costumeAccent,
   currentTint,
   normalizeTuning,
@@ -280,5 +281,27 @@ assert.deepEqual(
   ],
 );
 assert.equal(currentTint(mixed, 'dark-lord')?.title, 'Сиреневый');
+
+// ── Машины: карандашный рисунок и «цветной карандаш» (0.21.0) ───────────────
+// Рисунки машин — графика конкретных моделей (public/cars/*.webp). Базовый
+// оттенок — чистый графит, поэтому carPencilTint возвращает null: иначе
+// «серебристый» Мерседес по умолчанию перекрашивался бы в серый.
+assert.equal(carPencilTint('car-mercedes', undefined), null, 'без тюнинга — чистый карандаш');
+assert.equal(carPencilTint('car-mercedes', { current: {}, unlocked: {} }), null, 'нет записи — база');
+assert.equal(
+  carPencilTint('car-mercedes', { current: { 'car-mercedes': BASE_TINT }, unlocked: {} }),
+  null,
+  'явная база — тоже чистый карандаш',
+);
+for (const id of ['car-mercedes', 'car-bmw', 'car-brabus', 'car-maybach', 'car-rolls', 'car-lambo', 'car-bugatti']) {
+  const extra = TINT_PALETTES[id].extra[0];
+  assert.equal(
+    carPencilTint(id, { current: { [id]: extra.id }, unlocked: { [id]: [extra.id] } }),
+    extra.colors[0],
+    `${id}: выбранный оттенок должен стать цветом карандаша`,
+  );
+}
+// Неизвестная вещь — красить нечего
+assert.equal(carPencilTint('nope', undefined), null);
 
 console.log('✓ тюнинг: палитры, 1 💎 за оттенок, бесплатное переключение, акценты костюмов и санитизация');

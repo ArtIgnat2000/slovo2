@@ -1967,6 +1967,59 @@ p {
   z-index: auto;
   animation: none;
 }
+
+/* ── Машины: карандашные рисунки настоящих моделей (0.21.0) ────────────────
+   У каждой марки — свой лист графита: прозрачный фон, собственная тень под
+   колёсами и общая линия «пола» (низ рисунка у всех десяти машин на одной
+   высоте). Поэтому в любом месте рисунок сам стоит на подиуме и не требует
+   подгонки координат — только размера. Размер задаёт контекст. */
+.car-art {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+  max-width: 100%;
+  line-height: 0;
+  /* Цветной карандаш (mix-blend-mode) не должен смешиваться с фоном вокруг. */
+  isolation: isolate;
+}
+.car-art > img {
+  display: block;
+  width: 100%;
+  height: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+}
+/* Тюнинг машины: выбранный оттенок ложится на рисунок умножением и маскируется
+   его же альфой — бумага вокруг машины остаётся прозрачной, штриховка и блики
+   сохраняются. База тюнинга не рисуется: базовый вид машины — чистый графит. */
+.car-art-wash {
+  position: absolute;
+  inset: 0;
+  background: var(--car-tint);
+  opacity: 0.9;
+  /* «Цветной карандаш»: берём только тон и насыщенность, светотень графика
+     остаётся своей — рисунок не темнеет и не теряет штриховку. */
+  mix-blend-mode: color;
+  pointer-events: none;
+  -webkit-mask-image: var(--car-mask);
+  mask-image: var(--car-mask);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+/* Карточка витрины: рисунок занимает ширину ниши, но не выходит за высоту. */
+.shop-icon > .car-art { max-width: 126px; }
+/* Крупный лист в подробной карточке — как гравюра на паспарту. */
+.shop-bigart-toy > .car-art { width: min(100%, 340px); margin-bottom: 4px; }
+/* Гардероб и мечты: маленькие рисунки в квадратных плитках. */
+.shop-wear-icon > .car-art { max-width: 52px; }
+.wishlist-card-art > .car-art,
+.mz-art > .car-art { max-width: 104px; }
+/* Сцена техники: машина стоит на комоде-подиуме в своей арке. */
+.tech-item > .car-art { width: 100%; }
+.tech-tag > .car-art { width: 26px; }
 .shop-title {
   font-weight: 800;
   font-size: var(--fs-sm);

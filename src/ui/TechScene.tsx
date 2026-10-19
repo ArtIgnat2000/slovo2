@@ -1,5 +1,5 @@
 import { ITEM_BY_ID, toysByShelf, type ShopItem, type ToyKind } from '../engine/shop';
-import type { ShopSlot } from '../types';
+import type { ShopSlot, ShopTuning } from '../types';
 import { Mascot } from './Mascot';
 import { ToyArt } from './ToyArt';
 
@@ -109,10 +109,13 @@ export function TechScene({
   onOpen,
   owned,
   look,
+  tuning,
 }: {
   onOpen: (item: ShopItem) => void;
   owned: string[];
   look: Partial<Record<ShopSlot, string>>;
+  /** Тюнинг: машина на витрине показывает выбранный «цветной карандаш» */
+  tuning?: ShopTuning;
 }) {
   return (
     <div className="tech-stage" role="group" aria-label="Витрина техники БУКа">
@@ -139,12 +142,12 @@ export function TechScene({
                   <BayDecor tone={tone} />
                 </span>
                 <span className="tech-item">
-                  <ToyArt id={item.id} size={100} />
+                  <ToyArt id={item.id} size={100} tuning={tuning} />
                 </span>
                 <span className="tech-plinth" aria-hidden="true" />
               </span>
               <span className={`tech-tag${isOwned ? ' owned' : ''}`} aria-hidden="true">
-                <ToyArt id={item.id} size={24} />
+                <ToyArt id={item.id} size={24} tuning={tuning} />
                 <b>{isOwned ? '✓' : `💎 ${item.price}`}</b>
               </span>
             </button>

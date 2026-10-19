@@ -369,6 +369,24 @@ export function accessoryColors(
   return (chosen ?? palette.base).colors;
 }
 
+/**
+ * Цвет «цветного карандаша» для рисунков машин (0.21.0).
+ *
+ * Машины нарисованы графитом: базовый оттенок — это чистый карандаш, поэтому
+ * для базы возвращаем null, а не её «цвет кузова». Выбранный платный оттенок
+ * ложится на рисунок лёгким умножением (см. `ui/CarArt.tsx`) — как будто
+ * ребёнок взял цветной карандаш и прошёлся по штриховке. Иначе у БМВ и
+ * Роллс-Ройса «цвет» ничего бы не менял: рисунок уже нарисован.
+ */
+export function carPencilTint(targetId: string, tuning: ShopTuning | undefined): string | null {
+  const palette = TINT_PALETTES[targetId];
+  if (!palette) return null;
+  const id = tuning?.current?.[targetId];
+  if (!id || id === BASE_TINT) return null;
+  const chosen = palette.extra.find((tint) => tint.id === id);
+  return chosen ? chosen.colors[0] : null;
+}
+
 /** Акцент костюма с учётом выбранного оттенка (для отрисовки). */
 export function costumeAccent(
   targetId: string,

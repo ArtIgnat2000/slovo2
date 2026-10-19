@@ -159,6 +159,11 @@ await build({
   outfile: path.join(out, 'check.mjs'),
   logLevel: 'warning',
   external: ['jsdom', 'fake-indexeddb'],
+  // Vite подставляет import.meta.env целиком; в тесте задаём тот же объект
+  // руками — витрина читает BASE_URL для рисунков машин (public/cars/*.webp).
+  define: {
+    'import.meta.env': JSON.stringify({ BASE_URL: '/', MODE: 'test', DEV: true, PROD: false }),
+  },
 });
 
 const res = spawnSync(process.execPath, [path.join(out, 'check.mjs')], { stdio: 'inherit', cwd: root });
