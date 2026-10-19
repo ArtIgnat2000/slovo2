@@ -32,6 +32,58 @@
   --shadow: 0 6px 0 rgba(36, 31, 54, 0.06), 0 10px 24px rgba(36, 31, 54, 0.07);
   --shadow-lg: 0 12px 40px rgba(36, 31, 54, 0.16);
 
+  /* ── Витрина-бутик (0.19.0): арки, подсветка, подиумы и бирки ─────────────
+     Магазин — мягкая витрина детского бутика: лавандовые ниши-арки, тёплая
+     лампа сверху, вещь на круглом подиуме, цена — бумажная бирка. Цвета
+     выведены из акцента темы: витрина остаётся «своей» и в неоне, и в
+     космосе, и в тёмной схеме, без десяти ручных палитр. */
+  --case-wall: color-mix(in srgb, var(--primary-soft) 42%, var(--bg));
+  --case-wall-2: color-mix(in srgb, var(--primary-soft) 20%, var(--bg));
+  --case-card: color-mix(in srgb, var(--bg-2) 86%, var(--primary-soft));
+  --case-card-on: color-mix(in srgb, var(--primary-soft) 72%, var(--bg-2));
+  --case-arch-top: color-mix(in srgb, var(--primary-soft) 82%, var(--bg-2));
+  --case-arch-bottom: color-mix(in srgb, var(--primary-soft) 52%, var(--bg-2));
+  --case-line: color-mix(in srgb, var(--primary) 24%, transparent);
+  --case-line-soft: color-mix(in srgb, var(--primary) 15%, transparent);
+  --case-lamp: #fff2c2;
+  --case-lamp-glow: rgba(255, 226, 140, 0.5);
+  --case-plinth-top: color-mix(in srgb, var(--primary) 30%, var(--bg-2));
+  --case-plinth-bottom: color-mix(in srgb, var(--primary) 48%, var(--bg));
+  /* Три арки сцены техники — как в референсе: мятная, голубая,
+     лавандовая (лаванда — это сам `--case-arch-*`). */
+  --case-mint-top: #e4f8ee;
+  --case-mint-bottom: #c9efdd;
+  --case-mint-plinth: #b6e8d1;
+  --case-mint-deep: #93d9bb;
+  --case-sky-top: #e5f4ff;
+  --case-sky-bottom: #c9e7ff;
+  --case-sky-plinth: #b3dcfb;
+  --case-sky-deep: #8fc9f4;
+  --tag-bg: #fff8e6;
+  --tag-ink: #8a4b0b;
+  --tag-line: rgba(138, 75, 11, 0.28);
+  /* Сцена витрины техники (0.19.0): небо, пол, дерево, вода, рамы арок. */
+  --stage-sky: color-mix(in srgb, var(--primary-soft) 46%, #efe6ff);
+  --stage-sky-2: color-mix(in srgb, var(--primary-soft) 22%, #f4ecff);
+  --stage-sky-top: #ddf2ff;
+  --stage-sky-mid: #b7e2f8;
+  --stage-cloud: rgba(255, 255, 255, 0.82);
+  --stage-floor: #f8e9d5;
+  --stage-floor-2: #eed8bd;
+  --stage-wood: #dfba8e;
+  --stage-wood-2: #c2935f;
+  --stage-leaf: #a9d8a2;
+  --stage-leaf-2: #8acb8a;
+  --stage-leaf-3: #6fae72;
+  --stage-water: #8fd2f2;
+  --stage-water-2: #63b8e6;
+  --stage-mint-frame: #a9e2c9;
+  --stage-mint-frame-2: #7fcfae;
+  --stage-ship-frame: #a9dcf7;
+  --stage-ship-frame-2: #7cc7ee;
+  --stage-lav-frame: color-mix(in srgb, var(--primary) 26%, var(--primary-soft));
+  --stage-lav-frame-2: color-mix(in srgb, var(--primary) 42%, var(--primary-soft));
+
   --r-sm: 14px;
   --r-md: 20px;
   --r-lg: 28px;
@@ -149,6 +201,47 @@
   --photo-edge: rgba(0, 0, 0, 0.35);
   --shadow: 0 6px 0 rgba(0, 0, 0, 0.25), 0 10px 24px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.45);
+
+  /* Витрина в тёмной теме: ниши глубже, лампа — только тёплый блик,
+     бумажные бирки остаются светящимися подписями, а не белыми пятнами. */
+  --case-wall: color-mix(in srgb, var(--primary-soft) 62%, var(--bg));
+  --case-wall-2: color-mix(in srgb, var(--primary-soft) 32%, var(--bg));
+  --case-card: color-mix(in srgb, var(--bg-2) 92%, var(--primary-soft));
+  --case-arch-top: color-mix(in srgb, var(--primary-soft) 78%, var(--bg-2));
+  --case-arch-bottom: color-mix(in srgb, var(--primary-soft) 46%, var(--bg-2));
+  --case-lamp-glow: rgba(255, 226, 140, 0.22);
+  --case-plinth-top: color-mix(in srgb, var(--primary) 42%, var(--bg-2));
+  --case-mint-top: color-mix(in srgb, #93d9bb 26%, var(--bg-2));
+  --case-mint-bottom: color-mix(in srgb, #93d9bb 38%, var(--bg-2));
+  --case-mint-plinth: color-mix(in srgb, #93d9bb 46%, var(--bg-2));
+  --case-mint-deep: color-mix(in srgb, #93d9bb 58%, var(--bg));
+  --case-sky-top: color-mix(in srgb, #8fc9f4 26%, var(--bg-2));
+  --case-sky-bottom: color-mix(in srgb, #8fc9f4 38%, var(--bg-2));
+  --case-sky-plinth: color-mix(in srgb, #8fc9f4 46%, var(--bg-2));
+  --case-sky-deep: color-mix(in srgb, #8fc9f4 58%, var(--bg));
+  --tag-bg: #3a2c14;
+  --tag-ink: #ffd98a;
+  --tag-line: rgba(255, 217, 138, 0.3);
+  --stage-sky: color-mix(in srgb, var(--primary-soft) 26%, var(--bg));
+  --stage-sky-2: color-mix(in srgb, var(--primary-soft) 14%, var(--bg-2));
+  --stage-sky-top: color-mix(in srgb, #ddf2ff 22%, var(--bg-2));
+  --stage-sky-mid: color-mix(in srgb, #b7e2f8 30%, var(--bg-2));
+  --stage-cloud: rgba(255, 255, 255, 0.1);
+  --stage-floor: color-mix(in srgb, #f8e9d5 20%, var(--bg-2));
+  --stage-floor-2: color-mix(in srgb, #eed8bd 30%, var(--bg));
+  --stage-wood: color-mix(in srgb, #dfba8e 40%, var(--bg-2));
+  --stage-wood-2: color-mix(in srgb, #c2935f 52%, var(--bg));
+  --stage-leaf: color-mix(in srgb, #a9d8a2 34%, var(--bg-2));
+  --stage-leaf-2: color-mix(in srgb, #8acb8a 40%, var(--bg-2));
+  --stage-leaf-3: color-mix(in srgb, #6fae72 46%, var(--bg));
+  --stage-water: color-mix(in srgb, #8fd2f2 34%, var(--bg-2));
+  --stage-water-2: color-mix(in srgb, #63b8e6 44%, var(--bg));
+  --stage-mint-frame: color-mix(in srgb, #bfe9d7 42%, var(--bg-2));
+  --stage-mint-frame-2: color-mix(in srgb, #8fd6b9 54%, var(--bg));
+  --stage-ship-frame: color-mix(in srgb, #a9dcf7 44%, var(--bg-2));
+  --stage-ship-frame-2: color-mix(in srgb, #7cc7ee 54%, var(--bg));
+  --stage-lav-frame: color-mix(in srgb, var(--primary-soft) 68%, var(--bg-2));
+  --stage-lav-frame-2: color-mix(in srgb, var(--primary) 40%, var(--bg));
 }
 
 /*
@@ -201,6 +294,7 @@
   --neon-primary-glow: rgba(214, 0, 214, 0.38);
   --neon-success-ink: #ffffff;
   --neon-danger-ink: #3d0c19;
+
 }
 
 [data-theme='dark'][data-theme-style='neon'] {
@@ -247,6 +341,7 @@
   --neon-primary-glow: rgba(255, 0, 255, 0.48);
   --neon-success-ink: #10291c;
   --neon-danger-ink: #350813;
+
 }
 
 /* Космос: прохладное индиго с голубыми звёздными акцентами. */
@@ -281,6 +376,7 @@
   --art-plate-glow: #ffffff;
   --art-frame-line: rgba(104, 70, 219, 0.4);
   --space-star: rgba(104, 70, 219, 0.24);
+
 }
 
 [data-theme='dark'][data-theme-style='space'] {
@@ -319,6 +415,7 @@
   --photo-paper: #f2ece1;
   --photo-edge: rgba(0, 0, 0, 0.42);
   --space-star: rgba(255, 255, 255, 0.42);
+
 }
 
 /* Лесная сказка: ясный зелёный и янтарные солнечные детали. */
@@ -352,6 +449,7 @@
   --art-plate: #fbfff8;
   --art-plate-glow: #ffffff;
   --art-frame-line: rgba(35, 132, 82, 0.36);
+
 }
 
 [data-theme='dark'][data-theme-style='forest'] {
@@ -389,6 +487,7 @@
   --art-frame-line: rgba(116, 202, 136, 0.46);
   --photo-paper: #f2ece1;
   --photo-edge: rgba(0, 0, 0, 0.42);
+
 }
 
 /* Океан: чистые голубые поверхности и бирюзовый акцент. */
@@ -423,6 +522,7 @@
   --art-plate-glow: #ffffff;
   --art-frame-line: rgba(7, 135, 168, 0.4);
   --ocean-wave: rgba(7, 135, 168, 0.06);
+
 }
 
 [data-theme='dark'][data-theme-style='ocean'] {
@@ -461,4 +561,5 @@
   --photo-paper: #f2ece1;
   --photo-edge: rgba(0, 0, 0, 0.42);
   --ocean-wave: rgba(72, 199, 216, 0.08);
+
 }

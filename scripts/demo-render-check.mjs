@@ -56,6 +56,7 @@ const tap = (label) => {
 expect('Витрина', 'сегмент «Витрина»');
 expect('Гардероб', 'сегмент «Гардероб»');
 expect('Наряды', 'чип «Наряды»');
+expect('Техника', 'чип «Техника»');
 expect('Костюмы', 'чип «Костюмы»');
 expect('Музыка', 'чип «Музыка»');
 expect('скоро', 'чипы будущих разделов');
@@ -80,7 +81,39 @@ expect('Послушать', 'примерка трека в подробной 
 document.querySelector('.mz-sheet-veil')?.click();
 await new Promise((r) => setTimeout(r, 100));
 
-// Покупка из sheet: бантик (герой) за 20 💎, был 42 → станет 22
+// Полка «Техника»: три подполки, ближайшая покупка и сцена-витрина
+tap('Техника');
+await new Promise((r) => setTimeout(r, 100));
+expect('Телефоны', 'подполка телефонов');
+expect('Машины', 'подполка машин');
+expect('Корабли', 'подполка кораблей');
+expect('Ближайшая покупка', 'подсказка о ближайшей покупке');
+expect('Смартфон', 'карточка смартфона');
+expect('Гоночная машина', 'карточка гоночной машины');
+expect('Пароход', 'карточка парохода');
+if (!document.querySelector('.shop-boutique .shop-case-lamp')) problems.push('нет лампы в нише витрины');
+if (!document.querySelector('.shop-boutique .shop-case-podium')) problems.push('нет подиума под вещью');
+if (document.querySelectorAll('.shop-boutique .shop-case').length < 6) problems.push('мало ниш на витрине');
+if (document.querySelectorAll('.tech-stage .tech-bay').length !== 3) problems.push('нет сцены техники с тремя арками');
+if (!document.querySelector('.tech-stage .tech-garage')) problems.push('нет гаража с машиной');
+if (!document.querySelector('.tech-stage .tech-pier')) problems.push('нет пирса с кораблём');
+if (!document.querySelector('.tech-stage .tech-shelf')) problems.push('нет витрины с телефоном');
+if (!document.querySelector('.tech-stage .tech-buk .mascot')) problems.push('нет БУКа на сцене');
+
+// Подробная карточка техники: крупный арт и честная подпись
+tap('Раскладушка');
+await new Promise((r) => setTimeout(r, 100));
+expect('БУК заберёт покупку с собой', 'подпись техники в sheet');
+expect('Купить за 💎30', 'покупка техники из sheet');
+tap('Купить за 💎30');
+await new Promise((r) => setTimeout(r, 100));
+tap('Купить за 💎30'); // ConfirmDialog — то же подтверждение, что в приложении
+await new Promise((r) => setTimeout(r, 100));
+expect('Раскладушка — твой!', 'тост после покупки техники');
+expect('У БУКа ✓', 'купленная вещь встала рядом с БУКом');
+expect('💎 32', 'баланс уменьшился на цену техники');
+
+// Покупка из sheet: бантик (герой) за 20 💎, было 32 → станет 12
 tap('Наряды');
 await new Promise((r) => setTimeout(r, 100));
 tap('Бантик');
@@ -91,13 +124,15 @@ await new Promise((r) => setTimeout(r, 100));
 tap('Купить за 💎20'); // ConfirmDialog — то же подтверждение, что в приложении
 await new Promise((r) => setTimeout(r, 100));
 expect('Бантик — твой!', 'тост после покупки');
-expect('💎 22', 'баланс уменьшился ровно на цену');
+expect('💎 12', 'баланс уменьшился ровно на цену');
 
 // Гардероб: коллекция, примерочная и мечты
 tap('Гардероб');
 await new Promise((r) => setTimeout(r, 100));
 expect('мой наряд', 'примерочная гардероба');
 expect('Бантик', 'купленное попало в гардероб');
+expect('Моя техника', 'полка купленной техники');
+expect('Раскладушка', 'купленная вещь в гардеробе');
 expect('Пилот истребителя', 'собранный костюм в гардеробе');
 expect('Мечты', 'блок мечт');
 expect('ещё', 'прогресс копления в мечтах');

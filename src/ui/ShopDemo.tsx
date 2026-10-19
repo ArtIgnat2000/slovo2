@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import '../styles/tokens.css';
 import '../styles/app.css';
@@ -7,14 +7,22 @@ import { TintPicker } from './TintPicker';
 import { ConfirmDialog } from './Bits';
 import { plural } from '../engine/quests';
 import {
+  OUTFIT_ITEMS,
   SHOP_ITEMS,
+  TOY_ITEMS,
+  TOY_SHELVES,
   canBuy,
+  closestItem,
   growthStage,
   isOwned,
+  isToy,
   isWearing,
   missingGems,
+  toysByShelf,
   type ShopItem,
 } from '../engine/shop';
+import { ToyArt } from './ToyArt';
+import { TechScene } from './TechScene';
 import { COSTUMES, PUZZLE_SIZE, costumeProgress, type Costume } from '../engine/puzzles';
 import { MUSIC_TRACKS, type MusicTrack } from '../engine/music';
 import { TINT_PRICE, type TintOption } from '../engine/tints';
@@ -33,10 +41,10 @@ import type { ShopSlot, ShopTuning } from '../types';
 
 // ── Демо-профиль: старт «середины пути» — видно все состояния сразу ────
 const DEMO = {
-  gems: 42,
+  gems: 62,
   mastered: 34,
-  owned: ['cap'],
-  equipped: { head: 'cap' } as Partial<Record<ShopSlot, string>>,
+  owned: ['cap', 'phone-smart'],
+  equipped: { head: 'cap', toy: 'phone-smart' } as Partial<Record<ShopSlot, string>>,
   tuning: undefined as ShopTuning | undefined,
   assembled: ['fighter-pilot'],
   worn: 'fighter-pilot' as string | null,
@@ -44,11 +52,11 @@ const DEMO = {
   pieces: { 'dark-lord': 4, 'snow-guard': 2 } as Record<string, number>,
   musicOwned: ['carefree', 'easy-lemon'],
   musicTrack: 'carefree' as string | null,
-  wishlist: ['scarf', 'pixelland'],
+  wishlist: ['scarf', 'car-racer', 'pixelland'],
 };
 
 type View = 'vitrina' | 'wardrobe';
-type Cat = 'outfits' | 'costumes' | 'music' | 'backgrounds';
+type Cat = 'outfits' | 'toys' | 'costumes' | 'music' | 'backgrounds';
 
 type Detail =
   | { kind: 'item'; item: ShopItem }
@@ -99,6 +107,15 @@ const CSS = `
 }
 .mz-hero .grow { min-width: 0; }
 .mz-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px 14px 16px; }
+/* Полки — те же классы, что в приложении (app.css импортирован выше):
+   макет показывает ровно ту разметку, которую потом получит ShopScreen. */
+.mz-shelf { padding: 0 14px 16px; }
+.mz-shelf .mz-card { padding-top: 22px; }
+.mz-shelf .shop-icon { height: 92px; }
+/* Макет живёт в колонке 370–470 px на широком экране, поэтому сцена
+   считается от колонки, а не от vw: те же пропорции, что на телефоне. */
+.mz-shelf .tech-stage { --arch: 168px; --arch-mid: 190px; --stage-pad-bottom: 62px; --stage-floor-h: 76px; }
+.mz-grid .shop-shelf-hook { display: none; }
 .mz-card {
   position: relative; border: 2px solid var(--line); border-radius: var(--r-md);
   background: var(--bg-2); padding: 10px; display: flex; flex-direction: column;
@@ -193,12 +210,16 @@ function Card(props: {
   priceLabel?: string;
   afford?: boolean;
   wished?: boolean;
+  /** Техника: другая подсветка арта и подписи в sheet */
+  toy?: boolean;
   onOpen: () => void;
   onWish: () => void;
   actionLabel: string;
   onAction: () => void;
 }) {
-  const cls = `mz-card${props.state === 'worn' ? ' worn' : ''}${props.state === 'owned' ? ' owned' : ''}`;
+  // mz-card — стили макета (тень, отступы), shop-item — правила полки из
+  // app.css. Вместе они дают ровно ту карточку, что видит ребёнок.
+  const cls = `mz-card shop-item${props.state === 'worn' ? ' worn on' : ''}${props.state === 'owned' ? ' owned' : ''}${props.toy ? ' toy-item' : ''}`;
   return (
     <article className={cls} onClick={props.onOpen} role="button" tabIndex={0}
       onKeyDown={(e) => { if (e.key === 'Enter') props.onOpen(); }}
@@ -206,6 +227,11 @@ function Card(props: {
     >
       {props.badge && <span className="mz-badge">{props.badge}</span>}
       {props.isNew && <span className="mz-badge new">Новинка</span>}
+      <div className="shop-case">
+        <span className="shop-case-lamp" aria-hidden="true" />
+        <div className="mz-art shop-icon">{props.art}</div>
+        <span className="shop-case-podium" aria-hidden="true" />
+      </div>
       <button
         className={`mz-heart${props.wished ? ' on' : ''}`}
         aria-label={props.wished ? 'Убрать из мечт' : 'В мечты'}
@@ -214,14 +240,11 @@ function Card(props: {
       >
         {props.wished ? '💜' : '🤍'}
       </button>
-      <div className="mz-art">{props.art}</div>
       <div className="shop-title">{props.title}</div>
       {props.desc && <div className="tiny shop-desc">{props.desc}</div>}
-      <div className="mz-row" style={{ width: '100%' }}>
-        {props.priceLabel && (
-          <span className={`mz-price${props.afford ? ' afford' : ''}`}>{props.priceLabel}</span>
-        )}
-      </div>
+      {props.priceLabel && (
+        <span className={`shop-price${props.afford ? ' afford' : ''}`}>{props.priceLabel}</span>
+      )}
       <button
         className={`btn sm wide${props.state === 'worn' ? ' green' : props.state === 'buy' ? ' primary' : props.state === 'collect' ? ' primary' : ' ghost'}`}
         onClick={(e) => { e.stopPropagation(); props.onAction(); }}
@@ -229,6 +252,25 @@ function Card(props: {
         {props.actionLabel}
       </button>
     </article>
+  );
+}
+
+/**
+ * Витрина макета: те же классы, что в приложении (`.shop-boutique`), поэтому
+ * ревью видит реальную витрину, а не отдельную сетку.
+ */
+function ShowcaseGrid({ children, tone }: { children: React.ReactNode; tone?: 'mint' | 'sky' }) {
+  const cells = React.Children.toArray(children);
+  const rows: React.ReactNode[][] = [];
+  for (let i = 0; i < cells.length; i += 2) rows.push(cells.slice(i, i + 2));
+  return (
+    <div className={`shop-boutique${tone ? ` shop-boutique-${tone}` : ''}`}>
+      {rows.map((row, index) => (
+        <div className={`shop-boutique-row shop-grid${row.length === 1 ? ' single' : ''}`} key={index}>
+          {row}
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -296,7 +338,11 @@ function Demo() {
     setOwned((o) => [...o, item.id]);
     setEquipped((e) => ({ ...e, [item.slot]: item.id }));
     dance();
-    say({ emoji: '🎩', title: `${item.title} — твой!`, text: 'БУК уже примерил обновку' });
+    say({
+      emoji: item.emoji ?? '🎩',
+      title: `${item.title} — твой!`,
+      text: isToy(item) ? 'Покупка уже у БУКа — она рядом с ним' : 'БУК уже примерил обновку',
+    });
   };
 
   const buyTrack = (track: MusicTrack) => {
@@ -349,10 +395,13 @@ function Demo() {
   };
 
   // ── герой витрины: ближайшая цель копления ─────────────────────────
-  const unowned = SHOP_ITEMS.filter((i) => !owned.includes(i.id));
+  const unowned = OUTFIT_ITEMS.filter((i) => !owned.includes(i.id));
   const hero = unowned.length
     ? unowned.reduce((best, i) => (missingGems(i, gems) < missingGems(best, gems) ? i : best), unowned[0])
     : null;
+
+  /** Ближайшая покупка — своя подсказка на полке «Техника». */
+  const toyGoal = closestItem(owned, 'toy');
 
   const itemState = (item: ShopItem): 'buy' | 'poor' | 'owned' | 'worn' => {
     if (!isOwned(owned, item.id)) return canBuy(item, gems) ? 'buy' : 'poor';
@@ -365,6 +414,7 @@ function Demo() {
 
   const cats: { id: Cat; title: string; emoji: string }[] = [
     { id: 'outfits', title: 'Наряды', emoji: '🎩' },
+    { id: 'toys', title: 'Техника', emoji: '🚗' },
     { id: 'costumes', title: 'Костюмы', emoji: '🧩' },
     { id: 'music', title: 'Музыка', emoji: '🎵' },
     { id: 'backgrounds', title: 'Фоны', emoji: '🖼️' },
@@ -378,9 +428,9 @@ function Demo() {
       <style>{CSS}</style>
       <h1>Магазин БУКа — новая концепция</h1>
       <p className="muted">
-        Живой макет на настоящих компонентах и каталогах (аксессуары, костюмы, музыка и фоны).
-        Демо-профиль: 💎 {gems}, куплена кепка, собран костюм «Пилот истребителя»,
-        мечты: шарф и «Пикселяндия». Концепция — <code>docs/shop-concept.md</code>.
+        Живой макет на настоящих компонентах и каталогах (наряды, техника, костюмы, музыка и фоны).
+        Демо-профиль: 💎 {gems}, куплена кепка и смартфон, собран костюм «Пилот истребителя»,
+        мечты: шарфик, гоночная машина и «Пикселяндия». Концепция — <code>docs/shop-concept.md</code>.
       </p>
       <div className="row mb" style={{ flexWrap: 'wrap' }}>
         <button className={`chip ${theme === 'light' ? 'on' : ''}`} onClick={() => setTheme('light')}>Светлая тема</button>
@@ -436,26 +486,35 @@ function Demo() {
               <>
                 {/* ── Герой: одна ближайшая цель, крупно ─────────────── */}
                 {hero && (
-                  <div className="mz-hero">
-                    <div className="mz-art" style={{ height: 120, flex: 'none' }}>
-                      <Mascot mood="idle" look={{ [hero.slot]: hero.id }} costumeId={null} stage={growth.index} size={104} />
-                    </div>
-                    <div className="grow">
-                      <span className="mz-badge" style={{ position: 'static' }}>🎯 Ближайшая цель</span>
-                      <div className="shop-title" style={{ fontSize: 'var(--fs-md)', marginTop: 4 }}>{hero.title}</div>
-                      <div className="tiny muted">{hero.desc}</div>
-                      <div className="tiny" style={{ marginTop: 4 }}>
-                        {gems >= hero.price
-                          ? `Хватает! ${hero.price} 💎 — и он твой`
-                          : `У тебя ${gems} 💎 · ещё ${missingGems(hero, gems)} 💎`}
+                  <div className="mz-shelf">
+                    {/* Герой — та же сцена витрины, что в приложении: БУК в арке */}
+                    <div
+                      className="shop-hero"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => openItem(hero)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openItem(hero); } }}
+                    >
+                      <div className="shop-hero-art">
+                        <Mascot mood="idle" look={{ [hero.slot]: hero.id }} costumeId={null} stage={growth.index} size={104} />
                       </div>
-                      <button
-                        className={`btn sm primary mt`}
-                        style={{ marginTop: 8 }}
-                        onClick={() => buyItem(hero)}
-                      >
-                        {gems >= hero.price ? `Купить · 💎${hero.price}` : `Копить — ещё ${missingGems(hero, gems)} 💎`}
-                      </button>
+                      <div className="shop-hero-body grow">
+                        <span className="shop-badge">🎯 Ближайшая цель</span>
+                        <div className="shop-hero-title">{hero.title}</div>
+                        <div className="tiny muted">{hero.desc}</div>
+                        <div className="tiny" style={{ marginTop: 4, fontWeight: 700 }}>
+                          {gems >= hero.price
+                            ? `Хватает! ${hero.price} 💎 — и он твой`
+                            : `У тебя ${gems} 💎 · ещё ${missingGems(hero, gems)} 💎`}
+                        </div>
+                        <button
+                          className="btn sm primary mt"
+                          style={{ marginTop: 8 }}
+                          onClick={(e) => { e.stopPropagation(); buyItem(hero); }}
+                        >
+                          {gems >= hero.price ? `Купить · 💎${hero.price}` : `Копить — ещё ${missingGems(hero, gems)} 💎`}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -463,34 +522,111 @@ function Demo() {
                   <h2>Головные уборы, очки и прочее</h2>
                   <div className="tiny muted">Одна карточка — один наряд. Тап — подробнее.</div>
                 </div>
-                <div className="mz-grid">
-                  {SHOP_ITEMS.map((item) => {
-                    const st = itemState(item);
-                    return (
-                      <Card
-                        key={item.id}
-                        art={<Mascot mood="idle" look={{ [item.slot]: item.id }} costumeId={null} stage={growth.index} size={64} />}
-                        title={item.title}
-                        desc={item.desc}
-                        state={st}
-                        priceLabel={isOwned(owned, item.id) ? 'Твоя ✓' : `💎 ${item.price}`}
-                        afford={canBuy(item, gems)}
-                        wished={wishlist.includes(item.id)}
-                        onOpen={() => openItem(item)}
-                        onWish={() => toggleWish(item.id)}
-                        actionLabel={
-                          st === 'worn' ? 'Надето ✓' : st === 'owned' ? 'Надеть' : st === 'buy' ? `Купить · 💎${item.price}` : `Ещё ${missingGems(item, gems)} 💎`
-                        }
-                        onAction={() => {
-                          if (st === 'owned' || st === 'worn') wear(item);
-                          else if (st === 'buy') buyItem(item);
-                          else say({ emoji: '💎', title: 'Копим!', text: `«${item.title}»: ещё ${missingGems(item, gems)} 💎. Поставь 🤍 в мечты` });
-                        }}
-                      />
-                    );
-                  })}
+                <div className="mz-shelf">
+                  <ShowcaseGrid>
+                    {OUTFIT_ITEMS.map((item) => {
+                      const st = itemState(item);
+                      return (
+                        <Card
+                          key={item.id}
+                          art={<Mascot mood="idle" look={{ [item.slot]: item.id }} costumeId={null} stage={growth.index} size={64} />}
+                          title={item.title}
+                          desc={item.desc}
+                          state={st}
+                          priceLabel={isOwned(owned, item.id) ? 'Твоя ✓' : `💎 ${item.price}`}
+                          afford={canBuy(item, gems)}
+                          wished={wishlist.includes(item.id)}
+                          onOpen={() => openItem(item)}
+                          onWish={() => toggleWish(item.id)}
+                          actionLabel={
+                            st === 'worn' ? 'Надето ✓' : st === 'owned' ? 'Надеть' : st === 'buy' ? `Купить · 💎${item.price}` : `Ещё ${missingGems(item, gems)} 💎`
+                          }
+                          onAction={() => {
+                            if (st === 'owned' || st === 'worn') wear(item);
+                            else if (st === 'buy') buyItem(item);
+                            else say({ emoji: '💎', title: 'Копим!', text: `«${item.title}»: ещё ${missingGems(item, gems)} 💎. Поставь 🤍 в мечты` });
+                          }}
+                        />
+                      );
+                    })}
+                  </ShowcaseGrid>
                 </div>
               </>
+            )}
+
+            {/* ── Техника: телефоны, машины, корабли (0.19.0) ─────────── */}
+            {view === 'vitrina' && cat === 'toys' && (
+              <section aria-label="Техника">
+                <div className="mz-sec">
+                  <h2>Техника БУКа</h2>
+                  <div className="tiny muted">
+                    Телефоны, машины и корабли. Купленное сразу появляется у БУКа — на главной и в уроках.
+                  </div>
+                </div>
+                {/* Сцена как в приложении: гараж, пирс и витрина с телефоном */}
+                <div className="mz-shelf" style={{ paddingTop: 0 }}>
+                  <TechScene onOpen={openItem} owned={owned} look={equipped} />
+                </div>
+                {toyGoal && (
+                  <div style={{ padding: '0 14px' }}>
+                    <div className="shop-tech-goal">
+                      <span className="shop-tech-goal-icon" aria-hidden="true">{toyGoal.emoji ?? '🚗'}</span>
+                      <span className="grow">
+                        <b>Ближайшая покупка: {toyGoal.title}</b>
+                        <span className="tiny muted">
+                          {gems >= toyGoal.price
+                            ? `Уже хватает — ${toyGoal.price} 💎. Забирай!`
+                            : `Ещё ${missingGems(toyGoal, gems)} 💎 из ${toyGoal.price}`}
+                        </span>
+                      </span>
+                      <button
+                        className={`btn sm ${gems >= toyGoal.price ? 'primary' : 'ghost'}`}
+                        onClick={() => (gems >= toyGoal.price ? buyItem(toyGoal) : openItem(toyGoal))}
+                      >
+                        {gems >= toyGoal.price ? 'Купить' : 'Посмотреть'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {TOY_SHELVES.map(({ id, title, emoji, note }) => (
+                  <div key={id}>
+                    <div className="mz-sec" style={{ paddingTop: 8 }}>
+                      <h3 className="shop-shelf-title"><span aria-hidden="true">{emoji}</span> {title}</h3>
+                      <div className="tiny muted">{note}</div>
+                    </div>
+                    <div className="mz-shelf">
+                      <ShowcaseGrid tone={id === 'car' ? 'mint' : id === 'ship' ? 'sky' : undefined}>
+                        {toysByShelf(id).map((item) => {
+                          const st = itemState(item);
+                          return (
+                            <Card
+                              key={item.id}
+                              toy
+                              art={<ToyArt id={item.id} size={82} />}
+                              title={item.title}
+                              desc={item.desc}
+                              state={st}
+                              priceLabel={isOwned(owned, item.id) ? 'Твоя ✓' : `💎 ${item.price}`}
+                              afford={canBuy(item, gems)}
+                              wished={wishlist.includes(item.id)}
+                              onOpen={() => openItem(item)}
+                              onWish={() => toggleWish(item.id)}
+                              actionLabel={
+                                st === 'worn' ? 'У БУКа ✓' : st === 'owned' ? 'Забрать' : st === 'buy' ? `Купить · 💎${item.price}` : `Ещё ${missingGems(item, gems)} 💎`
+                              }
+                              onAction={() => {
+                                if (st === 'owned' || st === 'worn') wear(item);
+                                else if (st === 'buy') buyItem(item);
+                                else say({ emoji: '💎', title: 'Копим!', text: `«${item.title}»: ещё ${missingGems(item, gems)} 💎. Поставь 🤍 в мечты` });
+                              }}
+                            />
+                          );
+                        })}
+                      </ShowcaseGrid>
+                    </div>
+                  </div>
+                ))}
+              </section>
             )}
 
             {view === 'vitrina' && cat === 'costumes' && (
@@ -517,7 +653,8 @@ function Demo() {
                   <h2>Костюмы · пазлы</h2>
                   <div className="tiny muted">Завершённый урок — фрагмент. Собери {PUZZLE_SIZE} — костюм твой 🧩</div>
                 </div>
-                <div className="mz-grid">
+                <div className="mz-shelf">
+                  <ShowcaseGrid>
                   {COSTUMES.map((c) => {
                     const done = assembled.includes(c.id);
                     const prog = costumeProgress({ pieces, collecting, assembled, worn: null }, c.id);
@@ -545,6 +682,7 @@ function Demo() {
                       />
                     );
                   })}
+                  </ShowcaseGrid>
                 </div>
               </>
             )}
@@ -555,7 +693,8 @@ function Demo() {
                   <h2>Музыка БУКа 🎵</h2>
                   <div className="tiny muted">Настоящие записи Kevin MacLeod · слушай перед покупкой</div>
                 </div>
-                <div className="mz-grid">
+                <div className="mz-shelf">
+                  <ShowcaseGrid>
                   {MUSIC_TRACKS.map((t) => {
                     const has = musicOwned.includes(t.id);
                     const sel = musicTrack === t.id;
@@ -587,6 +726,7 @@ function Demo() {
                       />
                     );
                   })}
+                  </ShowcaseGrid>
                 </div>
               </>
             )}
@@ -595,15 +735,17 @@ function Demo() {
               <section className="mz-sec" aria-label="Фоны приложения">
                 <h2>Фоны и оформление</h2>
                 <div className="tiny muted">Бесплатные стили для светлой и тёмной схемы</div>
-                <div className="shop-grid background-theme-grid" style={{ marginTop: 10 }} role="group" aria-label="Выбор оформления приложения">
-                  {THEME_STYLES.map((style) => (
-                    <BackgroundThemeCard
-                      key={style.id}
-                      theme={style}
-                      selected={themeStyle === style.id}
-                      onSelect={() => setThemeStyle(style.id)}
-                    />
-                  ))}
+                <div className="mz-shelf" role="group" aria-label="Выбор оформления приложения">
+                  <ShowcaseGrid>
+                    {THEME_STYLES.map((style) => (
+                      <BackgroundThemeCard
+                        key={style.id}
+                        theme={style}
+                        selected={themeStyle === style.id}
+                        onSelect={() => setThemeStyle(style.id)}
+                      />
+                    ))}
+                  </ShowcaseGrid>
                 </div>
               </section>
             )}
@@ -620,7 +762,7 @@ function Demo() {
                     <div className="tiny">{growth.desc}</div>
                     <div className="tiny" style={{ marginTop: 4 }}>
                       Освоено {mastered} {plural(mastered, 'слово', 'слова', 'слов')}
-                      {owned.length ? ` · наряд куплен на ${owned.reduce((s, id) => s + (SHOP_ITEMS.find((i) => i.id === id)?.price ?? 0), 0)} 💎` : ''}
+                      {owned.length ? ` · куплено на ${owned.reduce((s, id) => s + (SHOP_ITEMS.find((i) => i.id === id)?.price ?? 0), 0)} 💎` : ''}
                     </div>
                   </div>
                 </div>
@@ -629,8 +771,9 @@ function Demo() {
                   <h2>Наряды</h2>
                   {owned.length === 0 && <p className="tiny muted">Пока пусто. Витрина ➜ — там всё купленное сразу попадает сюда.</p>}
                 </div>
-                <div className="mz-grid" style={{ paddingTop: 0 }}>
-                  {SHOP_ITEMS.filter((i) => owned.includes(i.id)).map((item) => (
+                <div className="mz-shelf" style={{ paddingTop: 0 }}>
+                  <ShowcaseGrid>
+                  {OUTFIT_ITEMS.filter((i) => owned.includes(i.id)).map((item) => (
                     <Card
                       key={item.id}
                       state={isWearing(equipped, item) ? 'worn' : 'owned'}
@@ -645,13 +788,43 @@ function Demo() {
                       onAction={() => wear(item)}
                     />
                   ))}
+                  </ShowcaseGrid>
+                </div>
+
+                <div className="mz-sec">
+                  <h2>Моя техника</h2>
+                  {TOY_ITEMS.filter((i) => owned.includes(i.id)).length === 0 && (
+                    <p className="tiny muted">Пока пусто. Техника живёт на полке «Техника»</p>
+                  )}
+                </div>
+                <div className="mz-shelf" style={{ paddingTop: 0 }}>
+                  <ShowcaseGrid>
+                    {TOY_ITEMS.filter((i) => owned.includes(i.id)).map((item) => (
+                      <Card
+                        key={item.id}
+                        toy
+                        state={isWearing(equipped, item) ? 'worn' : 'owned'}
+                        art={<ToyArt id={item.id} size={82} />}
+                        title={item.title}
+                        desc={item.desc}
+                        priceLabel={isWearing(equipped, item) ? 'У БУКа ✓' : 'Куплена ✓'}
+                        afford
+                        onOpen={() => openItem(item)}
+                        onWish={() => toggleWish(item.id)}
+                        wished={wishlist.includes(item.id)}
+                        actionLabel={isWearing(equipped, item) ? 'Убрать' : 'Забрать'}
+                        onAction={() => wear(item)}
+                      />
+                    ))}
+                  </ShowcaseGrid>
                 </div>
 
                 <div className="mz-sec">
                   <h2>Костюмы</h2>
                   {assembled.length === 0 && <p className="tiny muted">Пока ни одного костюма. Каждый урок приносит фрагмент 🧩</p>}
                 </div>
-                <div className="mz-grid" style={{ paddingTop: 0 }}>
+                <div className="mz-shelf" style={{ paddingTop: 0 }}>
+                  <ShowcaseGrid>
                   {COSTUMES.filter((c) => assembled.includes(c.id)).map((c) => (
                     <Card
                       key={c.id}
@@ -667,6 +840,7 @@ function Demo() {
                       onAction={() => wearCostume(c.id)}
                     />
                   ))}
+                  </ShowcaseGrid>
                 </div>
 
                 <div className="mz-sec">
@@ -702,7 +876,11 @@ function Demo() {
                       const left = missingGems(item, gems);
                       return (
                         <div className="mz-card" key={id} style={{ cursor: 'default' }}>
-                          <div className="mz-art"><Mascot mood="idle" look={{ [item.slot]: item.id }} costumeId={null} stage={growth.index} size={64} /></div>
+                          <div className="mz-art">
+                            {isToy(item)
+                              ? <ToyArt id={item.id} size={64} />
+                              : <Mascot mood="idle" look={{ [item.slot]: item.id }} costumeId={null} stage={growth.index} size={64} />}
+                          </div>
                           <div className="shop-title">{item.title}</div>
                           <div className="mz-progress"><i style={{ width: `${Math.min(100, (gems / item.price) * 100)}%` }} /></div>
                           <div className="mz-state go" style={{ fontSize: 'var(--fs-xs)' }}>
@@ -761,21 +939,26 @@ function Demo() {
                   const wearing = isWearing(equipped, item);
                   return (
                     <>
-                      <div className="mz-bigart">
+                      <div className={`mz-bigart${isToy(item) ? ' shop-bigart-toy' : ''}`}>
                         <Mascot mood="happy" look={{ [item.slot]: item.id }} costumeId={null} stage={growth.index} size={150} />
                       </div>
                       <h2 style={{ margin: '0 0 2px' }}>{item.title}</h2>
                       <p className="tiny muted" style={{ marginTop: 0 }}>{item.desc}</p>
+                      {isToy(item) && (
+                        <p className="tiny muted">
+                          БУК заберёт покупку с собой — её будет видно на главной и в уроках.
+                        </p>
+                      )}
                       <div className="row mb">
                         <span className={`mz-price${gems >= item.price ? ' afford' : ''}`}>💎 {item.price}</span>
                         <span className="tiny muted grow" style={{ alignSelf: 'center' }}>
-                          {has ? 'Уже в гардеробе' : `У тебя ${gems} 💎`}
+                          {has ? (isToy(item) ? 'Уже в коллекции' : 'Уже в гардеробе') : `У тебя ${gems} 💎`}
                         </span>
                       </div>
                       <div className="mz-row mb">
                         {has ? (
                           <button className={`btn lg${wearing ? ' green' : ' primary'}`} onClick={() => { wear(item); setDetail(null); }}>
-                            {wearing ? 'Надето ✓' : 'Надеть'}
+                            {wearing ? (isToy(item) ? 'У БУКа ✓' : 'Надето ✓') : isToy(item) ? 'Забрать' : 'Надеть'}
                           </button>
                         ) : (
                           <button className="btn lg primary" disabled={gems < item.price} onClick={() => { setDetail(null); buyItem(item); }}>
@@ -882,9 +1065,9 @@ function Demo() {
           {/* ── Подтверждение покупки: тот же диалог, что и раньше ────── */}
           {ask && ask.target.kind === 'item' && (
             <ConfirmDialog
-              emoji="🎩"
+              emoji={ask.target.item.emoji ?? '🎩'}
               title={`Купить «${ask.target.item.title}»?`}
-              text={`Отдашь ${ask.target.item.price} 💎 из ${gems}. БУК сразу это примерит.`}
+              text={`Отдашь ${ask.target.item.price} 💎 из ${gems}. ${isToy(ask.target.item) ? 'Покупка сразу появится рядом с БУКом.' : 'БУК сразу это примерит.'}`}
               stayLabel={`Купить за 💎${ask.target.item.price}`}
               leaveLabel="Не сейчас"
               onStay={confirmBuy}
@@ -920,6 +1103,9 @@ function Demo() {
               <li><b>Витрина / Гардероб</b> — «хочу» и «моё» больше не смешаны в одной ленте</li>
               <li><b>Фоны и оформление</b> — пять бесплатных стилей; светлая/тёмная схема выбирается отдельно</li>
               <li><b>Чипы-полки по типу товара</b> — новый раздел (например, звуки) = новый чип, без переделки экрана</li>
+              <li><b>Витрина-бутик</b> — арочные ниши с лампой и подиумом вместо плоской сетки карточек</li>
+              <li><b>Сцена-витрина</b> — гараж с машиной, пирс с кораблём и витрина с телефоном, БУК на коврике, как в референсе</li>
+              <li><b>Техника</b> — телефоны, машины и корабли: три подполки, стоят рядом с БУКом</li>
               <li><b>Один макет карточки</b> для всех типов: арт, название, цена/статус, одно действие</li>
               <li><b>Герой-секция</b> — одна ближайшая цель копления, а не 20 ценников сразу</li>
               <li><b>Сердце 🤍</b> — мечта без давления; прогресс копления — в Гардеробе</li>
@@ -932,6 +1118,7 @@ function Demo() {
             <ol style={{ margin: 0, paddingLeft: 18 }}>
               <li>Купи <b>Шарфик</b> (30 💎 — как раз хватает): подтверждение, надевание, танец</li>
               <li>Открой <b>Мечты</b> в Гардеробе — прогресс копления по шарфу и «Пикселяндии»</li>
+              <li>Переключись на <b>Технику</b>: три полки, ближайшая покупка и ConfirmDialog</li>
               <li>Переключись на <b>Костюмы</b>: активный сбор крупно, остальные — сеткой</li>
               <li>Открой карточку <b>Кепки</b> → «🎨 Цвет»: палитра в sheet, 1 💎 за оттенок</li>
               <li>Тапни <b>«скоро»-чипы</b> — так выглядят разделы, которых ещё нет</li>

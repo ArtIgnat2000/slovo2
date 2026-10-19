@@ -1,20 +1,28 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { Children, useEffect, useState, type ReactNode } from 'react';
 import { masteredCount, useActiveProfile, useApp, useLook } from '../../state/store';
 import { plural } from '../../engine/quests';
 import {
   ITEM_BY_ID,
+  OUTFIT_ITEMS,
   SHOP_ITEMS,
   SLOT_TITLE,
+  TOY_ITEMS,
+  TOY_SHELVES,
   canBuy,
+  closestItem,
   growthStage,
   isOwned,
+  isToy,
   isWearing,
   isWished,
   missingGems,
   resolveHero,
+  toysByShelf,
   wardrobeValue,
 } from '../../engine/shop';
 import { Mascot } from '../Mascot';
+import { ToyArt } from '../ToyArt';
+import { TechScene } from '../TechScene';
 import {
   COSTUMES,
   OVERFLOW_GEMS,
@@ -43,12 +51,18 @@ import { BackgroundThemeCard } from '../BackgroundThemeCard';
  * Что изменилось по сравнению с «одной лентой»:
  *  • два верхних уровня — **Витрина** (чего хочу) и **Гардероб** (что моё);
  *    раньше купленное терялось в общей ленте среди продаваемого;
- *  • витрина режется **чипами-полками**: наряды / костюмы / музыка / фоны /
- *    звуки; новый раздел не требует переделки экрана;
+ *  • витрина режется **чипами-полками**: наряды / техника / костюмы / музыка /
+ *    фоны / звуки; новый раздел не требует переделки экрана;
+ *  • **витрина-бутик (0.19.0):** у каждого товара своя арочная ниша с лампой и
+ *    подиумом (`ShowcaseGrid`) — магазин выглядит витриной, а не списком карточек;
+ *  • **техника (0.19.0):** телефоны, машины и корабли — отдельная полка с
+ *    тремя подполками. Вещь живёт в слоте `toy` и появляется рядом с БУКом:
+ *    телефон — в крыле, машина — у правой лапки, корабль — у левой;
  *  • «Звуки» (0.17.0) — наборы мелодий правильного ответа и ошибки
  *    (engine/sounds.ts): послушать оба отклика можно прямо на карточке;
  *  • **единый макет карточки** для всех типов товара: арт, название, статус
- *    плашкой (Твоя ✓ / Надето ✓ / Собираю 4/9 / Ещё N 💎) и ОДНО действие;
+ *    плашкой (Твоя ✓ / Надето ✓ / У БУКа ✓ / Собираю 4/9 / Ещё N 💎)
+ *    и ОДНО действие;
  *  • подробная карточка — **sheet снизу**: крупная примерка, цена, палитра
  *    цветов. Палитра больше не раскрывается инлайн (верстка не прыгает);
  *  • музыка — отдельная полка (была половиной экрана), примерка и строка
@@ -56,7 +70,8 @@ import { BackgroundThemeCard } from '../BackgroundThemeCard';
  *  • костюмы: активный сбор — крупно сверху, остальные — сеткой.
  *
  * Догматы продукта не менялись: покупка — через ConfirmDialog, купленное
- * сразу надевается, красить можно только своё, 1 💎 за новый оттенок.
+ * сразу надевается или встаёт рядом с БУКом, красить можно только своё, 1 💎 за
+ * новый оттенок.
  */
 
 /** Полки музыкального магазина: спокойный фон отдельно от весёлой коллекции. */
@@ -69,10 +84,11 @@ const MUSIC_SHELVES: { shelf: MusicShelf; title: string; note: string }[] = [
 type View = 'vitrina' | 'wardrobe';
 
 /** Полки витрины — по типу товара, не по слоту совы. */
-type Cat = 'outfits' | 'costumes' | 'music' | 'sounds' | 'backgrounds';
+type Cat = 'outfits' | 'toys' | 'costumes' | 'music' | 'sounds' | 'backgrounds';
 
 const CATS: { id: Cat; title: string; emoji: string }[] = [
   { id: 'outfits', title: 'Наряды', emoji: '🎩' },
+  { id: 'toys', title: 'Техника', emoji: '🚗' },
   { id: 'costumes', title: 'Костюмы', emoji: '🧩' },
   { id: 'music', title: 'Музыка', emoji: '🎵' },
   { id: 'sounds', title: 'Звуки', emoji: '🔊' },
@@ -135,7 +151,12 @@ function ShopCard(props: {
       }}
     >
       {props.badge && <span className="shop-badge">{props.badge}</span>}
-      <div className="shop-icon">{props.art}</div>
+      {/* Ниша витрины: лампа, вещь на подиуме (0.19.0) */}
+      <div className="shop-case">
+        <span className="shop-case-lamp" aria-hidden="true" />
+        <div className="shop-icon">{props.art}</div>
+        <span className="shop-case-podium" aria-hidden="true" />
+      </div>
       <div className="shop-title">{props.title}</div>
       {props.desc && <div className="tiny shop-desc">{props.desc}</div>}
       {props.extra}
@@ -166,6 +187,30 @@ function ShopCard(props: {
         </button>
       )}
     </article>
+  );
+}
+
+/**
+ * Витрина (0.19.0).
+ *
+ * Делим товары на ряды по два: каждый товар — своя арочная ниша с лампой и
+ * подиумом, ряд — одна «линия» витрины. Разметка остаётся сеткой
+ * `.shop-grid`, поэтому карточки и их размеры не меняются.
+ *
+ * Последний нечётный товар ставится по центру — пустого угла не остаётся.
+ */
+function ShowcaseGrid({ children, tone }: { children: ReactNode; tone?: 'mint' | 'sky' }) {
+  const cells = Children.toArray(children);
+  const rows: ReactNode[][] = [];
+  for (let i = 0; i < cells.length; i += 2) rows.push(cells.slice(i, i + 2));
+  return (
+    <div className={`shop-boutique${tone ? ` shop-boutique-${tone}` : ''}`}>
+      {rows.map((row, index) => (
+        <div className={`shop-boutique-row shop-grid${row.length === 1 ? ' single' : ''}`} key={index}>
+          {row}
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -256,6 +301,11 @@ export function ShopScreen() {
   const selectedSound = profile.shop?.soundPack ?? 'classic';
   const wishlist = profile.shop?.wishlist ?? [];
   const hero = resolveHero(owned, profile.puzzle, musicOwned);
+  // Ближайшая техника — отдельная подсказка на полке «Техника»: герой нарядов
+  // намеренно не уводит ребёнка на другую полку (см. engine/shop.ts).
+  const toyGoal = closestItem(owned, 'toy');
+  const ownedOutfits = OUTFIT_ITEMS.filter((item) => isOwned(owned, item.id));
+  const ownedToys = TOY_ITEMS.filter((item) => isOwned(owned, item.id));
 
   const tapWish = (id: string, title: string) => {
     sfx.tap();
@@ -384,7 +434,12 @@ export function ShopScreen() {
       haptic.correct();
       setMood('dance');
       setTimeout(() => setMood('idle'), 1800);
-      showToast({ emoji: '🎩', title: `${ask.title} — твой!`, text: 'БУК уже примерил обновку' });
+      const toy = isToy(ask);
+      showToast({
+        emoji: ask.emoji ?? '🎩',
+        title: `${ask.title} — твой!`,
+        text: toy ? 'Покупка уже у БУКа — она рядом с ним' : 'БУК уже примерил обновку',
+      });
     } else {
       showToast({ emoji: '💎', title: 'Не хватает кристаллов', text: `Нужно ещё ${missingGems(ask, gems)}` });
     }
@@ -450,13 +505,25 @@ export function ShopScreen() {
     const wearing = isWearing(look, item);
     const affordable = canBuy(item, gems);
     const wished = isWished(wishlist, item.id);
+    const toy = isToy(item);
+    // У техники своя формулировка состояния: она не «надета», а стоит рядом.
+    const stateOn = toy ? 'У БУКа ✓' : 'Надето ✓';
+    const actionOn = toy ? 'Забрать' : 'Надеть';
     return (
       <ShopCard
         key={item.id}
-        art={<Mascot mood="idle" look={{ [item.slot]: item.id }} stage={growth.index} size={64} />}
+        art={
+          toy ? (
+            <ToyArt id={item.id} size={82} />
+          ) : (
+            <Mascot mood="idle" look={{ [item.slot]: item.id }} stage={growth.index} size={64} />
+          )
+        }
         title={item.title}
         desc={item.desc}
-        cardCls={wearing ? 'on' : owned_ ? 'owned' : undefined}
+        // Арт техники рисуется целиком, без совы: на полке это товар,
+        // а не ещё один наряд на БУКе.
+        cardCls={[wearing ? 'on' : owned_ ? 'owned' : '', toy ? 'toy-item' : ''].filter(Boolean).join(' ') || undefined}
         priceLabel={owned_ ? 'Твоя ✓' : `💎 ${item.price}`}
         afford={affordable}
         wished={wished}
@@ -464,8 +531,8 @@ export function ShopScreen() {
         actionLabel={
           owned_
             ? wearing
-              ? 'Надето ✓'
-              : 'Надеть'
+              ? stateOn
+              : actionOn
             : affordable
               ? `Купить · 💎${item.price}`
               : `Ещё ${missingGems(item, gems)} 💎`
@@ -690,17 +757,23 @@ export function ShopScreen() {
       const owned_ = isOwned(owned, item.id);
       const wearing = isWearing(look, item);
       const affordable = canBuy(item, gems);
+      const toy = isToy(item);
       return (
         <>
-          <div className="shop-bigart">
+          <div className={`shop-bigart${toy ? ' shop-bigart-toy' : ''}`}>
             <Mascot mood="happy" look={{ [item.slot]: item.id }} costumeId={null} stage={growth.index} size={150} />
           </div>
           <h2 style={{ margin: '0 0 2px' }}>{item.title}</h2>
           <p className="tiny muted" style={{ marginTop: 0 }}>{item.desc}</p>
+          {toy && (
+            <p className="tiny muted">
+              БУК заберёт покупку с собой — её будет видно на главной и в уроках.
+            </p>
+          )}
           <div className="row mb">
             <span className={`shop-price${affordable ? ' afford' : ''}`}>💎 {item.price}</span>
             <span className="tiny muted grow" style={{ alignSelf: 'center' }}>
-              {owned_ ? 'Уже в гардеробе' : `У тебя ${gems} 💎`}
+              {owned_ ? (toy ? 'Уже в коллекции' : 'Уже в гардеробе') : `У тебя ${gems} 💎`}
             </span>
           </div>
           <div className="row mb">
@@ -712,7 +785,7 @@ export function ShopScreen() {
                   closeSheet();
                 }}
               >
-                {wearing ? 'Снять' : 'Надеть'}
+                {wearing ? (toy ? 'Убрать' : 'Снять') : toy ? 'Забрать' : 'Надеть'}
               </button>
             ) : (
               <button
@@ -1231,7 +1304,60 @@ export function ShopScreen() {
             <h2 className="mb">Наряды БУКа</h2>
             <div className="tiny muted">Купленное сразу надевается · тап по карточке — подробнее</div>
           </div>
-          <div className="shop-grid">{SHOP_ITEMS.map(itemCard)}</div>
+          <ShowcaseGrid>{OUTFIT_ITEMS.map(itemCard)}</ShowcaseGrid>
+        </section>
+      )}
+
+      {/* ── Техника: телефоны, машины и корабли (0.19.0) ─────────────── */}
+      {view === 'vitrina' && cat === 'toys' && (
+        <section className="mt" aria-label="Техника">
+          <div className="mb">
+            <h2 className="mb">Техника БУКа</h2>
+            <div className="tiny muted">
+              Телефоны, машины и корабли. Купленное сразу появляется у БУКа — на главной и в уроках.
+            </div>
+          </div>
+          <TechScene onOpen={(item) => openSheet({ kind: 'item', item })} owned={owned} look={look} />
+          {toyGoal && (
+            <div className="shop-tech-goal">
+              <span className="shop-tech-goal-icon" aria-hidden="true">
+                {toyGoal.emoji ?? '🚗'}
+              </span>
+              <span className="grow">
+                <b>Ближайшая покупка: {toyGoal.title}</b>
+                <span className="tiny muted">
+                  {gems >= toyGoal.price
+                    ? `Уже хватает — ${toyGoal.price} 💎. Забирай!`
+                    : `Ещё ${missingGems(toyGoal, gems)} 💎 из ${toyGoal.price}`}
+                </span>
+              </span>
+              <button
+                type="button"
+                className={`btn sm ${gems >= toyGoal.price ? 'primary' : 'ghost'}`}
+                onClick={() => {
+                  if (gems >= toyGoal.price) {
+                    sfx.tap();
+                    setAsk(toyGoal);
+                  } else {
+                    openSheet({ kind: 'item', item: toyGoal });
+                  }
+                }}
+              >
+                {gems >= toyGoal.price ? 'Купить' : 'Посмотреть'}
+              </button>
+            </div>
+          )}
+          {TOY_SHELVES.map(({ id, title, emoji, note }) => (
+            <div className="shop-case-group" key={id}>
+              <h3 className="shop-case-group-title">
+                <span aria-hidden="true">{emoji}</span> {title}
+              </h3>
+              <div className="tiny muted">{note}</div>
+              <ShowcaseGrid tone={id === 'car' ? 'mint' : id === 'ship' ? 'sky' : undefined}>
+                {toysByShelf(id).map(itemCard)}
+              </ShowcaseGrid>
+            </div>
+          ))}
         </section>
       )}
 
@@ -1267,7 +1393,7 @@ export function ShopScreen() {
               </div>
             );
           })()}
-          <div className="shop-grid costume-grid">{COSTUMES.map(costumeCard)}</div>
+          <ShowcaseGrid>{COSTUMES.map(costumeCard)}</ShowcaseGrid>
         </section>
       )}
 
@@ -1289,7 +1415,7 @@ export function ShopScreen() {
             <div className="music-shelf" key={shelf}>
               <h3 className="music-shelf-title">{title}</h3>
               {note && <div className="tiny muted music-shelf-note">{note}</div>}
-              <div className="shop-grid music-grid">{tracksByShelf(shelf).map(trackCard)}</div>
+              <ShowcaseGrid>{tracksByShelf(shelf).map(trackCard)}</ShowcaseGrid>
             </div>
           ))}
         </section>
@@ -1307,7 +1433,7 @@ export function ShopScreen() {
             🎶 Выбранный набор звучит в уроках, заданиях и квестах. Мелодия ошибки всегда мягкая и короткая:
             это подсказка «попробуй иначе», а не наказание.
           </div>
-          <div className="shop-grid music-grid">{SOUND_PACKS.map(soundCard)}</div>
+          <ShowcaseGrid>{SOUND_PACKS.map(soundCard)}</ShowcaseGrid>
         </section>
       )}
 
@@ -1319,15 +1445,17 @@ export function ShopScreen() {
               Выбирай настроение приложения. Каждый стиль доступен бесплатно и подходит для светлой и тёмной схемы.
             </p>
           </div>
-          <div className="shop-grid background-theme-grid" role="group" aria-label="Выбор оформления приложения">
-            {THEME_STYLES.map((style) => (
-              <BackgroundThemeCard
-                key={style.id}
-                theme={style}
-                selected={themeStyle === style.id}
-                onSelect={() => selectThemeStyle(style.id)}
-              />
-            ))}
+          <div role="group" aria-label="Выбор оформления приложения">
+            <ShowcaseGrid>
+              {THEME_STYLES.map((style) => (
+                <BackgroundThemeCard
+                  key={style.id}
+                  theme={style}
+                  selected={themeStyle === style.id}
+                  onSelect={() => selectThemeStyle(style.id)}
+                />
+              ))}
+            </ShowcaseGrid>
           </div>
         </section>
       )}
@@ -1350,7 +1478,7 @@ export function ShopScreen() {
                   : `Освоено ${mastered} ${plural(mastered, 'слово', 'слова', 'слов')} — самая высокая ступень ✨`}
               </div>
               <div className="tiny" style={{ marginTop: 4 }}>
-                {owned.length ? `Наряд куплен на ${wardrobeValue(owned)} 💎` : 'Пока без обновок — витрина ➜'}
+                {owned.length ? `Коллекция собрана на ${wardrobeValue(owned)} 💎` : 'Пока без обновок — витрина ➜'}
               </div>
             </div>
           </div>
@@ -1358,12 +1486,12 @@ export function ShopScreen() {
           {/* Мои наряды: по слотам, только купленное */}
           <section className="mb" aria-label="Мои наряды">
             <h2 className="mb">Мои наряды</h2>
-            {owned.length === 0 && (
+            {ownedOutfits.length === 0 && (
               <div className="card tiny mb" style={{ textAlign: 'center' }}>
                 Пока пусто. Купленное в витрине сразу попадает сюда 🎩
               </div>
             )}
-            {(Object.keys(SLOT_TITLE) as (keyof typeof SLOT_TITLE)[]).map((slot) => {
+            {(['head', 'face', 'neck', 'badge'] as const).map((slot) => {
               const items = ownedBySlot(slot);
               if (!items.length) return null;
               return (
@@ -1386,6 +1514,30 @@ export function ShopScreen() {
                 </div>
               );
             })}
+          </section>
+
+          {/* Моя техника: телефоны, машины и корабли (0.19.0) */}
+          <section className="mb" aria-label="Моя техника">
+            <h2 className="mb">Моя техника</h2>
+            {ownedToys.length === 0 && (
+              <div className="card tiny mb" style={{ textAlign: 'center' }}>
+                Пока пусто. Полка «Техника» в витрине
+              </div>
+            )}
+            <div className="col">
+              {ownedToys.map((item) =>
+                wardrobeRow(
+                  item.id,
+                  { kind: 'item', item },
+                  <ToyArt id={item.id} size={44} />,
+                  item.title,
+                  item.desc,
+                  isWearing(look, item),
+                  isWearing(look, item) ? 'Убрать' : 'Забрать',
+                  () => tapWear(item),
+                ),
+              )}
+            </div>
           </section>
 
           {/* Мои костюмы: собранное */}
@@ -1501,7 +1653,11 @@ export function ShopScreen() {
                           💜
                         </button>
                         <div className="wishlist-card-art">
-                          <Mascot mood="idle" look={{ [item.slot]: item.id }} stage={growth.index} size={64} />
+                          {isToy(item) ? (
+                            <ToyArt id={item.id} size={64} />
+                          ) : (
+                            <Mascot mood="idle" look={{ [item.slot]: item.id }} stage={growth.index} size={64} />
+                          )}
                         </div>
                         <div className="shop-title">{item.title}</div>
                         <div className="shop-progress wishlist-progress-row">
@@ -1690,9 +1846,13 @@ export function ShopScreen() {
 
       {ask && (
         <ConfirmDialog
-          emoji="🎩"
+          emoji={ask.emoji ?? '🎩'}
           title={`Купить «${ask.title}»?`}
-          text={`Отдашь ${ask.price} 💎 из ${gems}. БУК сразу это примерит.`}
+          text={
+            isToy(ask)
+              ? `Отдашь ${ask.price} 💎 из ${gems}. Покупка сразу появится рядом с БУКом.`
+              : `Отдашь ${ask.price} 💎 из ${gems}. БУК сразу это примерит.`
+          }
           stayLabel={`Купить за 💎${ask.price}`}
           leaveLabel="Не сейчас"
           onStay={confirmBuy}

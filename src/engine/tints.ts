@@ -110,6 +110,82 @@ export const TINT_PALETTES: Record<string, TintPalette<ItemTint>> = {
       { id: 'green', title: 'Зелёная лента', colors: ['#34c77b', '#f4a51a', '#e8901a'] },
     ],
   },
+
+  // ── Техника (0.19.0): телефоны, машины, корабли ──────────────────────────
+  // Те же три роли цвета, что у нарядов: [корпус, тень/стекло, акцент].
+  // Красить можно только купленное; база — та же, что на витрине.
+  'phone-smart': {
+    base: { id: BASE_TINT, title: 'Голубой', colors: ['#3b82f6', '#0f2a66', '#a7f3d0'] },
+    extra: [
+      { id: 'red', title: 'Красный', colors: ['#ef4444', '#7f1d1d', '#fde68a'] },
+      { id: 'green', title: 'Зелёный', colors: ['#22c55e', '#14532d', '#bbf7d0'] },
+      { id: 'black', title: 'Чёрный', colors: ['#334155', '#0f172a', '#cbd5e1'] },
+    ],
+  },
+  'phone-flip': {
+    base: { id: BASE_TINT, title: 'Розовый', colors: ['#ff6fb5', '#7a2048', '#ffe066'] },
+    extra: [
+      { id: 'violet', title: 'Сиреневый', colors: ['#b48cff', '#4c2a85', '#e9d5ff'] },
+      { id: 'sky', title: 'Голубой', colors: ['#5fc9f8', '#0c4a6e', '#cffafe'] },
+      { id: 'yellow', title: 'Жёлтый', colors: ['#f5c542', '#7c4a10', '#fff7cc'] },
+    ],
+  },
+  'phone-retro': {
+    base: { id: BASE_TINT, title: 'Красный', colors: ['#e63946', '#7f1d1d', '#ffe8c2'] },
+    extra: [
+      { id: 'green', title: 'Зелёный', colors: ['#2a9d8f', '#134e4a', '#e6fffb'] },
+      { id: 'blue', title: 'Синий', colors: ['#3b82f6', '#1e3a8a', '#dbeafe'] },
+      { id: 'black', title: 'Чёрный', colors: ['#2f3245', '#14151f', '#e2e8f0'] },
+    ],
+  },
+  'car-racer': {
+    base: { id: BASE_TINT, title: 'Красная', colors: ['#ef4444', '#1f2937', '#ffd166'] },
+    extra: [
+      { id: 'blue', title: 'Синяя', colors: ['#2563eb', '#0f172a', '#93c5fd'] },
+      { id: 'green', title: 'Зелёная', colors: ['#16a34a', '#052e16', '#bef264'] },
+      { id: 'yellow', title: 'Жёлтая', colors: ['#f5c542', '#3f2d05', '#ef4444'] },
+    ],
+  },
+  'car-jeep': {
+    base: { id: BASE_TINT, title: 'Зелёный', colors: ['#4d7c0f', '#1c2a0a', '#d9b382'] },
+    extra: [
+      { id: 'sand', title: 'Песочный', colors: ['#d4a373', '#4a3728', '#fef3c7'] },
+      { id: 'blue', title: 'Синий', colors: ['#1d4ed8', '#0f172a', '#bfdbfe'] },
+      { id: 'red', title: 'Красный', colors: ['#b91c1c', '#1f2937', '#fca5a5'] },
+    ],
+  },
+  'car-taxi': {
+    base: { id: BASE_TINT, title: 'Жёлтое', colors: ['#f5c542', '#1f2937', '#111827'] },
+    extra: [
+      { id: 'white', title: 'Белое', colors: ['#f8fafc', '#1f2937', '#111827'] },
+      { id: 'black', title: 'Чёрное', colors: ['#334155', '#0b1120', '#f8fafc'] },
+      { id: 'sky', title: 'Голубое', colors: ['#60a5fa', '#1e3a8a', '#f8fafc'] },
+    ],
+  },
+  'ship-paper': {
+    base: { id: BASE_TINT, title: 'Белый', colors: ['#f8fafc', '#bfdbfe', '#ef4444'] },
+    extra: [
+      { id: 'sky', title: 'Голубой', colors: ['#93c5fd', '#1e40af', '#f59e0b'] },
+      { id: 'pink', title: 'Розовый', colors: ['#fbcfe8', '#9d174d', '#7c3aed'] },
+      { id: 'yellow', title: 'Жёлтый', colors: ['#fde68a', '#b45309', '#3b82f6'] },
+    ],
+  },
+  'ship-sail': {
+    base: { id: BASE_TINT, title: 'Синий', colors: ['#1d4ed8', '#f8fafc', '#b45309'] },
+    extra: [
+      { id: 'red', title: 'Красный', colors: ['#dc2626', '#fef3c4', '#7c2d12'] },
+      { id: 'green', title: 'Зелёный', colors: ['#15803d', '#ecfccb', '#78350f'] },
+      { id: 'white', title: 'Белый', colors: ['#e2e8f0', '#ffffff', '#334155'] },
+    ],
+  },
+  'ship-steam': {
+    base: { id: BASE_TINT, title: 'Синий', colors: ['#1e40af', '#dc2626', '#fde68a'] },
+    extra: [
+      { id: 'red', title: 'Красный', colors: ['#b91c1c', '#1e293b', '#fef3c7'] },
+      { id: 'green', title: 'Зелёный', colors: ['#166534', '#ea580c', '#fef9c3'] },
+      { id: 'yellow', title: 'Жёлтый', colors: ['#eab308', '#0f172a', '#fff7ed'] },
+    ],
+  },
 };
 
 // ── Акценты костюмов ───────────────────────────────────────────────────────

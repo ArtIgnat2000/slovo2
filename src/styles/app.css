@@ -1881,10 +1881,14 @@ p {
   gap: 14px;
 }
 .shop-mascot {
+  position: relative;
   border: none;
-  background: var(--primary-soft);
-  border-radius: var(--r-lg);
-  padding: 6px 10px;
+  background:
+    radial-gradient(58% 30% at 50% 5%, var(--case-lamp-glow), transparent 72%),
+    linear-gradient(180deg, var(--case-arch-top), var(--case-arch-bottom));
+  box-shadow: inset 0 0 0 2px var(--case-line-soft);
+  border-radius: 46px 46px 18px 18px;
+  padding: 8px 10px 12px;
   cursor: pointer;
   display: grid;
   place-items: center;
@@ -1986,17 +1990,564 @@ p {
   color: var(--primary);
 }
 
+/* ── Витрина-бутик (0.19.0) ────────────────────────────────────────────────
+   Магазин выглядит витриной детского бутика: мягкие лавандовые ниши-арки,
+   тёплая лампа сверху, вещь стоит на круглом подиуме, цена — бумажная бирка.
+   Разметка остаётся сеткой `.shop-grid`, поэтому карточки и порядок полок
+   не меняются — меняется только сцена вокруг товара. */
+.shop-boutique {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  border: 2px solid var(--case-line);
+  border-radius: 26px;
+  background:
+    radial-gradient(80% 40% at 50% 0%, var(--case-lamp-glow), transparent 72%),
+    linear-gradient(180deg, var(--case-wall), var(--case-wall-2));
+  box-shadow: inset 0 3px 14px color-mix(in srgb, var(--primary) 8%, transparent);
+}
+.shop-boutique-row { align-items: stretch; }
+/* Последний нечётный товар — по центру витрины, а не один в левом углу. */
+.shop-boutique-row.single {
+  grid-template-columns: minmax(0, calc(50% - 5px));
+  justify-content: center;
+}
+
+/* Карточка-витрина: ниша сверху, этикетка снизу. */
+.shop-boutique .shop-item {
+  height: 100%;
+  padding: 8px 8px 10px;
+  gap: 3px;
+  border: 2px solid var(--case-line);
+  border-radius: 22px;
+  background: var(--case-card);
+  box-shadow:
+    0 3px 0 color-mix(in srgb, var(--primary) 16%, transparent),
+    0 8px 18px color-mix(in srgb, var(--ink) 9%, transparent);
+}
+.shop-boutique .shop-item.owned { border-color: var(--green); }
+.shop-boutique .shop-item.on,
+.shop-boutique .shop-item.current {
+  border-color: var(--primary);
+  background: var(--case-card-on);
+}
+
+/* Арочная ниша: подсветка, тёплый блик лампы, подиум под вещью. */
+.shop-case {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 126px;
+  border-radius: 46px 46px 16px 16px;
+  background:
+    radial-gradient(54% 34% at 50% 4%, var(--case-lamp-glow), transparent 74%),
+    linear-gradient(180deg, var(--case-arch-top), var(--case-arch-bottom));
+  overflow: hidden;
+}
+.shop-case::before {
+  content: '';
+  position: absolute;
+  inset: 6px 8px 8px;
+  border: 2px solid var(--case-line-soft);
+  border-radius: inherit;
+  pointer-events: none;
+}
+.shop-case-lamp {
+  position: absolute;
+  top: 7px;
+  left: 50%;
+  z-index: 1;
+  width: 34px;
+  height: 6px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: var(--case-lamp);
+  box-shadow: 0 0 16px 6px var(--case-lamp-glow);
+}
+.shop-case .shop-icon {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 86px;
+  margin-bottom: 12px;
+  background: none;
+}
+.shop-case-podium {
+  position: absolute;
+  bottom: 7px;
+  left: 50%;
+  z-index: 0;
+  width: 64%;
+  height: 22px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: linear-gradient(180deg, var(--case-plinth-top), var(--case-plinth-bottom));
+  box-shadow: 0 7px 12px color-mix(in srgb, var(--ink) 20%, transparent);
+}
+/* Цвет ниши по подполке: телефоны — лаванда, машины — мята, корабли — небо. */
+.shop-boutique-mint .shop-case {
+  background:
+    radial-gradient(54% 34% at 50% 4%, var(--case-lamp-glow), transparent 74%),
+    linear-gradient(180deg, var(--case-mint-top), var(--case-mint-bottom));
+}
+.shop-boutique-mint .shop-case-podium {
+  background: linear-gradient(180deg, var(--case-mint-plinth), var(--case-mint-deep));
+}
+.shop-boutique-sky .shop-case {
+  background:
+    radial-gradient(54% 34% at 50% 4%, var(--case-lamp-glow), transparent 74%),
+    linear-gradient(180deg, var(--case-sky-top), var(--case-sky-bottom));
+}
+.shop-boutique-sky .shop-case-podium {
+  background: linear-gradient(180deg, var(--case-sky-plinth), var(--case-sky-deep));
+}
+
+/* ── Витрина техники: сцена с тремя арками и БУКом (0.19.0) ──────────────
+   Прямой отклик на референс магазина: слева мятный гараж с машиной на
+   комоде-подиуме, в центре голубая арка с морем, пирсом и кораблём, справа
+   лавандовая витрина с телефоном. У каждой арки — бумажная бирка с
+   миниатюрой вещи и ценой. Перед арками на коврике стоит БУК.
+   Арка — кнопка: тап открывает вещь, как обычная карточка витрины. */
+.tech-stage {
+  --arch: clamp(138px, 43vw, 208px);
+  --arch-mid: clamp(158px, 48vw, 236px);
+  /* Радиус купола арки. Ширина арки — примерно треть сцены, поэтому доля от
+     ширины экрана даёт ту же форму, что в референсе, и не зависит от сетки.
+     Фиксированный радиус выбран намеренно: «бесконечный» (999px) и проценты
+     с косой чертой часть движков не растеризует и рисует вместо арки
+     прямоугольник. */
+  --dome: clamp(30px, 12vw, 54px);
+  --stage-pad-bottom: clamp(56px, 16vw, 78px);
+  --stage-floor-h: clamp(66px, 19vw, 88px);
+  position: relative;
+  margin-bottom: 14px;
+  padding: 16px 8px 0;
+  border: 2px solid var(--case-line);
+  border-radius: 30px;
+  background:
+    radial-gradient(86% 42% at 50% 0%, color-mix(in srgb, #ffffff 40%, transparent), transparent 72%),
+    linear-gradient(180deg, var(--stage-sky), var(--stage-sky-2));
+  box-shadow: inset 0 3px 16px color-mix(in srgb, var(--primary) 10%, transparent);
+  overflow: hidden;
+}
+/* Облака, дерево и растение — декор референса, а не товары. */
+.tech-cloud {
+  position: absolute;
+  z-index: 0;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--stage-cloud);
+  pointer-events: none;
+}
+.tech-cloud::before,
+.tech-cloud::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  border-radius: 50%;
+  background: inherit;
+}
+.tech-cloud-a { top: 26px; left: 5%; width: 42px; }
+.tech-cloud-a::before { left: 6px; width: 18px; height: 18px; }
+.tech-cloud-a::after { right: 5px; width: 24px; height: 24px; }
+.tech-cloud-b { top: 62px; right: 9%; width: 34px; }
+.tech-cloud-b::before { left: 4px; width: 16px; height: 16px; }
+.tech-cloud-b::after { right: 4px; width: 20px; height: 20px; }
+.tech-cloud-c { top: 12px; right: 32%; width: 28px; opacity: 0.8; }
+.tech-cloud-c::before { left: 3px; width: 13px; height: 13px; }
+.tech-cloud-c::after { right: 3px; width: 17px; height: 17px; }
+.tech-tree {
+  position: absolute;
+  z-index: 2;
+  left: -4px;
+  bottom: calc(var(--stage-floor-h) - 46px);
+  width: 40px;
+  height: auto;
+  pointer-events: none;
+  filter: drop-shadow(0 4px 6px color-mix(in srgb, var(--ink) 15%, transparent));
+}
+.tech-plant {
+  position: absolute;
+  z-index: 2;
+  right: -2px;
+  bottom: calc(var(--stage-floor-h) - 42px);
+  width: 30px;
+  height: auto;
+  pointer-events: none;
+  filter: drop-shadow(0 4px 6px color-mix(in srgb, var(--ink) 15%, transparent));
+}
+.tech-floor {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 0;
+  height: var(--stage-floor-h);
+  background: linear-gradient(180deg, var(--stage-floor), var(--stage-floor-2));
+  border-top: 1px solid color-mix(in srgb, var(--ink) 8%, transparent);
+  pointer-events: none;
+}
+.tech-bays {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr 1.14fr 1fr;
+  gap: 6px;
+  align-items: end;
+  padding-bottom: var(--stage-pad-bottom);
+}
+.tech-bay {
+  position: relative;
+  display: block;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.tech-bay:active .tech-arch { transform: scale(0.98); }
+@media (prefers-reduced-motion: reduce) {
+  .tech-bay:active .tech-arch { transform: none; }
+}
+.tech-arch {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: var(--arch);
+  border-radius: var(--dome) var(--dome) 13px 13px;
+  background: linear-gradient(180deg, var(--stage-mint-frame), var(--stage-mint-frame-2));
+  box-shadow:
+    0 10px 16px color-mix(in srgb, var(--ink) 16%, transparent),
+    inset 0 2px 0 color-mix(in srgb, #ffffff 40%, transparent);
+  transition: transform 0.12s ease;
+}
+/* Центральная арка выше: витрина читается как в референсе. */
+.tech-bay-ship .tech-arch {
+  height: var(--arch-mid);
+  background: linear-gradient(180deg, var(--stage-ship-frame), var(--stage-ship-frame-2));
+}
+.tech-bay-phone .tech-arch {
+  background: linear-gradient(180deg, var(--stage-lav-frame), var(--stage-lav-frame-2));
+}
+/* Внутренняя ниша: рамка арки остаётся снаружи. */
+.tech-panel {
+  position: absolute;
+  inset: 8px;
+  overflow: hidden;
+  border-radius: calc(var(--dome) - 7px) calc(var(--dome) - 7px) 6px 6px;
+  background: linear-gradient(180deg, var(--case-mint-top), var(--case-mint-bottom));
+  box-shadow:
+    inset 0 2px 6px color-mix(in srgb, var(--ink) 14%, transparent),
+    inset 0 0 0 2px color-mix(in srgb, #ffffff 34%, transparent);
+}
+/* Машина: рифлёная дверь гаража и три тёплые лампы. */
+.tech-garage {
+  position: absolute;
+  top: 24%;
+  right: 10%;
+  bottom: 0;
+  left: 10%;
+  border-radius: 10px 10px 0 0;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      var(--case-mint-top) 0 8px,
+      color-mix(in srgb, var(--case-mint-bottom) 86%, var(--bg-2)) 8px 10px
+    );
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--case-mint-deep) 55%, transparent);
+}
+.tech-lamps {
+  position: absolute;
+  top: 10%;
+  right: 0;
+  left: 0;
+  display: flex;
+  justify-content: center;
+  gap: clamp(10px, 3.4vw, 18px);
+}
+.tech-lamps i {
+  width: 8px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--case-lamp);
+  box-shadow: 0 0 10px 4px var(--case-lamp-glow);
+}
+/* Корабль: небо, дальние холмы, море, пирс и волны. */
+.tech-bay-ship .tech-panel {
+  background:
+    radial-gradient(22% 8% at 24% 18%, var(--stage-cloud) 60%, transparent 61%),
+    radial-gradient(18% 7% at 70% 26%, var(--stage-cloud) 60%, transparent 61%),
+    radial-gradient(46% 14% at 6% 50%, var(--stage-leaf) 60%, transparent 61%),
+    radial-gradient(52% 16% at 94% 52%, var(--stage-leaf-2) 60%, transparent 61%),
+    linear-gradient(180deg, var(--stage-sky-top) 0 42%, var(--stage-sky-mid) 42% 52%, var(--stage-water) 52% 74%, var(--stage-water-2) 74% 100%);
+}
+.tech-pier {
+  position: absolute;
+  z-index: 1;
+  bottom: 41%;
+  left: -2%;
+  width: 46%;
+  height: auto;
+  overflow: visible;
+  filter: drop-shadow(0 3px 5px color-mix(in srgb, var(--ink) 20%, transparent));
+}
+.tech-waves {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 24%;
+  border-radius: 0 0 8px 8px;
+  background: repeating-linear-gradient(
+    180deg,
+    transparent 0 8px,
+    color-mix(in srgb, #ffffff 32%, transparent) 8px 11px
+  );
+}
+/* Телефон: две полки витрины и лампа сверху. */
+.tech-bay-phone .tech-panel {
+  background:
+    radial-gradient(58% 26% at 50% 7%, var(--case-lamp-glow), transparent 72%),
+    linear-gradient(180deg, var(--case-arch-top), var(--case-arch-bottom));
+}
+.tech-shelf {
+  position: absolute;
+  right: 10%;
+  left: 10%;
+  height: 6px;
+  border-radius: 4px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, #ffffff 66%, var(--case-arch-bottom)),
+    color-mix(in srgb, var(--primary) 24%, var(--case-arch-bottom))
+  );
+  box-shadow: 0 3px 6px color-mix(in srgb, var(--ink) 16%, transparent);
+}
+.tech-shelf-1 { bottom: 40%; }
+.tech-shelf-2 { bottom: 18%; }
+/* Вещь на витрине. */
+.tech-item {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  display: block;
+  transform: translateX(-50%);
+  pointer-events: none;
+  filter: drop-shadow(0 6px 8px color-mix(in srgb, var(--ink) 16%, transparent));
+}
+.tech-item > svg { display: block; width: 100%; height: auto; }
+.tech-bay-car .tech-item { bottom: 25px; width: 72%; }
+.tech-bay-ship .tech-item { bottom: 29%; width: 80%; }
+.tech-bay-phone .tech-item { bottom: calc(40% + 2px); width: 48%; }
+/* Комод-подиум: машина стоит на нём, корабль и телефон — за ним. */
+.tech-plinth {
+  position: absolute;
+  z-index: 2;
+  bottom: -14px;
+  left: 50%;
+  width: 96%;
+  height: 36px;
+  transform: translateX(-50%);
+  border-radius: 10px 10px 13px 13px;
+  background: linear-gradient(180deg, var(--case-mint-plinth), var(--case-mint-deep));
+  box-shadow: 0 8px 14px color-mix(in srgb, var(--ink) 20%, transparent);
+}
+.tech-plinth::before {
+  content: '';
+  position: absolute;
+  inset: 7px 7px 6px;
+  border-radius: 7px;
+  background: color-mix(in srgb, #ffffff 22%, transparent);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, #ffffff 30%, transparent);
+}
+.tech-plinth::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+  border-radius: 50%;
+  background: color-mix(in srgb, #ffffff 82%, var(--bg-2));
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--ink) 30%, transparent);
+}
+.tech-bay-ship .tech-plinth {
+  background: linear-gradient(180deg, var(--case-sky-plinth), var(--case-sky-deep));
+}
+.tech-bay-phone .tech-plinth {
+  background: linear-gradient(180deg, var(--stage-lav-frame), var(--stage-lav-frame-2));
+}
+/* Бумажная бирка: миниатюра вещи и цена, как на референсе. */
+.tech-tag {
+  position: absolute;
+  z-index: 4;
+  top: 54%;
+  right: -4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  width: 46px;
+  padding: 3px 2px 2px;
+  border: 2px solid var(--tag-line);
+  border-radius: 11px;
+  background: var(--tag-bg);
+  color: var(--tag-ink);
+  box-shadow: 0 5px 10px color-mix(in srgb, var(--ink) 18%, transparent);
+  transform: rotate(3deg);
+  pointer-events: none;
+}
+.tech-tag > svg { width: 22px; height: 22px; }
+.tech-tag b {
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+}
+.tech-tag.owned { border-color: var(--green); color: var(--green); }
+.tech-bay-car .tech-tag { top: 30%; right: -8px; transform: rotate(-4deg); }
+.tech-bay-ship .tech-tag { top: 7%; right: 1px; transform: rotate(3deg); }
+.tech-bay-phone .tech-tag { top: 8%; right: -5px; transform: rotate(4deg); }
+/* БУК — хозяин магазина: стоит на коврике перед арками. */
+.tech-buk {
+  position: absolute;
+  z-index: 5;
+  bottom: 2px;
+  left: 50%;
+  display: grid;
+  place-items: end center;
+  width: 104px;
+  height: 100px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.tech-buk::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 120px;
+  height: 26px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--primary-soft) 78%, var(--bg-2));
+  box-shadow: 0 6px 12px color-mix(in srgb, var(--ink) 14%, transparent);
+}
+.tech-buk .mascot {
+  /* position: static, а не relative: у `.mascot` есть `right`/`bottom`
+     плавающей кнопки, и при relative он уезжает из сцены. */
+  position: static;
+  inset: auto;
+  z-index: 1;
+  animation: none;
+}
+@media (min-width: 520px) {
+  .tech-buk .mascot {
+    transform: scale(1.12);
+    transform-origin: bottom center;
+  }
+  .tech-tag { width: 54px; }
+  .tech-tag b { font-size: 11px; }
+  .tech-tag > svg { width: 26px; height: 26px; }
+}
+@media (max-width: 359px) {
+  .tech-stage { padding-right: 6px; padding-left: 6px; }
+  .tech-bays { gap: 4px; }
+  .tech-tag { width: 44px; }
+  .tech-tree { left: -14px; }
+}
+/* Ценник — бумажная бирка бутика, а не кнопка. */
+.shop-boutique .shop-price {
+  margin-top: 3px;
+  padding: 3px 12px 3px 10px;
+  border: 2px solid var(--tag-line);
+  border-radius: 11px;
+  background: var(--tag-bg);
+  color: var(--tag-ink);
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--tag-ink) 14%, transparent);
+}
+.shop-boutique .shop-price.afford {
+  border-color: var(--primary);
+  background: var(--bg-2);
+  color: var(--primary);
+}
+/* Кнопка — внизу этикетки. В узкой карточке «Купить · 💎60» при 15 px
+   ломалось на две строки, и кнопки в ряду становились разной высоты:
+   уменьшаем кегль и поля ровно настолько, чтобы строка осталась одной. */
+.shop-boutique .shop-item .btn {
+  width: 100%;
+  min-height: var(--tap);
+  margin-top: auto;
+  padding: 8px 6px;
+  border-radius: 15px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+@media (max-width: 360px) {
+  .shop-boutique .shop-item .btn {
+    padding-inline: 4px;
+    font-size: 13px;
+  }
+}
+.shop-boutique .shop-item .shop-desc { min-height: 0; }
+
+.shop-case-group + .shop-case-group { margin-top: 20px; }
+.shop-case-group-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 2px;
+  padding: 4px 12px;
+  border: 2px solid var(--case-line);
+  border-radius: var(--r-pill);
+  background: var(--case-card);
+  color: var(--primary);
+  font-size: var(--fs-sm);
+}
+.shop-case-group-title + .tiny { margin-bottom: 8px; }
+/* Ближайшая покупка: мягкая подсказка на бирке, не второй герой. */
+.shop-tech-goal {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 8px;
+  padding: 10px 12px;
+  border: 2px solid var(--case-line);
+  border-radius: 18px;
+  background: var(--case-card);
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--primary) 12%, transparent);
+}
+.shop-tech-goal-icon {
+  flex: none;
+  font-size: 26px;
+  line-height: 1;
+}
+.shop-tech-goal b { display: block; font-size: var(--fs-sm); }
+.shop-tech-goal .tiny { display: block; }
+
 /* ── Герой витрины и Мечты (фаза 2 магазина) ────────────────────────────── */
 .shop-hero {
   position: relative;
   margin-bottom: 14px;
-  border-radius: var(--r-lg);
+  border-radius: 26px;
   overflow: hidden;
-  background: linear-gradient(135deg, var(--promo-glow-1), var(--promo-glow-2));
-  border: 2px solid color-mix(in srgb, var(--primary) 28%, transparent);
+  background:
+    radial-gradient(64% 86% at 10% 0%, var(--case-lamp-glow), transparent 62%),
+    linear-gradient(135deg, var(--case-wall), var(--case-wall-2));
+  border: 2px solid var(--case-line);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--bg-2) 30%, transparent);
   display: flex;
   gap: 14px;
-  padding: 14px;
+  padding: 12px 14px 12px 10px;
   align-items: center;
   cursor: pointer;
   transition: transform 0.12s ease, box-shadow 0.12s ease;
@@ -2009,10 +2560,54 @@ p {
     transform: none;
   }
 }
+/* БУК стоит на сцене витрины: арка с лампой и круглый коврик под лапами —
+   та же сцена, что в референсе магазина, только хозяин здесь БУК. */
 .shop-hero-art {
+  position: relative;
   display: grid;
-  place-items: center;
+  place-items: end center;
   flex: none;
+  width: 122px;
+  height: 146px;
+  padding-bottom: 14px;
+  border-radius: 54px 54px 18px 18px;
+  background:
+    radial-gradient(58% 30% at 50% 5%, var(--case-lamp-glow), transparent 72%),
+    linear-gradient(180deg, var(--case-arch-top), var(--case-arch-bottom));
+  box-shadow: inset 0 0 0 2px var(--case-line-soft);
+  overflow: hidden;
+}
+.shop-hero-art::before {
+  content: '';
+  position: absolute;
+  top: 7px;
+  left: 50%;
+  width: 30px;
+  height: 5px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: var(--case-lamp);
+  box-shadow: 0 0 14px 5px var(--case-lamp-glow);
+}
+.shop-hero-art::after {
+  content: '';
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  width: 74%;
+  height: 16px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: var(--case-plinth-top);
+  box-shadow: 0 5px 10px color-mix(in srgb, var(--ink) 16%, transparent);
+}
+.shop-hero-art > * {
+  position: relative;
+  z-index: 1;
+}
+.shop-hero-art .mascot {
+  position: static;
+  z-index: 1;
 }
 .shop-hero-body {
   min-width: 0;
@@ -2157,6 +2752,44 @@ p {
   position: static;
   z-index: auto;
   animation: none;
+}
+/* Техника в подробной карточке (0.19.0): та же витрина, только крупно —
+   мятная арка с лампой и подиум под лапами. */
+.shop-bigart-toy {
+  position: relative;
+  padding-bottom: 30px;
+  background:
+    radial-gradient(62% 40% at 50% 6%, var(--case-lamp-glow), transparent 72%),
+    linear-gradient(180deg, var(--case-mint-top), var(--case-mint-bottom));
+  box-shadow: inset 0 0 0 2px var(--case-line-soft);
+}
+.shop-bigart-toy::before {
+  content: '';
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  width: 40px;
+  height: 7px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: var(--case-lamp);
+  box-shadow: 0 0 18px 7px var(--case-lamp-glow);
+}
+.shop-bigart-toy::after {
+  content: '';
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  width: 62%;
+  height: 22px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: linear-gradient(180deg, var(--case-mint-plinth), var(--case-mint-deep));
+  box-shadow: 0 7px 12px color-mix(in srgb, var(--ink) 20%, transparent);
+}
+.shop-bigart-toy .mascot {
+  position: relative;
+  z-index: 1;
 }
 /* Крупная обложка трека в sheet */
 .music-cover-lg {
