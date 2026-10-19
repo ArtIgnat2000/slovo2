@@ -22,7 +22,7 @@ import {
 } from '../../engine/shop';
 import { Mascot } from '../Mascot';
 import { ToyArt } from '../ToyArt';
-import { CarArt, carAlt, carKind, hasCarArt } from '../CarArt';
+import { CarArt, carAlt, carKind, carNote, hasCarArt } from '../CarArt';
 import { TechScene } from '../TechScene';
 import {
   COSTUMES,
@@ -779,6 +779,12 @@ export function ShopScreen() {
           {carKind(item.id) && (
             <p className="tiny muted">
               <b>{carKind(item.id)}</b> · рисунок цветным карандашом
+              {carNote(item.id) && (
+                <>
+                  <br />
+                  {carNote(item.id)}
+                </>
+              )}
             </p>
           )}
           {toy && (

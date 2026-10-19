@@ -4,7 +4,7 @@ import '../styles/tokens.css';
 import '../styles/app.css';
 import { Mascot } from './Mascot';
 import { TintPicker } from './TintPicker';
-import { CarArt, carAlt, carKind, hasCarArt } from './CarArt';
+import { CarArt, carAlt, carKind, carNote, hasCarArt } from './CarArt';
 import { ConfirmDialog } from './Bits';
 import { plural } from '../engine/quests';
 import {
@@ -952,6 +952,12 @@ function Demo() {
                       {carKind(item.id) && (
                         <p className="tiny muted">
                           <b>{carKind(item.id)}</b> · рисунок цветным карандашом
+                          {carNote(item.id) && (
+                            <>
+                              <br />
+                              {carNote(item.id)}
+                            </>
+                          )}
                         </p>
                       )}
                       {isToy(item) && (
