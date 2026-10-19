@@ -2,7 +2,7 @@
 // санитизация профиля. Чистая логика без React — идёт в adaptive-контур,
 // интерфейс магазина проверяет смоук (блок «Магазин БУКа»).
 import assert from 'node:assert/strict';
-import { OUTFIT_ITEMS, SHOP_ITEMS, TOY_ITEMS } from '../src/engine/shop';
+import { OUTFIT_ITEMS, SHOP_ITEMS, TOY_ITEMS, TOY_SHELVES, toysByShelf } from '../src/engine/shop';
 import { COSTUMES } from '../src/engine/puzzles';
 import {
   BASE_TINT,
@@ -35,9 +35,9 @@ const EXPECTED_BASE: Record<string, [string, string, string]> = {
   medal: ['#3b82f6', '#f4a51a', '#e8901a'],
 };
 
-// Техника 0.19.0: телефоны, машины и корабли. База та же, что на витрине;
-// цвета обязаны совпадать с ui/ToyArt.tsx, иначе у ребёнка «перекрасится»
-// только что купленная вещь.
+// Техника: авто, телефоны и корабли. База та же, что на витрине; цвета обязаны
+// совпадать с рисунком (ui/ToyArt.tsx, ui/CarArt.tsx), иначе у ребёнка
+// «перекрасится» только что купленная вещь.
 const EXPECTED_TOY_BASE: Record<string, [string, string, string]> = {
   'phone-smart': ['#3b82f6', '#0f2a66', '#a7f3d0'],
   'phone-flip': ['#ff6fb5', '#7a2048', '#ffe066'],
@@ -45,6 +45,14 @@ const EXPECTED_TOY_BASE: Record<string, [string, string, string]> = {
   'car-racer': ['#ef4444', '#1f2937', '#ffd166'],
   'car-jeep': ['#4d7c0f', '#1c2a0a', '#d9b382'],
   'car-taxi': ['#f5c542', '#1f2937', '#111827'],
+  // 0.20.0: легендарные марки — база ровно та, что нарисована в ui/CarArt.tsx
+  'car-mercedes': ['#cbd5e1', '#111827', '#e2e8f0'],
+  'car-bmw': ['#1d4ed8', '#0b1220', '#e2e8f0'],
+  'car-brabus': ['#151a23', '#0a0d13', '#e11d48'],
+  'car-maybach': ['#111827', '#0b1220', '#c9a227'],
+  'car-rolls': ['#0f3d33', '#08120f', '#d4af37'],
+  'car-lambo': ['#facc15', '#111827', '#e2e8f0'],
+  'car-bugatti': ['#1e3a8a', '#0a1226', '#cbd5e1'],
   'ship-paper': ['#f8fafc', '#bfdbfe', '#ef4444'],
   'ship-sail': ['#1d4ed8', '#f8fafc', '#b45309'],
   'ship-steam': ['#1e40af', '#dc2626', '#fde68a'],
@@ -59,8 +67,15 @@ assert.ok(TOY_ITEMS.every((item) => item.kind === 'toy' && item.toy), 'у каж
 assert.deepEqual(
   [...new Set(TOY_ITEMS.map((item) => item.toy))].sort(),
   ['car', 'phone', 'ship'],
-  'техника должна быть трёх видов: телефоны, машины, корабли',
+  'техника должна быть трёх видов: авто, телефоны, корабли',
 );
+// Полки идут в порядке из задания: авто → телефоны → корабли.
+assert.deepEqual(TOY_SHELVES.map((shelf) => shelf.id), ['car', 'phone', 'ship'], 'полки техники поехали');
+assert.equal(TOY_SHELVES[0].title, 'Авто', 'первая полка называется «Авто»');
+const carIds = toysByShelf('car').map((item) => item.id);
+for (const id of ['car-bmw', 'car-brabus', 'car-mercedes', 'car-lambo', 'car-rolls', 'car-maybach', 'car-bugatti']) {
+  assert.ok(carIds.includes(id), `в разделе авто нет ${id}`);
+}
 
 const shopItemIds = SHOP_ITEMS.map((item) => item.id);
 for (const id of shopItemIds) {

@@ -2228,12 +2228,12 @@ p {
     inset 0 2px 0 color-mix(in srgb, #ffffff 40%, transparent);
   transition: transform 0.12s ease;
 }
-/* Центральная арка выше: витрина читается как в референсе. */
+/* Центральная арка выше: витрина читается как в референсе. Средняя — телефоны. */
 .tech-bay-ship .tech-arch {
-  height: var(--arch-mid);
   background: linear-gradient(180deg, var(--stage-ship-frame), var(--stage-ship-frame-2));
 }
 .tech-bay-phone .tech-arch {
+  height: var(--arch-mid);
   background: linear-gradient(180deg, var(--stage-lav-frame), var(--stage-lav-frame-2));
 }
 /* Внутренняя ниша: рамка арки остаётся снаружи. */

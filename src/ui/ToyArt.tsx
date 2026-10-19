@@ -1,8 +1,10 @@
 import { ITEM_BY_ID } from '../engine/shop';
 import { TINT_PALETTES } from '../engine/tints';
+import { CarBody, hasCarArt } from './CarArt';
 
 /**
- * Техника БУКа (0.19.0): телефоны, машины и корабли.
+ * Техника БУКа: авто, телефоны и корабли. Машины с 0.20.0 живут в CarArt.tsx —
+ * здесь остаются телефоны, корабли и общий запасной силуэт машины.
  *
  * Рисуем их тем же способом, что наряды и костюмы — чистым SVG в сетке
  * 100×100 без картинок-файлов: ноль веса, работает офлайн, перекрашивается
@@ -279,7 +281,9 @@ function ToyGlyph({ id, colors }: { id: string; colors: Colors }) {
   const item = ITEM_BY_ID[id];
   if (!item || item.kind !== 'toy') return null;
   if (item.toy === 'phone') return <Phone id={id} colors={colors} />;
-  if (item.toy === 'car') return <Car id={id} colors={colors} />;
+  // 0.20.0: у каждой машины свой подробный рисунок (ui/CarArt.tsx). Старый
+  // общий Car остаётся запасным — если у вещи арта ещё нет, витрина не пустует.
+  if (item.toy === 'car') return hasCarArt(id) ? <CarBody id={id} colors={colors} /> : <Car id={id} colors={colors} />;
   if (item.toy === 'ship') return <Ship id={id} colors={colors} />;
   return null;
 }
@@ -326,7 +330,7 @@ export function MascotToy({ id, colors }: { id: string; colors?: Colors | null }
         : 'translate(3 90) scale(0.3)';
   return (
     <g transform={transform}>
-      <ToyGlyph id={id} colors={palette} />
+      {item.toy === 'car' && hasCarArt(id) ? <CarBody id={id} colors={palette} /> : <ToyGlyph id={id} colors={palette} />}
     </g>
   );
 }

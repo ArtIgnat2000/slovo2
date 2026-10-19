@@ -112,6 +112,7 @@ export const TINT_PALETTES: Record<string, TintPalette<ItemTint>> = {
   },
 
   // ── Техника (0.19.0): телефоны, машины, корабли ──────────────────────────
+  // 0.20.0: полка «Авто» — семь легендарных марок, у каждой свой рисунок;
   // Те же три роли цвета, что у нарядов: [корпус, тень/стекло, акцент].
   // Красить можно только купленное; база — та же, что на витрине.
   'phone-smart': {
@@ -160,6 +161,65 @@ export const TINT_PALETTES: Record<string, TintPalette<ItemTint>> = {
       { id: 'white', title: 'Белое', colors: ['#f8fafc', '#1f2937', '#111827'] },
       { id: 'black', title: 'Чёрное', colors: ['#334155', '#0b1120', '#f8fafc'] },
       { id: 'sky', title: 'Голубое', colors: ['#60a5fa', '#1e3a8a', '#f8fafc'] },
+    ],
+  },
+  // ── Авто легендарных марок (0.20.0) ─────────────────────────────────────
+  // Цвета те же три роли, что у остальной техники: [кузов, стекло/тень, хром].
+  // База — ровно та машина, что нарисована в ui/CarArt.tsx.
+  'car-mercedes': {
+    base: { id: BASE_TINT, title: 'Серебристый', colors: ['#cbd5e1', '#111827', '#e2e8f0'] },
+    extra: [
+      { id: 'black', title: 'Чёрный', colors: ['#1f2937', '#0b1220', '#e2e8f0'] },
+      { id: 'blue', title: 'Синий', colors: ['#1e3a8a', '#0b1220', '#dbeafe'] },
+      { id: 'white', title: 'Белый', colors: ['#f1f5f9', '#1f2937', '#cbd5e1'] },
+    ],
+  },
+  'car-bmw': {
+    base: { id: BASE_TINT, title: 'Синий', colors: ['#1d4ed8', '#0b1220', '#e2e8f0'] },
+    extra: [
+      { id: 'black', title: 'Чёрный', colors: ['#1f2937', '#080b12', '#cbd5e1'] },
+      { id: 'red', title: 'Красный', colors: ['#dc2626', '#180608', '#f8fafc'] },
+      { id: 'white', title: 'Белый', colors: ['#e8edf4', '#111827', '#94a3b8'] },
+    ],
+  },
+  'car-brabus': {
+    base: { id: BASE_TINT, title: 'Чёрный', colors: ['#151a23', '#0a0d13', '#e11d48'] },
+    extra: [
+      { id: 'grey', title: 'Серый', colors: ['#4b5563', '#0b0f16', '#f43f5e'] },
+      { id: 'white', title: 'Белый', colors: ['#e5e7eb', '#111827', '#e11d48'] },
+      { id: 'blue', title: 'Синий', colors: ['#1e3a8a', '#0a0d13', '#38bdf8'] },
+    ],
+  },
+  'car-maybach': {
+    base: { id: BASE_TINT, title: 'Чёрно-белый', colors: ['#111827', '#0b1220', '#c9a227'] },
+    extra: [
+      { id: 'bordo', title: 'Бордовый', colors: ['#6b1f3a', '#16070c', '#e0b04a'] },
+      { id: 'blue', title: 'Синий', colors: ['#1e2f5a', '#0a1226', '#d4af37'] },
+      { id: 'green', title: 'Зелёный', colors: ['#143d2b', '#07120d', '#d4af37'] },
+    ],
+  },
+  'car-rolls': {
+    base: { id: BASE_TINT, title: 'Зелёный', colors: ['#0f3d33', '#08120f', '#d4af37'] },
+    extra: [
+      { id: 'black', title: 'Чёрный', colors: ['#111827', '#06090f', '#d4af37'] },
+      { id: 'bordo', title: 'Бордовый', colors: ['#5b1a2b', '#16070c', '#e6c15a'] },
+      { id: 'silver', title: 'Серебристый', colors: ['#cbd5e1', '#111827', '#e2e8f0'] },
+    ],
+  },
+  'car-lambo': {
+    base: { id: BASE_TINT, title: 'Жёлтый', colors: ['#facc15', '#111827', '#e2e8f0'] },
+    extra: [
+      { id: 'orange', title: 'Оранжевый', colors: ['#ea580c', '#111827', '#fde68a'] },
+      { id: 'green', title: 'Зелёный', colors: ['#65a30d', '#0b1220', '#d9f99d'] },
+      { id: 'black', title: 'Чёрный', colors: ['#1f2937', '#0b1220', '#f8fafc'] },
+    ],
+  },
+  'car-bugatti': {
+    base: { id: BASE_TINT, title: 'Синий', colors: ['#1e3a8a', '#0a1226', '#cbd5e1'] },
+    extra: [
+      { id: 'black', title: 'Чёрный', colors: ['#1f2937', '#06090f', '#cbd5e1'] },
+      { id: 'red', title: 'Красный', colors: ['#b91c1c', '#1a0606', '#e5e7eb'] },
+      { id: 'white', title: 'Белый', colors: ['#e2e8f0', '#111827', '#94a3b8'] },
     ],
   },
   'ship-paper': {
