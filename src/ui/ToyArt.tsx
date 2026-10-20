@@ -1,18 +1,15 @@
 import { ITEM_BY_ID } from '../engine/shop';
-import { TINT_PALETTES, accessoryColors, carPencilTint } from '../engine/tints';
+import { TINT_PALETTES, accessoryColors, artPencilTint } from '../engine/tints';
 import type { ShopTuning } from '../types';
 import { CarArt, hasCarArt } from './CarArt';
+import { ShipArt, hasShipArt } from './ShipArt';
 
 /**
- * Техника БУКа: авто, телефоны и корабли. Машины с 0.21.0 — карандашные
- * рисунки настоящих моделей, с 0.21.1 — цветные (`ui/CarArt.tsx`, файлы
- * `public/cars/*.webp`): графика там не рисуется кодом, иначе не получить
- * ультрареализм.
- * Здесь остаются телефоны и корабли — они по-прежнему чистый SVG в сетке
- * 100×100: ноль веса, работает офлайн, перекрашивается тюнингом. Три цвета
- * деталей приходят из палитры (`engine/tints.ts`): [корпус, тень/стекло,
- * акцент]. На витрине вещь показывается отдельно — как товар на полке,
- * а не надетая на сову.
+ * Техника БУКа: авто, морские суда и телефоны. Машины и корабли — цветные
+ * карандашные рисунки на прозрачном фоне (`public/cars/*.webp`,
+ * `public/ships/*.webp`), чтобы крупные детали оставались выразительными
+ * и на полке, и в ангаре. Телефоны по-прежнему рисуются лёгким SVG.
+ * На витрине вещь показывается отдельно — как товар на полке, а не на сове.
  */
 
 type Colors = [string, string, string];
@@ -213,7 +210,10 @@ export function ToyArt({
   tuning?: ShopTuning;
 }) {
   if (hasCarArt(id)) {
-    return <CarArt id={id} tint={carPencilTint(id, tuning)} className={className} />;
+    return <CarArt id={id} tint={artPencilTint(id, tuning)} className={className} />;
+  }
+  if (hasShipArt(id)) {
+    return <ShipArt id={id} tint={artPencilTint(id, tuning)} className={className} />;
   }
   return (
     <svg

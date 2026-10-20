@@ -81,31 +81,42 @@ expect('Послушать', 'примерка трека в подробной 
 document.querySelector('.mz-sheet-veil')?.click();
 await new Promise((r) => setTimeout(r, 100));
 
-// Полка «Техника»: авто, телефоны, корабли — три подполки, сцена и покупка
+// Полка «Техника»: отдельные вкладки авто, кораблей и телефонов
 tap('Техника');
 await new Promise((r) => setTimeout(r, 100));
-expect('Авто', 'подполка авто');
-expect('Телефоны', 'подполка телефонов');
-expect('Корабли', 'подполка кораблей');
+expect('Авто', 'вкладка авто');
+expect('Телефоны', 'вкладка телефонов');
+expect('Корабли', 'вкладка кораблей');
 expect('Стрела', 'карточка спортивного седана');
 expect('Лорд', 'карточка парадного лимузина');
 expect('Звезда', 'карточка флагманского седана');
 expect('Молния', 'карточка гиперкара');
 expect('Ближайшая покупка', 'подсказка о ближайшей покупке');
-expect('Смартфон', 'карточка смартфона');
 expect('Болид', 'карточка гоночной машины');
+if (document.querySelectorAll('.shop-item.toy-item').length !== 10) problems.push('раздел авто должен показывать только десять машин');
+if (document.querySelectorAll('.shop-item.toy-item img[src*="/cars/"]').length !== 10) problems.push('не у всех машин отдельный рисунок');
 for (const brand of ['БМВ', 'Мерседес', 'Брабус', 'Майбах', 'Роллс-Ройс', 'Ламборджини', 'Бугати', 'BMW', 'Mercedes', 'Brabus', 'Maybach', 'Rolls', 'Lamborghini', 'Bugatti']) {
   if (text().includes(brand)) problems.push('бренд в витрине: ' + brand);
 }
-expect('Пароход', 'карточка парохода');
 if (!document.querySelector('.shop-boutique .shop-case-lamp')) problems.push('нет лампы в нише витрины');
 if (!document.querySelector('.shop-boutique .shop-case-podium')) problems.push('нет подиума под вещью');
-if (document.querySelectorAll('.shop-boutique .shop-case').length < 6) problems.push('мало ниш на витрине');
-if (document.querySelectorAll('.tech-stage .tech-bay').length !== 3) problems.push('нет сцены техники с тремя арками');
-if (!document.querySelector('.tech-stage .tech-garage')) problems.push('нет гаража с машиной');
-if (!document.querySelector('.tech-stage .tech-pier')) problems.push('нет пирса с кораблём');
-if (!document.querySelector('.tech-stage .tech-shelf')) problems.push('нет витрины с телефоном');
-if (!document.querySelector('.tech-stage .tech-buk .mascot')) problems.push('нет БУКа на сцене');
+if (document.querySelectorAll('.shop-boutique .shop-case').length !== 10) problems.push('не все автомобили стоят в своих нишах');
+
+tap('Корабли');
+await new Promise((r) => setTimeout(r, 100));
+expect('Морская яхта', 'карточка яхты');
+expect('Контейнеровоз', 'карточка контейнеровоза');
+expect('Супертанкер', 'карточка супертанкера');
+expect('Авианосец', 'карточка авианосца');
+if (document.querySelectorAll('.shop-item.toy-item').length !== 4) problems.push('раздел кораблей должен показывать четыре судна');
+if (document.querySelectorAll('.shop-item.toy-item img[src*="/ships/"]').length !== 4) problems.push('не у всех судов отдельный рисунок');
+
+tap('Телефоны');
+await new Promise((r) => setTimeout(r, 100));
+expect('Смартфон', 'карточка смартфона');
+if (text().includes('Пароход')) problems.push('в новой витрине остался устаревший детский кораблик');
+if (document.querySelectorAll('.shop-item.toy-item').length !== 3) problems.push('раздел телефонов должен показывать только три модели');
+if (!document.querySelector('.shop-item.toy-item svg')) problems.push('телефон не использует прежнюю SVG-иллюстрацию');
 
 // Подробная карточка техники: крупный арт и честная подпись
 tap('Раскладушка');

@@ -9,7 +9,6 @@ import {
   TOY_ITEMS,
   TOY_SHELVES,
   canBuy,
-  closestItem,
   growthStage,
   isOwned,
   isToy,
@@ -19,11 +18,12 @@ import {
   resolveHero,
   toysByShelf,
   wardrobeValue,
+  type ToyKind,
 } from '../../engine/shop';
 import { Mascot } from '../Mascot';
 import { ToyArt } from '../ToyArt';
 import { CarArt, carAlt, carKind, carNote, hasCarArt } from '../CarArt';
-import { TechScene } from '../TechScene';
+import { ShipArt, hasShipArt, shipAlt, shipKind, shipNote } from '../ShipArt';
 import { HangarScene } from '../HangarScene';
 import {
   COSTUMES,
@@ -34,7 +34,7 @@ import {
   normalizePuzzle,
   type Costume,
 } from '../../engine/puzzles';
-import { TINT_PRICE, carPencilTint, type TintOption } from '../../engine/tints';
+import { TINT_PRICE, artPencilTint, carPencilTint, type TintOption } from '../../engine/tints';
 import { TintPicker } from '../TintPicker';
 import { ConfirmDialog } from '../Bits';
 import { previewSoundCue, sfx } from '../../platform/sound';
@@ -253,6 +253,7 @@ export function ShopScreen() {
   const setSettings = useApp((s) => s.setSettings);
   const [view, setView] = useState<View>('vitrina');
   const [cat, setCat] = useState<Cat>('outfits');
+  const [toyShelf, setToyShelf] = useState<ToyKind>('car');
   // Подробная карточка и её палитра (палитра — только в sheet)
   const [sheet, setSheet] = useState<Detail | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -310,7 +311,9 @@ export function ShopScreen() {
   const hero = resolveHero(owned, profile.puzzle, musicOwned);
   // Ближайшая техника — отдельная подсказка на полке «Техника»: герой нарядов
   // намеренно не уводит ребёнка на другую полку (см. engine/shop.ts).
-  const toyGoal = closestItem(owned, 'toy');
+  const toyGoal = toysByShelf(toyShelf)
+    .filter((item) => !isOwned(owned, item.id))
+    .reduce<ShopItem | null>((best, item) => (!best || item.price < best.price ? item : best), null);
   const ownedOutfits = OUTFIT_ITEMS.filter((item) => isOwned(owned, item.id));
   const ownedToys = TOY_ITEMS.filter((item) => isOwned(owned, item.id));
 
@@ -777,12 +780,18 @@ export function ShopScreen() {
         <>
           <div className={`shop-bigart${toy ? ' shop-bigart-toy' : ''}`}>
             {hasCarArt(item.id) ? (
-              // Машина — цветной карандашный рисунок настоящей модели крупно,
-              // как лист в паспарту. Сову не подмешиваем: на витрине это товар.
+              // Авто и суда — отдельные карандашные листы; в подробном виде
+              // показываем сам товар, не примерку на сове.
               <CarArt
                 id={item.id}
                 tint={carPencilTint(item.id, profile.shop?.tuning)}
                 alt={carAlt(item.id, item.title)}
+              />
+            ) : hasShipArt(item.id) ? (
+              <ShipArt
+                id={item.id}
+                tint={artPencilTint(item.id, profile.shop?.tuning)}
+                alt={shipAlt(item.id, item.title)}
               />
             ) : (
               <Mascot mood="happy" look={{ [item.slot]: item.id }} costumeId={null} stage={growth.index} size={150} />
@@ -790,13 +799,13 @@ export function ShopScreen() {
           </div>
           <h2 style={{ margin: '0 0 2px' }}>{item.title}</h2>
           <p className="tiny muted" style={{ marginTop: 0 }}>{item.desc}</p>
-          {carKind(item.id) && (
+          {(carKind(item.id) || shipKind(item.id)) && (
             <p className="tiny muted">
-              <b>{carKind(item.id)}</b> · рисунок цветным карандашом
-              {carNote(item.id) && (
+              <b>{carKind(item.id) ?? shipKind(item.id)}</b>
+              {(carNote(item.id) ?? shipNote(item.id)) && (
                 <>
                   <br />
-                  {carNote(item.id)}
+                  {carNote(item.id) ?? shipNote(item.id)}
                 </>
               )}
             </p>
@@ -1344,21 +1353,27 @@ export function ShopScreen() {
         </section>
       )}
 
-      {/* ── Техника: авто, телефоны и корабли (0.20.0) ───────────────── */}
+      {/* ── Техника: отдельные полки авто, кораблей и телефонов ─────────── */}
       {view === 'vitrina' && cat === 'toys' && (
         <section className="mt" aria-label="Техника">
           <div className="mb">
             <h2 className="mb">Техника БУКа</h2>
-            <div className="tiny muted">
-              Три полки: авто, телефоны и корабли. Купленное встаёт в ангаре БУКа — на большой сцене коллекции.
-            </div>
+            <div className="tiny muted">Авто, корабли и телефоны — каждый раздел отдельно. Купленное ждёт тебя в ангаре.</div>
           </div>
-          <TechScene
-            onOpen={(item) => openSheet({ kind: 'item', item })}
-            owned={owned}
-            look={look}
-            tuning={profile.shop?.tuning}
-          />
+          <div className="shop-cats shop-toy-cats" role="tablist" aria-label="Разделы техники">
+            {TOY_SHELVES.map(({ id, title, emoji }) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={toyShelf === id}
+                className={`chip${toyShelf === id ? ' on' : ''}`}
+                onClick={() => setToyShelf(id)}
+              >
+                {emoji} {title}
+              </button>
+            ))}
+          </div>
           {ownedToys.length > 0 && (
             <button type="button" className="btn sm ghost wide hangar-open" onClick={openHangar}>
               🚗 Мой ангар — вся твоя техника крупным планом ➜
@@ -1393,8 +1408,8 @@ export function ShopScreen() {
               </button>
             </div>
           )}
-          {TOY_SHELVES.map(({ id, title, emoji, note }) => (
-            <div className="shop-case-group" key={id}>
+          {TOY_SHELVES.filter(({ id }) => id === toyShelf).map(({ id, title, emoji, note }) => (
+            <div className={`shop-case-group shop-case-${id}`} key={id}>
               <h3 className="shop-case-group-title">
                 <span aria-hidden="true">{emoji}</span> {title}
               </h3>

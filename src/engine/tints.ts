@@ -223,27 +223,35 @@ export const TINT_PALETTES: Record<string, TintPalette<ItemTint>> = {
     ],
   },
   'ship-paper': {
-    base: { id: BASE_TINT, title: 'Белый', colors: ['#f8fafc', '#bfdbfe', '#ef4444'] },
+    base: { id: BASE_TINT, title: 'Белая с золотом', colors: ['#f8fafc', '#172033', '#c5a45b'] },
     extra: [
-      { id: 'sky', title: 'Голубой', colors: ['#93c5fd', '#1e40af', '#f59e0b'] },
-      { id: 'pink', title: 'Розовый', colors: ['#fbcfe8', '#9d174d', '#7c3aed'] },
-      { id: 'yellow', title: 'Жёлтый', colors: ['#fde68a', '#b45309', '#3b82f6'] },
+      { id: 'sky', title: 'Голубая', colors: ['#60a5fa', '#1e3a8a', '#f8fafc'] },
+      { id: 'pink', title: 'Бордовая', colors: ['#9f1239', '#3f1022', '#f1d3a3'] },
+      { id: 'yellow', title: 'Шампань', colors: ['#d6ad59', '#49391e', '#fff1c7'] },
     ],
   },
   'ship-sail': {
-    base: { id: BASE_TINT, title: 'Синий', colors: ['#1d4ed8', '#f8fafc', '#b45309'] },
+    base: { id: BASE_TINT, title: 'Синий', colors: ['#183b63', '#202b3b', '#ef673c'] },
     extra: [
-      { id: 'red', title: 'Красный', colors: ['#dc2626', '#fef3c4', '#7c2d12'] },
-      { id: 'green', title: 'Зелёный', colors: ['#15803d', '#ecfccb', '#78350f'] },
-      { id: 'white', title: 'Белый', colors: ['#e2e8f0', '#ffffff', '#334155'] },
+      { id: 'red', title: 'Красный', colors: ['#b83232', '#32191d', '#f1b65b'] },
+      { id: 'green', title: 'Зелёный', colors: ['#2f6854', '#172f2a', '#e9ae43'] },
+      { id: 'white', title: 'Серебряный', colors: ['#d2d9e0', '#3b4654', '#f4a340'] },
     ],
   },
   'ship-steam': {
-    base: { id: BASE_TINT, title: 'Синий', colors: ['#1e40af', '#dc2626', '#fde68a'] },
+    base: { id: BASE_TINT, title: 'Тёмно-бирюзовый', colors: ['#164b4c', '#203b3b', '#c6813d'] },
     extra: [
-      { id: 'red', title: 'Красный', colors: ['#b91c1c', '#1e293b', '#fef3c7'] },
-      { id: 'green', title: 'Зелёный', colors: ['#166534', '#ea580c', '#fef9c3'] },
-      { id: 'yellow', title: 'Жёлтый', colors: ['#eab308', '#0f172a', '#fff7ed'] },
+      { id: 'red', title: 'Красный', colors: ['#a62d36', '#30171d', '#e2a24a'] },
+      { id: 'green', title: 'Зелёный', colors: ['#2b573c', '#14271d', '#db9a39'] },
+      { id: 'yellow', title: 'Золотой', colors: ['#aa7822', '#352913', '#fff0b8'] },
+    ],
+  },
+  'ship-carrier': {
+    base: { id: BASE_TINT, title: 'Стальной', colors: ['#59616a', '#252b34', '#e5b849'] },
+    extra: [
+      { id: 'blue', title: 'Синий', colors: ['#345b82', '#1c2b3b', '#f0bd50'] },
+      { id: 'green', title: 'Оливковый', colors: ['#526044', '#242b21', '#e5b849'] },
+      { id: 'red', title: 'Красный', colors: ['#7d3d3e', '#332124', '#f0c150'] },
     ],
   },
 };
@@ -370,15 +378,11 @@ export function accessoryColors(
 }
 
 /**
- * Цвет «цветного карандаша» для рисунков машин (0.21.0, цвет — 0.21.1).
- *
- * Машины уже нарисованы цветным карандашом: базовый оттенок — это сам рисунок,
- * поэтому для базы возвращаем null и не перекрашиваем его. Выбранный платный
- * оттенок ложится на рисунок лёгким цветным слоем (см. `ui/CarArt.tsx`) —
- * как будто ребёнок взял другой карандаш и прошёлся по кузову, сохранив
- * штриховку, блики и светотень.
+ * Цвет «карандаша» для полноцветных рисунков машин и кораблей.
+ * Базовый оттенок — сам рисунок; выбранный платный оттенок ложится лёгким
+ * цветным слоем и сохраняет штриховку, блики и светотень.
  */
-export function carPencilTint(targetId: string, tuning: ShopTuning | undefined): string | null {
+export function artPencilTint(targetId: string, tuning: ShopTuning | undefined): string | null {
   const palette = TINT_PALETTES[targetId];
   if (!palette) return null;
   const id = tuning?.current?.[targetId];
@@ -386,6 +390,9 @@ export function carPencilTint(targetId: string, tuning: ShopTuning | undefined):
   const chosen = palette.extra.find((tint) => tint.id === id);
   return chosen ? chosen.colors[0] : null;
 }
+
+/** Историческое имя API для рисунков машин; оставляем для совместимости. */
+export const carPencilTint = artPencilTint;
 
 /** Акцент костюма с учётом выбранного оттенка (для отрисовки). */
 export function costumeAccent(
