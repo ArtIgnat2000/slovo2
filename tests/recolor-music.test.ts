@@ -3,7 +3,7 @@
 // recolor(), и musicTrack пропадал: миграция считала выбор «не сделан» и
 // включала первую мелодию — ребёнок видел «музыка сама заиграла».
 import assert from 'node:assert/strict';
-import { useApp } from '../src/state/store';
+import { repairMusicShop, useApp } from '../src/state/store';
 import type { Profile } from '../src/types';
 
 function profileWith(musicTrack: string | null): Profile {
@@ -62,3 +62,16 @@ for (const [label, track] of [
 useApp.setState({ profiles: savedProfiles, activeId: savedActive });
 
 console.log('✓ смена цвета не трогает музыку, звуки и мечты');
+
+// ── Уже испорченные профили (до исправления) ───────────────────────────────
+// После старой смены цвета в хранилище остаётся shop с tuning, но без
+// musicOwned и musicTrack. Такой профиль не должен сам включать мелодию.
+const broken = { owned: ['car-racer'], equipped: {}, tuning: { current: { 'car-racer': 'blue' }, unlocked: { 'car-racer': ['blue'] } } };
+assert.equal(repairMusicShop(broken).musicTrack, null, 'испорченный профиль → тишина, а не автозапуск');
+assert.equal(repairMusicShop(broken).musicOwned, undefined, 'repair не выдумывает покупки');
+const healthy = { ...broken, musicOwned: ['carefree'], musicTrack: 'carefree' };
+assert.equal(repairMusicShop(healthy).musicTrack, 'carefree', 'здоровый профиль не меняется');
+assert.equal(repairMusicShop(undefined), undefined);
+// Новый профиль без tuning (до тюнинга) — как раньше: стартовая мелодия.
+assert.equal(repairMusicShop({ owned: [] }).musicTrack, undefined, 'профиль без tuning не трогаем');
+console.log('✓ испорченный после смены цвета профиль читается без автозапуска');
