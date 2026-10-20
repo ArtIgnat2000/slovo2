@@ -1111,6 +1111,22 @@ async function main() {
     '',
   );
 
+  // «Позови друга» — ребёнок передаёт ссылку сам, без раздела «Родителям».
+  const inviteBtn = btn((b) => (b.getAttribute('aria-label') ?? '') === 'Позвать друга');
+  check('на главной есть кнопка «Позвать друга» (🤝)', !!inviteBtn, '');
+  if (inviteBtn) {
+    click(inviteBtn);
+    await sleep(60);
+    check(
+      'лист «Позови друга» открывается с QR-кодом и ссылкой',
+      has('Позови друга') && !!document.querySelector('.invite-qr-art') && !!document.querySelector('.invite-link'),
+      body().slice(0, 200),
+    );
+    click(btn((b) => (b.getAttribute('aria-label') ?? '') === 'Закрыть'));
+    await sleep(40);
+    check('лист «Позови друга» закрывается', !document.querySelector('.invite-sheet'), '');
+  }
+
   // ── Настройка размера урока в разделе «Родителям» ─────────────────────────
   const parentTab = buttons().find((b) => (b.textContent ?? '').includes('Родителям') && b.className.includes('tab'));
   click(parentTab!);

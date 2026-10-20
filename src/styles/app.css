@@ -6471,3 +6471,59 @@ p {
 :root[data-theme='dark'][data-theme-style='ocean'] .option.bad {
   color: var(--theme-danger-ink);
 }
+
+/* ── «Позови друга» (ребёнок, с главного экрана) ───────────────────────── */
+.stat-pill.invite-btn {
+  padding-right: 10px;
+  padding-left: 10px;
+  cursor: pointer;
+}
+.invite-sheet {
+  width: 100%;
+  max-width: var(--screen-max);
+  max-height: min(88dvh, 720px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--bg);
+  border-radius: var(--r-lg);
+  padding: 16px 16px calc(20px + var(--safe-b));
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+}
+.invite-sheet .row { text-align: left; }
+.invite-text {
+  margin: 0 0 12px;
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+}
+.invite-qr {
+  display: flex;
+  justify-content: center;
+  margin: 0 auto 10px;
+  padding: 12px;
+  width: fit-content;
+  border-radius: var(--r-md);
+  background: #ffffff;
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--primary) 14%, transparent);
+}
+.invite-qr-art {
+  display: block;
+  width: min(62vw, 240px);
+  height: min(62vw, 240px);
+}
+.invite-qr.missing {
+  color: #6b6480;
+  max-width: 220px;
+  padding: 14px;
+}
+.invite-link {
+  margin-bottom: 4px;
+}
+.invite-buttons {
+  gap: 8px;
+  margin-top: 10px;
+}
+.invite-foot {
+  margin: 14px 0 0;
+  color: var(--ink-3);
+}

@@ -4,6 +4,7 @@ import { LESSONS, WORDS } from '../../content/words';
 import { dayKey, useActiveProfile } from '../../state/store';
 import { Crowns } from '../Bits';
 import { DailyQuests } from '../DailyQuests';
+import { InviteFriend } from '../InviteFriend';
 import { WeeklyRewards } from '../WeeklyRewards';
 import { levelOf } from '../../engine/rewards';
 import { pickReviewWords } from '../../engine/srs';
@@ -43,6 +44,7 @@ function rewardsWaiting(profile: Profile): boolean {
 export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpenHangar }: Props) {
   const profile = useActiveProfile();
   const [rewardsOpen, setRewardsOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const current = LESSONS.find((l) => (profile?.lessons[l.id]?.level ?? 0) < 5) ?? LESSONS[LESSONS.length - 1];
   useEffect(() => scheduleWordImages(WORDS.filter((w) => current.wordIds.includes(w.id))), [current]);
   useEffect(() => {
@@ -97,6 +99,15 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
         </div>
         <div className="stat-pill fire">🔥 {profile.streak}</div>
         <div className="stat-pill gems">💎 {profile.gems}</div>
+        <button
+          type="button"
+          className="stat-pill invite-btn"
+          aria-label="Позвать друга"
+          title="Позови друга — ссылка и QR-код"
+          onClick={() => setInviteOpen(true)}
+        >
+          🤝
+        </button>
         <button
           type="button"
           className="stat-pill hangar-btn"
@@ -168,6 +179,8 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
           );
         })}
       </div>
+
+      {inviteOpen && <InviteFriend onClose={() => setInviteOpen(false)} />}
 
       {rewardsOpen && (
         <div className="sheet-backdrop rewards-backdrop" onClick={() => setRewardsOpen(false)}>
