@@ -3,12 +3,14 @@ import { TINT_PALETTES, accessoryColors, artPencilTint } from '../engine/tints';
 import type { ShopTuning } from '../types';
 import { CarArt, hasCarArt } from './CarArt';
 import { ShipArt, hasShipArt } from './ShipArt';
+import { ElectronicsArt, hasElectronicsArt } from './ElectronicsArt';
 
 /**
  * Техника БУКа: авто, морские суда и телефоны. Машины и корабли — цветные
  * карандашные рисунки на прозрачном фоне (`public/cars/*.webp`,
  * `public/ships/*.webp`), чтобы крупные детали оставались выразительными
- * и на полке, и в ангаре. Телефоны по-прежнему рисуются лёгким SVG.
+ * и на полке, и в ангаре. Новая электроника — детальные WebP-иллюстрации,
+ * телефоны показываются с одной стороны и поворачиваются по нажатию.
  * На витрине вещь показывается отдельно — как товар на полке, а не на сове.
  */
 
@@ -26,87 +28,6 @@ function colorsFor(id: string, colors?: Colors | null, tuning?: ShopTuning): Col
 /** Общая тень под вещью: «стоит на полке», а не висит в воздухе. */
 function ToyShadow() {
   return <ellipse cx="50" cy="91" rx="31" ry="4.5" fill="#241f36" opacity=".14" />;
-}
-
-/** Телефоны. */
-function Phone({ id, colors }: { id: string; colors: Colors }) {
-  const [main, deep, accent] = colors;
-
-  if (id === 'phone-smart') {
-    return (
-      <g>
-        <ToyShadow />
-        <rect x="29" y="5" width="42" height="87" rx="10" fill={main} stroke="#241f36" strokeOpacity=".22" strokeWidth="2" />
-        <rect x="33" y="9" width="34" height="79" rx="7" fill="#ffffff" opacity=".16" />
-        <rect x="36" y="18" width="28" height="56" rx="4" fill={deep} />
-        <circle cx="50" cy="12.5" r="1.7" fill="#ffffff" opacity=".7" />
-        {/* На экране — маленький БУК: вещь «про него», а не абстрактный гаджет */}
-        <circle cx="44" cy="42" r="3.2" fill={accent} />
-        <circle cx="56" cy="42" r="3.2" fill={accent} />
-        <path d="M47 49 L50 53 L53 49Z" fill={accent} />
-        <rect x="41" y="60" width="5" height="5" rx="1.4" fill={accent} opacity=".75" />
-        <rect x="48" y="60" width="5" height="5" rx="1.4" fill={accent} opacity=".75" />
-        <rect x="55" y="60" width="5" height="5" rx="1.4" fill={accent} opacity=".75" />
-        <rect x="43" y="81" width="14" height="3" rx="1.5" fill="#ffffff" opacity=".55" />
-        <circle cx="50" cy="88" r="2.2" fill="#ffffff" opacity=".32" />
-      </g>
-    );
-  }
-
-  if (id === 'phone-flip') {
-    const keys = [0, 1, 2].flatMap((row) =>
-      [0, 1, 2].map((col) => (
-        <circle key={`${row}-${col}`} cx={38 + col * 12} cy={60 + row * 9} r="2.3" fill={deep} opacity=".85" />
-      )),
-    );
-    return (
-      <g>
-        <ToyShadow />
-        <rect x="28" y="4" width="44" height="43" rx="8" fill={main} stroke="#241f36" strokeOpacity=".22" strokeWidth="2" />
-        <rect x="33" y="9" width="34" height="29" rx="4" fill={deep} />
-        <circle cx="44" cy="22" r="3" fill={accent} />
-        <circle cx="56" cy="22" r="3" fill={accent} />
-        <path d="M47 28 L50 32 L53 28Z" fill={accent} />
-        <rect x="44" y="44" width="12" height="4" rx="2" fill={deep} opacity=".7" />
-        <rect x="28" y="47" width="44" height="48" rx="8" fill={main} stroke="#241f36" strokeOpacity=".22" strokeWidth="2" />
-        <path d="M31 53 Q50 58 69 53" stroke="#ffffff" strokeWidth="2" fill="none" opacity=".22" strokeLinecap="round" />
-        {keys}
-        <circle cx="44" cy="86" r="4" fill={accent} />
-        <circle cx="56" cy="86" r="4" fill={deep} opacity=".75" />
-      </g>
-    );
-  }
-
-  // Ретро-телефон с диском: самый «бабушкин» предмет на полке.
-  const dialHoles = Array.from({ length: 10 }, (_, i) => {
-    const angle = (i / 10) * Math.PI * 2 - Math.PI / 2;
-    return (
-      <circle
-        key={i}
-        cx={50 + Math.cos(angle) * 11}
-        cy={72 + Math.sin(angle) * 11}
-        r="1.9"
-        fill={deep}
-        opacity=".8"
-      />
-    );
-  });
-  return (
-    <g>
-      <ToyShadow />
-      <path d="M13 90 Q10 58 26 52 L74 52 Q90 58 87 90 Z" fill={main} stroke="#241f36" strokeOpacity=".22" strokeWidth="2" />
-      <path d="M20 60 Q50 54 80 60" stroke="#ffffff" strokeWidth="2.4" fill="none" opacity=".2" strokeLinecap="round" />
-      <circle cx="50" cy="72" r="18" fill={accent} stroke={deep} strokeWidth="2.4" />
-      {dialHoles}
-      <circle cx="50" cy="72" r="4.2" fill={deep} />
-      <rect x="10" y="10" width="80" height="20" rx="10" fill={main} stroke="#241f36" strokeOpacity=".22" strokeWidth="2" />
-      <rect x="10" y="7" width="22" height="26" rx="9" fill={main} stroke="#241f36" strokeOpacity=".22" strokeWidth="2" />
-      <rect x="68" y="7" width="22" height="26" rx="9" fill={main} stroke="#241f36" strokeOpacity=".22" strokeWidth="2" />
-      <rect x="16" y="13" width="8" height="14" rx="4" fill={deep} />
-      <rect x="76" y="13" width="8" height="14" rx="4" fill={deep} />
-      <path d="M78 33 Q88 40 82 50" stroke={deep} strokeWidth="2.4" fill="none" strokeLinecap="round" strokeDasharray="3 3" opacity=".8" />
-    </g>
-  );
 }
 
 /** Корабли. */
@@ -182,7 +103,6 @@ function Ship({ id, colors }: { id: string; colors: Colors }) {
 function ToyGlyph({ id, colors }: { id: string; colors: Colors }) {
   const item = ITEM_BY_ID[id];
   if (!item || item.kind !== 'toy') return null;
-  if (item.toy === 'phone') return <Phone id={id} colors={colors} />;
   if (item.toy === 'ship') return <Ship id={id} colors={colors} />;
   return null;
 }
@@ -192,7 +112,8 @@ function ToyGlyph({ id, colors }: { id: string; colors: Colors }) {
  *
  * Машины — растровый цветной карандашный рисунок реальной модели (`CarArt`):
  * размер и посадку на подиум задаёт контекст через CSS, как раньше делал
- * `size` у квадратного SVG. Телефоны и корабли остаются SVG и принимают `size`.
+ * `size` у квадратного SVG. Электроника использует WebP; у телефонов
+ * доступны две стороны и анимация поворота. SVG оставлен как запасной вид судна.
  * `colors[0]` у машины — цвет «цветного карандаша» поверх готового рисунка.
  */
 export function ToyArt({
@@ -201,6 +122,7 @@ export function ToyArt({
   size = 84,
   className,
   tuning,
+  interactive = false,
   alt,
 }: {
   id: string;
@@ -209,12 +131,17 @@ export function ToyArt({
   className?: string;
   /** Тюнинг профиля: у машин — цветной карандаш, у телефонов/кораблей — палитра */
   tuning?: ShopTuning;
+  /** Enable phone rotation only in non-button containers. */
+  interactive?: boolean;
   /**
    * Подпись рисунка для подробного просмотра. На витрине и в гардеробе
    * карточка уже названа, поэтому по умолчанию рисунок декоративный.
    */
   alt?: string;
 }) {
+  if (hasElectronicsArt(id)) {
+    return <ElectronicsArt key={id} id={id} className={className} alt={alt} interactive={interactive} tint={artPencilTint(id, tuning)} />;
+  }
   if (hasCarArt(id)) {
     return <CarArt id={id} tint={artPencilTint(id, tuning)} className={className} alt={alt ?? ''} />;
   }

@@ -226,7 +226,7 @@ function Card(props: {
   const cls = `mz-card shop-item${props.state === 'worn' ? ' worn on' : ''}${props.state === 'owned' ? ' owned' : ''}${props.toy ? ' toy-item' : ''}`;
   return (
     <article className={cls} onClick={props.onOpen} role="button" tabIndex={0}
-      onKeyDown={(e) => { if (e.key === 'Enter') props.onOpen(); }}
+      onKeyDown={(e) => { if (e.target === e.currentTarget && e.key === 'Enter') props.onOpen(); }}
       aria-label={`${props.title}${props.priceLabel ? `, ${props.priceLabel}` : ''}`}
     >
       {props.badge && <span className="mz-badge">{props.badge}</span>}
@@ -614,7 +614,7 @@ function Demo() {
                             <Card
                               key={item.id}
                               toy
-                              art={<ToyArt id={item.id} size={82} tuning={tuning} />}
+                              art={<ToyArt id={item.id} interactive size={82} tuning={tuning} />}
                               title={item.title}
                               desc={item.desc}
                               state={st}
@@ -814,7 +814,7 @@ function Demo() {
                         key={item.id}
                         toy
                         state={isWearing(equipped, item) ? 'worn' : 'owned'}
-                        art={<ToyArt id={item.id} size={82} tuning={tuning} />}
+                        art={<ToyArt id={item.id} interactive size={82} tuning={tuning} />}
                         title={item.title}
                         desc={item.desc}
                         priceLabel={isWearing(equipped, item) ? 'На подиуме ✓' : 'В ангаре ✓'}
@@ -954,7 +954,9 @@ function Demo() {
                           // Как и в приложении: в подробной карточке техники —
                           // сам товар крупно, без примерки на БУКе.
                           <ToyArt
+                            key={item.id}
                             id={item.id}
+                            interactive
                             size={200}
                             className="shop-bigart-toy-art"
                             tuning={tuning}

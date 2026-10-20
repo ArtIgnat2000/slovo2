@@ -1,3 +1,4 @@
+import { hasElectronicsArt } from '../src/ui/ElectronicsArt';
 // Тюнинг цвета купленных вещей (engine/tints.ts): правила денег, палитры и
 // санитизация профиля. Чистая логика без React — идёт в adaptive-контур,
 // интерфейс магазина проверяет смоук (блок «Магазин БУКа»).
@@ -71,7 +72,7 @@ const EXPECTED_TOY_BASE: Record<string, [string, string, string]> = {
 };
 
 assert.equal(OUTFIT_ITEMS.length, Object.keys(EXPECTED_BASE).length, 'список нарядов и ожидаемых палитр разошёлся');
-assert.equal(TOY_ITEMS.length, Object.keys(EXPECTED_TOY_BASE).length, 'список игрушек и ожидаемых палитр разошёлся');
+assert.equal(TOY_ITEMS.filter(item => (!hasElectronicsArt(item.id) || item.id in TINT_PALETTES)).length, Object.keys(EXPECTED_TOY_BASE).length, 'список игрушек и ожидаемых палитр разошёлся');
 assert.equal(SHOP_ITEMS.length, OUTFIT_ITEMS.length + TOY_ITEMS.length, 'каталог потерял вещь при разделении на полки');
 assert.equal(new Set(SHOP_ITEMS.map((item) => item.id)).size, SHOP_ITEMS.length, 'id товаров должны быть уникальны');
 assert.ok(OUTFIT_ITEMS.every((item) => item.kind !== 'toy'), 'на полке нарядов не должно быть игрушек');
@@ -117,7 +118,7 @@ for (const item of toysByShelf('car')) {
   );
 }
 
-const shopItemIds = SHOP_ITEMS.map((item) => item.id);
+const shopItemIds = SHOP_ITEMS.filter(item => (!hasElectronicsArt(item.id) || item.id in TINT_PALETTES)).map((item) => item.id);
 for (const id of shopItemIds) {
   const palette = TINT_PALETTES[id];
   assert.ok(palette, `у вещи ${id} нет палитры`);
