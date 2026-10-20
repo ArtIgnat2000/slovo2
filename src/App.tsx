@@ -12,6 +12,7 @@ import { ProfilesScreen } from './ui/screens/ProfilesScreen';
 import { LessonScreen } from './ui/screens/LessonScreen';
 import { ShopScreen } from './ui/screens/ShopScreen';
 import { VlabsScreen } from './ui/screens/VlabsScreen';
+import { HangarScene } from './ui/HangarScene';
 import { DiagnosticsScreen } from './ui/DiagnosticsScreen';
 import type { ParentTabId } from './ui/parent/ParentBits';
 import { setSoundEnabled, setSoundPack } from './platform/sound';
@@ -67,6 +68,9 @@ export default function App() {
   // а не с текущей настройкой: «Родители» могут поменять цель прямо во время урока.
   const [lessonGoal, setLessonGoal] = useState(settings.dailyGoal);
   const [vlabsOpen, setVlabsOpen] = useState(false);
+  // «Ангар БУКа» (0.22.0): сцена коллекции техники. Вход — значок 🚗 в шапке
+  // главной; ещё два входа живут во вкладке БУК (гардероб и полка «Техника»).
+  const [hangarOpen, setHangarOpen] = useState(false);
   /**
    * Подсказка «добавь на экран». Читаем флаг один раз при старте и держим в состоянии:
    * раньше `markInstallHintShown()` писал в localStorage, но React об этом не знал —
@@ -218,6 +222,7 @@ export default function App() {
 
   const startLesson = (id: string) => {
     setParentUnlocked(false);
+    setHangarOpen(false);
     setLessonGoal(settings.dailyGoal);
     setLessonId(id);
   };
@@ -266,6 +271,7 @@ export default function App() {
           onStartLesson={startLesson}
           onOpenProfiles={() => setProfilesOpen(true)}
           onStartReview={() => startLesson('review')}
+          onOpenHangar={() => setHangarOpen(true)}
         />
       ) : tab === 'words' ? (
         <WordsScreen />
@@ -295,6 +301,9 @@ export default function App() {
         (settings.mascot !== 'home' || tab === 'home') && (
           <FloatingMascot raised={updateReady || installHint} />
         )}
+      {/* «Ангар БУКа» живёт поверх любой вкладки (кроме урока): открыт с
+          главной — остаётся открытым, пока ребёнок его не закроет. */}
+      {hangarOpen && <HangarScene onClose={() => setHangarOpen(false)} />}
       <Toast />
 
       {updateReady && (

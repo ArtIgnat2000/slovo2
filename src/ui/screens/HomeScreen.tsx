@@ -25,6 +25,8 @@ interface Props {
   onOpenProfiles: () => void;
   /** «Пора повторить» — отдельный режим тренировки, id урока не нужен */
   onStartReview: () => void;
+  /** 🚗 в шапке — сцена коллекции техники «Ангар БУКа» (0.22.0) */
+  onOpenHangar: () => void;
 }
 
 /** Есть ли в листе наград что забрать: квест, сундук или бонусный сундук. */
@@ -38,7 +40,7 @@ function rewardsWaiting(profile: Profile): boolean {
   return bonusChestsReady(metrics.lessons, st?.bonusChestsClaimed ?? 0) > 0;
 }
 
-export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview }: Props) {
+export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpenHangar }: Props) {
   const profile = useActiveProfile();
   const [rewardsOpen, setRewardsOpen] = useState(false);
   const current = LESSONS.find((l) => (profile?.lessons[l.id]?.level ?? 0) < 5) ?? LESSONS[LESSONS.length - 1];
@@ -95,6 +97,15 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview }: Pro
         </div>
         <div className="stat-pill fire">🔥 {profile.streak}</div>
         <div className="stat-pill gems">💎 {profile.gems}</div>
+        <button
+          type="button"
+          className="stat-pill hangar-btn"
+          aria-label="Ангар БУКа"
+          title="Ангар БУКа — твоя техника"
+          onClick={onOpenHangar}
+        >
+          🚗
+        </button>
         <button
           type="button"
           className={`stat-pill rewards-btn ${waiting ? 'wait' : ''}`}

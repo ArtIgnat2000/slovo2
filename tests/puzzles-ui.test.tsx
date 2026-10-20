@@ -161,6 +161,15 @@ export async function runPuzzleUiChecks(playLesson: (second?: boolean) => Promis
     /position:\s*static/.test(wearRule) && /z-index:\s*auto/.test(wearRule),
     wearRule.replace(/\s+/g, ' ').trim() || 'правило .shop-wear-icon .mascot не найдено',
   );
+  // Страж 0.22.0 (сцена «Ангар»): БУК в ангаре — хозяин коллекции на коврике,
+  // а не плавающая кнопка. Базовый `.mascot` — fixed-элемент в углу экрана,
+  // поэтому правило сцены обязано снимать позицию и гасить анимацию.
+  const hangarBukRule = css.match(/\.hangar-buk \.mascot\s*\{[^}]*\}/)?.[0] ?? '';
+  check(
+    'пазлы: стили держат БУКа ангара в потоке сцены',
+    /position:\s*static/.test(hangarBukRule) && /animation:\s*none/.test(hangarBukRule),
+    hangarBukRule.replace(/\s+/g, ' ').trim() || 'правило .hangar-buk .mascot не найдено',
+  );
   const winRule = css.match(/\.puzzle-win \.mascot\s*\{[^}]*\}/)?.[0] ?? '';
   const winDanceRule = css.match(/\.puzzle-win \.mascot\.dance\s*\{[^}]*\}/)?.[0] ?? '';
   check(

@@ -1,7 +1,7 @@
 import { ITEM_BY_ID } from '../engine/shop';
 import { TINT_PALETTES, accessoryColors, carPencilTint } from '../engine/tints';
 import type { ShopTuning } from '../types';
-import { CarArt, carArtUrl, hasCarArt } from './CarArt';
+import { CarArt, hasCarArt } from './CarArt';
 
 /**
  * Техника БУКа: авто, телефоны и корабли. Машины с 0.21.0 — карандашные
@@ -229,36 +229,8 @@ export function ToyArt({
   );
 }
 
-/**
- * Техника рядом с БУКом: телефон — в правом крыле, машина — у правой лапки,
- * корабль — у левой. Координаты подобраны под viewBox совы 100×120.
- */
-export function MascotToy({ id, colors }: { id: string; colors?: Colors | null }) {
-  const item = ITEM_BY_ID[id];
-  if (!item || item.kind !== 'toy') return null;
-  const palette = colorsFor(id, colors);
-  // Машина — цветной карандашный рисунок: ставим его картинкой внутрь SVG совы.
-  // Пропорция полотна 720×480 (3:2), низ рисунка — у самой кромки, поэтому
-  // колеса стоят на той же линии, что лапки совы (y = 120).
-  if (item.toy === 'car') {
-    const href = carArtUrl(id);
-    if (!href) return null;
-    return (
-      <image
-        href={href}
-        x={57}
-        y={92}
-        width={42}
-        height={28}
-        preserveAspectRatio="xMidYMax meet"
-        aria-hidden="true"
-      />
-    );
-  }
-  const transform = item.toy === 'phone' ? 'translate(70 61) scale(0.27)' : 'translate(3 90) scale(0.3)';
-  return (
-    <g transform={transform}>
-      <ToyGlyph id={id} colors={palette} />
-    </g>
-  );
-}
+// 0.22.0: `MascotToy` (техника внутри SVG совы) удалён — машины, телефоны и
+// корабли больше не рисуются на БУКе (правило `showsOnBuk` в engine/shop.ts,
+// решение пользователя по docs/proposals/large-items-scene.md). Коллекция
+// экспонируется крупно в сцене «Ангар» (ui/HangarScene.tsx) через тот же
+// `ToyArt`: карандашный рисунок машины 720×480 наконец видно целиком.
