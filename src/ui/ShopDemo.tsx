@@ -344,7 +344,7 @@ function Demo() {
     say({
       emoji: item.emoji ?? '🎩',
       title: `${item.title} — твой!`,
-      text: isToy(item) ? 'Покупка уже у БУКа — она рядом с ним' : 'БУК уже примерил обновку',
+      text: isToy(item) ? 'Поставим в ангаре — зайди посмотреть!' : 'БУК уже примерил обновку',
     });
   };
 
@@ -609,13 +609,13 @@ function Demo() {
                               title={item.title}
                               desc={item.desc}
                               state={st}
-                              priceLabel={isOwned(owned, item.id) ? 'Твоя ✓' : `💎 ${item.price}`}
+                              priceLabel={isOwned(owned, item.id) ? 'В ангаре ✓' : `💎 ${item.price}`}
                               afford={canBuy(item, gems)}
                               wished={wishlist.includes(item.id)}
                               onOpen={() => openItem(item)}
                               onWish={() => toggleWish(item.id)}
                               actionLabel={
-                                st === 'worn' ? 'У БУКа ✓' : st === 'owned' ? 'Забрать' : st === 'buy' ? `Купить · 💎${item.price}` : `Ещё ${missingGems(item, gems)} 💎`
+                                st === 'worn' ? 'На подиуме ✓' : st === 'owned' ? 'На подиум' : st === 'buy' ? `Купить · 💎${item.price}` : `Ещё ${missingGems(item, gems)} 💎`
                               }
                               onAction={() => {
                                 if (st === 'owned' || st === 'worn') wear(item);
@@ -810,12 +810,12 @@ function Demo() {
                         art={<ToyArt id={item.id} size={82} tuning={tuning} />}
                         title={item.title}
                         desc={item.desc}
-                        priceLabel={isWearing(equipped, item) ? 'У БУКа ✓' : 'Куплена ✓'}
+                        priceLabel={isWearing(equipped, item) ? 'На подиуме ✓' : 'В ангаре ✓'}
                         afford
                         onOpen={() => openItem(item)}
                         onWish={() => toggleWish(item.id)}
                         wished={wishlist.includes(item.id)}
-                        actionLabel={isWearing(equipped, item) ? 'Убрать' : 'Забрать'}
+                        actionLabel={isWearing(equipped, item) ? 'С подиума' : 'На подиум'}
                         onAction={() => wear(item)}
                       />
                     ))}
@@ -964,7 +964,7 @@ function Demo() {
                       )}
                       {isToy(item) && (
                         <p className="tiny muted">
-                          БУК заберёт покупку с собой — её будет видно на главной и в уроках.
+                          Встанет в ангаре БУКа — там её видно крупно и целиком.
                         </p>
                       )}
                       <div className="row mb">
@@ -976,7 +976,7 @@ function Demo() {
                       <div className="mz-row mb">
                         {has ? (
                           <button className={`btn lg${wearing ? ' green' : ' primary'}`} onClick={() => { wear(item); setDetail(null); }}>
-                            {wearing ? (isToy(item) ? 'У БУКа ✓' : 'Надето ✓') : isToy(item) ? 'Забрать' : 'Надеть'}
+                            {wearing ? (isToy(item) ? 'С подиума' : 'Снять') : isToy(item) ? 'На подиум' : 'Надеть'}
                           </button>
                         ) : (
                           <button className="btn lg primary" disabled={gems < item.price} onClick={() => { setDetail(null); buyItem(item); }}>

@@ -17,7 +17,8 @@ import { ToyArt } from './ToyArt';
  * Никаких новых правил покупки сцена не добавляет.
  */
 
-type Tone = 'car' | 'ship' | 'phone';
+/** Тон арки/панели: гараж (авто), море (корабли), лавандовая витрина (телефоны). */
+export type Tone = 'car' | 'ship' | 'phone';
 
 const BAYS: { kind: ToyKind; tone: Tone; label: string; fallback: string }[] = [
   { kind: 'car', tone: 'car', label: 'Авто', fallback: 'car-bmw' },
@@ -51,8 +52,9 @@ function PierArt() {
   );
 }
 
-/** Декор внутри арки: гараж, море с пирсом или полки витрины. */
-function BayDecor({ tone }: { tone: Tone }) {
+/** Декор внутри арки: гараж, море с пирсом или полки витрины.
+ *  Экспортирован для сцены «Ангар» (0.22.0) — тот же визуальный язык. */
+export function BayDecor({ tone }: { tone: Tone }) {
   if (tone === 'car') {
     return (
       <>

@@ -106,6 +106,21 @@ export function isToy(item: ShopItem): boolean {
   return item.kind === 'toy';
 }
 
+/**
+ * Рисуется ли вещь на маскоте (0.22.0, docs/proposals/large-items-scene.md).
+ *
+ * Техника — НЕТ: машина на 40-пиксельном помощнике превращалась в цветную
+ * кашу, корабль наползал на лапы, а слот `toy` один — коллекция из десятка
+ * машин была невидима. Вся техника экспонируется в сцене «Ангар»
+ * (ui/HangarScene.tsx), а `equipped.toy` с 0.22.0 означает «любимая вещь,
+ * стоит на главном подиуме ангара». Наряды остаются на БУКе — они и рисовались
+ * по размеру совы. Правило живёт в движке: будущие товары с `kind: 'toy'`
+ * попадают в ангар автоматически, без правки картинок.
+ */
+export function showsOnBuk(item: ShopItem): boolean {
+  return item.kind !== 'toy';
+}
+
 export function toysByShelf(kind: ToyKind): ShopItem[] {
   return TOY_ITEMS.filter((item) => item.toy === kind);
 }

@@ -24,6 +24,7 @@ import { Mascot } from '../Mascot';
 import { ToyArt } from '../ToyArt';
 import { CarArt, carAlt, carKind, carNote, hasCarArt } from '../CarArt';
 import { TechScene } from '../TechScene';
+import { HangarScene } from '../HangarScene';
 import {
   COSTUMES,
   OVERFLOW_GEMS,
@@ -56,13 +57,15 @@ import { BackgroundThemeCard } from '../BackgroundThemeCard';
  *    фоны / звуки; новый раздел не требует переделки экрана;
  *  • **витрина-бутик (0.19.0):** у каждого товара своя арочная ниша с лампой и
  *    подиумом (`ShowcaseGrid`) — магазин выглядит витриной, а не списком карточек;
- *  • **техника (0.19.0):** авто, телефоны и корабли — отдельная полка с
- *    тремя подполками. Вещь живёт в слоте `toy` и появляется рядом с БУКом:
- *    телефон — в крыле, машина — у правой лапки, корабль — у левой;
+ *  • **техника (0.19.0 → 0.22.0):** авто, телефоны и корабли — отдельная
+ *    полка с тремя подполками. Вещь живёт в слоте `toy`, но на БУКе больше
+ *    не рисуется (правило `showsOnBuk`): коллекция экспонируется в сцене
+ *    «Ангар» (ui/HangarScene), а слот означает «любимая вещь на главном
+ *    подиуме ангара»;
  *  • «Звуки» (0.17.0) — наборы мелодий правильного ответа и ошибки
  *    (engine/sounds.ts): послушать оба отклика можно прямо на карточке;
  *  • **единый макет карточки** для всех типов товара: арт, название, статус
- *    плашкой (Твоя ✓ / Надето ✓ / У БУКа ✓ / Собираю 4/9 / Ещё N 💎)
+ *    плашкой (Твоя ✓ / В ангаре ✓ / Надето ✓ / На подиуме ✓ / Собираю 4/9 / Ещё N 💎)
  *    и ОДНО действие;
  *  • подробная карточка — **sheet снизу**: крупная примерка, цена, палитра
  *    цветов. Палитра больше не раскрывается инлайн (верстка не прыгает);
@@ -259,6 +262,9 @@ export function ShopScreen() {
   const [askTint, setAskTint] = useState<{ target: TintTarget; tint: TintOption } | null>(null);
   const [previewTrack, setPreviewTrack] = useState<string | null>(null);
   const [mood, setMood] = useState<'idle' | 'happy' | 'dance'>('idle');
+  // «Ангар БУКа» (0.22.0): сцена коллекции техники, открывается из гардероба
+  // и с полки «Техника» (ещё один вход — значок 🚗 в шапке главной, App.tsx).
+  const [hangarOpen, setHangarOpen] = useState(false);
 
   /** Sheet закрывается по фону, по Escape и — если играла примерка —
    *  возвратом к выбранной мелодии (примерка не остаётся «висеть»). */
@@ -439,7 +445,7 @@ export function ShopScreen() {
       showToast({
         emoji: ask.emoji ?? '🎩',
         title: `${ask.title} — твой!`,
-        text: toy ? 'Покупка уже у БУКа — она рядом с ним' : 'БУК уже примерил обновку',
+        text: toy ? 'Поставим в ангаре — зайди посмотреть!' : 'БУК уже примерил обновку',
       });
     } else {
       showToast({ emoji: '💎', title: 'Не хватает кристаллов', text: `Нужно ещё ${missingGems(ask, gems)}` });
@@ -452,6 +458,13 @@ export function ShopScreen() {
     toggleEquip(item.id);
     setMood('happy');
     setTimeout(() => setMood('idle'), 1200);
+  };
+
+  /** Открыть сцену «Ангар БУКа» — коллекцию техники крупным планом (0.22.0). */
+  const openHangar = () => {
+    sfx.tap();
+    haptic.tap();
+    setHangarOpen(true);
   };
 
   const tapTint = (target: TintTarget, tint: TintOption, unlocked: boolean) => {
@@ -507,9 +520,10 @@ export function ShopScreen() {
     const affordable = canBuy(item, gems);
     const wished = isWished(wishlist, item.id);
     const toy = isToy(item);
-    // У техники своя формулировка состояния: она не «надета», а стоит рядом.
-    const stateOn = toy ? 'У БУКа ✓' : 'Надето ✓';
-    const actionOn = toy ? 'Забрать' : 'Надеть';
+    // 0.22.0: техника не «надета» на БУКа — она стоит в ангаре; слот `toy`
+    // означает «любимая вещь на главном подиуме ангара» (HangarScene).
+    const stateOn = toy ? 'На подиуме ✓' : 'Надето ✓';
+    const actionOn = toy ? 'На подиум' : 'Надеть';
     return (
       <ShopCard
         key={item.id}
@@ -525,7 +539,7 @@ export function ShopScreen() {
         // Арт техники рисуется целиком, без совы: на полке это товар,
         // а не ещё один наряд на БУКе.
         cardCls={[wearing ? 'on' : owned_ ? 'owned' : '', toy ? 'toy-item' : ''].filter(Boolean).join(' ') || undefined}
-        priceLabel={owned_ ? 'Твоя ✓' : `💎 ${item.price}`}
+        priceLabel={owned_ ? (toy ? 'В ангаре ✓' : 'Твоя ✓') : `💎 ${item.price}`}
         afford={affordable}
         wished={wished}
         onWish={!owned_ ? () => tapWish(item.id, item.title) : undefined}
@@ -789,13 +803,13 @@ export function ShopScreen() {
           )}
           {toy && (
             <p className="tiny muted">
-              БУК заберёт покупку с собой — её будет видно на главной и в уроках.
+              Встанет в ангаре БУКа — там её видно крупно и целиком.
             </p>
           )}
           <div className="row mb">
             <span className={`shop-price${affordable ? ' afford' : ''}`}>💎 {item.price}</span>
             <span className="tiny muted grow" style={{ alignSelf: 'center' }}>
-              {owned_ ? (toy ? 'Уже в коллекции' : 'Уже в гардеробе') : `У тебя ${gems} 💎`}
+              {owned_ ? (toy ? 'Уже в ангаре' : 'Уже в гардеробе') : `У тебя ${gems} 💎`}
             </span>
           </div>
           <div className="row mb">
@@ -807,7 +821,7 @@ export function ShopScreen() {
                   closeSheet();
                 }}
               >
-                {wearing ? (toy ? 'Убрать' : 'Снять') : toy ? 'Забрать' : 'Надеть'}
+                {wearing ? (toy ? 'С подиума' : 'Снять') : toy ? 'На подиум' : 'Надеть'}
               </button>
             ) : (
               <button
@@ -1336,7 +1350,7 @@ export function ShopScreen() {
           <div className="mb">
             <h2 className="mb">Техника БУКа</h2>
             <div className="tiny muted">
-              Три полки: авто, телефоны и корабли. Купленное сразу появляется у БУКа — на главной и в уроках.
+              Три полки: авто, телефоны и корабли. Купленное встаёт в ангаре БУКа — на большой сцене коллекции.
             </div>
           </div>
           <TechScene
@@ -1345,6 +1359,11 @@ export function ShopScreen() {
             look={look}
             tuning={profile.shop?.tuning}
           />
+          {ownedToys.length > 0 && (
+            <button type="button" className="btn sm ghost wide hangar-open" onClick={openHangar}>
+              🚗 Мой ангар — вся твоя техника крупным планом ➜
+            </button>
+          )}
           {toyGoal && (
             <div className="shop-tech-goal">
               <span className="shop-tech-goal-icon" aria-hidden="true">
@@ -1543,9 +1562,19 @@ export function ShopScreen() {
             })}
           </section>
 
-          {/* Моя техника: авто, телефоны и корабли (0.19.0 → 0.20.0) */}
+          {/* Моя техника: авто, телефоны и корабли (0.19.0 → 0.20.0).
+              0.22.0: техника не на БУКе — коллекция в сцене «Ангар», вход здесь. */}
           <section className="mb" aria-label="Моя техника">
-            <h2 className="mb">Моя техника</h2>
+            <div className="row mb" style={{ alignItems: 'center' }}>
+              <h2 className="grow" style={{ margin: 0 }}>
+                Моя техника
+              </h2>
+              {ownedToys.length > 0 && (
+                <button type="button" className="btn sm ghost" onClick={openHangar}>
+                  Открыть ангар ➜
+                </button>
+              )}
+            </div>
             {ownedToys.length === 0 && (
               <div className="card tiny mb" style={{ textAlign: 'center' }}>
                 Пока пусто. Полка «Техника» в витрине
@@ -1560,7 +1589,7 @@ export function ShopScreen() {
                   item.title,
                   item.desc,
                   isWearing(look, item),
-                  isWearing(look, item) ? 'Убрать' : 'Забрать',
+                  isWearing(look, item) ? 'С подиума' : 'На подиум',
                   () => tapWear(item),
                 ),
               )}
@@ -1846,6 +1875,9 @@ export function ShopScreen() {
           {sheetBody}
         </Sheet>
       )}
+
+      {/* ── «Ангар БУКа»: сцена коллекции техники (0.22.0) ──────────────── */}
+      {hangarOpen && <HangarScene onClose={() => setHangarOpen(false)} />}
 
       {askMusic && (
         <ConfirmDialog

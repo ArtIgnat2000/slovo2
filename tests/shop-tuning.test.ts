@@ -2,7 +2,7 @@
 // санитизация профиля. Чистая логика без React — идёт в adaptive-контур,
 // интерфейс магазина проверяет смоук (блок «Магазин БУКа»).
 import assert from 'node:assert/strict';
-import { OUTFIT_ITEMS, SHOP_ITEMS, TOY_ITEMS, TOY_SHELVES, toysByShelf } from '../src/engine/shop';
+import { OUTFIT_ITEMS, SHOP_ITEMS, TOY_ITEMS, TOY_SHELVES, showsOnBuk, toysByShelf } from '../src/engine/shop';
 import { COSTUMES } from '../src/engine/puzzles';
 import {
   BASE_TINT,
@@ -65,6 +65,11 @@ assert.equal(SHOP_ITEMS.length, OUTFIT_ITEMS.length + TOY_ITEMS.length, 'кат�
 assert.equal(new Set(SHOP_ITEMS.map((item) => item.id)).size, SHOP_ITEMS.length, 'id товаров должны быть уникальны');
 assert.ok(OUTFIT_ITEMS.every((item) => item.kind !== 'toy'), 'на полке нарядов не должно быть игрушек');
 assert.ok(TOY_ITEMS.every((item) => item.kind === 'toy' && item.toy), 'у каждой вещи есть подполка (телефон/машина/корабль)');
+// 0.22.0: техника не надевается на БУКа — она экспонируется в сцене «Ангар»
+// (ui/HangarScene.tsx, docs/proposals/large-items-scene.md); наряды остаются
+// на маскоте — они и рисовались по размеру совы.
+assert.ok(TOY_ITEMS.every((item) => !showsOnBuk(item)), 'техника не должна рисоваться на БУКе');
+assert.ok(OUTFIT_ITEMS.every((item) => showsOnBuk(item)), 'наряды должны рисоваться на БУКе');
 assert.deepEqual(
   [...new Set(TOY_ITEMS.map((item) => item.toy))].sort(),
   ['car', 'phone', 'ship'],

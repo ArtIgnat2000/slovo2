@@ -629,7 +629,8 @@ async function main() {
   }
   check('«Техника»: видна ближайшая покупка и её цена', has('Ближайшая покупка') && has('💎 25'), '');
 
-  // Покупка вещи кладёт её в слот `toy` и сразу ставит рядом с БУКом.
+  // Покупка вещи кладёт её в слот `toy` — с 0.22.0 это «любимая вещь на
+  // главном подиуме ангара»; на БУКе техника больше не рисуется.
   const gemsBeforeToy = useApp.getState().profiles[0].gems;
   const ownedBeforeToy = [...(useApp.getState().profiles[0].shop?.owned ?? [])];
   useApp.setState((s) => ({
@@ -643,7 +644,73 @@ async function main() {
     toyBought && useApp.getState().profiles[0].shop?.equipped?.toy === 'car-racer',
     JSON.stringify(useApp.getState().profiles[0].shop?.equipped),
   );
-  check('купленная вещь показывает «У БУКа ✓»', has('У БУКа ✓'), '');
+  check('купленная вещь показывает «На подиуме ✓»', has('На подиуме ✓'), '');
+  // 0.22.0: техника больше не рисуется на БУКе (ни на сцене полки, ни где
+  // ещё): внутри маскота нет <image> с купленной машиной.
+  check('купленная техника не рисуется на БУКе', !document.querySelector('.mascot svg image'), '');
+
+  // ── Ангар БУКа (0.22.0): отдельная сцена коллекции техники ──────────────
+  // Вход на полке «Техника» открывает сцену; купленный «Болид» стоит на
+  // главном подиуме со звездой, тап убирает и возвращает вещь с подиума.
+  const hangarBtn = buttons().find((b) => (b.textContent ?? '').includes('Мой ангар'));
+  check('на полке «Техника» есть вход «Мой ангар»', !!hangarBtn, '');
+  click(hangarBtn);
+  await sleep(60);
+  check('ангар открылся', !!document.querySelector('.hangar') && has('Ангар БУКа'), body().slice(0, 200));
+  const hangarItems = Array.from(document.querySelectorAll('.hangar-item'));
+  check(
+    'в ангаре одна купленная вещь — «Болид» на главном подиуме',
+    hangarItems.length === 1 &&
+      (hangarItems[0].textContent ?? '').includes('Болид') &&
+      !!document.querySelector('.hangar-item.star') &&
+      has('★ На подиуме'),
+    `плашек: ${hangarItems.length}`,
+  );
+  click(document.querySelector('.hangar-item.star'));
+  await sleep(50);
+  check(
+    'тап по вещи на подиуме убирает её с подиума',
+    useApp.getState().profiles[0].shop?.equipped?.toy === undefined && !document.querySelector('.hangar-item.star'),
+    JSON.stringify(useApp.getState().profiles[0].shop?.equipped),
+  );
+  click(document.querySelector('.hangar-item'));
+  await sleep(50);
+  check(
+    'тап по вещи возвращает её на подиум',
+    useApp.getState().profiles[0].shop?.equipped?.toy === 'car-racer' && !!document.querySelector('.hangar-item.star'),
+    JSON.stringify(useApp.getState().profiles[0].shop?.equipped),
+  );
+  click(document.querySelector('.hangar [aria-label="Закрыть ангар"]'));
+  await sleep(50);
+  check('ангар закрывается крестиком', !document.querySelector('.hangar'), '');
+
+  // Вход из гардероба: у полки «Моя техника» своя кнопка.
+  click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Гардероб'))!);
+  await sleep(40);
+  const wardrobeHangarBtn = buttons().find((b) => (b.textContent ?? '').includes('Открыть ангар'));
+  check('в гардеробе есть вход «Открыть ангар ➜»', !!wardrobeHangarBtn, '');
+  click(wardrobeHangarBtn);
+  await sleep(60);
+  check('ангар открылся из гардероба', !!document.querySelector('.hangar'), '');
+  click(document.querySelector('.hangar [aria-label="Закрыть ангар"]'));
+  await sleep(40);
+  click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Витрина'))!);
+  await sleep(40);
+
+  // Вход с главной: значок 🚗 в шапке экрана «Уроки».
+  click(buttons().find((b) => (b.textContent ?? '').includes('Уроки') && b.className.includes('tab'))!);
+  await sleep(60);
+  const homeHangarBtn = document.querySelector('button[aria-label="Ангар БУКа"]');
+  check('в шапке главной есть значок «Ангар БУКа»', !!homeHangarBtn, '');
+  click(homeHangarBtn);
+  await sleep(60);
+  check('ангар открылся с главной', !!document.querySelector('.hangar'), '');
+  click(document.querySelector('.hangar [aria-label="Закрыть ангар"]'));
+  await sleep(50);
+  check('после ангара видна главная', !document.querySelector('.hangar') && has('Мой путь'), '');
+  click(buttons().find((b) => (b.textContent ?? '').includes('БУК') && b.className.includes('tab'))!);
+  await sleep(60);
+
   // Возвращаем профиль: следующие блоки считают покупки нарядов с нуля.
   useApp.setState((s) => ({
     profiles: s.profiles.map((p) =>
