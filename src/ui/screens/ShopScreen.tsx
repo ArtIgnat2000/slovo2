@@ -1958,6 +1958,8 @@ export function ShopScreen() {
       {ask && (
         <ConfirmDialog
           emoji={ask.emoji ?? '🎩'}
+          // Техника — сам товар, как на витрине (рисунок, а не эмодзи-заглушка)
+          art={isToy(ask) ? <ToyArt id={ask.id} size={120} tuning={profile.shop?.tuning} /> : undefined}
           title={`Купить «${ask.title}»?`}
           text={
             isToy(ask)
