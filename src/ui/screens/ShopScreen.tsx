@@ -16,6 +16,8 @@ import {
   isWished,
   missingGems,
   resolveHero,
+  SELL_RATE,
+  sellPrice,
   toysByShelf,
   wardrobeValue,
   type ToyKind,
@@ -79,9 +81,9 @@ import { BackgroundThemeCard } from '../BackgroundThemeCard';
  */
 
 /** Полки музыкального магазина: спокойный фон отдельно от весёлой коллекции. */
-const MUSIC_SHELVES: { shelf: MusicShelf; title: string; note: string }[] = [
-  { shelf: 'calm', title: '🌿 Спокойный фон', note: 'Ровные мелодии для занятий и меню: не мешают читать, писать и думать' },
-  { shelf: 'fun', title: '🎉 Коллекция и награды', note: 'Весёлые записи за прохождение уроков: их открывают за кристаллы' },
+const MUSIC_SHELVES: { shelf: MusicShelf; title: string }[] = [
+  { shelf: 'calm', title: '🌿 Спокойный фон' },
+  { shelf: 'fun', title: '🎉 Коллекция и награды' },
 ];
 
 /** Верхние уровни магазина: «чего хочу» и «что моё». */
@@ -239,6 +241,7 @@ export function ShopScreen() {
   const profile = useActiveProfile();
   const look = useLook();
   const buyItem = useApp((s) => s.buyItem);
+  const sellItem = useApp((s) => s.sellItem);
   const toggleEquip = useApp((s) => s.toggleEquip);
   const choosePuzzleCostume = useApp((s) => s.choosePuzzleCostume);
   const toggleCostume = useApp((s) => s.toggleCostume);
@@ -258,6 +261,7 @@ export function ShopScreen() {
   const [sheet, setSheet] = useState<Detail | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [ask, setAsk] = useState<ShopItem | null>(null);
+  const [askSell, setAskSell] = useState<ShopItem | null>(null);
   const [askMusic, setAskMusic] = useState<MusicTrack | null>(null);
   const [askSound, setAskSound] = useState<SoundPack | null>(null);
   const [askTint, setAskTint] = useState<{ target: TintTarget; tint: TintOption } | null>(null);
@@ -452,6 +456,22 @@ export function ShopScreen() {
       });
     } else {
       showToast({ emoji: '💎', title: 'Не хватает кристаллов', text: `Нужно ещё ${missingGems(ask, gems)}` });
+    }
+  };
+
+  const confirmSell = () => {
+    if (!askSell) return;
+    const item = askSell;
+    const refund = sellPrice(item);
+    const ok = sellItem(item.id);
+    setAskSell(null);
+    if (ok) {
+      sfx.tap();
+      showToast({
+        emoji: item.emoji ?? '🎩',
+        title: `+${refund} 💎 · «${item.title}» сдана`,
+        text: 'Часть стоимости вернулась; купить заново — за полную цену',
+      });
     }
   };
 
@@ -821,6 +841,11 @@ export function ShopScreen() {
               {owned_ ? (toy ? 'Уже в ангаре' : 'Уже в гардеробе') : `У тебя ${gems} 💎`}
             </span>
           </div>
+          {!owned_ && (
+            <p className="tiny muted mb">
+              Если передумаешь — вернём {sellPrice(item)} 💎 ({SELL_RATE[item.kind ?? 'outfit'] * 100}% от цены)
+            </p>
+          )}
           <div className="row mb">
             {owned_ ? (
               <button
@@ -876,6 +901,16 @@ export function ShopScreen() {
                   onPick={(tint, unlocked) => tapTint({ id: item.id, title: item.title }, tint, unlocked)}
                 />
               )}
+              <button
+                type="button"
+                className="btn lg wide ghost mb"
+                onClick={() => {
+                  sfx.tap();
+                  setAskSell(item);
+                }}
+              >
+                Сдать обратно · +{sellPrice(item)} 💎
+              </button>
             </>
           )}
         </>
@@ -1408,12 +1443,11 @@ export function ShopScreen() {
               </button>
             </div>
           )}
-          {TOY_SHELVES.filter(({ id }) => id === toyShelf).map(({ id, title, emoji, note }) => (
+          {TOY_SHELVES.filter(({ id }) => id === toyShelf).map(({ id, title, emoji }) => (
             <div className={`shop-case-group shop-case-${id}`} key={id}>
               <h3 className="shop-case-group-title">
                 <span aria-hidden="true">{emoji}</span> {title}
               </h3>
-              <div className="tiny muted">{note}</div>
               <ShowcaseGrid tone={id === 'car' ? 'mint' : id === 'ship' ? 'sky' : undefined}>
                 {toysByShelf(id).map(itemCard)}
               </ShowcaseGrid>
@@ -1472,10 +1506,9 @@ export function ShopScreen() {
           </div>
           <div className="mb"><MusicCreditsToggle /></div>
           {/* Полки: спокойный фон отдельно — у каждого своё место в игре */}
-          {MUSIC_SHELVES.map(({ shelf, title, note }) => (
+          {MUSIC_SHELVES.map(({ shelf, title }) => (
             <div className="music-shelf" key={shelf}>
               <h3 className="music-shelf-title">{title}</h3>
-              {note && <div className="tiny muted music-shelf-note">{note}</div>}
               <ShowcaseGrid>{tracksByShelf(shelf).map(trackCard)}</ShowcaseGrid>
             </div>
           ))}
@@ -1931,6 +1964,18 @@ export function ShopScreen() {
           leaveLabel="Не сейчас"
           onStay={confirmBuy}
           onLeave={() => setAsk(null)}
+        />
+      )}
+
+      {askSell && (
+        <ConfirmDialog
+          emoji={askSell.emoji ?? '🎩'}
+          title={`Сдать «${askSell.title}» обратно?`}
+          text={`Получишь ${sellPrice(askSell)} 💎 вместо ${askSell.price} — вещи дешевеют после покупки. «${askSell.title}» уйдёт из гардероба навсегда.`}
+          stayLabel={`Сдать · +${sellPrice(askSell)} 💎`}
+          leaveLabel="Оставить"
+          onStay={confirmSell}
+          onLeave={() => setAskSell(null)}
         />
       )}
 

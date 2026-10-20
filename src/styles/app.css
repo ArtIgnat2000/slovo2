@@ -2833,7 +2833,6 @@ p {
   color: var(--primary);
   font-size: var(--fs-sm);
 }
-.shop-case-group-title + .tiny { margin-bottom: 8px; }
 /* Ближайшая покупка: мягкая подсказка на бирке, не второй герой. */
 .shop-tech-goal {
   display: flex;
@@ -6071,7 +6070,6 @@ p {
    весёлой коллекции — у каждой мелодии своё место в игре. */
 .music-shelf + .music-shelf { margin-top: var(--sp-5); }
 .music-shelf-title { margin: 0; font-size: var(--fs-sm); }
-.music-shelf-note { margin: 2px 0 var(--sp-2); }
 .music-grid {
   align-items: stretch;
 }
