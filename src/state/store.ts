@@ -195,11 +195,28 @@ function weeklyEarnings(p: Profile, days: Profile['days'], today: string) {
  * Красить можно купленные аксессуары и собранные костюмы, поэтому в список
  * доступного для тюнинга идут и те, и другие (engine/tints.ts).
  */
+/**
+ * Профиль, испорченный сменой цвета до исправления: у него есть `tuning`
+ * (краска пишется вместе с ним), но нет ни musicOwned, ни musicTrack — выбор
+ * ребёнка потерян. Миграция иначе сделала бы автозапуск первой мелодии при
+ * каждой синхронизации. Поэтому такой профиль читается как «мелодия не
+ * выбрана» (тишина): ребёнок сам включит музыку. Любой нормальный профиль
+ * после чтения всегда имеет musicOwned, поэтому его не затрагиваем.
+ */
+export function repairMusicShop<T extends { musicOwned?: unknown; musicTrack?: unknown; tuning?: unknown } | null | undefined>(
+  shop: T,
+): T {
+  if (shop && shop.tuning !== undefined && shop.musicOwned === undefined && shop.musicTrack === undefined) {
+    return { ...shop, musicTrack: null } as T;
+  }
+  return shop;
+}
+
 function readShop(p: Profile): ShopState {
   const owned = p.shop?.owned ?? [];
   const assembled = p.puzzle?.assembled ?? [];
   // Музыкальная часть — через миграцию: покупки старого каталога не теряются.
-  const music = migrateMusicShop(p.shop);
+  const music = migrateMusicShop(repairMusicShop(p.shop));
   return {
     owned,
     equipped: p.shop?.equipped ?? {},
@@ -275,7 +292,7 @@ function normalizeProfile(raw: Partial<Profile> | null | undefined): Profile | n
     ? raw.shop.owned.filter((x): x is string => typeof x === 'string')
     : [];
   const puzzle = normalizePuzzle(raw.puzzle);
-    const music = migrateMusicShop(raw.shop);
+    const music = migrateMusicShop(repairMusicShop(raw.shop));
     return {
       ...base,
       ...raw,
@@ -1021,7 +1038,7 @@ export const useApp = create<AppState>()(
         if (!p) return false;
         const shop = readShop(p);
         const pz = normalizePuzzle(p.puzzle);
-        const music = migrateMusicShop(p.shop);
+        const music = migrateMusicShop(repairMusicShop(p.shop));
         const ownedSet = new Set([...shop.owned, ...pz.assembled, ...music.musicOwned]);
         if (ownedSet.has(id)) return false;
         const isValid = Boolean(ITEM_BY_ID[id] || COSTUMES.find((c) => c.id === id) || MUSIC_BY_ID[id]);
@@ -1120,11 +1137,15 @@ export const useApp = create<AppState>()(
         // Меняем профиль только когда цвет действительно поменялся: «no-gems»,
         // «not-owned» и повторный выбор того же оттенка не пишут ничего.
         if (res.outcome === 'switched' || res.outcome === 'opened') {
+          // Пишем только краски: res.shop собран из owned/equipped/tuning, и
+          // если отдать его целиком, пропадут musicTrack, musicOwned, звуки и
+          // мечты. Миграция музыки тогда считает выбор «не сделан» и включает
+          // первую мелодию — ребёнок её не включал (жалоба 0.24.x).
           set((s) =>
             patchActive(s, (p) => ({
               ...p,
               gems: Math.max(0, p.gems - res.spend),
-              shop: res.shop,
+              shop: { ...readShop(p), tuning: res.shop.tuning },
             })),
           );
         }

@@ -1425,7 +1425,7 @@ export function ShopScreen() {
           {toyGoal && (
             <div className="shop-tech-goal">
               <span className="shop-tech-goal-icon" aria-hidden="true">
-                {toyGoal.emoji ?? '🚗'}
+                <ToyArt id={toyGoal.id} size={48} tuning={profile.shop?.tuning} />
               </span>
               <span className="grow">
                 <b>Ближайшая покупка: {toyGoal.title}</b>
@@ -1962,6 +1962,8 @@ export function ShopScreen() {
       {ask && (
         <ConfirmDialog
           emoji={ask.emoji ?? '🎩'}
+          // Техника — сам товар, как на витрине (рисунок, а не эмодзи-заглушка)
+          art={isToy(ask) ? <ToyArt id={ask.id} size={120} tuning={profile.shop?.tuning} /> : undefined}
           title={`Купить «${ask.title}»?`}
           text={
             isToy(ask)

@@ -23,6 +23,8 @@ import { runFloatingMascotChecks } from './mascot-ui.test';
 import { runBukLessonChecks } from './buk-lesson-ui.test';
 import { runLessonArtChecks } from './lesson-art-ui.test';
 import { runVerdictChecks } from './verdict-ui.test';
+// Смена цвета купленной вещи не должна включать музыку (регрессия магазина).
+import './recolor-music.test';
 import { LESSONS, WORDS } from '../src/content/words';
 import { MUSIC_TRACKS } from '../src/engine/music';
 import { SOUND_PACKS, STARTER_SOUND_IDS } from '../src/engine/sounds';
@@ -1124,6 +1126,22 @@ async function main() {
     !!btn((b) => (b.getAttribute('aria-label') ?? '').startsWith('Награды')) && !document.querySelector('.quest'),
     '',
   );
+
+  // «Позови друга» — ребёнок передаёт ссылку сам, без раздела «Родителям».
+  const inviteBtn = btn((b) => (b.getAttribute('aria-label') ?? '') === 'Позвать друга');
+  check('на главной есть кнопка «Позвать друга» (🤝)', !!inviteBtn, '');
+  if (inviteBtn) {
+    click(inviteBtn);
+    await sleep(60);
+    check(
+      'лист «Позови друга» открывается с QR-кодом и ссылкой',
+      has('Позови друга') && !!document.querySelector('.invite-qr-art') && !!document.querySelector('.invite-link'),
+      body().slice(0, 200),
+    );
+    click(btn((b) => (b.getAttribute('aria-label') ?? '') === 'Закрыть'));
+    await sleep(40);
+    check('лист «Позови друга» закрывается', !document.querySelector('.invite-sheet'), '');
+  }
 
   // ── Настройка размера урока в разделе «Родителям» ─────────────────────────
   const parentTab = buttons().find((b) => (b.textContent ?? '').includes('Родителям') && b.className.includes('tab'));

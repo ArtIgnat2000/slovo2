@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 
 export function Bar({ value, tone }: { value: number; tone?: 'green' | 'orange' }) {
   return (
@@ -130,6 +130,7 @@ export function Crowns({ level }: { level: number }) {
  */
 export function ConfirmDialog({
   emoji,
+  art,
   title,
   text,
   stayLabel = 'Остаться',
@@ -138,6 +139,8 @@ export function ConfirmDialog({
   onLeave,
 }: {
   emoji?: string;
+  /** Рисунок самого товара (вместо эмодзи): например, карандашный лист машины. */
+  art?: ReactNode;
   title: string;
   text?: string;
   stayLabel?: string;
@@ -162,7 +165,7 @@ export function ConfirmDialog({
         aria-label={title}
         onClick={(e) => e.stopPropagation()}
       >
-        {emoji && <div className="dialog-emoji">{emoji}</div>}
+        {art ? <div className="dialog-art">{art}</div> : emoji && <div className="dialog-emoji">{emoji}</div>}
         <h2>{title}</h2>
         {text && <p className="muted">{text}</p>}
         <div className="dialog-actions">
