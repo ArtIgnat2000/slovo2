@@ -22,8 +22,8 @@ import {
 } from '../../engine/shop';
 import { Mascot } from '../Mascot';
 import { ToyArt } from '../ToyArt';
-import { CarArt, carAlt, carKind, carNote, hasCarArt } from '../CarArt';
-import { ShipArt, hasShipArt, shipAlt, shipKind, shipNote } from '../ShipArt';
+import { carAlt, carKind, carNote, hasCarArt } from '../CarArt';
+import { hasShipArt, shipAlt, shipKind, shipNote } from '../ShipArt';
 import { HangarScene } from '../HangarScene';
 import {
   COSTUMES,
@@ -34,7 +34,7 @@ import {
   normalizePuzzle,
   type Costume,
 } from '../../engine/puzzles';
-import { TINT_PRICE, artPencilTint, carPencilTint, type TintOption } from '../../engine/tints';
+import { TINT_PRICE, type TintOption } from '../../engine/tints';
 import { TintPicker } from '../TintPicker';
 import { ConfirmDialog } from '../Bits';
 import { previewSoundCue, sfx } from '../../platform/sound';
@@ -776,22 +776,26 @@ export function ShopScreen() {
       const wearing = isWearing(look, item);
       const affordable = canBuy(item, gems);
       const toy = isToy(item);
+      // Подпись крупного рисунка: у машин и судов — вид техники, у телефонов —
+      // просто название товара.
+      const artAlt = hasCarArt(item.id)
+        ? carAlt(item.id, item.title)
+        : hasShipArt(item.id)
+          ? shipAlt(item.id, item.title)
+          : `${item.title} — техника БУКа`;
       return (
         <>
           <div className={`shop-bigart${toy ? ' shop-bigart-toy' : ''}`}>
-            {hasCarArt(item.id) ? (
-              // Авто и суда — отдельные карандашные листы; в подробном виде
-              // показываем сам товар, не примерку на сове.
-              <CarArt
+            {toy ? (
+              // Техника в подробной карточке — сам товар крупным планом
+              // (машина/судно — карандашный лист, телефон — SVG). БУКа здесь
+              // нет: ребёнок пришёл посмотреть вещь, а не примерку на сове.
+              <ToyArt
                 id={item.id}
-                tint={carPencilTint(item.id, profile.shop?.tuning)}
-                alt={carAlt(item.id, item.title)}
-              />
-            ) : hasShipArt(item.id) ? (
-              <ShipArt
-                id={item.id}
-                tint={artPencilTint(item.id, profile.shop?.tuning)}
-                alt={shipAlt(item.id, item.title)}
+                size={200}
+                className="shop-bigart-toy-art"
+                tuning={profile.shop?.tuning}
+                alt={artAlt}
               />
             ) : (
               <Mascot mood="happy" look={{ [item.slot]: item.id }} costumeId={null} stage={growth.index} size={150} />

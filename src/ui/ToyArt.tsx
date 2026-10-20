@@ -201,6 +201,7 @@ export function ToyArt({
   size = 84,
   className,
   tuning,
+  alt,
 }: {
   id: string;
   colors?: Colors | null;
@@ -208,12 +209,17 @@ export function ToyArt({
   className?: string;
   /** Тюнинг профиля: у машин — цветной карандаш, у телефонов/кораблей — палитра */
   tuning?: ShopTuning;
+  /**
+   * Подпись рисунка для подробного просмотра. На витрине и в гардеробе
+   * карточка уже названа, поэтому по умолчанию рисунок декоративный.
+   */
+  alt?: string;
 }) {
   if (hasCarArt(id)) {
-    return <CarArt id={id} tint={artPencilTint(id, tuning)} className={className} />;
+    return <CarArt id={id} tint={artPencilTint(id, tuning)} className={className} alt={alt ?? ''} />;
   }
   if (hasShipArt(id)) {
-    return <ShipArt id={id} tint={artPencilTint(id, tuning)} className={className} />;
+    return <ShipArt id={id} tint={artPencilTint(id, tuning)} className={className} alt={alt ?? ''} />;
   }
   return (
     <svg
@@ -221,7 +227,9 @@ export function ToyArt({
       height={size}
       viewBox="0 0 100 100"
       className={className}
-      aria-hidden="true"
+      role={alt ? 'img' : undefined}
+      aria-label={alt || undefined}
+      aria-hidden={alt ? undefined : 'true'}
       focusable="false"
     >
       <ToyGlyph id={id} colors={colorsFor(id, colors, tuning)} />

@@ -598,6 +598,24 @@ async function main() {
   const phoneCard = Array.from(document.querySelectorAll('.shop-item.toy-item')).find((el) => (el.textContent ?? '').includes('Смартфон'));
   check('телефоны остаются отдельным разделом и рисуются SVG', document.querySelectorAll('.shop-item.toy-item').length === 3 && (phoneCard?.querySelector('svg')?.innerHTML ?? '').includes('#3b82f6'), '');
   check('ближайшая покупка соответствует открытому разделу', has('Ближайшая покупка') && has('💎 25'), '');
+  // Подробный просмотр техники — про сам товар: крупный рисунок телефона,
+  // БУКа на примерке нет (технику он не носит).
+  if (phoneCard) click(phoneCard);
+  await sleep(20);
+  {
+    const phoneSheet = document.querySelector('.shop-sheet');
+    const phoneArt = phoneSheet?.querySelector('.shop-bigart-toy > svg.shop-bigart-toy-art');
+    check(
+      'в подробной карточке телефона — сам телефон крупно и без БУКа',
+      !!phoneArt &&
+        (phoneArt.getAttribute('aria-label') ?? '').includes('Смартфон') &&
+        !phoneSheet?.querySelector('.mascot'),
+      phoneSheet?.innerHTML.slice(0, 200) ?? 'карточка не открылась',
+    );
+  }
+  const closePhoneSheet = document.querySelector('.shop-sheet-veil');
+  if (closePhoneSheet) click(closePhoneSheet);
+  await sleep(20);
 
   // Покупка вещи кладёт её в слот `toy` — с 0.22.0 это «любимая вещь на
   // главном подиуме ангара»; на БУКе техника больше не рисуется.
