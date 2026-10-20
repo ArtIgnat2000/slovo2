@@ -2,7 +2,17 @@
 // санитизация профиля. Чистая логика без React — идёт в adaptive-контур,
 // интерфейс магазина проверяет смоук (блок «Магазин БУКа»).
 import assert from 'node:assert/strict';
-import { OUTFIT_ITEMS, SHOP_ITEMS, TOY_ITEMS, TOY_SHELVES, showsOnBuk, toysByShelf } from '../src/engine/shop';
+import {
+  ITEM_BY_ID,
+  OUTFIT_ITEMS,
+  SELL_RATE,
+  SHOP_ITEMS,
+  TOY_ITEMS,
+  TOY_SHELVES,
+  sellPrice,
+  showsOnBuk,
+  toysByShelf,
+} from '../src/engine/shop';
 import { COSTUMES } from '../src/engine/puzzles';
 import {
   BASE_TINT,
@@ -333,5 +343,29 @@ for (const id of ['car-mercedes', 'car-bmw', 'car-brabus', 'car-maybach', 'car-r
 }
 // Неизвестная вещь — красить нечего
 assert.equal(carPencilTint('nope', undefined), null);
+
+// ── Сдача купленной вещи обратно (sell-back, 0.24.0) ────────────
+// Анализ и ставки — docs/proposals/trade-in.md, вариант B:
+// наряды возвращают 50%, техника — 30% (гаджеты дешевеют быстрее).
+assert.equal(SELL_RATE.outfit, 0.5, 'наряды возвращают половину');
+assert.equal(SELL_RATE.toy, 0.3, 'техника возвращает 30%');
+assert.equal(sellPrice(ITEM_BY_ID['scarf']), 15, 'Шарфик 30 → 15 💎');
+assert.equal(sellPrice(ITEM_BY_ID['car-racer']), 10, 'Болид 35 → 10 💎 (floor)');
+assert.equal(sellPrice(ITEM_BY_ID['ship-carrier']), 30, 'Авианосец 100 → 30 💎');
+for (const item of SHOP_ITEMS) {
+  const back = sellPrice(item);
+  assert.ok(back > 0, `${item.id}: сдача должна возвращать хотя бы 1 💎`);
+  assert.ok(back < item.price, `${item.id}: цена сдачи строго меньше цены покупки`);
+  assert.equal(
+    back,
+    Math.floor(item.price * SELL_RATE[item.kind ?? 'outfit']),
+    `${item.id}: ставка по категории`,
+  );
+}
+// Цикл «купил → сдал» всегда теряет часть стоимости — фарм невозможен.
+assert.ok(
+  SHOP_ITEMS.every((item) => sellPrice(item) < item.price),
+  'ни одна вещь не возвращает больше, чем стоит',
+);
 
 console.log('✓ тюнинг: палитры, 1 💎 за оттенок, бесплатное переключение, акценты костюмов и санитизация');

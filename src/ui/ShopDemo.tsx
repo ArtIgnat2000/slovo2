@@ -19,6 +19,7 @@ import {
   isToy,
   isWearing,
   missingGems,
+  sellPrice,
   toysByShelf,
   type ShopItem,
   type ToyKind,
@@ -398,6 +399,16 @@ function Demo() {
     say({ emoji: '🎨', title: `Оттенок «${tint.title.toLowerCase()}» открыт!`, text: `−${TINT_PRICE} 💎 · переключения теперь бесплатны` });
   };
 
+  // Сдача вещи обратно (sell-back): те же правила, что в приложении.
+  const sellDemoItem = (item: ShopItem) => {
+    const refund = sellPrice(item);
+    setGems((g) => g + refund);
+    setOwned((o) => o.filter((x) => x !== item.id));
+    setEquipped((e) => (e[item.slot] === item.id ? { ...e, [item.slot]: undefined } : e));
+    setDetail(null);
+    say({ emoji: item.emoji ?? '🎩', title: `+${refund} 💎 · «${item.title}» сдана`, text: 'Часть стоимости вернулась' });
+  };
+
   // ── герой витрины: ближайшая цель копления ─────────────────────────
   const unowned = OUTFIT_ITEMS.filter((i) => !owned.includes(i.id));
   const hero = unowned.length
@@ -590,11 +601,10 @@ function Demo() {
                     </div>
                   </div>
                 )}
-                {TOY_SHELVES.filter(({ id }) => id === toyShelf).map(({ id, title, emoji, note }) => (
+                {TOY_SHELVES.filter(({ id }) => id === toyShelf).map(({ id, title, emoji }) => (
                   <div key={id}>
                     <div className="mz-sec" style={{ paddingTop: 8 }}>
                       <h3 className="shop-shelf-title"><span aria-hidden="true">{emoji}</span> {title}</h3>
-                      <div className="tiny muted">{note}</div>
                     </div>
                     <div className="mz-shelf">
                       <ShowcaseGrid tone={id === 'car' ? 'mint' : id === 'ship' ? 'sky' : undefined}>
@@ -984,6 +994,11 @@ function Demo() {
                           {has ? (isToy(item) ? 'Уже в коллекции' : 'Уже в гардеробе') : `У тебя ${gems} 💎`}
                         </span>
                       </div>
+                      {!has && (
+                        <p className="tiny muted mb">
+                          Если передумаешь — вернём {sellPrice(item)} 💎 ({(item.kind ?? 'outfit') === 'toy' ? 30 : 50}% от цены)
+                        </p>
+                      )}
                       <div className="mz-row mb">
                         {has ? (
                           <button className={`btn lg${wearing ? ' green' : ' primary'}`} onClick={() => { wear(item); setDetail(null); }}>
@@ -1004,6 +1019,9 @@ function Demo() {
                           {paletteOpen && (
                             <TintPicker caption="Цвет" targetId={item.id} title={item.title} tuning={tuning} onPick={(tint, unlocked) => pickTint(item.id, tint, unlocked)} />
                           )}
+                          <button className="btn lg wide ghost mb" onClick={() => sellDemoItem(item)}>
+                            Сдать обратно · +{sellPrice(item)} 💎
+                          </button>
                         </>
                       )}
                       <button className="btn lg wide ghost" onClick={() => toggleWish(item.id)}>
