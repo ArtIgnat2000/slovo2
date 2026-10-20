@@ -547,87 +547,57 @@ async function main() {
     useApp.getState().settings.themeStyle === originalThemeStyle && document.documentElement.dataset.themeStyle === originalThemeStyle,
   );
 
-  // ── Полка «Техника»: авто, телефоны и корабли (0.20.0) ─────────────────
+  // ── Полка «Техника»: отдельные разделы авто, кораблей и телефонов ──────
   const toyShelf = Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Техника'));
   check('в витрине есть полка «Техника»', !!toyShelf, '');
   if (toyShelf) click(toyShelf);
   await sleep(30);
+  const toyTabs = () => Array.from(document.querySelectorAll('.shop-toy-cats [role="tab"]'));
+  check('разделы авто, кораблей и телефонов доступны отдельными вкладками', ['Авто', 'Корабли', 'Телефоны'].every((title) => toyTabs().some((tab) => (tab.textContent ?? '').includes(title))), '');
+  check('«Авто» открывается первым и не смешивается с другими товарами', document.querySelectorAll('.shop-item.toy-item').length === 10 && has('Болид') && !has('Морская яхта') && !has('Смартфон'), '');
   check(
-    '«Техника»: все товары каталога на полке',
-    document.querySelectorAll('.shop-item.toy-item').length === TOY_ITEMS.length,
-    `${document.querySelectorAll('.shop-item.toy-item').length}/${TOY_ITEMS.length}`,
-  );
-  check('«Техника»: три подполки — авто, телефоны, корабли', has('Авто') && has('Телефоны') && has('Корабли'), '');
-  check(
-    '«Техника»: каждая вещь стоит в арочной нише с лампой и подиумом',
-    document.querySelectorAll('.shop-case').length === TOY_ITEMS.length &&
-      document.querySelectorAll('.shop-case-lamp').length === TOY_ITEMS.length &&
-      document.querySelectorAll('.shop-case-podium').length === TOY_ITEMS.length,
-    `ниш: ${document.querySelectorAll('.shop-case').length}/${TOY_ITEMS.length}`,
-  );
-  check(
-    '«Техника»: витрина-бутик из трёх подполок, авто — мята, корабли — небо',
-    document.querySelectorAll('.shop-boutique').length >= 3 &&
-      !!document.querySelector('.shop-boutique-mint') &&
-      !!document.querySelector('.shop-boutique-sky'),
-    `витрин: ${document.querySelectorAll('.shop-boutique').length}`,
-  );
-  check(
-    '«Техника»: сцена как в референсе — три арки, гараж, пирс, витрина с телефоном',
-    !!document.querySelector('.tech-stage') &&
-      document.querySelectorAll('.tech-bay').length === 3 &&
-      !!document.querySelector('.tech-garage') &&
-      !!document.querySelector('.tech-pier') &&
-      !!document.querySelector('.tech-shelf'),
-    `арок: ${document.querySelectorAll('.tech-bay').length}`,
-  );
-  check(
-    '«Техника»: у каждой арки бумажная бирка, на сцене стоит БУК',
-    document.querySelectorAll('.tech-tag').length === 3 &&
-      !!document.querySelector('.tech-buk .mascot'),
-    `бирки: ${document.querySelectorAll('.tech-tag').length}`,
-  );
-  check('«Техника»: на полках есть смартфон, скалолаз и пароход', has('Смартфон') && has('Скалолаз') && has('Пароход'), '');
-  // 0.21.1: имена машин выбраны по характеру, без точных брендов.
-  check(
-    '«Авто»: десять машин с именами-характерами стоят на полке',
-    ['Звезда', 'Стрела', 'Кубик', 'Адмирал', 'Лорд', 'Бык', 'Молния', 'Болид', 'Скалолаз', 'Жёлтый кэб'].every(
-      (title) => has(title),
-    ),
+    '«Авто»: десять машин с именами-характерами стоят на отдельной полке',
+    ['Звезда', 'Стрела', 'Кубик', 'Адмирал', 'Лорд', 'Бык', 'Молния', 'Болид', 'Скалолаз', 'Жёлтый кэб'].every((title) => has(title)),
     '',
   );
-  // 0.21.0: каждая машина — отдельный цветной карандашный рисунок настоящей
-  // модели (public/cars/*.webp), а не общий силуэт с перекраской.
+  // Каждая машина — отдельный цветной карандашный рисунок (public/cars/*.webp).
   {
     const carTitles = /Звезда|Стрела|Кубик|Адмирал|Лорд|Бык|Молния|Болид|Скалолаз|Жёлтый кэб/;
     const carArt = Array.from(document.querySelectorAll('.shop-item.toy-item'))
       .filter((el) => carTitles.test(el.textContent ?? ''))
       .map((el) => el.querySelector('img')?.getAttribute('src') ?? '');
-    check(
-      '«Авто»: у каждой машины свой цветной рисунок реальной модели',
-      carArt.length === 10 &&
-        new Set(carArt).size === carArt.length &&
-        carArt.every((src) => /\/cars\/car-[a-z]+\.webp$/.test(src)),
-      `уникальных рисунков: ${new Set(carArt).size}/${carArt.length}`,
-    );
+    check('«Авто»: у каждой машины свой карандашный рисунок', carArt.length === 10 && new Set(carArt).size === carArt.length && carArt.every((src) => /\/cars\/car-[a-z]+\.webp$/.test(src)), `уникальных рисунков: ${new Set(carArt).size}/${carArt.length}`);
   }
-  check(
-    '«Техника»: рисунок машины ставится на подиум как картинка с прозрачным фоном',
-    document.querySelectorAll('.shop-case .shop-icon > .car-art > img').length === 10,
-    `рисунков в нишах: ${document.querySelectorAll('.shop-case .shop-icon > .car-art > img').length}`,
-  );
-  // Телефоны и корабли остались ручным SVG в базовом цвете — этот путь жив.
+  check('«Авто»: витрина-бутик показывает отдельные карточки машин', document.querySelectorAll('.shop-boutique').length === 1 && !!document.querySelector('.shop-boutique-mint'), '');
+
+  const shipTab = toyTabs().find((tab) => (tab.textContent ?? '').includes('Корабли'));
+  if (shipTab) click(shipTab);
+  await sleep(30);
+  check('«Корабли» — отдельная полка из четырёх больших судов', document.querySelectorAll('.shop-item.toy-item').length === 4 && ['Морская яхта', 'Контейнеровоз', 'Супертанкер', 'Авианосец'].every((title) => has(title)), '');
   {
-    const phoneCard = Array.from(document.querySelectorAll('.shop-item.toy-item')).find((el) =>
-      (el.textContent ?? '').includes('Смартфон'),
-    );
-    check(
-      '«Техника»: телефон по-прежнему рисуется кодом в базовом цвете',
-      (phoneCard?.querySelector('svg')?.innerHTML ?? '').includes('#3b82f6'),
-      phoneCard?.querySelector('svg')?.innerHTML.slice(0, 80) ?? 'нет svg',
-    );
+    const shipArt = Array.from(document.querySelectorAll('.shop-item.toy-item img')).map((img) => img.getAttribute('src') ?? '');
+    check('у яхты, контейнеровоза, танкера и авианосца — свои цветные иллюстрации', shipArt.length === 4 && new Set(shipArt).size === 4 && shipArt.every((src) => /\/ships\/ship-(yacht|container|tanker|carrier)\.webp$/.test(src)), `рисунков: ${shipArt.join(', ')}`);
   }
-  check('«Техника»: видна ближайшая покупка и её цена', has('Ближайшая покупка') && has('💎 25'), '');
+  const yachtCard = Array.from(document.querySelectorAll('.shop-item.toy-item')).find((el) => (el.textContent ?? '').includes('Морская яхта'));
+  if (yachtCard) click(yachtCard);
+  await sleep(20);
+  const yachtDetail = document.querySelector('.shop-sheet');
+  const yachtImage = yachtDetail?.querySelector('.shop-bigart-toy .ship-art img');
+  check(
+    'подробная карточка судна показывает крупное изображение без подписи про карандаш',
+    has('Морская яхта') && !!yachtImage && yachtImage.getAttribute('alt') === 'Морская яхта — морская яхта' && !yachtDetail?.textContent?.includes('карандаш'),
+    yachtDetail?.textContent ?? 'карточка не открылась',
+  );
+  const closeShipSheet = document.querySelector('.shop-sheet-veil');
+  if (closeShipSheet) click(closeShipSheet);
+  await sleep(20);
+
+  const phoneTab = toyTabs().find((tab) => (tab.textContent ?? '').includes('Телефоны'));
+  if (phoneTab) click(phoneTab);
+  await sleep(30);
+  const phoneCard = Array.from(document.querySelectorAll('.shop-item.toy-item')).find((el) => (el.textContent ?? '').includes('Смартфон'));
+  check('телефоны остаются отдельным разделом и рисуются SVG', document.querySelectorAll('.shop-item.toy-item').length === 3 && (phoneCard?.querySelector('svg')?.innerHTML ?? '').includes('#3b82f6'), '');
+  check('ближайшая покупка соответствует открытому разделу', has('Ближайшая покупка') && has('💎 25'), '');
 
   // Покупка вещи кладёт её в слот `toy` — с 0.22.0 это «любимая вещь на
   // главном подиуме ангара»; на БУКе техника больше не рисуется.
@@ -638,6 +608,9 @@ async function main() {
   }));
   await sleep(30);
   const toyBought = useApp.getState().buyItem('car-racer');
+  await sleep(30);
+  const autoTabAfterBuy = toyTabs().find((tab) => (tab.textContent ?? '').includes('Авто'));
+  if (autoTabAfterBuy) click(autoTabAfterBuy);
   await sleep(30);
   check(
     'вещь покупается и занимает слот «Техника»',

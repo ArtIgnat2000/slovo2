@@ -104,7 +104,7 @@ export function carNote(id: string): string | null {
 export function carAlt(id: string, fallback = ''): string {
   const art = CAR_ART[id];
   if (!art) return fallback;
-  return `${fallback || art.kind} — ${art.kind.toLowerCase()}. Рисунок цветным карандашом`;
+  return `${fallback || art.kind} — ${art.kind.toLowerCase()}`;
 }
 
 /** URL рисунка: public/cars/<id>.webp с учётом базы сборки. */

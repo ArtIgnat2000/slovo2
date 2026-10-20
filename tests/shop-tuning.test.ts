@@ -54,9 +54,10 @@ const EXPECTED_TOY_BASE: Record<string, [string, string, string]> = {
   'car-rolls': ['#0f3d33', '#08120f', '#d4af37'],
   'car-lambo': ['#3fae2a', '#111827', '#e2e8f0'],
   'car-bugatti': ['#2563eb', '#0a1226', '#cbd5e1'],
-  'ship-paper': ['#f8fafc', '#bfdbfe', '#ef4444'],
-  'ship-sail': ['#1d4ed8', '#f8fafc', '#b45309'],
-  'ship-steam': ['#1e40af', '#dc2626', '#fde68a'],
+  'ship-paper': ['#f8fafc', '#172033', '#c5a45b'],
+  'ship-sail': ['#183b63', '#202b3b', '#ef673c'],
+  'ship-steam': ['#164b4c', '#203b3b', '#c6813d'],
+  'ship-carrier': ['#59616a', '#252b34', '#e5b849'],
 };
 
 assert.equal(OUTFIT_ITEMS.length, Object.keys(EXPECTED_BASE).length, 'список нарядов и ожидаемых палитр разошёлся');
@@ -75,9 +76,10 @@ assert.deepEqual(
   ['car', 'phone', 'ship'],
   'техника должна быть трёх видов: авто, телефоны, корабли',
 );
-// Полки идут в порядке из задания: авто → телефоны → корабли.
-assert.deepEqual(TOY_SHELVES.map((shelf) => shelf.id), ['car', 'phone', 'ship'], 'полки техники поехали');
+// Авто и корабли идут рядом и доступны как отдельные полки.
+assert.deepEqual(TOY_SHELVES.map((shelf) => shelf.id), ['car', 'ship', 'phone'], 'полки техники поехали');
 assert.equal(TOY_SHELVES[0].title, 'Авто', 'первая полка называется «Авто»');
+assert.equal(TOY_SHELVES[1].title, 'Корабли', 'корабли идут отдельной полкой рядом с авто');
 const carIds = toysByShelf('car').map((item) => item.id);
 for (const id of ['car-bmw', 'car-brabus', 'car-mercedes', 'car-lambo', 'car-rolls', 'car-maybach', 'car-bugatti']) {
   assert.ok(carIds.includes(id), `в разделе авто нет ${id}`);
@@ -90,6 +92,12 @@ assert.deepEqual(
   ['Болид', 'Скалолаз', 'Жёлтый кэб', 'Звезда', 'Стрела', 'Кубик', 'Адмирал', 'Лорд', 'Бык', 'Молния'],
   'названия машин должны отражать характер, а не бренд',
 );
+assert.deepEqual(
+  toysByShelf('ship').map((item) => item.title),
+  ['Морская яхта', 'Контейнеровоз', 'Супертанкер', 'Авианосец'],
+  'корабельная полка должна содержать взрослые типы морских судов',
+);
+assert.ok(toysByShelf('ship').every((item) => item.id in TINT_PALETTES), 'у каждого судна есть тюнинг');
 const BRAND_WORDS =
   /мерседес|майбах|брабус|роллс|ройс|ламборджини|бугати|бмв|mercedes|maybach|brabus|rolls|royce|lamborghini|bugatti|jeep|джип|ford|форд|crown victoria|phantom|chiron|aventador|wrangler|rubicon|s-класс|\bm5\b/i;
 for (const item of toysByShelf('car')) {

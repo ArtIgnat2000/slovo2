@@ -5,6 +5,7 @@ import '../styles/app.css';
 import { Mascot } from './Mascot';
 import { TintPicker } from './TintPicker';
 import { CarArt, carAlt, carKind, carNote, hasCarArt } from './CarArt';
+import { ShipArt, hasShipArt, shipAlt, shipKind, shipNote } from './ShipArt';
 import { ConfirmDialog } from './Bits';
 import { plural } from '../engine/quests';
 import {
@@ -13,7 +14,6 @@ import {
   TOY_ITEMS,
   TOY_SHELVES,
   canBuy,
-  closestItem,
   growthStage,
   isOwned,
   isToy,
@@ -21,12 +21,12 @@ import {
   missingGems,
   toysByShelf,
   type ShopItem,
+  type ToyKind,
 } from '../engine/shop';
 import { ToyArt } from './ToyArt';
-import { TechScene } from './TechScene';
 import { COSTUMES, PUZZLE_SIZE, costumeProgress, type Costume } from '../engine/puzzles';
 import { MUSIC_TRACKS, type MusicTrack } from '../engine/music';
-import { TINT_PRICE, carPencilTint, type TintOption } from '../engine/tints';
+import { TINT_PRICE, artPencilTint, carPencilTint, type TintOption } from '../engine/tints';
 import { THEME_STYLES, type ThemeStyle } from '../engine/theme-styles';
 import { BackgroundThemeCard } from './BackgroundThemeCard';
 import type { ShopSlot, ShopTuning } from '../types';
@@ -298,6 +298,7 @@ function Demo() {
   // UI
   const [view, setView] = useState<View>('vitrina');
   const [cat, setCat] = useState<Cat>('outfits');
+  const [toyShelf, setToyShelf] = useState<ToyKind>('car');
   const [detail, setDetail] = useState<Detail | null>(null);
   const [ask, setAsk] = useState<{ target: Detail; price: number } | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -403,8 +404,10 @@ function Demo() {
     ? unowned.reduce((best, i) => (missingGems(i, gems) < missingGems(best, gems) ? i : best), unowned[0])
     : null;
 
-  /** Ближайшая покупка — своя подсказка на полке «Техника». */
-  const toyGoal = closestItem(owned, 'toy');
+  /** Ближайшая покупка — только из выбранного подраздела техники. */
+  const toyGoal = toysByShelf(toyShelf)
+    .filter((item) => !isOwned(owned, item.id))
+    .reduce<ShopItem | null>((best, item) => (!best || item.price < best.price ? item : best), null);
 
   const itemState = (item: ShopItem): 'buy' | 'poor' | 'owned' | 'worn' => {
     if (!isOwned(owned, item.id)) return canBuy(item, gems) ? 'buy' : 'poor';
@@ -557,41 +560,37 @@ function Demo() {
               </>
             )}
 
-            {/* ── Техника: авто, телефоны, корабли (0.20.0) ───────────── */}
+            {/* ── Техника: отдельные разделы авто, кораблей и телефонов ─── */}
             {view === 'vitrina' && cat === 'toys' && (
               <section aria-label="Техника">
                 <div className="mz-sec">
                   <h2>Техника БУКа</h2>
-                  <div className="tiny muted">
-                    Три полки: авто, телефоны и корабли. Купленное сразу появляется у БУКа — на главной и в уроках.
-                  </div>
+                  <div className="tiny muted">Авто, корабли и телефоны — каждый раздел отдельно. Купленное ждёт тебя в ангаре.</div>
                 </div>
-                {/* Сцена как в приложении: гараж, пирс и витрина с телефоном */}
-                <div className="mz-shelf" style={{ paddingTop: 0 }}>
-                  <TechScene onOpen={openItem} owned={owned} look={equipped} tuning={tuning} />
+                <div className="shop-cats shop-toy-cats" role="tablist" aria-label="Разделы техники">
+                  {TOY_SHELVES.map(({ id, title, emoji }) => (
+                    <button key={id} type="button" role="tab" aria-selected={toyShelf === id} className={`chip${toyShelf === id ? ' on' : ''}`} onClick={() => setToyShelf(id)}>
+                      {emoji} {title}
+                    </button>
+                  ))}
                 </div>
                 {toyGoal && (
                   <div style={{ padding: '0 14px' }}>
                     <div className="shop-tech-goal">
-                      <span className="shop-tech-goal-icon" aria-hidden="true">{toyGoal.emoji ?? '🚗'}</span>
+                      <span className="shop-tech-goal-icon" aria-hidden="true">{toyGoal.emoji ?? (toyShelf === 'ship' ? '🚢' : '🚗')}</span>
                       <span className="grow">
                         <b>Ближайшая покупка: {toyGoal.title}</b>
                         <span className="tiny muted">
-                          {gems >= toyGoal.price
-                            ? `Уже хватает — ${toyGoal.price} 💎. Забирай!`
-                            : `Ещё ${missingGems(toyGoal, gems)} 💎 из ${toyGoal.price}`}
+                          {gems >= toyGoal.price ? `Уже хватает — ${toyGoal.price} 💎. Забирай!` : `Ещё ${missingGems(toyGoal, gems)} 💎 из ${toyGoal.price}`}
                         </span>
                       </span>
-                      <button
-                        className={`btn sm ${gems >= toyGoal.price ? 'primary' : 'ghost'}`}
-                        onClick={() => (gems >= toyGoal.price ? buyItem(toyGoal) : openItem(toyGoal))}
-                      >
+                      <button className={`btn sm ${gems >= toyGoal.price ? 'primary' : 'ghost'}`} onClick={() => (gems >= toyGoal.price ? buyItem(toyGoal) : openItem(toyGoal))}>
                         {gems >= toyGoal.price ? 'Купить' : 'Посмотреть'}
                       </button>
                     </div>
                   </div>
                 )}
-                {TOY_SHELVES.map(({ id, title, emoji, note }) => (
+                {TOY_SHELVES.filter(({ id }) => id === toyShelf).map(({ id, title, emoji, note }) => (
                   <div key={id}>
                     <div className="mz-sec" style={{ paddingTop: 8 }}>
                       <h3 className="shop-shelf-title"><span aria-hidden="true">{emoji}</span> {title}</h3>
@@ -614,9 +613,7 @@ function Demo() {
                               wished={wishlist.includes(item.id)}
                               onOpen={() => openItem(item)}
                               onWish={() => toggleWish(item.id)}
-                              actionLabel={
-                                st === 'worn' ? 'На подиуме ✓' : st === 'owned' ? 'На подиум' : st === 'buy' ? `Купить · 💎${item.price}` : `Ещё ${missingGems(item, gems)} 💎`
-                              }
+                              actionLabel={st === 'worn' ? 'На подиуме ✓' : st === 'owned' ? 'На подиум' : st === 'buy' ? `Купить · 💎${item.price}` : `Ещё ${missingGems(item, gems)} 💎`}
                               onAction={() => {
                                 if (st === 'owned' || st === 'worn') wear(item);
                                 else if (st === 'buy') buyItem(item);
@@ -945,19 +942,21 @@ function Demo() {
                       <div className={`mz-bigart${isToy(item) ? ' shop-bigart-toy' : ''}`}>
                         {hasCarArt(item.id) ? (
                           <CarArt id={item.id} tint={carPencilTint(item.id, tuning)} alt={carAlt(item.id, item.title)} />
+                        ) : hasShipArt(item.id) ? (
+                          <ShipArt id={item.id} tint={artPencilTint(item.id, tuning)} alt={shipAlt(item.id, item.title)} />
                         ) : (
                           <Mascot mood="happy" look={{ [item.slot]: item.id }} costumeId={null} stage={growth.index} size={150} />
                         )}
                       </div>
                       <h2 style={{ margin: '0 0 2px' }}>{item.title}</h2>
                       <p className="tiny muted" style={{ marginTop: 0 }}>{item.desc}</p>
-                      {carKind(item.id) && (
+                      {(carKind(item.id) || shipKind(item.id)) && (
                         <p className="tiny muted">
-                          <b>{carKind(item.id)}</b> · рисунок цветным карандашом
-                          {carNote(item.id) && (
+                          <b>{carKind(item.id) ?? shipKind(item.id)}</b>
+                          {(carNote(item.id) ?? shipNote(item.id)) && (
                             <>
                               <br />
-                              {carNote(item.id)}
+                              {carNote(item.id) ?? shipNote(item.id)}
                             </>
                           )}
                         </p>

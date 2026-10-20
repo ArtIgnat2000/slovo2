@@ -18,8 +18,8 @@ import { MUSIC_TRACKS, type MusicTrack } from './music';
 /** Полка витрины: наряды или техника. Костюмы/музыка/звуки живут отдельно. */
 export type ShopItemKind = 'outfit' | 'toy';
 
-/** Подполки техники в порядке витрины: авто, телефоны, корабли. */
-export type ToyKind = 'phone' | 'car' | 'ship';
+/** Разделы техники в магазине и ангаре. Авто и корабли идут рядом, телефоны отдельно. */
+export type ToyKind = 'car' | 'ship' | 'phone';
 
 export interface ShopItem {
   id: string;
@@ -50,19 +50,19 @@ export const TOY_SHELVES: { id: ToyKind; title: string; emoji: string; note: str
     id: 'car',
     title: 'Авто',
     emoji: '🚗',
-    note: 'Цветные карандашные рисунки машин с характером: флагманский седан, спортивный седан, квадратный внедорожник, двухцветный лимузин, парадный лимузин, гиперкар, суперкар, болид, скалолаз и жёлтый кэб',
+    note: 'Цветные карандашные рисунки настоящих машин: седаны, внедорожники, лимузины, суперкар и болид',
+  },
+  {
+    id: 'ship',
+    title: 'Корабли',
+    emoji: '🚢',
+    note: 'Морские суда крупным планом: яхта, контейнеровоз, супертанкер и авианосец',
   },
   {
     id: 'phone',
     title: 'Телефоны',
     emoji: '📱',
     note: 'Позвонить, поиграть и показать БУКу смешные картинки',
-  },
-  {
-    id: 'ship',
-    title: 'Корабли',
-    emoji: '⛵',
-    note: 'От бумажного кораблика до настоящего парохода',
   },
 ];
 
@@ -90,10 +90,13 @@ export const SHOP_ITEMS: ShopItem[] = [
   { id: 'car-rolls', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Лорд', desc: 'Парадный лимузин: огромная решётка и фигурка на капоте', price: 80 },
   { id: 'car-lambo', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Бык', desc: 'Зелёный суперкар: Y-фары и антикрыло', price: 85 },
   { id: 'car-bugatti', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Молния', desc: 'Голубой гиперкар: подкова решётки и C-линия по борту', price: 90 },
-  // ── Техника: корабли ─────────────────────────────────────────────────────
-  { id: 'ship-paper', slot: 'toy', kind: 'toy', toy: 'ship', emoji: '⛵', title: 'Бумажный кораблик', desc: 'Сложен из листа бумаги и держится на воде', price: 25 },
-  { id: 'ship-sail', slot: 'toy', kind: 'toy', toy: 'ship', emoji: '⛵', title: 'Парусник', desc: 'Ловит ветер белыми парусами', price: 45 },
-  { id: 'ship-steam', slot: 'toy', kind: 'toy', toy: 'ship', emoji: '🚢', title: 'Пароход', desc: 'Пыхтит трубой и катает БУКа', price: 60 },
+  // ── Техника: морские суда ────────────────────────────────────────────────
+  // Старые id ship-paper/ship-sail/ship-steam сохраняем: так покупки,
+  // избранный корабль и купленные оттенки в профилях не теряются при обновлении.
+  { id: 'ship-paper', slot: 'toy', kind: 'toy', toy: 'ship', emoji: '🛥️', title: 'Морская яхта', desc: 'Быстрая яхта с несколькими палубами и просторной каютой', price: 55 },
+  { id: 'ship-sail', slot: 'toy', kind: 'toy', toy: 'ship', emoji: '🚢', title: 'Контейнеровоз', desc: 'Перевозит контейнеры между морскими портами', price: 70 },
+  { id: 'ship-steam', slot: 'toy', kind: 'toy', toy: 'ship', emoji: '🛳️', title: 'Супертанкер', desc: 'Огромное судно для перевозки нефти', price: 85 },
+  { id: 'ship-carrier', slot: 'toy', kind: 'toy', toy: 'ship', emoji: '🛳️', title: 'Авианосец', desc: 'Военный корабль с длинной взлётной палубой', price: 100 },
 ];
 
 export const ITEM_BY_ID: Record<string, ShopItem> = Object.fromEntries(SHOP_ITEMS.map((i) => [i.id, i]));

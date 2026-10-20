@@ -2016,17 +2016,55 @@ p {
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
 }
+/* Корабли используют тот же полноцветный карандашный стиль, что и авто. */
+.ship-art {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+  max-width: 100%;
+  line-height: 0;
+  isolation: isolate;
+}
+.ship-art > img {
+  display: block;
+  width: 100%;
+  height: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+}
+.ship-art-wash {
+  position: absolute;
+  inset: 0;
+  background: var(--ship-tint);
+  opacity: 0.72;
+  mix-blend-mode: color;
+  pointer-events: none;
+  -webkit-mask-image: var(--ship-mask);
+  mask-image: var(--ship-mask);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
 /* Карточка витрины: рисунок занимает ширину ниши, но не выходит за высоту. */
-.shop-icon > .car-art { max-width: 126px; }
+.shop-icon > .car-art,
+.shop-icon > .ship-art { max-width: 126px; }
 /* Крупный лист в подробной карточке — как гравюра на паспарту. */
-.shop-bigart-toy > .car-art { width: min(100%, 340px); margin-bottom: 4px; }
+.shop-bigart-toy > .car-art,
+.shop-bigart-toy > .ship-art { width: min(100%, 340px); margin-bottom: 4px; }
 /* Гардероб и мечты: маленькие рисунки в квадратных плитках. */
-.shop-wear-icon > .car-art { max-width: 52px; }
+.shop-wear-icon > .car-art,
+.shop-wear-icon > .ship-art { max-width: 52px; }
 .wishlist-card-art > .car-art,
-.mz-art > .car-art { max-width: 104px; }
-/* Сцена техники: машина стоит на комоде-подиуме в своей арке. */
-.tech-item > .car-art { width: 100%; }
-.tech-tag > .car-art { width: 26px; }
+.wishlist-card-art > .ship-art,
+.mz-art > .car-art,
+.mz-art > .ship-art { max-width: 104px; }
+/* Сцена техники: машины и суда стоят на подиумах в своих залах. */
+.tech-item > .car-art,
+.tech-item > .ship-art { width: 100%; }
+.tech-tag > .car-art,
+.tech-tag > .ship-art { width: 26px; }
 .shop-title {
   font-weight: 800;
   font-size: var(--fs-sm);
@@ -2611,8 +2649,9 @@ p {
   cursor: pointer;
   filter: drop-shadow(0 6px 8px color-mix(in srgb, var(--ink) 16%, transparent));
 }
-/* Машина — карандашный рисунок 720×480: впервые виден крупно и целиком. */
-.hangar-main-art .car-art { width: min(56vw, 230px); }
+/* Машина и корабль — карандашные рисунки 720×480: видны крупно и целиком. */
+.hangar-main-art .car-art,
+.hangar-main-art .ship-art { width: min(56vw, 230px); }
 .hangar-plinth {
   position: absolute;
   z-index: 2;
@@ -2689,7 +2728,8 @@ p {
   background: color-mix(in srgb, #ffd166 26%, transparent);
   box-shadow: inset 0 0 0 2px var(--tag-line);
 }
-.hangar-item .car-art { width: 92px; }
+.hangar-item .car-art,
+.hangar-item .ship-art { width: 92px; }
 .hangar-item > svg { filter: drop-shadow(0 4px 6px color-mix(in srgb, var(--ink) 16%, transparent)); }
 .hangar-item-plinth {
   width: 100%;
@@ -2739,8 +2779,10 @@ p {
   cursor: pointer;
 }
 @media (max-width: 359px) {
-  .hangar-main-art .car-art { width: 62vw; }
-  .hangar-item .car-art { width: 80px; }
+  .hangar-main-art .car-art,
+  .hangar-main-art .ship-art { width: 62vw; }
+  .hangar-item .car-art,
+  .hangar-item .ship-art { width: 80px; }
 }
 
 /* Ценник — бумажная бирка бутика, а не кнопка. */
@@ -3065,6 +3107,8 @@ p {
   background: linear-gradient(180deg, var(--case-mint-plinth), var(--case-mint-deep));
   box-shadow: 0 7px 12px color-mix(in srgb, var(--ink) 20%, transparent);
 }
+.shop-bigart-toy > .car-art,
+.shop-bigart-toy > .ship-art { position: relative; z-index: 1; }
 .shop-bigart-toy .mascot {
   position: relative;
   z-index: 1;
