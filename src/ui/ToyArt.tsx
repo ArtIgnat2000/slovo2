@@ -123,6 +123,7 @@ export function ToyArt({
   className,
   tuning,
   interactive = false,
+  alt,
 }: {
   id: string;
   colors?: Colors | null;
@@ -132,15 +133,20 @@ export function ToyArt({
   tuning?: ShopTuning;
   /** Enable phone rotation only in non-button containers. */
   interactive?: boolean;
+  /**
+   * Подпись рисунка для подробного просмотра. На витрине и в гардеробе
+   * карточка уже названа, поэтому по умолчанию рисунок декоративный.
+   */
+  alt?: string;
 }) {
   if (hasElectronicsArt(id)) {
-    return <ElectronicsArt key={id} id={id} className={className} interactive={interactive} tint={artPencilTint(id, tuning)} />;
+    return <ElectronicsArt key={id} id={id} className={className} alt={alt} interactive={interactive} tint={artPencilTint(id, tuning)} />;
   }
   if (hasCarArt(id)) {
-    return <CarArt id={id} tint={artPencilTint(id, tuning)} className={className} />;
+    return <CarArt id={id} tint={artPencilTint(id, tuning)} className={className} alt={alt ?? ''} />;
   }
   if (hasShipArt(id)) {
-    return <ShipArt id={id} tint={artPencilTint(id, tuning)} className={className} />;
+    return <ShipArt id={id} tint={artPencilTint(id, tuning)} className={className} alt={alt ?? ''} />;
   }
   return (
     <svg
@@ -148,7 +154,9 @@ export function ToyArt({
       height={size}
       viewBox="0 0 100 100"
       className={className}
-      aria-hidden="true"
+      role={alt ? 'img' : undefined}
+      aria-label={alt || undefined}
+      aria-hidden={alt ? undefined : 'true'}
       focusable="false"
     >
       <ToyGlyph id={id} colors={colorsFor(id, colors, tuning)} />

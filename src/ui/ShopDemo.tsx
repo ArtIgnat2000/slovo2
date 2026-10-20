@@ -4,8 +4,8 @@ import '../styles/tokens.css';
 import '../styles/app.css';
 import { Mascot } from './Mascot';
 import { TintPicker } from './TintPicker';
-import { CarArt, carAlt, carKind, carNote, hasCarArt } from './CarArt';
-import { ShipArt, hasShipArt, shipAlt, shipKind, shipNote } from './ShipArt';
+import { carAlt, carKind, carNote, hasCarArt } from './CarArt';
+import { hasShipArt, shipAlt, shipKind, shipNote } from './ShipArt';
 import { ConfirmDialog } from './Bits';
 import { plural } from '../engine/quests';
 import {
@@ -19,6 +19,7 @@ import {
   isToy,
   isWearing,
   missingGems,
+  sellPrice,
   toysByShelf,
   type ShopItem,
   type ToyKind,
@@ -26,7 +27,7 @@ import {
 import { ToyArt } from './ToyArt';
 import { COSTUMES, PUZZLE_SIZE, costumeProgress, type Costume } from '../engine/puzzles';
 import { MUSIC_TRACKS, type MusicTrack } from '../engine/music';
-import { TINT_PRICE, artPencilTint, carPencilTint, type TintOption } from '../engine/tints';
+import { TINT_PRICE, type TintOption } from '../engine/tints';
 import { THEME_STYLES, type ThemeStyle } from '../engine/theme-styles';
 import { BackgroundThemeCard } from './BackgroundThemeCard';
 import type { ShopSlot, ShopTuning } from '../types';
@@ -225,7 +226,7 @@ function Card(props: {
   const cls = `mz-card shop-item${props.state === 'worn' ? ' worn on' : ''}${props.state === 'owned' ? ' owned' : ''}${props.toy ? ' toy-item' : ''}`;
   return (
     <article className={cls} onClick={props.onOpen} role="button" tabIndex={0}
-      onKeyDown={(e) => { if (e.key === 'Enter') props.onOpen(); }}
+      onKeyDown={(e) => { if (e.target === e.currentTarget && e.key === 'Enter') props.onOpen(); }}
       aria-label={`${props.title}${props.priceLabel ? `, ${props.priceLabel}` : ''}`}
     >
       {props.badge && <span className="mz-badge">{props.badge}</span>}
@@ -396,6 +397,16 @@ function Demo() {
     }));
     dance();
     say({ emoji: '🎨', title: `Оттенок «${tint.title.toLowerCase()}» открыт!`, text: `−${TINT_PRICE} 💎 · переключения теперь бесплатны` });
+  };
+
+  // Сдача вещи обратно (sell-back): те же правила, что в приложении.
+  const sellDemoItem = (item: ShopItem) => {
+    const refund = sellPrice(item);
+    setGems((g) => g + refund);
+    setOwned((o) => o.filter((x) => x !== item.id));
+    setEquipped((e) => (e[item.slot] === item.id ? { ...e, [item.slot]: undefined } : e));
+    setDetail(null);
+    say({ emoji: item.emoji ?? '🎩', title: `+${refund} 💎 · «${item.title}» сдана`, text: 'Часть стоимости вернулась' });
   };
 
   // ── герой витрины: ближайшая цель копления ─────────────────────────
@@ -590,11 +601,10 @@ function Demo() {
                     </div>
                   </div>
                 )}
-                {TOY_SHELVES.filter(({ id }) => id === toyShelf).map(({ id, title, emoji, note }) => (
+                {TOY_SHELVES.filter(({ id }) => id === toyShelf).map(({ id, title, emoji }) => (
                   <div key={id}>
                     <div className="mz-sec" style={{ paddingTop: 8 }}>
                       <h3 className="shop-shelf-title"><span aria-hidden="true">{emoji}</span> {title}</h3>
-                      <div className="tiny muted">{note}</div>
                     </div>
                     <div className="mz-shelf">
                       <ShowcaseGrid tone={id === 'car' ? 'mint' : id === 'ship' ? 'sky' : undefined}>
@@ -604,7 +614,7 @@ function Demo() {
                             <Card
                               key={item.id}
                               toy
-                              art={<ToyArt id={item.id} size={82} tuning={tuning} />}
+                              art={<ToyArt id={item.id} interactive size={82} tuning={tuning} />}
                               title={item.title}
                               desc={item.desc}
                               state={st}
@@ -804,7 +814,7 @@ function Demo() {
                         key={item.id}
                         toy
                         state={isWearing(equipped, item) ? 'worn' : 'owned'}
-                        art={<ToyArt id={item.id} size={82} tuning={tuning} />}
+                        art={<ToyArt id={item.id} interactive size={82} tuning={tuning} />}
                         title={item.title}
                         desc={item.desc}
                         priceLabel={isWearing(equipped, item) ? 'На подиуме ✓' : 'В ангаре ✓'}
@@ -940,10 +950,24 @@ function Demo() {
                   return (
                     <>
                       <div className={`mz-bigart${isToy(item) ? ' shop-bigart-toy' : ''}`}>
-                        {hasCarArt(item.id) ? (
-                          <CarArt id={item.id} tint={carPencilTint(item.id, tuning)} alt={carAlt(item.id, item.title)} />
-                        ) : hasShipArt(item.id) ? (
-                          <ShipArt id={item.id} tint={artPencilTint(item.id, tuning)} alt={shipAlt(item.id, item.title)} />
+                        {isToy(item) ? (
+                          // Как и в приложении: в подробной карточке техники —
+                          // сам товар крупно, без примерки на БУКе.
+                          <ToyArt
+                            key={item.id}
+                            id={item.id}
+                            interactive
+                            size={200}
+                            className="shop-bigart-toy-art"
+                            tuning={tuning}
+                            alt={
+                              hasCarArt(item.id)
+                                ? carAlt(item.id, item.title)
+                                : hasShipArt(item.id)
+                                  ? shipAlt(item.id, item.title)
+                                  : `${item.title} — техника БУКа`
+                            }
+                          />
                         ) : (
                           <Mascot mood="happy" look={{ [item.slot]: item.id }} costumeId={null} stage={growth.index} size={150} />
                         )}
@@ -972,6 +996,11 @@ function Demo() {
                           {has ? (isToy(item) ? 'Уже в коллекции' : 'Уже в гардеробе') : `У тебя ${gems} 💎`}
                         </span>
                       </div>
+                      {!has && (
+                        <p className="tiny muted mb">
+                          Если передумаешь — вернём {sellPrice(item)} 💎 ({(item.kind ?? 'outfit') === 'toy' ? 30 : 50}% от цены)
+                        </p>
+                      )}
                       <div className="mz-row mb">
                         {has ? (
                           <button className={`btn lg${wearing ? ' green' : ' primary'}`} onClick={() => { wear(item); setDetail(null); }}>
@@ -992,6 +1021,9 @@ function Demo() {
                           {paletteOpen && (
                             <TintPicker caption="Цвет" targetId={item.id} title={item.title} tuning={tuning} onPick={(tint, unlocked) => pickTint(item.id, tint, unlocked)} />
                           )}
+                          <button className="btn lg wide ghost mb" onClick={() => sellDemoItem(item)}>
+                            Сдать обратно · +{sellPrice(item)} 💎
+                          </button>
                         </>
                       )}
                       <button className="btn lg wide ghost" onClick={() => toggleWish(item.id)}>

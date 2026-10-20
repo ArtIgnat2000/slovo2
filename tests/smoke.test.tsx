@@ -32,7 +32,7 @@ import { dayKey, dayPlan, useApp } from '../src/state/store';
 import { idbStorage } from '../src/platform/storage';
 import { MAIN_KEY } from '../src/platform/vault';
 import { questTitle } from '../src/engine/quests';
-import { ITEM_BY_ID, SHOP_ITEMS, TOY_ITEMS, growthStage } from '../src/engine/shop';
+import { ITEM_BY_ID, SHOP_ITEMS, TOY_ITEMS, growthStage, sellPrice } from '../src/engine/shop';
 import { TINT_PALETTES, TINT_PRICE } from '../src/engine/tints';
 import { THEME_STYLES } from '../src/engine/theme-styles';
 import { masteredCount } from '../src/state/store';
@@ -614,6 +614,24 @@ async function main() {
   click(document.querySelector('.shop-sheet-veil'));
   await sleep(30);
   check('ближайшая покупка соответствует открытому разделу', has('Ближайшая покупка') && has('💎 25'), '');
+  // Подробный просмотр техники — про сам товар: крупный рисунок телефона,
+  // БУКа на примерке нет (технику он не носит).
+  if (phoneCard) click(phoneCard);
+  await sleep(20);
+  {
+    const phoneSheet = document.querySelector('.shop-sheet');
+    const phoneArt = phoneSheet?.querySelector('.shop-bigart-toy > .phone-rotate.shop-bigart-toy-art');
+    check(
+      'в подробной карточке телефона — сам телефон крупно и без БУКа',
+      !!phoneArt &&
+        (phoneArt.getAttribute('aria-label') ?? '').includes('iPhone Air') &&
+        !phoneSheet?.querySelector('.mascot'),
+      phoneSheet?.innerHTML.slice(0, 200) ?? 'карточка не открылась',
+    );
+  }
+  const closePhoneSheet = document.querySelector('.shop-sheet-veil');
+  if (closePhoneSheet) click(closePhoneSheet);
+  await sleep(20);
 
   // Покупка вещи кладёт её в слот `toy` — с 0.22.0 это «любимая вещь на
   // главном подиуме ангара»; на БУКе техника больше не рисуется.
@@ -1018,6 +1036,53 @@ async function main() {
     await sleep(40);
     closeSheet();
     await sleep(30);
+  }
+
+  // ── Сдача купленной вещи обратно (sell-back, 0.24.0) ────────
+  // Ставки — docs/proposals/trade-in.md, вариант B: наряды 50%,
+  // техника 30%. Цена сдачи строго меньше цены покупки, поэтому
+  // цикл «купил → сдал» теряет кристаллы: фарм невозможен.
+  {
+    // Блок ангара вернул профиль к состоянию до покупки техники —
+    // переключаемся на полку «Техника» и докупаем Болид, чтобы
+    // было что сдать.
+    click(Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Техника'))!);
+    await sleep(30);
+    const racer = ITEM_BY_ID['car-racer'];
+    useApp.setState((s) => ({
+      profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, gems: Math.max(p.gems, racer.price) } : p)),
+    }));
+    await sleep(30);
+    check('трейд-ин: подготовка — Болид докуплен', useApp.getState().buyItem('car-racer'), '');
+    // Краска вещи: при продаже открытые оттенки обнуляются
+    // (допы не повышают цену сдачи — как в реальности).
+    useApp.setState((s) => ({
+      profiles: s.profiles.map((p) => (p.id === s.activeId
+        ? { ...p, shop: { ...p.shop!, tuning: { current: { 'car-racer': 'violet' }, unlocked: { 'car-racer': ['violet'] } } } }
+        : p)),
+    }));
+    await sleep(30);
+
+    const carCard = Array.from(document.querySelectorAll('.shop-item.toy-item'))
+      .find((el) => (el.textContent ?? '').includes('Болид'));
+    if (carCard) click(carCard);
+    await sleep(30);
+    check('трейд-ин: в sheet купленной вещи кнопка сдачи с ценой', !!btnText('Сдать обратно · +10 💎'), body().slice(0, 120));
+    document.querySelector('.shop-sheet-veil')?.click();
+    await sleep(30);
+
+    const gemsBeforeSell = useApp.getState().profiles[0].gems;
+    const refund = sellPrice(racer);
+    check('трейд-ин: цена сдачи строго меньше цены покупки', refund === 10 && refund < racer.price, `вернёт ${refund} 💎`);
+    check('трейд-ин: сдать некупленное нельзя', !useApp.getState().sellItem('scarf'), '');
+    const soldOk = useApp.getState().sellItem('car-racer');
+    await sleep(30);
+    const afterSell = useApp.getState().profiles[0];
+    check('трейд-ин: вещь сдана, часть кристаллов вернулась', soldOk && afterSell.gems === gemsBeforeSell + refund, `${gemsBeforeSell} → ${afterSell.gems}`);
+    check('трейд-ин: вещь ушла из гардероба и с подиума', !afterSell.shop?.owned.includes('car-racer') && !afterSell.shop?.equipped?.toy, JSON.stringify(afterSell.shop));
+    check('трейд-ин: краски вещи обнулены', !afterSell.shop?.tuning?.current?.['car-racer'] && !afterSell.shop?.tuning?.unlocked?.['car-racer'], JSON.stringify(afterSell.shop?.tuning));
+    check('трейд-ин: сдать вторично нельзя', !useApp.getState().sellItem('car-racer'), '');
+    check('трейд-ин: витрина снова предлагает купить вещь', has('💎 35'), '');
   }
   const expensive = buttons().find((b) => (b.textContent ?? '').includes('Ещё') && b.className.includes('btn'));
   check('на дорогие вещи кнопка показывает, сколько не хватает', !!expensive, '');

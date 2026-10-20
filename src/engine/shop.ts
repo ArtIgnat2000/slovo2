@@ -45,25 +45,10 @@ export const SLOT_TITLE: Record<ShopSlot, string> = {
 };
 
 /** Полки техники: порядок и подписи для витрины. */
-export const TOY_SHELVES: { id: ToyKind; title: string; emoji: string; note: string }[] = [
-  {
-    id: 'car',
-    title: 'Авто',
-    emoji: '🚗',
-    note: 'Цветные карандашные рисунки настоящих машин: седаны, внедорожники, лимузины, суперкар и болид',
-  },
-  {
-    id: 'ship',
-    title: 'Корабли',
-    emoji: '🚢',
-    note: 'Морские суда крупным планом: яхта, контейнеровоз, супертанкер и авианосец',
-  },
-  {
-    id: 'phone',
-    title: 'Телефоны',
-    emoji: '📱',
-    note: 'Смартфоны, ноутбук, телевизор и наушники: детальные рисунки стекла, металла и ярких экранов',
-  },
+export const TOY_SHELVES: { id: ToyKind; title: string; emoji: string }[] = [
+  { id: 'car', title: 'Авто', emoji: '🚗' },
+  { id: 'ship', title: 'Корабли', emoji: '🚢' },
+  { id: 'phone', title: 'Телефоны', emoji: '📱' },
 ];
 
 export const SHOP_ITEMS: ShopItem[] = [
@@ -153,6 +138,26 @@ export function missingGems(item: ShopItem, gems: number): number {
 /** Сколько кристаллов уже вложено в гардероб — приятная цифра в шапке магазина. */
 export function wardrobeValue(owned: string[]): number {
   return owned.reduce((sum, id) => sum + (ITEM_BY_ID[id]?.price ?? 0), 0);
+}
+
+/**
+ * Сдача купленной вещи обратно (sell-back, «трейд-ин», 0.24.0;
+ * анализ — docs/proposals/trade-in.md, вариант B).
+ *
+ * Ставка зависит от типа товара: наряды держат цену лучше
+ * техники — как одежда и электроника на вторичном рынке.
+ * Цена сдачи всегда строго меньше цены покупки, поэтому
+ * цикл «купил → сдал» теряет часть кристаллов: фарм невозможен
+ * по построению, механика возвращает лишь часть заработанного.
+ */
+export const SELL_RATE: Record<ShopItemKind, number> = {
+  outfit: 0.5,
+  toy: 0.3,
+};
+
+/** Сколько кристаллов вернётся при сдаче вещи обратно. */
+export function sellPrice(item: ShopItem): number {
+  return Math.floor(item.price * SELL_RATE[item.kind ?? 'outfit']);
 }
 
 /** Пороги роста БУКа по числу освоенных слов (см. журнал плана, пункт 5). */

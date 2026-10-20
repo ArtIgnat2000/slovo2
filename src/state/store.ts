@@ -24,7 +24,7 @@ import {
   type ChestKind,
   type PlannedQuest,
 } from '../engine/quests';
-import { ITEM_BY_ID, isOwned, normalizeWishlist } from '../engine/shop';
+import { ITEM_BY_ID, isOwned, normalizeWishlist, sellPrice } from '../engine/shop';
 import { migrateMusicShop, MUSIC_BY_ID, STARTER_TRACK_IDS } from '../engine/music';
 import { DEFAULT_SOUND_PACK, normalizeSoundShop, SOUND_PACK_BY_ID, STARTER_SOUND_IDS } from '../engine/sounds';
 import { normalizeTuning, recolor, type RecolorOutcome } from '../engine/tints';
@@ -392,6 +392,13 @@ interface AppState {
 
   /** Купить аксессуар у БУКа. Возвращает false, если кристаллов не хватает. */
   buyItem: (id: string) => boolean;
+  /**
+   * Сдать купленную вещь обратно («трейд-ин», docs/proposals/trade-in.md):
+   * вещь уходит из гардероба навсегда, часть цены возвращается
+   * кристаллами (sellPrice). Надетое и с подиума снимается, открытые
+   * оттенки вещи обнуляются. Возвращает false, если вещи нет.
+   */
+  sellItem: (id: string) => boolean;
   /** Добавить/убрать предмет из списка «Мечты 🤍» (Wishlist). Возвращает true, если добавлен. */
   toggleWishlist: (id: string) => boolean;
   /** Купить мелодию из музыкального магазина (однократно; открытый трек остаётся в профиле). */
@@ -962,6 +969,45 @@ export const useApp = create<AppState>()(
                 owned: [...shop.owned, id],
                 // купленное сразу надевается — ребёнку не нужно ещё раз тапать
                 equipped: { ...shop.equipped, [item.slot]: id },
+                wishlist: shop.wishlist?.filter((x) => x !== id),
+              },
+            };
+          }),
+        );
+        return true;
+      },
+
+      sellItem: (id) => {
+        const item = ITEM_BY_ID[id];
+        const p = getActive(get());
+        if (!item || !p || !isOwned(readShop(p).owned, id)) return false;
+        const refund = sellPrice(item);
+        set((s) =>
+          patchActive(s, (prof) => {
+            const shop = readShop(prof);
+            // Вещь уходит — снимаем с совы/подиума и её краски:
+            // открытые оттенки не повышают цену сдачи (как допы в реальности).
+            const equipped: ShopState['equipped'] = { ...shop.equipped };
+            if (equipped[item.slot] === id) delete equipped[item.slot];
+            const tuning = shop.tuning;
+            const nextTuning: ShopTuning | undefined = tuning
+              ? {
+                  current: Object.fromEntries(
+                    Object.entries(tuning.current).filter(([key]) => key !== id),
+                  ),
+                  unlocked: Object.fromEntries(
+                    Object.entries(tuning.unlocked).filter(([key]) => key !== id),
+                  ),
+                }
+              : tuning;
+            return {
+              ...prof,
+              gems: prof.gems + refund,
+              shop: {
+                ...shop,
+                owned: shop.owned.filter((x) => x !== id),
+                equipped,
+                tuning: nextTuning,
                 wishlist: shop.wishlist?.filter((x) => x !== id),
               },
             };

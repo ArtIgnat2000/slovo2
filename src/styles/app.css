@@ -2846,7 +2846,6 @@ p {
   color: var(--primary);
   font-size: var(--fs-sm);
 }
-.shop-case-group-title + .tiny { margin-bottom: 8px; }
 /* Ближайшая покупка: мягкая подсказка на бирке, не второй герой. */
 .shop-tech-goal {
   display: flex;
@@ -3123,6 +3122,15 @@ p {
 .shop-bigart-toy > .car-art,
 .shop-bigart-toy > .ship-art,
 .shop-bigart-toy > .electronics-art { position: relative; z-index: 1; }
+/* Телефон — тоже сам товар крупным планом: высокий корпус на подиуме,
+   рисунок тянется по ширине карточки и не липнет к лампе. */
+.shop-bigart-toy > svg.shop-bigart-toy-art {
+  position: relative;
+  z-index: 1;
+  width: min(74%, 230px);
+  height: auto;
+  filter: drop-shadow(0 6px 10px color-mix(in srgb, var(--ink) 16%, transparent));
+}
 .shop-bigart-toy .mascot {
   position: relative;
   z-index: 1;
@@ -6085,7 +6093,6 @@ p {
    весёлой коллекции — у каждой мелодии своё место в игре. */
 .music-shelf + .music-shelf { margin-top: var(--sp-5); }
 .music-shelf-title { margin: 0; font-size: var(--fs-sm); }
-.music-shelf-note { margin: 2px 0 var(--sp-2); }
 .music-grid {
   align-items: stretch;
 }

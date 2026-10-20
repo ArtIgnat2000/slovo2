@@ -113,13 +113,13 @@ if (document.querySelectorAll('.shop-item.toy-item img[src*="/ships/"]').length 
 
 tap('Телефоны');
 await new Promise((r) => setTimeout(r, 100));
-expect('Смартфон', 'карточка смартфона');
+expect('iPhone Air', 'карточка смартфона');
 if (text().includes('Пароход')) problems.push('в новой витрине остался устаревший детский кораблик');
-if (document.querySelectorAll('.shop-item.toy-item').length !== 3) problems.push('раздел телефонов должен показывать только три модели');
-if (!document.querySelector('.shop-item.toy-item svg')) problems.push('телефон не использует прежнюю SVG-иллюстрацию');
+if (document.querySelectorAll('.shop-item.toy-item').length !== 7) problems.push('раздел телефонов должен показывать четыре телефона и три устройства');
+if (document.querySelectorAll('.shop-item.toy-item .phone-rotate').length !== 4) problems.push('четыре телефона должны поддерживать поворот');
 
 // Подробная карточка техники: крупный арт и честная подпись
-tap('Раскладушка');
+tap('iPhone 17');
 await new Promise((r) => setTimeout(r, 100));
 expect('Встанет в ангаре БУКа', 'подпись техники в sheet');
 expect('Купить за 💎30', 'покупка техники из sheet');
@@ -127,7 +127,7 @@ tap('Купить за 💎30');
 await new Promise((r) => setTimeout(r, 100));
 tap('Купить за 💎30'); // ConfirmDialog — то же подтверждение, что в приложении
 await new Promise((r) => setTimeout(r, 100));
-expect('Раскладушка — твой!', 'тост после покупки техники');
+expect('iPhone 17 — твой!', 'тост после покупки техники');
 expect('На подиуме ✓', 'купленная вещь встала на главный подиум ангара');
 expect('💎 32', 'баланс уменьшился на цену техники');
 
@@ -150,7 +150,7 @@ await new Promise((r) => setTimeout(r, 100));
 expect('мой наряд', 'примерочная гардероба');
 expect('Бантик', 'купленное попало в гардероб');
 expect('Моя техника', 'полка купленной техники');
-expect('Раскладушка', 'купленная вещь в гардеробе');
+expect('iPhone 17', 'купленная вещь в гардеробе');
 expect('Пилот истребителя', 'собранный костюм в гардеробе');
 expect('Мечты', 'блок мечт');
 expect('ещё', 'прогресс копления в мечтах');

@@ -21,17 +21,18 @@ export function isRotatingPhone(id: string): boolean {
 }
 
 /** Interactive only where explicitly enabled: never nest a button in a hangar button. */
-export function ElectronicsArt({ id, className, interactive = false, tint }: {
+export function ElectronicsArt({ id, className, interactive = false, tint, alt }: {
   id: string;
   className?: string;
   interactive?: boolean;
   tint?: string | null;
+  alt?: string;
 }) {
   const [front, setFront] = useState(false);
   if (!hasElectronicsArt(id)) return null;
   const src = `${import.meta.env.BASE_URL}electronics/${ELECTRONICS_ART[id]}.webp`;
   const cls = `electronics-art${className ? ` ${className}` : ''}`;
-  const image = <img src={src} width={960} height={960} alt="" draggable={false} decoding="async" loading="lazy" />;
+  const image = <img src={src} width={960} height={960} alt={alt ?? ''} draggable={false} decoding="async" loading="lazy" />;
   const back = <span className="phone-face phone-face-back">
     {image}
     {tint && <span className="phone-tint" aria-hidden="true" style={{ '--phone-tint': tint, '--phone-mask': `url("${src}")` } as CSSProperties} />}
