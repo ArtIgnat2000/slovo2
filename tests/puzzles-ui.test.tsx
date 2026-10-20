@@ -151,6 +151,23 @@ export async function runPuzzleUiChecks(playLesson: (second?: boolean) => Promis
     badgeZ > 0,
     lockedBadgeRule.replace(/\s+/g, ' ').trim() || 'правило .pz-locked::after не найдено',
   );
+  // Страж 0.21.2 (жалоба «нет картинок в разделе Мои костюмы»): базовый
+  // `.mascot` — fixed-элемент в правом нижнем углу экрана. Каждый контейнер,
+  // где сова является картинкой, обязан снимать позицию; иначе иконка
+  // «улетает» из строки гардероба и раздел выглядит пустым.
+  const wearRule = css.match(/\.shop-wear-icon \.mascot[^{]*\{[^}]*\}/)?.[0] ?? '';
+  check(
+    'пазлы: стили возвращают иконку строки гардероба в поток',
+    /position:\s*static/.test(wearRule) && /z-index:\s*auto/.test(wearRule),
+    wearRule.replace(/\s+/g, ' ').trim() || 'правило .shop-wear-icon .mascot не найдено',
+  );
+  const winRule = css.match(/\.puzzle-win \.mascot\s*\{[^}]*\}/)?.[0] ?? '';
+  const winDanceRule = css.match(/\.puzzle-win \.mascot\.dance\s*\{[^}]*\}/)?.[0] ?? '';
+  check(
+    'пазлы: стили держат праздничного БУКа в карточке результата и сохраняют танец',
+    /position:\s*static/.test(winRule) && /animation:\s*dance/.test(winDanceRule),
+    (winRule + ' ' + winDanceRule).replace(/\s+/g, ' ').trim() || 'правило .puzzle-win .mascot не найдено',
+  );
 
   // Сменить цель можно тапом — прогресс прежней цели не сгорит
   const thirdBtn = cards()
@@ -174,6 +191,28 @@ export async function runPuzzleUiChecks(playLesson: (second?: boolean) => Promis
   click(wearBtn(COSTUMES[0].title));
   await sleep(60);
   check('пазлы: «Надеть» возвращает костюм', active().puzzle?.worn === COSTUMES[0].id, String(active().puzzle?.worn));
+
+  // ── Гардероб: иконки в строках «Мои костюмы» (жалоба 2026-10-19) ──────────
+  // Собранный костюм обязан показываться в гардеробе строкой С КАРТИНКОЙ БУКа:
+  // иконка живёт внутри плитки `.shop-wear-icon`, а не «плавает» по экрану.
+  click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Гардероб'))!);
+  await sleep(40);
+  const wearRows = Array.from(document.querySelectorAll('.shop-wear'));
+  check(
+    'пазлы: собранный костюм попадает в строки гардероба',
+    wearRows.some((row) => (row.textContent ?? '').includes(COSTUMES[0].title)),
+    `строк: ${wearRows.length}`,
+  );
+  check(
+    'пазлы: в каждой строке гардероба иконка БУКа нарисована внутри плитки',
+    wearRows.length > 0 && wearRows.every((row) => !!row.querySelector('.shop-wear-icon .mascot svg')),
+    wearRows.map((row) => row.textContent).join(' | ').slice(0, 140),
+  );
+  // Возвращаем полку костюмов: следующие проверки читают карточки витрины.
+  click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Витрина'))!);
+  await sleep(30);
+  click(Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Костюмы'))!);
+  await sleep(30);
 
   // ── Акцент костюма: свечение и плащ за 1 💎 (тюнинг, engine/tints.ts) ───────
   // Костюм COSTUMES[0] уже собран и надет; у несобранного (COSTUMES[1]) палитры

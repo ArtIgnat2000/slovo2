@@ -2906,6 +2906,18 @@ p {
   border-radius: var(--r-sm);
   background: var(--primary-soft);
 }
+/* БУК в строках гардероба, в карточках «Мечты» и в плашке активного сбора —
+   картинка, а не плавающий элемент: снимаем fixed-позицию и z-index базового
+   `.mascot` (тот же приём, что в `.shop-icon .mascot`). Без этого правила сова
+   улетала из строки в правый нижний угол экрана, и разделы «Мои костюмы» и
+   «Мои наряды» выглядели пустыми (жалоба 2026-10-19, 0.21.2). */
+.shop-wear-icon .mascot,
+.wishlist-card-art .mascot,
+.shop-collect .mascot {
+  position: static;
+  z-index: auto;
+  animation: none;
+}
 /* Активный сбор костюма — крупно, над сеткой */
 .shop-collect {
   display: flex;
@@ -4754,6 +4766,17 @@ p {
 }
 .puzzle-win .row {
   margin-bottom: 2px;
+}
+/* БУК в праздничной карточке «костюм надет» стоит в потоке карточки, а не
+   «плавает» в углу экрана (сброс базового `.mascot`, как в `.shop-icon`).
+   Танец сохраняем: карточка показывается в момент награды. */
+.puzzle-win .mascot {
+  position: static;
+  z-index: auto;
+  animation: none;
+}
+.puzzle-win .mascot.dance {
+  animation: dance 0.6s ease-in-out 3;
 }
 /* мягкий акцент готовности: не мигаем бесконечно (WCAG 2.3.3, как у сундука) */
 @keyframes questGlint {

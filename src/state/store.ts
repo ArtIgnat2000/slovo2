@@ -1237,26 +1237,40 @@ export const useApp = create<AppState>()(
       /**
        * Вернуть состояние из копии. Текущее состояние перед этим тоже
        * сохраняем в другой слот — чтобы само восстановление было отменяемым.
+       *
+       * Действия с основной записью идут ЧЕРЕЗ ОЧЕРЕДЬ сторожа
+       * (guardedStorage.enqueue): «висящая» в очереди обычная сохранёнка не
+       * должна лечь поверх восстановления и тихо его отменить. Внутри очереди
+       * НЕЛЬЗЯ трогать profiles через set(): persist записал бы память, где
+       * профили ещё прежние, и затёр бы восстановленную запись. Поэтому метка
+       * запасной копии ставится в сейф уже ПОСЛЕ rehydrate.
        */
       restoreSnapshot: async (slot) => {
         const raw = await readSnapshot(slot);
         if (!raw) return false;
-        const current = await Promise.resolve(idbStorage.getItem(MAIN_KEY)).catch(() => null);
-        if (current && current !== raw) {
-          const busy = useApp.getState().vault.snapshots.filter((s) => s.slot !== slot);
-          const spare = nextSlot(busy);
-          await writeSnapshot(spare, current).catch(() => undefined);
-          // Копия «того, что было до восстановления»: восстановление отменяемо.
+        const spare = await guardedStorage.enqueue(async () => {
+          const current = await Promise.resolve(idbStorage.getItem(MAIN_KEY)).catch(() => null);
+          let spareMeta: { prev: string; slot: number } | null = null;
+          if (current && current !== raw) {
+            const busy = useApp.getState().vault.snapshots.filter((s) => s.slot !== slot);
+            const spareSlot = nextSlot(busy);
+            // Копия «того, что было до восстановления»: восстановление отменяемо.
+            await writeSnapshot(spareSlot, current).catch(() => undefined);
+            spareMeta = { prev: current, slot: spareSlot };
+          }
+          await idbStorage.setItem(MAIN_KEY, raw);
+          return spareMeta;
+        });
+        unfreeze();
+        await Promise.resolve(useApp.persist.rehydrate()).catch(() => undefined);
+        if (spare) {
           set((st) => ({
             vault: {
               ...st.vault,
-              snapshots: upsertSnapshot(st.vault.snapshots, snapshotMetaOf(current, spare, Date.now())),
+              snapshots: upsertSnapshot(st.vault.snapshots, snapshotMetaOf(spare.prev, spare.slot, Date.now())),
             },
           }));
         }
-        await idbStorage.setItem(MAIN_KEY, raw);
-        unfreeze();
-        await Promise.resolve(useApp.persist.rehydrate()).catch(() => undefined);
         const summary = readRecord(raw);
         set((s) => ({
           vault: pushLog(s.vault, 'restore-snapshot', summary ? `${summary.count} профилей` : 'копия'),

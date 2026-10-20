@@ -29,6 +29,8 @@ import { SOUND_PACKS, STARTER_SOUND_IDS } from '../src/engine/sounds';
 import { resolvePhotoSize, resolveWordCardVariant } from '../src/ui/WordView';
 import { buildLesson, lessonCardLimit } from '../src/engine/scheduler';
 import { dayKey, dayPlan, useApp } from '../src/state/store';
+import { idbStorage } from '../src/platform/storage';
+import { MAIN_KEY } from '../src/platform/vault';
 import { questTitle } from '../src/engine/quests';
 import { ITEM_BY_ID, SHOP_ITEMS, TOY_ITEMS, growthStage } from '../src/engine/shop';
 import { TINT_PALETTES, TINT_PRICE } from '../src/engine/tints';
@@ -687,6 +689,61 @@ async function main() {
     check('повторная покупка не списывает кристаллы', okAgain === false && afterRepeat.gems === gemsBeforeMusic - 8, `ok=${okAgain}, gems=${afterRepeat.gems}`);
     useApp.setState((s) => ({
       profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, gems: gemsBeforeMusic, shop: { ...p.shop!, musicTrack: null } } : p)),
+    }));
+    await sleep(30);
+  }
+
+  // Регрессия «пропадает купленная музыка» (0.21.2): покупка → СРАЗУ повторная
+  // синхронизация (rehydrate, как по visibilitychange/сообщению второй копии),
+  // без ожидания записи. Чтение сторожа обязано стоять в очереди ПОСЛЕ записи
+  // покупки: иначе merge заменял память старой записью, трек «пропадал», а
+  // следующее действие закрепляло потерю в IndexedDB.
+  {
+    const raceTrack = MUSIC_TRACKS.find((t) => t.price > 0)!;
+    const gemsBeforeRace = useApp.getState().profiles[0].gems;
+    useApp.setState((s) => ({
+      profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, gems: gemsBeforeRace + raceTrack.price } : p)),
+    }));
+    const boughtRace = useApp.getState().buyMusicTrack(raceTrack.id);
+    // Никакого sleep: rehydrate стартует, пока запись покупки ещё в очереди.
+    const rehydrated = useApp.persist.rehydrate();
+    await Promise.resolve(rehydrated);
+    await sleep(60);
+    const raced = useApp.getState().profiles[0];
+    check(
+      'покупка музыки переживает немедленную повторную синхронизацию',
+      boughtRace && (raced.shop?.musicOwned ?? []).includes(raceTrack.id),
+      `bought=${boughtRace}, musicOwned=${JSON.stringify(raced.shop?.musicOwned)}`,
+    );
+    check(
+      'кристаллы за пережившую синхронизацию покупку списаны один раз',
+      raced.gems === gemsBeforeRace,
+      `ожидали ${gemsBeforeRace}, получили ${raced.gems}`,
+    );
+    // Следующее действие не должно затереть покупку в самом хранилище.
+    useApp.getState().addXp(1);
+    await sleep(80);
+    const storedRace = await idbStorage.getItem(MAIN_KEY);
+    check(
+      'после синхронизации покупка музыки остаётся и в IndexedDB',
+      !!storedRace && storedRace.includes(raceTrack.id),
+      storedRace ? 'в записи нет купленного трека' : 'запись не читается',
+    );
+    // Возвращаем профиль: следующие блоки считают кристаллы с нуля.
+    useApp.setState((s) => ({
+      profiles: s.profiles.map((p) =>
+        p.id === s.activeId
+          ? {
+              ...p,
+              gems: gemsBeforeRace,
+              shop: {
+                ...p.shop!,
+                musicOwned: (p.shop?.musicOwned ?? []).filter((x) => x !== raceTrack.id),
+                musicTrack: p.shop?.musicTrack === raceTrack.id ? null : p.shop?.musicTrack,
+              },
+            }
+          : p,
+      ),
     }));
     await sleep(30);
   }

@@ -57,23 +57,52 @@ function lastSnapshotAt(snapshots: SnapshotMeta[]): number | null {
 }
 
 /**
- * Обёртка над хранилищем: чтение как есть, запись — через сторож.
+ * Сторожевое хранилище = StateStorage + доступ к очереди операций: стор может
+ * прогнать свои прямые действия с основной записью строго между операциями
+ * очереди — иначе «висящее» в очереди сохранение затрёт результат
+ * (см. restoreSnapshot в state/store.ts).
  *
- * Ошибки здесь НЕ пробрасываются наружу: zustand вызывает `setItem`
- * без обработки результата, и непойманное отклонение промиса означало бы,
- * что пользователь видит успех там, где данные не сохранились.
+ * Ошибки записи НЕ пробрасываются наружу как сбой очереди: zustand вызывает
+ * `setItem` без обработки результата, и непойманное отклонение промиса
+ * означало бы, что пользователь видит успех там, где данные не сохранились.
  */
+export type GuardedStorage = StateStorage & {
+  enqueue: <T>(task: () => Promise<T>) => Promise<T>;
+};
+
 /**
- * Очередь записей.
+ * Очередь операций хранилища.
  *
  * Каждая запись — это «прочитать прежнее, снять копию, записать новое». Без
  * очереди две быстрые записи читали бы одно и то же прежнее состояние, и та,
  * что закончит позже, затёрла бы правки первой (два ответа подряд — и минус
  * XP). Поэтому записи выстраиваются в цепочку: каждая следующая видит уже
  * обновлённую запись.
+ *
+ * ЧТЕНИЯ стоят в той же очереди (0.21.2 — жалоба «пропадает купленная
+ * музыка»). Раньше `getItem` шёл в обход очереди, и повторная синхронизация
+ * приложения (возврат из фона по `visibilitychange`, сообщение от второй
+ * открытой копии) вызывала `rehydrate` в момент, когда запись покупки ещё не
+ * легла в IndexedDB: чтение получало СТАРУЮ запись, `merge` заменял ею свежее
+ * состояние в памяти — покупка «пропадала» с экрана, а следующее же действие
+ * закрепляло потерю в хранилище. Теперь чтение не может обогнать запись из очереди.
  */
-export function createGuardedStorage(opts: GuardOptions): StateStorage {
+export function createGuardedStorage(opts: GuardOptions): GuardedStorage {
   let queue: Promise<void> = Promise.resolve();
+
+  /**
+   * Поставить операцию в очередь. Сама очередь никогда не «ломается»: сбой
+   * предыдущей операции не мешает следующим (writeOnce и так не выбрасывает —
+   * ошибки уходят в report, но чтение/удаление должны быть защищены тоже).
+   */
+  const enqueue = <T>(task: () => Promise<T>): Promise<T> => {
+    const result = queue.then(task, task);
+    queue = result.then(
+      () => undefined,
+      () => undefined,
+    );
+    return result;
+  };
 
   const writeOnce = async (name: string, value: string): Promise<void> => {
     const now = Date.now();
@@ -117,14 +146,24 @@ export function createGuardedStorage(opts: GuardOptions): StateStorage {
   };
 
   return {
-    getItem: (name) => idbStorage.getItem(name),
+    // StateStorage допускает синхронный возврат — нормализуем к промису,
+    // чтобы операция честно отстояла в очереди.
+    getItem: (name) => enqueue(async () => (await idbStorage.getItem(name)) ?? null),
 
     setItem(name, value) {
-      queue = queue.then(() => writeOnce(name, value));
-      return queue;
+      return enqueue(() => writeOnce(name, value));
     },
 
-    removeItem: (name) => idbStorage.removeItem(name),
+    removeItem: (name) => enqueue(async () => {
+      await idbStorage.removeItem(name);
+    }),
+
+    /**
+     * Прогнать операцию строго между операциями очереди хранилища (использует стор
+     * для восстановления из копии: прямая запись мимо очереди могла быть
+     * затёрта «висящим» в очереди сохранением).
+     */
+    enqueue,
   };
 }
 
