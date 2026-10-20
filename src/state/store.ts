@@ -1120,11 +1120,15 @@ export const useApp = create<AppState>()(
         // Меняем профиль только когда цвет действительно поменялся: «no-gems»,
         // «not-owned» и повторный выбор того же оттенка не пишут ничего.
         if (res.outcome === 'switched' || res.outcome === 'opened') {
+          // Пишем только краски: res.shop собран из owned/equipped/tuning, и
+          // если отдать его целиком, пропадут musicTrack, musicOwned, звуки и
+          // мечты. Миграция музыки тогда считает выбор «не сделан» и включает
+          // первую мелодию — ребёнок её не включал (жалоба 0.24.x).
           set((s) =>
             patchActive(s, (p) => ({
               ...p,
               gems: Math.max(0, p.gems - res.spend),
-              shop: res.shop,
+              shop: { ...readShop(p), tuning: res.shop.tuning },
             })),
           );
         }

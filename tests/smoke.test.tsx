@@ -23,6 +23,8 @@ import { runFloatingMascotChecks } from './mascot-ui.test';
 import { runBukLessonChecks } from './buk-lesson-ui.test';
 import { runLessonArtChecks } from './lesson-art-ui.test';
 import { runVerdictChecks } from './verdict-ui.test';
+// Смена цвета купленной вещи не должна включать музыку (регрессия магазина).
+import './recolor-music.test';
 import { LESSONS, WORDS } from '../src/content/words';
 import { MUSIC_TRACKS } from '../src/engine/music';
 import { SOUND_PACKS, STARTER_SOUND_IDS } from '../src/engine/sounds';

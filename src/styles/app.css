@@ -2847,9 +2847,16 @@ p {
 }
 .shop-tech-goal-icon {
   flex: none;
-  font-size: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
   line-height: 1;
 }
+/* Рисунок товара в плашке «Ближайшая покупка» — как на витрине, а не эмодзи */
+.shop-tech-goal-icon > .car-art,
+.shop-tech-goal-icon > .ship-art { width: 64px; }
+.shop-tech-goal-icon > svg { width: 48px; height: 48px; }
 .shop-tech-goal b { display: block; font-size: var(--fs-sm); }
 .shop-tech-goal .tiny { display: block; }
 
