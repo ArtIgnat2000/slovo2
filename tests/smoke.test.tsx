@@ -554,7 +554,7 @@ async function main() {
   await sleep(30);
   const toyTabs = () => Array.from(document.querySelectorAll('.shop-toy-cats [role="tab"]'));
   check('разделы авто, кораблей и телефонов доступны отдельными вкладками', ['Авто', 'Корабли', 'Телефоны'].every((title) => toyTabs().some((tab) => (tab.textContent ?? '').includes(title))), '');
-  check('«Авто» открывается первым и не смешивается с другими товарами', document.querySelectorAll('.shop-item.toy-item').length === 10 && has('Болид') && !has('Морская яхта') && !has('Смартфон'), '');
+  check('«Авто» открывается первым и не смешивается с другими товарами', document.querySelectorAll('.shop-item.toy-item').length === 10 && has('Болид') && !has('Морская яхта') && !has('iPhone Air'), '');
   check(
     '«Авто»: десять машин с именами-характерами стоят на отдельной полке',
     ['Звезда', 'Стрела', 'Кубик', 'Адмирал', 'Лорд', 'Бык', 'Молния', 'Болид', 'Скалолаз', 'Жёлтый кэб'].every((title) => has(title)),
@@ -595,8 +595,24 @@ async function main() {
   const phoneTab = toyTabs().find((tab) => (tab.textContent ?? '').includes('Телефоны'));
   if (phoneTab) click(phoneTab);
   await sleep(30);
-  const phoneCard = Array.from(document.querySelectorAll('.shop-item.toy-item')).find((el) => (el.textContent ?? '').includes('Смартфон'));
-  check('телефоны остаются отдельным разделом и рисуются SVG', document.querySelectorAll('.shop-item.toy-item').length === 3 && (phoneCard?.querySelector('svg')?.innerHTML ?? '').includes('#3b82f6'), '');
+  const phoneCard = Array.from(document.querySelectorAll('.shop-item.toy-item')).find((el) => (el.textContent ?? '').includes('iPhone Air'));
+  check('телефоны и электроника остаются отдельным разделом', document.querySelectorAll('.shop-item.toy-item').length === 7 && document.querySelectorAll('.shop-item.toy-item .electronics-art').length === 7 && !!phoneCard?.querySelector('.phone-rotate'), '');
+  const rotatingPhone = phoneCard?.querySelector('.phone-rotate');
+  click(rotatingPhone);
+  await sleep(30);
+  check('тап по телефону поворачивает его, не открывая карточку', rotatingPhone?.getAttribute('aria-pressed') === 'true' && !!rotatingPhone.querySelector('.is-front') && !document.querySelector('.shop-sheet'), '');
+  click(rotatingPhone);
+  await sleep(30);
+  check('повторный тап возвращает заднюю панель', rotatingPhone?.getAttribute('aria-pressed') === 'false', '');
+  click(phoneCard?.querySelector('.shop-title'));
+  await sleep(30);
+  const detailPhone = document.querySelector('.shop-sheet .phone-rotate');
+  check('подробная карточка показывает телефон, а не сову', !!detailPhone && !document.querySelector('.shop-sheet .shop-bigart .mascot'), '');
+  click(detailPhone);
+  await sleep(30);
+  check('телефон поворачивается и в подробной карточке', detailPhone?.getAttribute('aria-pressed') === 'true', '');
+  click(document.querySelector('.shop-sheet-veil'));
+  await sleep(30);
   check('ближайшая покупка соответствует открытому разделу', has('Ближайшая покупка') && has('💎 25'), '');
   // Подробный просмотр техники — про сам товар: крупный рисунок телефона,
   // БУКа на примерке нет (технику он не носит).
@@ -604,11 +620,11 @@ async function main() {
   await sleep(20);
   {
     const phoneSheet = document.querySelector('.shop-sheet');
-    const phoneArt = phoneSheet?.querySelector('.shop-bigart-toy > svg.shop-bigart-toy-art');
+    const phoneArt = phoneSheet?.querySelector('.shop-bigart-toy > .phone-rotate.shop-bigart-toy-art');
     check(
       'в подробной карточке телефона — сам телефон крупно и без БУКа',
       !!phoneArt &&
-        (phoneArt.getAttribute('aria-label') ?? '').includes('Смартфон') &&
+        (phoneArt.getAttribute('aria-label') ?? '').includes('iPhone Air') &&
         !phoneSheet?.querySelector('.mascot'),
       phoneSheet?.innerHTML.slice(0, 200) ?? 'карточка не открылась',
     );

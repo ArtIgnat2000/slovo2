@@ -60,9 +60,14 @@ export const SHOP_ITEMS: ShopItem[] = [
   { id: 'medal', slot: 'badge', kind: 'outfit', title: 'Медаль', desc: 'За то, что не сдаёшься', price: 45 },
   { id: 'grad', slot: 'head', kind: 'outfit', title: 'Шапочка магистра', desc: 'Самая умная шапка в совиной школе', price: 60 },
   // ── Техника (полка «Техника»): телефоны ─────────────────────────────────
-  { id: 'phone-smart', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'Смартфон', desc: 'С экраном, камерой и весёлыми кнопками', price: 25 },
-  { id: 'phone-flip', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'Раскладушка', desc: 'Открывается — и можно звонить', price: 30 },
-  { id: 'phone-retro', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '☎️', title: 'Ретро-телефон', desc: 'С диском, как у бабушки на полке', price: 55 },
+  { id: 'phone-smart', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone Air', desc: 'Тонкий серебристый корпус и одна камера. Нажми на телефон, чтобы увидеть экран', price: 25 },
+  { id: 'phone-flip', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone 17', desc: 'Лавандовое стекло и две камеры. Нажми на телефон, чтобы повернуть', price: 30 },
+  { id: 'phone-retro', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone 17 Pro Max', desc: 'Оранжевый корпус и три объектива. Поверни и рассмотри с другой стороны', price: 55 },
+  // Современная электроника остаётся на полке «Телефоны».
+  { id: 'phone-pro', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone 17 Pro', desc: 'Глубокий синий металл и три камеры. Нажми на телефон, чтобы повернуть', price: 75 },
+  { id: 'laptop-air', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '💻', title: 'Невесомый Air', desc: 'Тонкий серебристый ноутбук: настоящие клавиши, большой трекпад и яркий экран', price: 110 },
+  { id: 'tv-cinema', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📺', title: 'Домашний кинотеатр', desc: 'Большой телевизор с тонкой рамкой: горное озеро на экране как живое', price: 95 },
+  { id: 'headphones-max', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '🎧', title: 'Серебряный Max', desc: 'Наушники в стиле Apple: сетчатое оголовье, мягкие амбушюры и металлические чашки', price: 65 },
   // ── Техника: машины ──────────────────────────────────────────────────────
   { id: 'car-racer', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🏎️', title: 'Болид', desc: 'Гоночная машина: открытые колёса и антикрыло', price: 35 },
   { id: 'car-jeep', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚙', title: 'Скалолаз', desc: 'Квадратный внедорожник: семь прорезей и зубастые шины', price: 40 },

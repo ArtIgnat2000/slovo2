@@ -2017,7 +2017,8 @@ p {
   mask-repeat: no-repeat;
 }
 /* Корабли используют тот же полноцветный карандашный стиль, что и авто. */
-.ship-art {
+.ship-art,
+.electronics-art {
   position: relative;
   display: inline-block;
   width: 100%;
@@ -2025,7 +2026,8 @@ p {
   line-height: 0;
   isolation: isolate;
 }
-.ship-art > img {
+.ship-art > img,
+.electronics-art > img {
   display: block;
   width: 100%;
   height: auto;
@@ -2049,22 +2051,29 @@ p {
 }
 /* Карточка витрины: рисунок занимает ширину ниши, но не выходит за высоту. */
 .shop-icon > .car-art,
-.shop-icon > .ship-art { max-width: 126px; }
+.shop-icon > .ship-art,
+.shop-icon > .electronics-art { max-width: 126px; }
 /* Крупный лист в подробной карточке — как гравюра на паспарту. */
 .shop-bigart-toy > .car-art,
-.shop-bigart-toy > .ship-art { width: min(100%, 340px); margin-bottom: 4px; }
+.shop-bigart-toy > .ship-art,
+.shop-bigart-toy > .electronics-art { width: min(100%, 340px); margin-bottom: 4px; }
 /* Гардероб и мечты: маленькие рисунки в квадратных плитках. */
 .shop-wear-icon > .car-art,
-.shop-wear-icon > .ship-art { max-width: 52px; }
+.shop-wear-icon > .ship-art,
+.shop-wear-icon > .electronics-art { max-width: 52px; }
 .wishlist-card-art > .car-art,
 .wishlist-card-art > .ship-art,
+.wishlist-card-art > .electronics-art,
 .mz-art > .car-art,
-.mz-art > .ship-art { max-width: 104px; }
+.mz-art > .ship-art,
+.mz-art > .electronics-art { max-width: 104px; }
 /* Сцена техники: машины и суда стоят на подиумах в своих залах. */
 .tech-item > .car-art,
-.tech-item > .ship-art { width: 100%; }
+.tech-item > .ship-art,
+.tech-item > .electronics-art { width: 100%; }
 .tech-tag > .car-art,
-.tech-tag > .ship-art { width: 26px; }
+.tech-tag > .ship-art,
+.tech-tag > .electronics-art { width: 26px; }
 .shop-title {
   font-weight: 800;
   font-size: var(--fs-sm);
@@ -2651,7 +2660,8 @@ p {
 }
 /* Машина и корабль — карандашные рисунки 720×480: видны крупно и целиком. */
 .hangar-main-art .car-art,
-.hangar-main-art .ship-art { width: min(56vw, 230px); }
+.hangar-main-art .ship-art,
+.hangar-main-art .electronics-art { width: min(56vw, 230px); }
 .hangar-plinth {
   position: absolute;
   z-index: 2;
@@ -2729,7 +2739,8 @@ p {
   box-shadow: inset 0 0 0 2px var(--tag-line);
 }
 .hangar-item .car-art,
-.hangar-item .ship-art { width: 92px; }
+.hangar-item .ship-art,
+.hangar-item .electronics-art { width: 92px; }
 .hangar-item > svg { filter: drop-shadow(0 4px 6px color-mix(in srgb, var(--ink) 16%, transparent)); }
 .hangar-item-plinth {
   width: 100%;
@@ -2780,9 +2791,11 @@ p {
 }
 @media (max-width: 359px) {
   .hangar-main-art .car-art,
-  .hangar-main-art .ship-art { width: 62vw; }
+  .hangar-main-art .ship-art,
+  .hangar-main-art .electronics-art { width: 62vw; }
   .hangar-item .car-art,
-  .hangar-item .ship-art { width: 80px; }
+  .hangar-item .ship-art,
+  .hangar-item .electronics-art { width: 80px; }
 }
 
 /* Ценник — бумажная бирка бутика, а не кнопка. */
@@ -3107,7 +3120,8 @@ p {
   box-shadow: 0 7px 12px color-mix(in srgb, var(--ink) 20%, transparent);
 }
 .shop-bigart-toy > .car-art,
-.shop-bigart-toy > .ship-art { position: relative; z-index: 1; }
+.shop-bigart-toy > .ship-art,
+.shop-bigart-toy > .electronics-art { position: relative; z-index: 1; }
 /* Телефон — тоже сам товар крупным планом: высокий корпус на подиуме,
    рисунок тянется по ширине карточки и не липнет к лампе. */
 .shop-bigart-toy > svg.shop-bigart-toy-art {
@@ -6453,4 +6467,58 @@ p {
 :root[data-theme='dark'][data-theme-style='forest'] .option.bad,
 :root[data-theme='dark'][data-theme-style='ocean'] .option.bad {
   color: var(--theme-danger-ink);
+}
+
+/* One side at a time: both textures share an aligned silhouette and rotate as
+   a rigid card. Backface visibility prevents the reverse side bleeding through. */
+.phone-view {
+  aspect-ratio: 1;
+  perspective: 900px;
+}
+.phone-rotate {
+  padding: 0;
+  border: 0;
+  border-radius: 16px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.phone-rotate:focus-visible {
+  outline: 3px solid var(--accent, #8065c9);
+  outline-offset: 3px;
+}
+.phone-turntable {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  transform-style: preserve-3d;
+  transition: transform 650ms cubic-bezier(.2,.7,.25,1);
+}
+.phone-turntable.is-front { transform: rotateY(180deg); }
+.phone-face {
+  display: block;
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.phone-face-front { transform: rotateY(180deg); }
+.phone-face > img { display: block; width: 100%; height: auto; user-select: none; }
+.phone-tint {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--phone-tint);
+  mix-blend-mode: color;
+  opacity: .72;
+  mask: var(--phone-mask) center / 100% 100% no-repeat;
+  -webkit-mask: var(--phone-mask) center / 100% 100% no-repeat;
+}
+.phone-rotate-hint { text-align: center; margin: 4px 0 12px; }
+@media (prefers-reduced-motion: reduce) {
+  .phone-turntable { transition: none; }
 }

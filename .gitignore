@@ -21,3 +21,6 @@ tsconfig.tsbuildinfo
 
 # записи лаборатории для разбора качества
 recordings/
+
+# Local image-processing environment
+.venv/
