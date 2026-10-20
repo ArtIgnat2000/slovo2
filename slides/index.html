@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>СЛОВО 2.0 — словарные слова без слёз и скуки</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; width: 100%; height: 100%; }
+  body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #fff8ec;
+    color: #4a3728;
+    overflow: hidden;
+  }
+
+  /* ---------- слайды ---------- */
+  #deck {
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+    touch-action: pan-y;
+  }
+  .slide {
+    flex: none;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: env(safe-area-inset-top, 0) 24px env(safe-area-inset-bottom, 0) 24px;
+    text-align: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.45s ease, transform 0.45s ease;
+    transform: translatey(12px);
+  }
+  .slide.active {
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+  }
+
+  /* ---------- общие элементы ---------- */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #fff;
+    border: 1px solid #e7d6c0;
+    color: #b27a1e;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(60, 40, 10, 0.06);
+    margin-bottom: 26px;
+  }
+  .badge::before { content: "📱"; font-size: 15px; }
+
+  h2 {
+    margin: 0 0 18px 0;
+    font-size: clamp(26px, 7vw, 34px);
+    line-height: 1.15;
+    font-weight: 800;
+    color: #6b3e0e;
+    letter-spacing: -0.02em;
+  }
+  h1 {
+    margin: 6px 0 10px 0;
+    font-size: clamp(30px, 8vw, 44px);
+    line-height: 1.05;
+    font-weight: 900;
+    color: #7a4d0e;
+    letter-spacing: -0.03em;
+  }
+  p.sub {
+    margin: 0 0 30px 0;
+    font-size: clamp(15px, 4.2vw, 19px);
+    line-height: 1.5;
+    color: #7a5a38;
+  }
+
+  /* карточки фич */
+  .grid { display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 420px; }
+  .card {
+    position: relative;
+    background: linear-gradient(180deg, #ffffff 0%, #fff7e6 100%);
+    border: 1px solid #e7d6c0;
+    border-radius: 22px;
+    padding: 16px 18px;
+    text-align: left;
+    box-shadow: 0 10px 30px rgba(60, 40, 10, 0.08);
+    overflow: hidden;
+  }
+  .card .t {
+    font-size: 16px; font-weight: 800; color: #7a4d0e; margin-bottom: 6px; display: flex; gap: 10px; align-items: center;
+  }
+  .card .t::before { content: attr(data-icon); font-size: 20px; width: 26px; text-align: center; }
+  .card p { margin: 0; font-size: 13.5px; line-height: 1.55; color: #7a5a38; }
+
+  /* мама/папа блок */
+  .col2 { display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 410px; }
+  .item { display: flex; align-items: flex-start; gap: 12px; font-size: 14.5px; line-height: 1.55; color: #7a5a38; }
+  .item .n { flex: none; width: 26px; height: 26px; border-radius: 50%; background: #f3d97b; color: #7a4d0e; font-weight: 800; font-size: 15px; display: grid; place-items: center; font-family: ui-monospace, SFMono-Regular, monospace; }
+  .item b { color: #6b3e0e; }
+
+  .cta {
+    margin-top: 6px;
+    background: #f59e0b;
+    color: #fff;
+    border: none;
+    border-radius: 16px;
+    padding: 14px 24px;
+    font-size: 16px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 12px 24px rgba(205, 110, 5, 0.35);
+  }
+  .cta:active { transform: scale(0.97); }
+
+  .small { margin-top: 10px; font-size: 12px; color: #a98963; line-height: 1.5; }
+
+  /* ---------- навигация ---------- */
+  #nav {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translatex(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 10;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: #d9c3a3; border: none; cursor: pointer; padding: 0;
+  }
+  .dot.active { background: #e8a33d; transform: scale(1.25); }
+  .counter {
+    margin-left: 10px; font-size: 13px; font-weight: 700; color: #b27a1e;
+  }
+
+  .hint {
+    position: absolute; top: 16px; left: 50%; transform: translatex(-50%);
+    font-size: 12px; color: #c9a87c; letter-spacing: 0.1em; text-transform: uppercase;
+    pointer-events: none;
+  }
+
+  /* ---------- оформление слонов/совы ---------- */
+  .owl {
+    font-size: clamp(56px, 16vw, 110px);
+    line-height: 1;
+    filter: drop-shadow(0 14px 24px rgba(122, 77, 14, 0.18));
+    animation: hover 3s ease-in-out infinite;
+  }
+  @keyframes hover { 0%, 100% { transform: translatey(0); } 50% { transform: translatey(-10px); } }
+
+  .glow {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: radial-gradient(circle at 50% 10%, rgba(245, 158, 11, 0.14) 0%, transparent 55%);
+    pointer-events: none; z-index: 0;
+  }
+  .slide > * { position: relative; z-index: 1; }
+</style>
+</head>
+<body>
+
+<div id="deck">
+  <!-- 1. Титул -->
+  <div class="slide active" id="s1">
+    <div class="glow"></div>
+    <div class="owl">🦉</div>
+    <h1>Словарные слова<br>без слёз и скуки</h1>
+    <p class="sub">Приложение «СЛОВО 2.0» — письмо с удовольствием для детей 2 класса и их родителей</p>
+    <div class="badge">Работает без интернета · устанавливается на экран телефона</div>
+  </div>
+
+  <!-- 2. Проблема -->
+  <div class="slide" id="s2">
+    <div class="glow"></div>
+    <div class="owl">🦉</div>
+    <h2>Вы узнаете эту картину?</h2>
+    <div class="col2">
+      <div class="item"><div class="n">1</div><div>Тетрадь с словарными словами снова откладывается в сторону</div></div>
+      <div class="item"><div class="n">2</div><div>Ошибка выглядит как провал, а не как шаг вперёд</div></div>
+      <div class="item"><div class="n">3</div><div>Выучено на утро — забыто к вечеру</div></div>
+    </div>
+    <p class="small" style="margin-top: 22px">Учёба должна воодушевлять ребёнка, а не утомлять его</p>
+  </div>
+
+  <!-- 3. Как работает -->
+  <div class="slide" id="s3">
+    <div class="glow"></div>
+    <h2>СЛОВО 2.0 превращает урок в игру</h2>
+    <div class="grid">
+      <div class="card">
+        <div class="t" data-icon="🔤">Сначала знакомство — ещё до первого ответа</div>
+        <p>Ударение, слоги и «опасная» буква показываются заранее, чтобы ребёнок запомнил написание, а не угадывал.</p>
+      </div>
+      <div class="card">
+        <div class="t" data-icon="🔧">Ошибка отрабатывается, а не осуждается</div>
+        <p>Правильное написание, мнемоника — и слово возвращается в урок, чтобы закрепить.</p>
+      </div>
+      <div class="card">
+        <div class="t" data-icon="🦉">Сова БУК подсказывает вопросом</div>
+        <p>БУК не даёт ответ сразу — он направляет, и ребёнок вспоминает слово сам.</p>
+      </div>
+    </div>
+    <p class="small" style="margin-top: 20px">Никаких оценок и сравнений — только свой темп</p>
+  </div>
+
+  <!-- 4. Награды -->
+  <div class="slide" id="s4">
+    <div class="glow"></div>
+    <h2>Что получает ребёнок</h2>
+    <div class="col2">
+      <div class="item"><div class="n">💎</div><div><b>Сундуки и кристаллы</b> за каждый завершённый урок</div></div>
+      <div class="item"><div class="n">📈</div><div><b>БУК растёт</b> от птенца до магистра по мере освоенных слов</div></div>
+      <div class="item"><div class="n">🎨</div><div><b>Костюмы и коллекция</b> — цель, за которую хочется заниматься снова</div></div>
+      <div class="item"><div class="n">📱</div><div><b>Работает без интернета</b> — дома, в дороге, в деревне</div></div>
+    </div>
+    <p class="small" style="margin-top: 20px">Первые награды уже после первого урока</p>
+  </div>
+
+  <!-- 5. Для родителей -->
+  <div class="slide" id="s5">
+    <div class="glow"></div>
+    <h2>А для родителей — раздел «Родителям»</h2>
+    <div class="col2">
+      <div class="item"><div class="n">📊</div><div>Видно, сколько слов освоено и с <b>какими стоит поработать</b></div></div>
+      <div class="item"><div class="n">🎯</div><div>Цель дня и размер урока <b>выбираете вы</b></div></div>
+      <div class="item"><div class="n">💾</div><div>Прогресс сохраняется <b>в файл</b> — не потеряется при смене телефона</div></div>
+      <div class="item"><div class="n">🔒</div><div>Профиль ребёнка хранится <b>на его устройстве</b></div></div>
+    </div>
+    <p class="small" style="margin-top: 20px">Вы всегда в курсе, и никакой навязчивой рекламы внутри</p>
+  </div>
+
+  <!-- 6. Установка + призыв -->
+  <div class="slide" id="s6">
+    <div class="glow"></div>
+    <div class="owl">🦉</div>
+    <h2>Поставьте за 1 минуту</h2>
+    <div class="col2">
+      <div class="item"><div class="n">1</div><div>Откройте ссылку на телефоне</div></div>
+      <div class="item"><div class="n">2</div><div>Меню браузера → «<b>Добавить на экран</b>»</div></div>
+      <div class="item"><div class="n">3</div><div>Запускайте как обычное приложение — <b>без интернета</b></div></div>
+    </div>
+    <button class="cta" style="margin-top: 26px">Первые уроки уже сегодня</button>
+    <p class="small">Подарите ребёнку уверенность в письме — слово за словом.<br>
+    Ссылка: <span style="color:#6b3e0e; font-weight:700">[ваша ссылка на «СЛОВО 2.0»]</span></p>
+  </div>
+</div>
+
+<div id="nav">
+  <div class="dot" data-slide="1"></div>
+  <div class="dot" data-slide="2"></div>
+  <div class="dot" data-slide="3"></div>
+  <div class="dot" data-slide="4"></div>
+  <div class="dot" data-slide="5"></div>
+  <div class="dot" data-slide="6"></div>
+  <div class="counter" id="counter">1 / 6</div>
+</div>
+<div class="hint">листайте пальцем или клавишами ← →</div>
+
+<script>
+  (function () {
+    const slides = document.querySelectorAll('.slide');
+    const dots = document.querySelectorAll('.dot');
+    const counter = document.getElementById('counter');
+    let i = 0;
+
+    function go(n) {
+      if (n < 0) n = 0;
+      if (n >= slides.length) n = slides.length - 1;
+      slides[i].classList.remove('active');
+      i = n;
+      slides[i].classList.add('active');
+      dots.forEach((d, k) => d.classList.toggle('active', k === i));
+      counter.textContent = (i + 1) + ' / ' + slides.length;
+    }
+
+    dots.forEach(d => d.addEventListener('click', () => go(Number(d.dataset.slide) - 1)));
+    window.addEventListener('keydown', e => {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(i + 1); }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') go(i - 1);
+    });
+
+    // свайп
+    let startX = 0, startY = 0;
+    document.addEventListener('touchstart', e => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; }, { passive: true });
+    document.addEventListener('touchend', e => {
+      if (!startX || !startY) return;
+      const dx = e.changedTouches[0].clientX - startX;
+      const dy = e.changedTouches[0].clientY - startY;
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) go(dx > 0 ? i - 1 : i + 1);
+      startX = 0; startY = 0;
+    }, { passive: true });
+
+    document.querySelector('.cta').addEventListener('click', () => {
+      const link = prompt('Скопируйте свою ссылку на приложение и вставьте сюда (чтобы родители могли перейти):', '');
+      if (link) document.querySelector('.small span').textContent = link;
+    });
+  })();
+</script>
+</body>
+</html>
