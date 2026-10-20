@@ -3109,6 +3109,15 @@ p {
 }
 .shop-bigart-toy > .car-art,
 .shop-bigart-toy > .ship-art { position: relative; z-index: 1; }
+/* Телефон — тоже сам товар крупным планом: высокий корпус на подиуме,
+   рисунок тянется по ширине карточки и не липнет к лампе. */
+.shop-bigart-toy > svg.shop-bigart-toy-art {
+  position: relative;
+  z-index: 1;
+  width: min(74%, 230px);
+  height: auto;
+  filter: drop-shadow(0 6px 10px color-mix(in srgb, var(--ink) 16%, transparent));
+}
 .shop-bigart-toy .mascot {
   position: relative;
   z-index: 1;
