@@ -22,6 +22,7 @@ import {
 } from '../../engine/shop';
 import { Mascot } from '../Mascot';
 import { ToyArt } from '../ToyArt';
+import { isRotatingPhone } from '../ElectronicsArt';
 import { CarArt, carAlt, carKind, carNote, hasCarArt } from '../CarArt';
 import { ShipArt, hasShipArt, shipAlt, shipKind, shipNote } from '../ShipArt';
 import { HangarScene } from '../HangarScene';
@@ -151,7 +152,7 @@ function ShopCard(props: {
       aria-label={props.title}
       onClick={props.onOpen}
       onKeyDown={(e) => {
-        if (e.key === 'Enter') props.onOpen();
+        if (e.target === e.currentTarget && e.key === 'Enter') props.onOpen();
       }}
     >
       {props.badge && <span className="shop-badge">{props.badge}</span>}
@@ -532,7 +533,7 @@ export function ShopScreen() {
         key={item.id}
         art={
           toy ? (
-            <ToyArt id={item.id} size={82} tuning={profile.shop?.tuning} />
+            <ToyArt id={item.id} interactive size={82} tuning={profile.shop?.tuning} />
           ) : (
             <Mascot mood="idle" look={{ [item.slot]: item.id }} stage={growth.index} size={64} />
           )
@@ -793,10 +794,13 @@ export function ShopScreen() {
                 tint={artPencilTint(item.id, profile.shop?.tuning)}
                 alt={shipAlt(item.id, item.title)}
               />
+            ) : toy ? (
+              <ToyArt key={item.id} id={item.id} interactive tuning={profile.shop?.tuning} size={240} />
             ) : (
               <Mascot mood="happy" look={{ [item.slot]: item.id }} costumeId={null} stage={growth.index} size={150} />
             )}
           </div>
+          {isRotatingPhone(item.id) && <p className="tiny muted phone-rotate-hint">↻ Нажми на телефон — он повернётся</p>}
           <h2 style={{ margin: '0 0 2px' }}>{item.title}</h2>
           <p className="tiny muted" style={{ marginTop: 0 }}>{item.desc}</p>
           {(carKind(item.id) || shipKind(item.id)) && (
