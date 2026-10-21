@@ -1,11 +1,12 @@
 // «Приложение» — всё, что про само приложение, а не про ребёнка:
-// передать ссылку второму родителю, поставить на экран телефона, версия сборки
-// и история про школу V-labs (рекламная карточка живёт здесь, а не посреди
-// отчёта об успехах).
+// передать ссылку второму родителю, поставить на экран телефона, версия сборки,
+// ручная проверка обновлений и история про школу V-labs (рекламная карточка
+// живёт здесь, а не посреди отчёта об успехах).
 
 import { isStandalone } from '../../platform/pwa';
 import { ShareApp } from '../ShareApp';
 import { GroupTitle } from './ParentBits';
+import { UpdateCheck } from './UpdateCheck';
 
 interface Props {
   onOpenVlabs: () => void;
@@ -57,12 +58,10 @@ export function AppTab({ onOpenVlabs, onOpenDiagnostics }: Props) {
           </span>
         </div>
         <p className="setting-hint">
-          Если на сайте и в приложении разные номера — на телефоне ждёт обновление: закройте и откройте
-          приложение или примите плашку «Доступно обновление».
+          Если на сайте и в приложении разные номера — на телефоне ждёт обновление: нажмите
+          «Проверить обновления» или примите плашку «Доступно обновление».
         </p>
-        <button type="button" className="btn ghost sm" onClick={onOpenDiagnostics}>
-          Диагностика приложения
-        </button>
+        <UpdateCheck onOpenDiagnostics={onOpenDiagnostics} />
       </div>
     </div>
   );

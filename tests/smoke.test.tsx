@@ -17,6 +17,7 @@ import { runParentUiChecks } from './parent-ui.test';
 import { runPretestAuditChecks } from './pretest-audit.test';
 import { runPuzzleUiChecks } from './puzzles-ui.test';
 import { runDiagnosticsRouteChecks } from './diagnostics-ui.test';
+import { runUpdateCheckUiChecks } from './update-check-ui.test';
 import { runShareAppChecks } from './share-ui.test';
 import { runThemeChecks } from './theme-ui.test';
 import { runFloatingMascotChecks } from './mascot-ui.test';
@@ -1251,6 +1252,10 @@ async function main() {
 
   // Диагностика запускается прямой ссылкой и читает хранилище, не раскрывая профиль.
   await runDiagnosticsRouteChecks();
+
+  // Ручная проверка обновлений: кнопка в «Родителям» → «Приложение» и все
+  // ответы сервис-воркера (есть новая / последняя / нет сети / нельзя проверить).
+  await runUpdateCheckUiChecks();
 
   const failures = failureCount();
   console.log(failures ? `\n✗ ошибок: ${failures}` : '\n✓ все проверки пройдены');
