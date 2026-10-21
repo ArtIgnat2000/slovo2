@@ -5840,6 +5840,32 @@ p {
   margin-top: 2px;
 }
 
+/* Ручная проверка обновлений в карточке «Версия»: кнопки в ряд, ответ — под ними.
+   Пустой контейнер ответа не занимает место, пока проверка не запущена. */
+.update-check {
+  margin-top: 10px;
+}
+.update-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.update-status:empty {
+  display: none;
+}
+.update-status {
+  margin-top: 8px;
+}
+.update-status .setting-hint {
+  margin: 0;
+}
+.update-available {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
 /* Выбор варианта: сегменты прижимаются вправо и переносятся, а не режутся. */
 .choice {
   display: flex;
