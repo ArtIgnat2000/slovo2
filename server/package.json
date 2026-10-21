@@ -1,0 +1,15 @@
+{
+  "name": "slovo2-server",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Пилотный API «СЛОВО 2.0»: классы, звёзды, обезличенная телеметрия",
+  "engines": {
+    "node": ">=22.22.2"
+  },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning src/main.mjs",
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.mjs",
+    "backup": "node --disable-warning=ExperimentalWarning scripts/backup.mjs"
+  }
+}

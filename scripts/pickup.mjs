@@ -6,7 +6,7 @@
 //      fetch + reset --mixed, рабочее дерево не трогается.
 //   2. зависимости: npm ci, если node_modules стерты (они стираются каждый ход), и
 //      @resvg/resvg-js по флагу --promo (нужен генератору превью костюмов).
-//   3. контур проверок: typecheck, content:check, test:adaptive, audit:storage
+//   3. контур проверок: typecheck, content:check, test:adaptive, server:test, audit:storage
 //      (+ test:smoke и test:boot, если не --fast). Стенд audit:storage сам по себе
 //      всегда выходит с нулём — он описывает поведение; здесь он ещё и проверяется:
 //      строка «ПОДТВЕРЖДЕНО» или меньше 10 «потеря не подтверждена» = сейф сломан.
@@ -148,6 +148,7 @@ if (flag('no-checks')) {
   step('npm run typecheck', npm('typecheck'));
   step('npm run content:check', npm('content:check'));
   step('npm run test:adaptive', npm('test:adaptive'));
+  step('npm run server:test', npm('server:test'));
 
   // Сейф прогресса: сам стенд выходит с нулём всегда (он описывает поведение),
   // поэтому «нет потерь» проверяем по тексту вывода.
@@ -213,7 +214,7 @@ if (flag('handoff')) {
     `* **PR:** ${branch} → main (\`gh pr view --json state,mergeable\`).`,
     '* **Что проверять после правок:** `npm run pickup` (он же чинит историю и',
     '  ставит зависимости после пересоздания песочницы); то же самое руками:',
-    '  `typecheck`, `content:check`, `test:adaptive`, `test:smoke`, `test:boot`, `audit:storage`.',
+    '  `typecheck`, `content:check`, `test:adaptive`, `server:test`, `test:smoke`, `test:boot`, `audit:storage`.',
     '* **Открытые задачи по приоритету:** …',
     '* **Грабли песочницы (по-прежнему):** клон пересоздаётся на точке форка,',
     '  `node_modules` стираются — первый шаг новой сессии `npm run pickup`.',
