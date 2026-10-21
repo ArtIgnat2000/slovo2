@@ -77,6 +77,7 @@ assert.equal(canBuyTrack(paid, 100, [paid.id]), false, 'уже открытый 
 // Новый профиль / профиль без поля: бесплатный старт и выбранная мелодия.
 assert.deepEqual(migrateMusicShop(undefined), { musicOwned: [...STARTER_TRACK_IDS], musicTrack: STARTER_TRACK_IDS[0] });
 assert.deepEqual(migrateMusicShop({}), { musicOwned: [...STARTER_TRACK_IDS], musicTrack: STARTER_TRACK_IDS[0] });
+assert.deepEqual(migrateMusicShop({ musicOwned: [], musicTrack: null }), { musicOwned: [], musicTrack: null }, 'новый профиль стартует без мелодий');
 // Явный «Тишина» уважается.
 assert.equal(migrateMusicShop({ musicOwned: [...STARTER_TRACK_IDS], musicTrack: null }).musicTrack, null, 'выбранная тишина сохраняется');
 // Неизвестные id отбрасываются, покупки новых треков переживают чтение.

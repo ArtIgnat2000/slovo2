@@ -65,7 +65,7 @@ assert.deepEqual(
   { soundOwned: [...STARTER_SOUND_IDS, paidPack.id], soundPack: paidPack.id },
   'чужие id и дубли отброшены, купленный набор выбран',
 );
-assert.equal(normalizeSoundShop({ soundOwned: [], soundPack: paidPack.id }).soundPack, DEFAULT_SOUND_PACK, 'неоткрытый набор не выбирается');
+assert.deepEqual(normalizeSoundShop({ soundOwned: [], soundPack: paidPack.id }), { soundOwned: [], soundPack: DEFAULT_SOUND_PACK }, 'новый профиль стартует без наборов звуков');
 assert.equal(normalizeSoundShop({ soundPack: 'xylophone' }).soundPack, 'xylophone', 'стартовый набор выбирается без покупки');
 
 console.log('✓ звуки: каталог мелодий ответа, ошибка мягче успеха, покупка и нормализация сохранения');
