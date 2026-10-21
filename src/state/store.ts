@@ -25,8 +25,8 @@ import {
   type PlannedQuest,
 } from '../engine/quests';
 import { ITEM_BY_ID, isOwned, normalizeWishlist, sellPrice } from '../engine/shop';
-import { migrateMusicShop, MUSIC_BY_ID, STARTER_TRACK_IDS } from '../engine/music';
-import { DEFAULT_SOUND_PACK, normalizeSoundShop, SOUND_PACK_BY_ID, STARTER_SOUND_IDS } from '../engine/sounds';
+import { migrateMusicShop, MUSIC_BY_ID } from '../engine/music';
+import { DEFAULT_SOUND_PACK, normalizeSoundShop, SOUND_PACK_BY_ID } from '../engine/sounds';
 import { normalizeTuning, recolor, type RecolorOutcome } from '../engine/tints';
 import {
   COSTUMES,
@@ -250,14 +250,14 @@ function newProfile(name: string, avatar: string): Profile {
     lessonSize: DEFAULT_LESSON_SIZE,
     daily: { day: dayKey(), claimed: [], chestsToday: 0, bonusChestsClaimed: 0, chestsTotal: 0 },
     weekly: { week: weekStartKey(), claimed: [] },
-    // Новому профилю — стартовая мелодия: музыка играет с первого дня,
-    // а «Тишина» остаётся одним нажатием в коллекции БУКа.
+    // Новый профиль начинает с пустой коллекции: мелодии и наборы звуков
+    // открываются в магазине, до покупки играет тишина / классический отклик.
     shop: {
       owned: [],
       equipped: {},
-      musicOwned: [...STARTER_TRACK_IDS],
-      musicTrack: STARTER_TRACK_IDS[0],
-      soundOwned: [...STARTER_SOUND_IDS],
+      musicOwned: [],
+      musicTrack: null,
+      soundOwned: [],
       soundPack: DEFAULT_SOUND_PACK,
       wishlist: [],
     },

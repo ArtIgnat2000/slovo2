@@ -255,7 +255,8 @@ export function migrateMusicShop(raw: { musicOwned?: unknown; musicTrack?: unkno
   });
 
   if (listed) {
-    STARTER_TRACK_IDS.forEach(push);
+    // Пустой список — сознательный старт «с нуля»; не докидываем бесплатный набор.
+    if (listed.length > 0) STARTER_TRACK_IDS.forEach(push);
     granted.forEach(push);
     listed.forEach(push);
   } else {

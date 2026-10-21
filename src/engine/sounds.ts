@@ -181,9 +181,10 @@ export interface SoundShopSelection {
  * Чужие id отбрасываются, выбранный набор обязан быть открыт.
  */
 export function normalizeSoundShop(raw: { soundOwned?: unknown; soundPack?: unknown } | null | undefined): SoundShopSelection {
-  const owned: string[] = [...STARTER_SOUND_IDS];
-  if (Array.isArray(raw?.soundOwned)) {
-    for (const id of raw.soundOwned) {
+  const listed = Array.isArray(raw?.soundOwned) ? raw.soundOwned : null;
+  const owned: string[] = listed && listed.length === 0 ? [] : [...STARTER_SOUND_IDS];
+  if (listed) {
+    for (const id of listed) {
       if (typeof id === 'string' && SOUND_PACK_BY_ID[id] && !owned.includes(id)) owned.push(id);
     }
   }
