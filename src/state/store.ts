@@ -47,18 +47,23 @@ import {
   purgeTrash,
   pushLog,
   pushLogDedup,
+  purchaseArchiveMetaOf,
   readRecord,
   snapshotMetaOf,
   upsertSnapshot,
   type LogKind,
+  type PurchaseArchiveMeta,
   type SnapshotMeta,
+  type SpendKind,
   type VaultState,
 } from '../engine/vault';
 import {
   broadcastChange,
   createGuardedStorage,
   MAIN_KEY,
+  readPurchaseArchive,
   readSnapshot,
+  writePurchaseArchive,
   writeSnapshot,
 } from '../platform/vault';
 import { useStorageHealth } from './health';
@@ -498,6 +503,12 @@ interface AppState {
   dropTrashed: (at: number) => void;
   /** Вернуть состояние из резервной копии (слот 1..3). */
   restoreSnapshot: (slot: number) => Promise<boolean>;
+  /**
+   * Вернуть состояние из копии «до последней покупки» (0.36.0): кристаллы
+   * на месте, вещи из покупки нет. Текущее состояние перед этим сохраняется
+   * в обычную копию — возврат тоже отменяемый.
+   */
+  restorePurchaseArchive: () => Promise<boolean>;
   /** Отметить, что родитель сохранил файл выгрузки. */
   noteExport: () => void;
   /** Повторить чтение сохранённого после сбоя. */
@@ -597,6 +608,159 @@ const guardedStorage = createGuardedStorage({
     }
   },
 });
+
+// ── Защита накоплений (0.36.0) ───────────────────────────────────────────────
+//
+// Покупка — единственное действие, где результат нельзя переиграть: кристаллы
+// уходят насовсем. До 0.36.0 порядок был «списали в памяти → когда-нибудь
+// запишем». Если запись не удавалась (квота, приватный режим, чистка iOS) или
+// её затирала вторая открытая копия приложения, ребёнок оставался без вещи —
+// и без кристаллов после перезапуска выглядел «обманутым».
+//
+// Теперь каждая трата идёт по трём шагам:
+//   1) ВСЕГДА снимается копия всей записи ДО списания (отдельный ключ,
+//      PURCHASE_KEY) — она встаёт в очередь хранилища раньше записи покупки;
+//   2) списание и товар меняются одной операцией состояния (промежуточного
+//      состояния «кристаллы ушли, товара нет» не существует);
+//   3) после записи сторож читает базу и сверяет результат. Не сошлось —
+//      состояние возвращается к копии, а ребёнок видит честное сообщение.
+//
+// Режим максимальной защиты включён ВСЕГДА и не выключается: отключаемая защита
+// не защищает (docs/proposals/savings-protection.md).
+
+interface PendingSpend {
+  profileId: string;
+  label: string;
+  kind: SpendKind;
+  price: number;
+  gemsBefore: number;
+  gemsAfter: number;
+  /** Запись «как было» целиком — точный откат, а не вычитание дельты. */
+  before: string;
+  at: number;
+}
+
+/** Состояние в том же виде, в каком его пишет zustand persist. */
+function serializedState(): string {
+  const s = useApp.getState();
+  return JSON.stringify({
+    state: { profiles: s.profiles, activeId: s.activeId, settings: s.settings, vault: s.vault },
+    version: 1,
+  });
+}
+
+/** Профиль из записанного состояния: им проверяем, что трата правда в базе. */
+function profileInRecord(raw: string | null, id: string): Profile | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as { state?: { profiles?: Profile[] } };
+    return parsed.state?.profiles?.find((p) => p?.id === id) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Снять копию «до списания» и вернуть чек траты.
+ *
+ * Копия ставится в очередь хранилища ПЕРЕД записью покупки (persist пишет
+ * синхронно при следующем set), поэтому в базе она не может оказаться позже
+ * покупки. Сбой копии покупку не отменяет — но тогда её и не подтвердит
+ * проверка: откат вернёт состояние в памяти.
+ */
+function beginSpend(args: {
+  kind: SpendKind;
+  label: string;
+  price: number;
+  profile: Profile;
+  gemsAfter: number;
+}): PendingSpend {
+  const { kind, label, price, profile, gemsAfter } = args;
+  const before = serializedState();
+  const spend: PendingSpend = {
+    profileId: profile.id,
+    label,
+    kind,
+    price,
+    gemsBefore: profile.gems,
+    gemsAfter,
+    before,
+    at: Date.now(),
+  };
+  void guardedStorage.enqueue(() => writePurchaseArchive(before).catch(() => undefined));
+  return spend;
+}
+
+/** Метка копии для сейфа — едет в том же set, что и сама покупка. */
+function spendMeta(spend: PendingSpend, profileName: string): PurchaseArchiveMeta {
+  return purchaseArchiveMetaOf(spend.before, {
+    at: spend.at,
+    kind: spend.kind,
+    label: spend.label,
+    price: spend.price,
+    gemsBefore: spend.gemsBefore,
+    gemsAfter: spend.gemsAfter,
+    profileId: spend.profileId,
+    profileName,
+  });
+}
+
+/**
+ * Легла ли трата в базу: читаем записанное состояние и смотрим на сам результат
+ * (вещь в коллекции, оттенок выбран…). Кристаллы намеренно не сверяем: между
+ * покупкой и проверкой ребёнок мог получить награду или купить что-то ещё, и
+ * сравнение баланса давало бы ложные откаты.
+ */
+async function spendLanded(spend: PendingSpend, landed: (p: Profile) => boolean): Promise<boolean> {
+  const raw = await guardedStorage.enqueue(async () =>
+    Promise.resolve(idbStorage.getItem(MAIN_KEY)).catch(() => null),
+  );
+  const saved = profileInRecord(raw, spend.profileId);
+  return !!saved && landed(saved);
+}
+
+/**
+ * Проверка после записи: результат траты должен быть в базе. Не сошлось —
+ * откат к копии «до покупки». Вторая попытка через 400 мс — на медленных
+ * телефонах: очередь хранилища может ещё дописывать запись.
+ */
+function confirmSpend(spend: PendingSpend, landed: (p: Profile) => boolean): void {
+  void (async () => {
+    if (await spendLanded(spend, landed)) return;
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    if (await spendLanded(spend, landed)) return;
+    undoSpend(spend);
+  })().catch(() => undefined);
+}
+
+/**
+ * Трата не легла в базу — возвращаем ровно то, что было до неё.
+ *
+ * Кристаллы и покупки восстанавливаются из копии, а не пересчётом: между
+ * нажатием и проверкой ребёнок мог успеть получить награду, и «вернуть дельту»
+ * значило бы подарить или отнять лишнее.
+ */
+function undoSpend(spend: PendingSpend): void {
+  let old: Profile | undefined;
+  try {
+    const parsed = JSON.parse(spend.before) as { state?: { profiles?: Profile[] } };
+    old = parsed.state?.profiles?.find((p) => p?.id === spend.profileId);
+  } catch {
+    old = undefined;
+  }
+  if (!old) return;
+  useApp.setState((s) => ({
+    profiles: s.profiles.map((p) =>
+      p.id === spend.profileId ? { ...p, gems: old!.gems, shop: old!.shop, puzzle: old!.puzzle } : p,
+    ),
+    vault: pushLog(s.vault, 'purchase-failed', `${spend.label} · ${spend.price} 💎`),
+  }));
+  useApp.getState().showToast({
+    emoji: '🛟',
+    title: 'Покупка не сохранилась',
+    text: `${spend.label}: кристаллы вернули. Попробуй ещё раз — всё как было до покупки.`,
+  });
+}
 
 /**
  * Разбор после чтения сохранения. Главная проверка: если в записи кто-то был,
@@ -995,8 +1159,17 @@ export const useApp = create<AppState>()(
         const item = ITEM_BY_ID[id];
         const p = getActive(get());
         if (!item || !p || isOwned(readShop(p).owned, id) || p.gems < item.price) return false;
-        set((s) =>
-          patchActive(s, (prof) => {
+        // Копия «до списания» — до того, как кристаллы куда-то денутся.
+        const spend = beginSpend({
+          kind: 'buy',
+          label: item.title,
+          price: item.price,
+          profile: p,
+          gemsAfter: p.gems - item.price,
+        });
+        const meta = spendMeta(spend, p.name);
+        set((s) => ({
+          ...patchActive(s, (prof) => {
             const shop = readShop(prof);
             return {
               ...prof,
@@ -1010,7 +1183,10 @@ export const useApp = create<AppState>()(
               },
             };
           }),
-        );
+          vault: { ...pushLog(s.vault, 'purchase', `${item.title} · ${item.price} 💎`), purchase: meta },
+        }));
+        // Покупка считается состоявшейся, только если она правда легла в базу.
+        confirmSpend(spend, (prof) => isOwned(readShop(prof).owned, id));
         return true;
       },
 
@@ -1019,8 +1195,18 @@ export const useApp = create<AppState>()(
         const p = getActive(get());
         if (!item || !p || !isOwned(readShop(p).owned, id)) return false;
         const refund = sellPrice(item);
-        set((s) =>
-          patchActive(s, (prof) => {
+        // Сдача вещи — тоже необратимая трата (вещь уходит из коллекции),
+        // поэтому копия «как было» снимается и здесь.
+        const spend = beginSpend({
+          kind: 'sell',
+          label: item.title,
+          price: refund,
+          profile: p,
+          gemsAfter: p.gems + refund,
+        });
+        const meta = spendMeta(spend, p.name);
+        set((s) => ({
+          ...patchActive(s, (prof) => {
             const shop = readShop(prof);
             // Вещь уходит — снимаем с совы/подиума и её краски:
             // открытые оттенки не повышают цену сдачи (как допы в реальности).
@@ -1049,7 +1235,12 @@ export const useApp = create<AppState>()(
               },
             };
           }),
-        );
+          vault: {
+            ...pushLog(s.vault, 'purchase', `сдано: ${item.title} · +${refund} 💎`),
+            purchase: meta,
+          },
+        }));
+        confirmSpend(spend, (prof) => !isOwned(readShop(prof).owned, id));
         return true;
       },
 
@@ -1091,18 +1282,30 @@ export const useApp = create<AppState>()(
         if (!track || !p) return false;
         const shop = readShop(p);
         if (shop.musicOwned?.includes(id) || p.gems < track.price) return false;
-        set((s) => patchActive(s, (prof) => {
-          const current = readShop(prof);
-          return {
-            ...prof,
-            gems: prof.gems - track.price,
-            shop: {
-              ...current,
-              musicOwned: [...(current.musicOwned ?? []), id],
-              wishlist: current.wishlist?.filter((x) => x !== id),
-            },
-          };
+        const spend = beginSpend({
+          kind: 'music',
+          label: track.title,
+          price: track.price,
+          profile: p,
+          gemsAfter: p.gems - track.price,
+        });
+        const meta = spendMeta(spend, p.name);
+        set((s) => ({
+          ...patchActive(s, (prof) => {
+            const current = readShop(prof);
+            return {
+              ...prof,
+              gems: prof.gems - track.price,
+              shop: {
+                ...current,
+                musicOwned: [...(current.musicOwned ?? []), id],
+                wishlist: current.wishlist?.filter((x) => x !== id),
+              },
+            };
+          }),
+          vault: { ...pushLog(s.vault, 'purchase', `${track.title} · ${track.price} 💎`), purchase: meta },
         }));
+        confirmSpend(spend, (prof) => !!readShop(prof).musicOwned?.includes(id));
         return true;
       },
 
@@ -1120,14 +1323,26 @@ export const useApp = create<AppState>()(
         const shop = readShop(p);
         // Бесплатные наборы не покупаются, а уже открытые — не покупаются повторно.
         if (!canBuySoundPack(pack, p.gems, shop.soundOwned ?? [])) return false;
-        set((s) => patchActive(s, (prof) => {
-          const current = readShop(prof);
-          return {
-            ...prof,
-            gems: prof.gems - pack.price,
-            shop: { ...current, soundOwned: [...(current.soundOwned ?? []), id] },
-          };
+        const spend = beginSpend({
+          kind: 'sound',
+          label: pack.title,
+          price: pack.price,
+          profile: p,
+          gemsAfter: p.gems - pack.price,
+        });
+        const meta = spendMeta(spend, p.name);
+        set((s) => ({
+          ...patchActive(s, (prof) => {
+            const current = readShop(prof);
+            return {
+              ...prof,
+              gems: prof.gems - pack.price,
+              shop: { ...current, soundOwned: [...(current.soundOwned ?? []), id] },
+            };
+          }),
+          vault: { ...pushLog(s.vault, 'purchase', `${pack.title} · ${pack.price} 💎`), purchase: meta },
         }));
+        confirmSpend(spend, (prof) => !!readShop(prof).soundOwned?.includes(id));
         return true;
       },
 
@@ -1159,17 +1374,33 @@ export const useApp = create<AppState>()(
         // Меняем профиль только когда цвет действительно поменялся: «no-gems»,
         // «not-owned» и повторный выбор того же оттенка не пишут ничего.
         if (res.outcome === 'switched' || res.outcome === 'opened') {
+          // Открытие нового оттенка стоит кристаллов — значит, тоже под защитой.
+          const spend =
+            res.spend > 0
+              ? beginSpend({
+                  kind: 'tint',
+                  label: `${ITEM_BY_ID[itemId]?.title ?? itemId} · ${tintId}`,
+                  price: res.spend,
+                  profile: prof,
+                  gemsAfter: Math.max(0, prof.gems - res.spend),
+                })
+              : null;
+          const meta = spend ? spendMeta(spend, prof.name) : null;
           // Пишем только краски: res.shop собран из owned/equipped/tuning, и
           // если отдать его целиком, пропадут musicTrack, musicOwned, звуки и
           // мечты. Миграция музыки тогда считает выбор «не сделан» и включает
           // первую мелодию — ребёнок её не включал (жалоба 0.24.x).
-          set((s) =>
-            patchActive(s, (p) => ({
+          set((s) => ({
+            ...patchActive(s, (p) => ({
               ...p,
               gems: Math.max(0, p.gems - res.spend),
               shop: { ...readShop(p), tuning: res.shop.tuning },
             })),
-          );
+            ...(meta ? { vault: { ...s.vault, purchase: meta } } : {}),
+          }));
+          if (spend) {
+            confirmSpend(spend, (p) => readShop(p).tuning?.current[itemId] === tintId);
+          }
         }
         return res.outcome;
       },
@@ -1383,6 +1614,45 @@ export const useApp = create<AppState>()(
         const summary = readRecord(raw);
         set((s) => ({
           vault: pushLog(s.vault, 'restore-snapshot', summary ? `${summary.count} профилей` : 'копия'),
+        }));
+        return true;
+      },
+
+      /**
+       * Возврат к состоянию «до покупки». Тот же безопасный порядок, что у
+       * restoreSnapshot: прямые операции с записью идут через очередь сторожа,
+       * иначе «висящее» в очереди сохранение легло бы поверх восстановления.
+       */
+      restorePurchaseArchive: async () => {
+        const raw = await readPurchaseArchive();
+        if (!raw) return false;
+        // Подпись берём до восстановления: в самой копии лежит метка более
+        // ранней траты, и журнал сказал бы не про ту покупку.
+        const label = useApp.getState().vault.purchase?.label;
+        const spare = await guardedStorage.enqueue(async () => {
+          const current = await Promise.resolve(idbStorage.getItem(MAIN_KEY)).catch(() => null);
+          let spareMeta: { prev: string; slot: number } | null = null;
+          if (current && current !== raw) {
+            const spareSlot = nextSlot(useApp.getState().vault.snapshots);
+            // Копия «того, что было до возврата»: возврат тоже отменяемый.
+            await writeSnapshot(spareSlot, current).catch(() => undefined);
+            spareMeta = { prev: current, slot: spareSlot };
+          }
+          await idbStorage.setItem(MAIN_KEY, raw);
+          return spareMeta;
+        });
+        unfreeze();
+        await Promise.resolve(useApp.persist.rehydrate()).catch(() => undefined);
+        if (spare) {
+          set((st) => ({
+            vault: {
+              ...st.vault,
+              snapshots: upsertSnapshot(st.vault.snapshots, snapshotMetaOf(spare.prev, spare.slot, Date.now())),
+            },
+          }));
+        }
+        set((s) => ({
+          vault: pushLog(s.vault, 'purchase-restore', label ? `до покупки «${label}»` : undefined),
         }));
         return true;
       },

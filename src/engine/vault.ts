@@ -25,6 +25,37 @@ export const EXPORT_REMINDER_MS = 14 * 24 * 60 * 60 * 1000;
 
 export type TrashReason = 'delete' | 'reset' | 'import' | 'invalid';
 
+/** За что именно снята копия «до списания кристаллов». */
+export type SpendKind = 'buy' | 'sell' | 'music' | 'sound' | 'tint';
+
+/**
+ * Копия записи, снятая перед последней тратой кристаллов (0.36.0).
+ *
+ * Зачем: покупка — единственное действие, где кристаллы уходят безвозвратно.
+ * Если запись о ней не ляжет в базу (квота, приватный режим, чистка iOS) или
+ * её затрёт вторая открытая копия приложения, ребёнок останется и без
+ * кристаллов, и без вещи. Копия «как было» лежит отдельным ключом IndexedDB —
+ * её можно вернуть из раздела «Родителям → Прогресс» одной кнопкой.
+ *
+ * Копия НЕ содержит покупки: это ровно то состояние, в котором кристаллы ещё
+ * целы. Поэтому худший случай после сбоя — «кристаллы на месте, вещи нет»,
+ * а не «списались и ничего не появилось».
+ */
+export interface PurchaseArchiveMeta {
+  at: number;
+  kind: SpendKind;
+  /** Название вещи/трека/набора — чтобы родителю было понятно, что отменяем. */
+  label: string;
+  price: number;
+  gemsBefore: number;
+  gemsAfter: number;
+  profileId: string;
+  profileName: string;
+  bytes: number;
+  profiles: number | null;
+  xp: number | null;
+}
+
 export type LogKind =
   | 'boot'
   | 'hydrate-ok'
@@ -40,7 +71,13 @@ export type LogKind =
   | 'export'
   | 'fresh-start'
   | 'persist-on'
-  | 'persist-off';
+  | 'persist-off'
+  /** Снята копия перед покупкой (0.36.0). */
+  | 'purchase'
+  /** Покупка не легла в базу — состояние вернули к копии. */
+  | 'purchase-failed'
+  /** Родитель вернул состояние из копии «перед покупкой». */
+  | 'purchase-restore';
 
 export interface TrashedProfile {
   profile: Profile;
@@ -70,10 +107,12 @@ export interface VaultState {
   log: LogEntry[];
   snapshots: SnapshotMeta[];
   lastExportAt: number | null;
+  /** Копия «до последней покупки» — одна, перезаписывается каждой тратой. */
+  purchase: PurchaseArchiveMeta | null;
 }
 
 export function emptyVault(): VaultState {
-  return { trash: [], log: [], snapshots: [], lastExportAt: null };
+  return { trash: [], log: [], snapshots: [], lastExportAt: null, purchase: null };
 }
 
 // ── Журнал ───────────────────────────────────────────────────────────────────
@@ -150,6 +189,20 @@ export function readRecord(raw: string | null | undefined): RecordSummary | null
   }
 }
 
+/** Метка копии «до покупки»: та же сводка, что у обычных копий, плюс сама покупка. */
+export function purchaseArchiveMetaOf(
+  raw: string,
+  meta: Omit<PurchaseArchiveMeta, 'bytes' | 'profiles' | 'xp'>,
+): PurchaseArchiveMeta {
+  const s = readRecord(raw);
+  return {
+    ...meta,
+    bytes: raw.length,
+    profiles: s ? s.count : null,
+    xp: s ? s.xp : null,
+  };
+}
+
 export function snapshotMetaOf(raw: string, slot: number, at: number): SnapshotMeta {
   const s = readRecord(raw);
   return {
@@ -159,6 +212,24 @@ export function snapshotMetaOf(raw: string, slot: number, at: number): SnapshotM
     profiles: s ? s.count : null,
     xp: s ? s.xp : null,
     names: s ? s.names : [],
+  };
+}
+
+/**
+ * Частично испорченная метка копии «до покупки» не должна ломать чтение сейфа:
+ * обязательные поля проверены, остальные аккуратно достраиваем.
+ */
+function normalizePurchaseMeta(raw: unknown): PurchaseArchiveMeta | null {
+  if (!isPurchaseArchiveMeta(raw)) return null;
+  return {
+    ...raw,
+    kind: raw.kind ?? 'buy',
+    label: raw.label.trim() || 'покупка',
+    profileName: typeof raw.profileName === 'string' ? raw.profileName : '',
+    gemsAfter: typeof raw.gemsAfter === 'number' ? raw.gemsAfter : raw.gemsBefore,
+    profiles: typeof raw.profiles === 'number' ? raw.profiles : null,
+    xp: typeof raw.xp === 'number' ? raw.xp : null,
+    bytes: typeof raw.bytes === 'number' ? raw.bytes : 0,
   };
 }
 
@@ -247,6 +318,19 @@ function isSnapshotMeta(x: unknown): x is SnapshotMeta {
   return !!s && typeof s.slot === 'number' && typeof s.at === 'number';
 }
 
+function isPurchaseArchiveMeta(x: unknown): x is PurchaseArchiveMeta {
+  const p = x as PurchaseArchiveMeta;
+  return (
+    !!p &&
+    typeof p.at === 'number' &&
+    Number.isFinite(p.at) &&
+    typeof p.label === 'string' &&
+    typeof p.profileId === 'string' &&
+    typeof p.price === 'number' &&
+    typeof p.gemsBefore === 'number'
+  );
+}
+
 export function normalizeVault(raw: unknown): VaultState {
   const v = (raw ?? {}) as Partial<VaultState>;
   return {
@@ -256,6 +340,8 @@ export function normalizeVault(raw: unknown): VaultState {
       : [],
     snapshots: Array.isArray(v.snapshots) ? v.snapshots.filter(isSnapshotMeta).slice(0, SNAPSHOT_SLOTS) : [],
     lastExportAt: typeof v.lastExportAt === 'number' && Number.isFinite(v.lastExportAt) ? v.lastExportAt : null,
+    // Битые метки не повод терять сейф: просто считаем, что копии нет.
+    purchase: normalizePurchaseMeta(v.purchase),
   };
 }
 
@@ -297,4 +383,7 @@ export const LOG_LABEL: Record<LogKind, string> = {
   'fresh-start': 'начато заново',
   'persist-on': 'защита от очистки включена',
   'persist-off': 'защита от очистки недоступна',
+  purchase: 'копия перед покупкой',
+  'purchase-failed': 'покупка не сохранилась — отменена',
+  'purchase-restore': 'возврат к состоянию до покупки',
 };
