@@ -528,6 +528,127 @@ p {
   font-weight: 700;
   white-space: nowrap;
 }
+/* ── «Задания дня» полоской на главной (0.35.0) ─────────────────────────
+   Одна строка вместо прежнего блока: прогресс, приз и что можно забрать.
+   Вся полоска — одна кнопка (лист наград), поэтому здесь нет ни «Начать»,
+   ни «Забрать»: они живут в листе и на герое. */
+.quest-strip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 64px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: var(--r-lg);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.quest-strip:active {
+  transform: translateY(1px);
+}
+.quest-strip:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+/* Готово что-то забрать — рамка и мягкий фон говорят об этом без анимации. */
+.quest-strip.ready {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.quest-strip-icon {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--bg);
+  font-size: 20px;
+  line-height: 1;
+}
+.quest-strip-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.quest-strip-title {
+  font-weight: 800;
+  font-size: var(--fs-sm);
+  line-height: 1.2;
+}
+.quest-strip-count {
+  color: var(--ink-2);
+  font-weight: 700;
+}
+.quest-strip-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.quest-strip-keys {
+  display: inline-flex;
+  flex: none;
+  gap: 3px;
+}
+/* Три значка заданий: закрытые — с рамкой и полным цветом, открытые тише. */
+.quest-strip-key {
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  font-size: 10px;
+  line-height: 1;
+  opacity: 0.45;
+  filter: grayscale(1);
+}
+.quest-strip-key.on {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  opacity: 1;
+  filter: none;
+}
+.quest-strip-phrase {
+  overflow: hidden;
+  color: var(--ink-2);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.quest-strip-arrow {
+  flex: none;
+  margin-left: auto;
+  color: var(--ink-2);
+  font-size: 22px;
+  line-height: 1;
+}
+@media (max-width: 359px) {
+  /* 320 px: фраза должна остаться читаемой, значки чуть меньше. */
+  .quest-strip {
+    gap: 8px;
+    padding: 10px;
+  }
+  .quest-strip-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 18px;
+  }
+  .quest-strip-key {
+    width: 16px;
+    height: 16px;
+    font-size: 9px;
+  }
+}
+
 /* ── Экран «Кто будет учиться?»: карточки учеников (0.33.0) ──────────────
    Экран отвечает на вопрос «кто учится?», поэтому ученик — крупная строка,
    а не мелкая подпись над формой нового профиля. Тап по строке = выбрать

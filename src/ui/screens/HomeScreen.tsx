@@ -11,6 +11,7 @@ import { dayKey, useActiveProfile, useApp } from '../../state/store';
 import { Crowns } from '../Bits';
 import { ClassSheet } from '../ClassSheet';
 import { DailyQuests } from '../DailyQuests';
+import { DailyQuestStrip } from '../DailyQuestStrip';
 import { InviteFriend } from '../InviteFriend';
 import { WeeklyRewards } from '../WeeklyRewards';
 import { levelOf } from '../../engine/rewards';
@@ -187,6 +188,12 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
           <span aria-hidden="true">☰</span>
         </button>
       </div>
+
+      {/* «Задания дня» — одной строкой над героем (0.35.0). Дети видят их
+          каждый день, но подробности, «Забрать» и сундук остаются в листе
+          наград: на главной ноль конкурирующих кнопок, «Начать ▶» — главное
+          действие. docs/proposals/daily-quests-on-home.md */}
+      <DailyQuestStrip onOpen={() => setRewardsOpen(true)} />
 
       {classDone && !reviewDue ? (
         <button

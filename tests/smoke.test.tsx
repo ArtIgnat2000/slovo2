@@ -1193,8 +1193,10 @@ async function main() {
     document.querySelector('.topbar')?.innerHTML.slice(0, 160) ?? '',
   );
   check(
-    'на главной награды за меню ☰, а не полотном',
-    !!document.querySelector('[data-menu-trigger]') && !document.querySelector('.quest'),
+    'на главной задания — полоской, а награды — за меню ☰, а не полотном',
+    !!document.querySelector('[data-menu-trigger]') &&
+      !!document.querySelector('[data-quest-strip]') &&
+      !document.querySelector('.quest'),
     '',
   );
   const topbarButtons = Array.from(document.querySelectorAll('.topbar button'));
