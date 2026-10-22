@@ -318,10 +318,6 @@
       .foot { max-width: 1280px; margin: 26px auto 0; padding: 0 24px 48px; color: var(--ink-3); font-size: 12px; line-height: 1.55; }
       .foot b { color: var(--ink-2); }
 
-      #stage { position: fixed; left: -10000px; top: 0; pointer-events: none; opacity: 0; }
-      #stage .measure-wrap { box-sizing: border-box; font-family: var(--font); }
-      #stage .topbar { margin: 0; }
-
       @media (max-width: 600px) {
         .page-head { padding-top: 24px; }
         .variants { grid-template-columns: minmax(0, 1fr); padding: 0 12px; }
@@ -441,8 +437,6 @@
       зашиты в таблицу.
     </p>
 
-    <div id="stage" aria-hidden="true"></div>
-
     <script>
       const profileBtn = (name = 'Маша') => `
         <button type="button" class="profile-btn" aria-label="Профиль: ${name}. Сменить ученика">
@@ -536,7 +530,7 @@
             '<b>Одно действие в строке</b> — награды; профиль читается как личность',
             'Имя на месте даже на 320 px (50 px под «Машу»), длинное — многоточием',
             'Цели 44 px, числа тёмные — контраст в норме',
-            'Запас на 320 px — 32 px: строка целая даже с 💎 1234',
+            'Свободный зазор на 320 px — 17 px: имя видно, строка целая',
             'Рамка только у наград: статус не притворяется кнопкой',
           ],
           cons: [
@@ -642,25 +636,28 @@
         grid.appendChild(card);
       }
 
-      const stage = document.getElementById('stage');
-
+      /**
+       * Меряем настоящую строку из карточки варианта, а не копию в отдельном
+       * контейнере: копия живёт без `.screen` и получает другие метрики шрифта,
+       * из-за чего таблица и подпись под телефоном расходились.
+       * Ширину ставим временно и сразу возвращаем — синхронно, без перерисовки.
+       */
       function measure(v, width) {
-        if (!v.header) return { none: true, blocks: 0, buttons: 0, name: null, overflow: 0, minTarget: null, wrapped: false };
-        const content = width - 32;
-        const wrap = document.createElement('div');
-        wrap.className = 'measure-wrap';
-        wrap.dataset.w = String(width);
-        wrap.style.width = content + 'px';
-        wrap.innerHTML = v.header;
-        stage.replaceChildren(wrap);
-        const row = wrap.querySelector('.topbar');
-        if (!row) return { none: true, blocks: 0, buttons: 0, name: null, overflow: 0, minTarget: null, wrapped: false };
+        const phone = document.querySelector(`[data-variant="${v.id}"] .phone`);
+        if (!phone || v.id === 'd') {
+          return { none: true, blocks: 0, buttons: 0, name: null, overflow: 0, minTarget: null, wrapped: false };
+        }
+        const prev = phone.style.getPropertyValue('--w');
+        phone.style.setProperty('--w', width + 'px');
+        const row = phone.querySelector('.topbar');
         const name = row.querySelector('.topbar-name');
-        // scrollWidth учитывает и абсолютно позиционированный бейдж, который
-        // специально свисает с угла кнопки. Считаем по прямым детям строки.
+        // scrollWidth учитывает абсолютно позиционированный бейдж, который
+        // нарочно свисает с угла кнопки. Считаем по прямым детям строки.
         const rowRect = row.getBoundingClientRect();
         const kids = [...row.children].filter((el) => el.getBoundingClientRect().width > 0);
-        const rightEdge = kids.length ? Math.max(...kids.map((el) => el.getBoundingClientRect().right)) : rowRect.right;
+        const rightEdge = kids.length
+          ? Math.max(...kids.map((el) => el.getBoundingClientRect().right))
+          : rowRect.right;
         const overflow = Math.max(0, Math.round(rightEdge - rowRect.right));
         const stats = [...row.querySelectorAll('.stat-pill, .topbar-stat')];
         const wrapped = stats.some((el) => el.getBoundingClientRect().height > 40);
@@ -670,6 +667,8 @@
           : null;
         const blocks = [...row.children].filter((el) => !el.classList.contains('grow')).length;
         const nameWidth = name ? Math.round(name.getBoundingClientRect().width) : null;
+        if (prev) phone.style.setProperty('--w', prev);
+        else phone.style.removeProperty('--w');
         return { none: false, blocks, buttons: btns.length, name: nameWidth, overflow, minTarget, wrapped };
       }
 
