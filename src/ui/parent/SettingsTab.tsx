@@ -102,7 +102,7 @@ export function SettingsTab({ profile, onOpenDiagnostics }: { profile: Profile; 
 
       <div className="card">
         <GroupTitle title="Звук и отклик" />
-        <SettingRow title="Звук" hint="Звуковые эффекты: правильный ответ, ошибка, награда и сундук. Мелодии ответа ребёнок выбирает в магазине → «Звуки».">
+        <SettingRow title="Звук" hint="Звуковые эффекты: правильный ответ, ошибка, награда и сундук. Мелодии ответа ребёнок выбирает в БУКе → «Витрина» → «Звуки».">
           <Switch
             label="Звук"
             checked={settings.sound}
@@ -143,7 +143,7 @@ export function SettingsTab({ profile, onOpenDiagnostics }: { profile: Profile; 
 
       <div className="card">
         <GroupTitle title="Вид" />
-        <SettingRow title="Цветовая схема" hint="Светлая, тёмная или как в телефоне. Стиль оформления выбирается в магазине → Фоны.">
+        <SettingRow title="Цветовая схема" hint="Светлая, тёмная или как в телефоне. Стиль оформления выбирается в БУКе → «Витрина» → «Фоны».">
           <Choice
             label="Цветовая схема"
             value={settings.theme}

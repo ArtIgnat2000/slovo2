@@ -348,6 +348,24 @@ p {
   color: var(--primary);
 }
 
+/* ── «Мои покупки»: пустое состояние одной карточкой (0.32.1) ─────────────
+   У новичка секции «Наряды / Техника / Костюмы / Музыка» раньше показывали
+   четыре подряд «Пока пусто». Теперь пустых секций нет, а вместо них —
+   одно приглашение в витрину (docs/proposals/buk-shop-ux.md). */
+.shop-empty {
+  padding: 20px 16px;
+  text-align: center;
+}
+.shop-empty-emoji {
+  font-size: 40px;
+  line-height: 1;
+}
+.shop-empty-title {
+  margin-top: 6px;
+  font-size: var(--fs-lg);
+  font-weight: 800;
+}
+
 /* ── Главная «Уроки»: герой «Сегодня» и спокойные мета-блоки (2026-10-15) ─
    Один главный удар на первый экран. Цель, квесты, неделя остаются, но
    без рамки-на-рамке и без второго CTA. Путь — отдельная глава ниже. */
@@ -714,6 +732,39 @@ p {
 
 .home-path-title {
   margin: 20px 0 12px;
+}
+/* «Позови друга» на главной (0.32.1): ссылка в один тап с первого экрана.
+   Мягкая строка во всю ширину: её видно, но она не спорит с «Начать ▶» —
+   у героя сплошная заливка, здесь бледный фон и ни одной рамки. */
+.invite-cta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  margin: 2px 0 0;
+  padding: 8px 14px;
+  background: var(--primary-soft);
+  border: none;
+  border-radius: var(--r-pill);
+  color: var(--ink);
+  font-weight: 800;
+  font-size: var(--fs-sm);
+  line-height: 1.2;
+  text-align: left;
+  cursor: pointer;
+}
+.invite-cta-text {
+  min-width: 0;
+}
+/* Стрелка уводит вправо — так строка читается как переход, а не как подпись. */
+.invite-cta-arrow {
+  margin-left: auto;
+  color: var(--primary);
+}
+.invite-cta:active {
+  background: var(--primary-soft);
+  filter: brightness(0.96);
 }
 .node-btn.quiet {
   box-shadow: 0 2px 0 var(--line);

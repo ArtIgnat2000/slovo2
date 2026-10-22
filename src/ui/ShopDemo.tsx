@@ -470,7 +470,7 @@ function Demo() {
             {/* ── Шапка: название и баланс — и больше ничего ─────────── */}
             <div className="mz-sticky">
               <div className="row mb">
-                <h1 className="grow" style={{ margin: 0, fontSize: 'var(--fs-lg)' }}>Магазин БУКа 🎩</h1>
+                <h1 className="grow" style={{ margin: 0, fontSize: 'var(--fs-lg)' }}>БУК 🎩</h1>
                 <div className="stat-pill gems">💎 {gems}</div>
               </div>
               <div className="mx-seg" role="tablist" aria-label="Витрина или гардероб">
@@ -478,7 +478,7 @@ function Demo() {
                   🛍️ Витрина
                 </button>
                 <button role="tab" aria-selected={view === 'wardrobe'} className={view === 'wardrobe' ? 'on' : ''} onClick={() => setView('wardrobe')}>
-                  👕 Гардероб · {owned.length + assembled.length + musicOwned.length}
+                  🎒 Мои покупки · {owned.length + assembled.length + musicOwned.length}
                 </button>
               </div>
               {view === 'vitrina' && (
@@ -762,7 +762,7 @@ function Demo() {
 
             {view === 'wardrobe' && (
               <>
-                {/* ── Гардероб: примерочная и коллекция ────────────────── */}
+                {/* ── Мои покупки: примерочная и коллекция ─────────────── */}
                 <div className="card mb shop-stage" style={{ margin: '12px 14px 0' }}>
                   <button className="shop-mascot" aria-label="БУК в твоём наряде" onClick={dance}>
                     <Mascot mood={mood} look={wornLook} costumeId={worn} stage={growth.index} size={132} />
@@ -802,7 +802,7 @@ function Demo() {
                 </div>
 
                 <div className="mz-sec">
-                  <h2>Моя техника</h2>
+                  <h2>Техника</h2>
                   {TOY_ITEMS.filter((i) => owned.includes(i.id)).length === 0 && (
                     <p className="tiny muted">Пока пусто. Техника живёт на полке «Техника»</p>
                   )}
@@ -854,7 +854,7 @@ function Demo() {
                 </div>
 
                 <div className="mz-sec">
-                  <h2>Моя музыка</h2>
+                  <h2>Музыка</h2>
                   {musicOwned.length === 0 && <p className="tiny muted">Пока тихо. Купленные мелодии живут здесь.</p>}
                 </div>
                 <div style={{ padding: '0 14px 6px' }}>
@@ -1149,7 +1149,7 @@ function Demo() {
           <div className="card mb">
             <h3 style={{ marginTop: 0 }}>Что изменилось против сегодняшнего магазина</h3>
             <ul style={{ margin: 0, paddingLeft: 18 }}>
-              <li><b>Витрина / Гардероб</b> — «хочу» и «моё» больше не смешаны в одной ленте</li>
+              <li><b>Витрина / Мои покупки</b> — «хочу» и «моё» больше не смешаны в одной ленте</li>
               <li><b>Фоны и оформление</b> — пять бесплатных стилей; светлая/тёмная схема выбирается отдельно</li>
               <li><b>Чипы-полки по типу товара</b> — новый раздел (например, звуки) = новый чип, без переделки экрана</li>
               <li><b>Витрина-бутик</b> — арочные ниши с лампой и подиумом вместо плоской сетки карточек</li>
@@ -1157,7 +1157,7 @@ function Demo() {
               <li><b>Техника</b> — авто, телефоны и корабли: три подполки, стоят рядом с БУКом</li>
               <li><b>Один макет карточки</b> для всех типов: арт, название, цена/статус, одно действие</li>
               <li><b>Герой-секция</b> — одна ближайшая цель копления, а не 20 ценников сразу</li>
-              <li><b>Сердце 🤍</b> — мечта без давления; прогресс копления — в Гардеробе</li>
+              <li><b>Сердце 🤍</b> — мечта без давления; прогресс копления — в «Моих покупках»</li>
               <li><b>Подробная карточка — снизу (sheet)</b>: примерка крупно, палитра и покупка в одном месте, верстка не прыгает</li>
               <li><b>Музыка — одна полка</b>, а не половина экрана: примерка и выбор в карточке</li>
             </ul>
@@ -1166,7 +1166,7 @@ function Demo() {
             <h3 style={{ marginTop: 0 }}>Попробуй в макете</h3>
             <ol style={{ margin: 0, paddingLeft: 18 }}>
               <li>Купи <b>Шарфик</b> (30 💎 — как раз хватает): подтверждение, надевание, танец</li>
-              <li>Открой <b>Мечты</b> в Гардеробе — прогресс копления по шарфу и «Пикселяндии»</li>
+              <li>Открой <b>Мечты</b> в «Моих покупках» — прогресс копления по шарфу и «Пикселяндии»</li>
               <li>Переключись на <b>Технику</b>: три полки, ближайшая покупка и ConfirmDialog</li>
               <li>Переключись на <b>Костюмы</b>: активный сбор крупно, остальные — сеткой</li>
               <li>Открой карточку <b>Кепки</b> → «🎨 Цвет»: палитра в sheet, 1 💎 за оттенок</li>

@@ -52,6 +52,13 @@ export function ProfilesScreen({ onClose, manage = false }: { onClose?: () => vo
     <div className="screen">
       <h1 className="mb">Кто будет учиться? 🎒</h1>
 
+      {/* 0.32.1: ссылка на приложение — первой строкой, до формы нового ученика.
+          Раньше кнопка стояла под формой (имя, аватары, класс) и на телефоне
+          оказывалась на втором экране: «не найти». */}
+      <button type="button" className="btn ghost wide mb" onClick={() => setInviteOpen(true)}>
+        🤝 Позови друга
+      </button>
+
       <div className="card mb">
         {profiles.length === 0 && <p className="muted">Пока нет ни одного ученика — создайте первый профиль.</p>}
         {profiles.map((p) => (
@@ -149,13 +156,6 @@ export function ProfilesScreen({ onClose, manage = false }: { onClose?: () => vo
           </button>
         )}
       </div>
-
-      {/* Новому ученику нужна ссылка: её и передают отсюда (замечание 2026-10-14).
-          0.32.0: сюда же переехал 🤝 с шапки главной (docs/proposals/home-header.md) —
-          «позвать друга» и означает «ещё один ученик», это тот же экран. */}
-      <button type="button" className="btn ghost wide mt" onClick={() => setInviteOpen(true)}>
-        🤝 Позови друга
-      </button>
 
       {inviteOpen && <InviteFriend onClose={() => setInviteOpen(false)} />}
 

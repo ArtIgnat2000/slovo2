@@ -10,6 +10,7 @@ import { dayKey, useActiveProfile, useApp } from '../../state/store';
 import { Crowns } from '../Bits';
 import { ClassPicker } from '../ClassPicker';
 import { DailyQuests } from '../DailyQuests';
+import { InviteFriend } from '../InviteFriend';
 import { WeeklyRewards } from '../WeeklyRewards';
 import { levelOf } from '../../engine/rewards';
 import { classProgress, nextClass } from '../../engine/classes';
@@ -58,6 +59,8 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview }: Pro
   const profile = useActiveProfile();
   const setActiveClass = useApp((s) => s.setActiveClass);
   const [rewardsOpen, setRewardsOpen] = useState(false);
+  /** «Позови друга» — 0.32.1: ссылка должна быть в один тап с первого экрана. */
+  const [inviteOpen, setInviteOpen] = useState(false);
   // Программа активного класса: «Мой путь» и герой показывают только её.
   // Класс — свойство профиля, поэтому у каждого ученика свой путь.
   const grade = availableClass(profile?.activeClass ?? 2);
@@ -229,6 +232,23 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview }: Pro
         </button>
       )}
 
+      {/* Ссылка на приложение — в один тап с главной (0.32.1). Раньше 🤝
+          прятался за кнопкой профиля: ребёнок его не находил. Здесь это
+          тихая текстовая ссылка, а не третья рамка в шапке: «Начать ▶»
+          остаётся единственным крупным действием. */}
+      <button
+        type="button"
+        className="invite-cta"
+        aria-label="Позвать друга: показать QR-код или отправить ссылку"
+        onClick={() => setInviteOpen(true)}
+      >
+        <span aria-hidden="true">🤝</span>
+        <span className="invite-cta-text">Позови друга</span>
+        <span className="invite-cta-arrow" aria-hidden="true">
+          ➜
+        </span>
+      </button>
+
       <h2 className="home-path-title">Мой путь</h2>
       <div className="path">
         {classLessons.map((l) => {
@@ -256,6 +276,8 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview }: Pro
           );
         })}
       </div>
+
+      {inviteOpen && <InviteFriend onClose={() => setInviteOpen(false)} />}
 
       {rewardsOpen && (
         <div className="sheet-backdrop rewards-backdrop" onClick={() => setRewardsOpen(false)}>
