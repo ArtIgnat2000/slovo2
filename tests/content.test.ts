@@ -44,11 +44,11 @@ for (const g of [1, 3, 4] as const) {
 
 // Ожидаемые объёмы: расхождение — сигнал, что словарик класса изменился,
 // и тогда нужно осознанно обновить и число, и релизную заметку.
-const EXPECTED = { 1: 30, 2: 94, 3: 0, 4: 0 };
+const EXPECTED = { 1: 30, 2: 94, 3: 72, 4: 0 };
 for (const g of CLASS_IDS) {
   assert.equal(WORDS_BY_GRADE[g].length, EXPECTED[g], `слов в ${g} классе`);
 }
-assert.equal(WORDS.length, 96, 'всего карточек в банке');
+assert.equal(WORDS.length, 167, 'всего карточек в банке');
 
 // ── Уроки ────────────────────────────────────────────────────────────────────
 
@@ -92,14 +92,14 @@ for (const g of CLASS_IDS) {
 
 // ── Доступность классов и тема слова ─────────────────────────────────────────
 
-assert.deepEqual(AVAILABLE_CLASSES, [1, 2], 'в сборке наполнены 1 и 2 классы');
+assert.deepEqual(AVAILABLE_CLASSES, [1, 2, 3], 'в сборке наполнены 1–3 классы');
 assert.deepEqual(CLASS_IDS.filter((g) => LESSONS_BY_GRADE[g].length > 0), AVAILABLE_CLASSES);
 
 assert.equal(availableClass(2), 2);
 assert.equal(availableClass(1), 1);
 // Класс из будущей версии (импорт профиля) показываем как ближайший доступный,
 // но сохранённое значение в профиле не перезаписываем — см. store.setActiveClass.
-assert.equal(availableClass(4), 2, 'недоступный класс отрисовывается ближайшим доступным');
+assert.equal(availableClass(4), 3, 'недоступный класс отрисовывается ближайшим доступным');
 
 // Новые слова получают тему первого урока, старые 94 сохраняют THEME_OF:
 // иначе фильтр словарика и подсказки при вычитке начнут врать.
@@ -111,4 +111,8 @@ assert.equal(WORD_BY_ID['g1_лисица'].theme, 'g1_birds', 'лисица — 
 assert.equal(WORD_BY_ID['g1_мальчик'].theme, 'g1_home', 'мальчик — из урока «Люди и дом» 1 класса');
 assert.equal(WORD_BY_ID['g2_класс'].theme, 'school', 'старое слово сохранило тему 2 класса');
 
-console.log('✓ контент по классам: 96 карточек, 1 класс — 30 слов и 5 уроков, 2 класс — 94 слова и 16 уроков');
+assert.ok(WORDS_BY_GRADE[3].length === 72 && LESSONS_BY_GRADE[3].length === 13, '3 класс: 72 слова и 13 уроков');
+
+console.log(
+  '✓ контент по классам: 167 карточек; 1 класс — 30 слов и 5 уроков, 2 класс — 94 слова и 16 уроков, 3 класс — 72 слова и 13 уроков',
+);

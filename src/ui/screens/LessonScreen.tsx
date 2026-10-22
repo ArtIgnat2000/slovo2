@@ -525,7 +525,13 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
     : null;
 
   return (
-    <div ref={screenRef} className={`screen lesson-screen ${verdict ? 'has-verdict' : ''}`}>
+    <div
+      ref={screenRef}
+      className={`screen lesson-screen ${verdict ? 'has-verdict' : ''}`}
+      // id урока в разметке: по нему смоук проверяет, что открылся урок своего
+      // класса, не разбирая карточку (тип задания зависит от случайной перестановки).
+      data-lesson-id={lesson.id}
+    >
       <div className="row mb lesson-header">
         <button
           className="lesson-exit"

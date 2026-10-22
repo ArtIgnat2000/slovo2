@@ -246,12 +246,26 @@ export async function runClassChecks(root: Root) {
     const firstNode = host.querySelector<HTMLButtonElement>('.node-btn')!;
     click(firstNode);
     await sleep(120);
-    const word = currentWord();
+    // id урока в разметке: не зависим от того, какая карточка выпала первой.
+    const screenEl = host.querySelector('.lesson-screen') as HTMLElement | null;
+    const openedId = screenEl?.dataset.lessonId ?? '';
+    const opened = LESSONS_BY_GRADE[1].find((l) => l.id === openedId);
+    check('урок 1 класса взят из программы 1 класса', !!opened, openedId || 'урок не открылся');
     check(
-      'в уроке 1 класса слово из 1 класса',
-      !!word && WORD_BY_ID[word.id].grades.includes(1),
-      word ? `${word.text} (${WORD_BY_ID[word.id].grades.join(',')})` : 'слово не найдено',
+      'в уроке 1 класса только слова 1 класса',
+      !!opened && opened.wordIds.every((id) => WORD_BY_ID[id].grades.includes(1)),
+      opened ? opened.wordIds.join(', ') : 'урок не найден',
     );
+    // Если карточка показывает слово — оно тоже из 1 класса (тип задания
+    // выбирается перемешиванием, и не каждая карточка называет слово).
+    const word = currentWord();
+    if (word) {
+      check(
+        'карточка урока 1 класса показывает слово 1 класса',
+        WORD_BY_ID[word.id].grades.includes(1),
+        `${word.text} (${WORD_BY_ID[word.id].grades.join(',')})`,
+      );
+    }
     // Выходим из урока, не завершая его.
     const exit = btnText('Выйти');
     if (exit) click(exit);
@@ -267,6 +281,36 @@ export async function runClassChecks(root: Root) {
     assert.deepEqual(active().lessons, lessonsBefore, 'переключение туда-обратно не тронуло уроки');
     assert.equal(active().xp, 1234, 'опыт на месте после возврата');
 
+    // Урок 1 класса остался открытым (выход отменили), поэтому 3 класс
+    // проверяем на свежем экране — с главной.
+    ui.unmount();
+    store().setActiveClass(3);
+    const host3 = document.createElement('div');
+    document.body.appendChild(host3);
+    const ui3: Root = createRoot(host3);
+    ui3.render(createElement(App));
+    await sleep(120);
+
+    // ── 3 класс: программа и урок берутся из своего класса ──────────────────
+    const nodes3 = host3.querySelectorAll('.node-btn').length;
+    check('путь 3 класса — 13 уроков', nodes3 === LESSONS_BY_GRADE[3].length, `узлов: ${nodes3}`);
+    check('на главной виден 3 класс', (host3.textContent ?? '').includes('3 класс'));
+    const firstNode3 = host3.querySelector<HTMLButtonElement>('.node-btn')!;
+    click(firstNode3);
+    await sleep(120);
+    const screen3 = host3.querySelector('.lesson-screen') as HTMLElement | null;
+    const opened3 = LESSONS_BY_GRADE[3].find((l) => l.id === (screen3?.dataset.lessonId ?? ''));
+    check('урок 3 класса взят из программы 3 класса', !!opened3, screen3?.dataset.lessonId ?? 'урок не открылся');
+    check(
+      'в уроке 3 класса только слова 3 класса',
+      !!opened3 && opened3.wordIds.every((id) => WORD_BY_ID[id].grades.includes(3)),
+      opened3 ? opened3.wordIds.join(', ') : 'урок не найден',
+    );
+    assert.equal(active().xp, 1234, '3 класс не тронул опыт');
+    assert.equal(active().gems, 87, '3 класс не тронул кристаллы');
+    assert.equal(active().streak, 9, '3 класс не тронул серию');
+    ui3.unmount();
+    host3.remove();
     ui.unmount();
     host.remove();
   }

@@ -249,7 +249,10 @@ for (const row of rows) {
     if (Number.isNaN(d) || d < 0 || d >= text.length) fail(text, `опасный индекс ${d} вне слова`);
     const ch = letters[d] ?? '';
     dangerChars.push(ch);
-    if (d === stress) fail(text, `опасной отмечена ударная гласная «${ch}» (${d}) — это не ошибка, а подсказка`);
+    // Исключение — «ё»: она сама и есть орфограмма («чёрный», а не «чорный»),
+    // и в словах без других опасных мест отметить больше нечего.
+    if (d === stress && ch !== 'ё')
+      fail(text, `опасной отмечена ударная гласная «${ch}» (${d}) — это не ошибка, а подсказка`);
     if (kind === 'vowel' && !VOWELS.includes(ch)) fail(text, `danger[${d}]='${ch}' — не гласная`);
     if (kind === 'consonant' && !CONSONANTS.includes(ch)) fail(text, `danger[${d}]='${ch}' — не согласная`);
   }
