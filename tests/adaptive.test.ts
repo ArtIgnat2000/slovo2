@@ -129,14 +129,19 @@ import { findFixDiffIdx } from '../src/ui/TaskView';
   // Объём по классам проверяет test:content; здесь важно, что разметка
   // (ударение, опасные буквы, задания) верна у КАЖДОГО слова любого класса.
   assert.equal(WORDS_BY_GRADE[2].length, 94, 'в программе 2 класса 94 слова');
-  assert.ok(WORDS.length >= 96, 'в банке есть слова 1 и 2 класса');
+  assert.equal(WORDS_BY_GRADE[3].length, 72, 'в программе 3 класса 72 слова');
+  assert.equal(WORDS.length, 167, 'в банке 167 карточек 1–3 классов');
   for (const w of WORDS) {
     assert.ok(w.danger.length >= 1, `${w.text}: должна быть хотя бы одна опасная буква`);
-    assert.ok(!w.danger.includes(w.stress), `${w.text}: ударная буква не может быть в danger`);
+    // Исключение — «ё»: она сама и есть орфограмма («чёрный», а не «чорный»).
+    // Когда других опасных мест в слове нет, окошко на ё — осмысленное
+    // задание «ё или о», а не подсказка. Больше ударных в danger быть не может.
+    const solelyE = w.danger.length === 1 && w.danger[0] === w.stress && w.text[w.stress] === 'ё';
+    assert.ok(!w.danger.includes(w.stress) || solelyE, `${w.text}: ударная буква не может быть в danger`);
     const d = pickDanger(w);
-    assert.notEqual(d, w.stress, `${w.text}: pickDanger не должен возвращать ударную гласную`);
+    assert.ok(d !== w.stress || solelyE, `${w.text}: pickDanger не должен возвращать ударную гласную`);
     const gap = makeTask('gap', w.id, 'practice', d);
-    assert.notEqual(gap.dangerIdx, w.stress, `${w.text}: окошко не закрывает ударную гласную`);
+    assert.ok(gap.dangerIdx !== w.stress || solelyE, `${w.text}: окошко не закрывает ударную гласную`);
     assert.ok(gap.options?.includes(w.text[d]), `${w.text}: в вариантах окошка есть верная буква`);
     const fix = makeTask('fix', w.id, 'practice', d);
     assert.ok(fix.wrong && fix.wrong !== w.text, `${w.text}: робот должен сделать ошибку`);
