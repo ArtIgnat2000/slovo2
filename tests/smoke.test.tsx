@@ -24,6 +24,7 @@ import { runFloatingMascotChecks } from './mascot-ui.test';
 import { runBukLessonChecks } from './buk-lesson-ui.test';
 import { runLessonArtChecks } from './lesson-art-ui.test';
 import { runVerdictChecks } from './verdict-ui.test';
+import { runClassChecks } from './classes.test';
 // Смена цвета купленной вещи не должна включать музыку (регрессия магазина).
 import './recolor-music.test';
 import { LESSONS, WORDS } from '../src/content/words';
@@ -1256,6 +1257,10 @@ async function main() {
   // Ручная проверка обновлений: кнопка в «Родителям» → «Приложение» и все
   // ответы сервис-воркера (есть новая / последняя / нет сети / нельзя проверить).
   await runUpdateCheckUiChecks();
+
+  // Классы 1–4: смена класса не сбрасывает опыт, товары и награды; путь,
+  // герой и урок берутся из программы активного класса (0.27.0).
+  await runClassChecks(root);
 
   const failures = failureCount();
   console.log(failures ? `\n✗ ошибок: ${failures}` : '\n✓ все проверки пройдены');

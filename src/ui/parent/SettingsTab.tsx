@@ -8,6 +8,8 @@
 
 import { DEFAULT_LESSON_SIZE, LESSON_SIZE_OPTIONS } from '../../engine/scheduler';
 import { useApp } from '../../state/store';
+import { AVAILABLE_CLASSES, CLASS_META, WORDS_BY_GRADE, availableClass } from '../../content/words';
+import type { ClassId } from '../../types';
 import { MusicCreditsToggle } from '../Credits';
 import { ThemeHelp } from '../ThemeHelp';
 import { Choice, GroupTitle, SettingRow, Switch } from './ParentBits';
@@ -17,13 +19,33 @@ export function SettingsTab({ profile, onOpenDiagnostics }: { profile: Profile; 
   const settings = useApp((s) => s.settings);
   const setSettings = useApp((s) => s.setSettings);
   const setLessonSize = useApp((s) => s.setLessonSize);
+  const setActiveClass = useApp((s) => s.setActiveClass);
 
   const lessonSize = profile.lessonSize ?? DEFAULT_LESSON_SIZE;
+  const activeClass = availableClass(profile.activeClass ?? 2);
 
   return (
     <div className="parent-stack">
       <div className="card">
         <GroupTitle title="Занятия" hint="Что и как часто делает ребёнок" />
+
+        {AVAILABLE_CLASSES.length > 1 && (
+          <SettingRow
+            title="Класс"
+            hint="Какую программу проходит ребёнок. Меняется только набор слов: опыт, кристаллы, серия, награды и покупки остаются."
+          >
+            <Choice
+              label="Класс программы"
+              value={activeClass}
+              onChange={(id) => setActiveClass(id as ClassId)}
+              options={AVAILABLE_CLASSES.map((g) => ({
+                value: g,
+                label: CLASS_META[g].title,
+                hint: `${WORDS_BY_GRADE[g].length} слов из словарика ${g} класса`,
+              }))}
+            />
+          </SettingRow>
+        )}
 
         <SettingRow
           title="Цель дня"

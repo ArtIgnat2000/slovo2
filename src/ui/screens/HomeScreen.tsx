@@ -1,8 +1,15 @@
 import { useEffect, useState } from 'react';
 import { scheduleWordImages } from '../../platform/word-images';
-import { LESSONS, WORDS } from '../../content/words';
-import { dayKey, useActiveProfile } from '../../state/store';
+import {
+  CLASS_IDS,
+  CLASS_META,
+  LESSONS_BY_GRADE,
+  WORDS,
+  availableClass,
+} from '../../content/words';
+import { dayKey, useActiveProfile, useApp } from '../../state/store';
 import { Crowns } from '../Bits';
+import { ClassPicker } from '../ClassPicker';
 import { DailyQuests } from '../DailyQuests';
 import { InviteFriend } from '../InviteFriend';
 import { WeeklyRewards } from '../WeeklyRewards';
@@ -43,10 +50,24 @@ function rewardsWaiting(profile: Profile): boolean {
 
 export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpenHangar }: Props) {
   const profile = useActiveProfile();
+  const setActiveClass = useApp((s) => s.setActiveClass);
   const [rewardsOpen, setRewardsOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
-  const current = LESSONS.find((l) => (profile?.lessons[l.id]?.level ?? 0) < 5) ?? LESSONS[LESSONS.length - 1];
-  useEffect(() => scheduleWordImages(WORDS.filter((w) => current.wordIds.includes(w.id))), [current]);
+  // Программа активного класса: «Мой путь» и герой показывают только её.
+  // Класс — свойство профиля, поэтому у каждого ученика свой путь.
+  const grade = availableClass(profile?.activeClass ?? 2);
+  const classLessons = LESSONS_BY_GRADE[grade];
+  const current =
+    classLessons.find((l) => (profile?.lessons[l.id]?.level ?? 0) < 5) ??
+    classLessons[classLessons.length - 1];
+  const classDone = classLessons.every((l) => (profile?.lessons[l.id]?.level ?? 0) >= 5);
+  const nextGrade = CLASS_IDS.find(
+    (g) => g > grade && LESSONS_BY_GRADE[g].length > 0,
+  );
+  useEffect(
+    () => (current ? scheduleWordImages(WORDS.filter((w) => current.wordIds.includes(w.id))) : undefined),
+    [current],
+  );
   useEffect(() => {
     if (!rewardsOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -71,6 +92,9 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
 
   // «Пора повторить» считает слова тем же правилом, что и сам урок повторения:
   // раньше блок обещал слова, которых урок не показывал, и открывалось «Повторять нечего!».
+  // Повторение — по всем изученным словам 1–4, а не только активного класса:
+  // иначе при переходе 2 → 3 слова 2 класса перестают приходить в повтор,
+  // а задание дня «Повтори N слов» становится невыполнимым.
   const review = pickReviewWords(
     WORDS,
     profile.words,
@@ -129,32 +153,58 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
         </button>
       </div>
 
-      <button
-        type="button"
-        className="home-hero mb"
-        onClick={startHero}
-        aria-label={reviewDue ? 'Начать: Пора повторить' : `Начать: ${current.title}`}
-      >
-        <div className="home-hero-kicker">Сегодня</div>
-        <div className="home-hero-body">
-          <span className="home-hero-emoji" aria-hidden="true">
-            {reviewDue ? '🔁' : current.emoji}
-          </span>
-          <span className="grow">
-            <span className="home-hero-title">{reviewDue ? 'Пора повторить' : current.title}</span>
-            <span className="home-hero-meta">
-              {reviewDue
-                ? `${reviews.length} ${plural(reviews.length, 'слово готово', 'слова готовы', 'слов готовы')} забыться`
-                : `${currentDone} из ${current.wordIds.length} слов · ур. ${lvl}`}
+      <ClassPicker profile={profile} />
+
+      {classDone && !reviewDue ? (
+        <button
+          type="button"
+          className="home-hero mb"
+          onClick={() => (nextGrade ? setActiveClass(nextGrade) : onStartReview())}
+          aria-label={nextGrade ? `Перейти в ${CLASS_META[nextGrade].title}` : 'Повторить слова'}
+        >
+          <div className="home-hero-kicker">Класс пройден</div>
+          <div className="home-hero-body">
+            <span className="home-hero-emoji" aria-hidden="true">
+              🎉
             </span>
-          </span>
-        </div>
-        <span className="home-hero-cta">Начать ▶</span>
-      </button>
+            <span className="grow">
+              <span className="home-hero-title">{CLASS_META[grade].title} пройден!</span>
+              <span className="home-hero-meta">
+                {classLessons.length} {plural(classLessons.length, 'урок', 'урока', 'уроков')} позади
+                {nextGrade ? ` · дальше ${CLASS_META[nextGrade].title.toLowerCase()}` : ' · вся программа 1–4'}
+              </span>
+            </span>
+          </div>
+          <span className="home-hero-cta">{nextGrade ? 'Дальше ▶' : 'Повторить ▶'}</span>
+        </button>
+      ) : (
+        <button
+          type="button"
+          className="home-hero mb"
+          onClick={startHero}
+          aria-label={reviewDue ? 'Начать: Пора повторить' : `Начать: ${current.title}`}
+        >
+          <div className="home-hero-kicker">Сегодня</div>
+          <div className="home-hero-body">
+            <span className="home-hero-emoji" aria-hidden="true">
+              {reviewDue ? '🔁' : current.emoji}
+            </span>
+            <span className="grow">
+              <span className="home-hero-title">{reviewDue ? 'Пора повторить' : current.title}</span>
+              <span className="home-hero-meta">
+                {reviewDue
+                  ? `${reviews.length} ${plural(reviews.length, 'слово готово', 'слова готовы', 'слов готовы')} забыться`
+                  : `${currentDone} из ${current.wordIds.length} слов · ур. ${lvl}`}
+              </span>
+            </span>
+          </div>
+          <span className="home-hero-cta">Начать ▶</span>
+        </button>
+      )}
 
       <h2 className="home-path-title">Мой путь</h2>
       <div className="path">
-        {LESSONS.map((l) => {
+        {classLessons.map((l) => {
           const st = profile.lessons[l.id];
           const level = st?.level ?? 0;
           const doneWords = l.wordIds.filter((id) => (profile.words[id]?.s ?? 0) > 0).length;

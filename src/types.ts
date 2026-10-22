@@ -6,6 +6,13 @@ import type { ChestSkinId } from './engine/chests';
 
 export type DangerKind = 'vowel' | 'consonant' | 'other';
 
+/**
+ * Класс программы «Школа России» (docs/proposals/classes-1-4.md).
+ * Класс — свойство профиля, а не слова: у слова одна карточка и один прогресс,
+ * `grades` лишь говорит, в словариках каких классов оно встречается.
+ */
+export type ClassId = 1 | 2 | 3 | 4;
+
 export interface Word {
   id: string;
   text: string;
@@ -20,6 +27,8 @@ export interface Word {
   /** Имя файла картинки в public/words/ (без расширения). Нет — показываем эмодзи. */
   image?: string;
   theme: string; // id темы (урока)
+  /** Классы, в словариках которых встречается слово. Одна карточка на все классы. */
+  grades: ClassId[];
 }
 
 export interface Lesson {
@@ -28,6 +37,11 @@ export interface Lesson {
   emoji: string;
   order: number;
   wordIds: string[];
+}
+
+/** Урок программы класса. «Повторение» (REVIEW) остаётся просто Lesson. */
+export interface GradeLesson extends Lesson {
+  grade: ClassId;
 }
 
 // ── Прогресс ─────────────────────────────────────────────────────────────────
@@ -232,6 +246,12 @@ export interface Profile {
   achievements: string[];
   /** Размер базовой очереди урока; у старых профилей по умолчанию «standard». */
   lessonSize?: LessonSize;
+  /**
+   * Программа, которую ребёнок проходит сейчас. Смена класса меняет только это
+   * поле (и сбрасывает адаптивное окно): опыт, кристаллы, награды, покупки
+   * и прогресс по словам остаются. У старых профилей — 2 класс.
+   */
+  activeClass?: ClassId;
   adaptiveCards?: number;
   adaptiveGood?: number;
   daily?: DailyState; // опционально: профили, созданные до этой версии, живут без него

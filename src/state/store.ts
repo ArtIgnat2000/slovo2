@@ -2,7 +2,7 @@ import { nextAdaptiveState, type Outcome } from '../engine/adaptive';
 import { isThemeStyle, type ThemeStyle } from '../engine/theme-styles';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { DailyState, DayStat, LessonSize, LessonState, Profile, ShopState, ShopSlot, ShopTuning, StudyAnswerMeta, StudySession, StudySessionStatus, WeeklyState, WordState } from '../types';
+import type { ClassId, DailyState, DayStat, LessonSize, LessonState, Profile, ShopState, ShopSlot, ShopTuning, StudyAnswerMeta, StudySession, StudySessionStatus, WeeklyState, WordState } from '../types';
 import { applyAnswer, initState } from '../engine/srs';
 import { idbStorage } from '../platform/storage';
 import { GEMS_PER_STREAK, levelOf } from '../engine/rewards';
@@ -26,7 +26,7 @@ import {
 } from '../engine/quests';
 import { ITEM_BY_ID, isOwned, normalizeWishlist, sellPrice } from '../engine/shop';
 import { migrateMusicShop, MUSIC_BY_ID } from '../engine/music';
-import { DEFAULT_SOUND_PACK, normalizeSoundShop, SOUND_PACK_BY_ID } from '../engine/sounds';
+import { canBuySoundPack, DEFAULT_SOUND_PACK, hasSoundPack, normalizeSoundShop, SOUND_PACK_BY_ID } from '../engine/sounds';
 import { normalizeTuning, recolor, type RecolorOutcome } from '../engine/tints';
 import {
   COSTUMES,
@@ -230,7 +230,7 @@ function readShop(p: Profile): ShopState {
   };
 }
 
-function newProfile(name: string, avatar: string): Profile {
+function newProfile(name: string, avatar: string, activeClass: ClassId = 2): Profile {
   return {
     id: `p_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
     name,
@@ -248,6 +248,7 @@ function newProfile(name: string, avatar: string): Profile {
     studySessions: [],
     achievements: [],
     lessonSize: DEFAULT_LESSON_SIZE,
+    activeClass,
     daily: { day: dayKey(), claimed: [], chestsToday: 0, bonusChestsClaimed: 0, chestsTotal: 0 },
     weekly: { week: weekStartKey(), claimed: [] },
     // Новый профиль начинает с пустой коллекции: мелодии и наборы звуков
@@ -282,11 +283,20 @@ function normalizeDays(raw: unknown, today: string): Record<string, DayStat> {
   }));
 }
 
+/** Допустимый класс программы: всё остальное (в том числе из файла выгрузки) → 2. */
+export function isClassId(value: unknown): value is ClassId {
+  return value === 1 || value === 2 || value === 3 || value === 4;
+}
+
 function normalizeProfile(raw: Partial<Profile> | null | undefined): Profile | null {
   if (!raw || typeof raw !== 'object' || typeof raw.id !== 'string' || !raw.id.trim()) return null;
+  // Старые профили и старые выгрузки без поля продолжают учиться во 2 классе:
+  // опыт, товары и награды при этом не меняются (docs/proposals/classes-1-4.md).
+  const activeClass = isClassId(raw.activeClass) ? raw.activeClass : 2;
   const base = newProfile(
     typeof raw.name === 'string' && raw.name.trim() ? raw.name.trim() : 'Ученик',
     typeof raw.avatar === 'string' && raw.avatar.trim() ? raw.avatar : '🦊',
+    activeClass,
   );
   const owned = Array.isArray(raw.shop?.owned)
     ? raw.shop.owned.filter((x): x is string => typeof x === 'string')
@@ -311,6 +321,8 @@ function normalizeProfile(raw: Partial<Profile> | null | undefined): Profile | n
       days: normalizeDays(raw.days, dayKey()),
       studySessions: normalizeStudySessions(raw.studySessions, dayKey()),
       achievements: Array.isArray(raw.achievements) ? raw.achievements.filter((a): a is string => typeof a === 'string') : [],
+      // Строка идёт после ...raw, иначе невалидное значение из файла пережило бы санитайзер.
+      activeClass,
       weekly: normalizeWeekly(raw.weekly, base.weekly!),
       lessonSize:
         raw.lessonSize === 'short' || raw.lessonSize === 'standard' || raw.lessonSize === 'full'
@@ -375,7 +387,7 @@ interface AppState {
   settings: Settings;
   toast: Toast | null;
 
-  createProfile: (name: string, avatar: string) => void;
+  createProfile: (name: string, avatar: string, classId?: ClassId) => void;
   selectProfile: (id: string) => void;
   deleteProfile: (id: string) => void;
   renameProfile: (id: string, name: string, avatar: string) => void;
@@ -465,6 +477,14 @@ interface AppState {
   setSettings: (patch: Partial<Settings>) => void;
   /** Изменить размер базовой очереди урока для текущего профиля. */
   setLessonSize: (size: LessonSize) => void;
+  /**
+   * Класс программы (1–4). Меняет ТОЛЬКО activeClass и сбрасывает адаптивное
+   * окно: опыт, кристаллы, серия, награды, покупки и прогресс по словам
+   * остаются. Никаких пересозданий профиля, сбросов дня и фильтрации слов.
+   */
+  setActiveClass: (classId: ClassId) => void;
+  /** То же для конкретного профиля — экран «Профили» редактирует и других детей. */
+  setProfileClass: (profileId: string, classId: ClassId) => void;
   adaptLesson: (profileId: string, ceiling: number, outcome: Outcome) => void;
 
   /** Сейф прогресса: корзина профилей, журнал событий, метки копий, дата выгрузки. */
@@ -631,9 +651,9 @@ export const useApp = create<AppState>()(
       vault: emptyVault(),
       toast: null,
 
-      createProfile: (name, avatar) =>
+      createProfile: (name, avatar, classId = 2) =>
         set((s) => {
-          const p = newProfile(name, avatar);
+          const p = newProfile(name, avatar, isClassId(classId) ? classId : 2);
           return { profiles: [...s.profiles, p], activeId: p.id };
         }),
 
@@ -1098,7 +1118,8 @@ export const useApp = create<AppState>()(
         const p = getActive(get());
         if (!pack || !p) return false;
         const shop = readShop(p);
-        if (shop.soundOwned?.includes(id) || p.gems < pack.price) return false;
+        // Бесплатные наборы не покупаются, а уже открытые — не покупаются повторно.
+        if (!canBuySoundPack(pack, p.gems, shop.soundOwned ?? [])) return false;
         set((s) => patchActive(s, (prof) => {
           const current = readShop(prof);
           return {
@@ -1113,10 +1134,8 @@ export const useApp = create<AppState>()(
       setSoundPack: (id) =>
         set((s) => patchActive(s, (prof) => {
           const shop = readShop(prof);
-          const pack = SOUND_PACK_BY_ID[id];
-          // Бесплатный набор доступен без покупки: его не нужно добавлять
-          // в soundOwned, иначе «Выбрать» молча ничего не делает.
-          if (!pack || (!shop.soundOwned?.includes(id) && pack.price !== 0)) return prof;
+          // Бесплатный стартовый набор доступен без записи в soundOwned.
+          if (!SOUND_PACK_BY_ID[id] || !hasSoundPack(shop.soundOwned, id)) return prof;
           return { ...prof, shop: { ...shop, soundPack: id } };
         })),
 
@@ -1272,6 +1291,26 @@ export const useApp = create<AppState>()(
       })),
       setLessonSize: (size) =>
         set((s) => patchActive(s, (p) => ({ ...p, lessonSize: size, adaptiveGood: 0 }))),
+
+      setActiveClass: (classId) =>
+        set((s) =>
+          patchActive(s, (p) => {
+            const next = isClassId(classId) ? classId : 2;
+            if ((p.activeClass ?? 2) === next) return p;
+            // Только эти два поля: смена программы не должна трогать ни опыт,
+            // ни товары, ни награды, ни прогресс по словам и урокам.
+            return { ...p, activeClass: next, adaptiveGood: 0 };
+          }),
+        ),
+
+      setProfileClass: (profileId, classId) =>
+        set((s) => ({
+          profiles: s.profiles.map((p) => {
+            const next = isClassId(classId) ? classId : 2;
+            if (p.id !== profileId || (p.activeClass ?? 2) === next) return p;
+            return { ...p, activeClass: next, adaptiveGood: 0 };
+          }),
+        })),
 
       // ── Сейф прогресса ────────────────────────────────────────────────────
 

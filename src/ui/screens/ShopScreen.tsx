@@ -41,7 +41,7 @@ import { TINT_PRICE, type TintOption } from '../../engine/tints';
 import { TintPicker } from '../TintPicker';
 import { ConfirmDialog } from '../Bits';
 import { previewSoundCue, sfx } from '../../platform/sound';
-import { SOUND_PACKS, type SoundCue, type SoundPack } from '../../engine/sounds';
+import { hasSoundPack, SOUND_PACKS, type SoundCue, type SoundPack } from '../../engine/sounds';
 import { haptic } from '../../platform/haptics';
 import type { ShopItem } from '../../engine/shop';
 import { MUSIC_TRACKS, MUSIC_BY_ID, tracksByShelf, type MusicShelf, type MusicTrack } from '../../engine/music';
@@ -737,8 +737,8 @@ export function ShopScreen() {
   );
 
   const soundCard = (pack: SoundPack) => {
-    // Бесплатный набор не нужно «покупать»: он доступен сразу, как классика.
-    const ownedPack = pack.price === 0 || soundOwned.includes(pack.id);
+    // Бесплатный стартовый набор доступен сразу — его выбирают, а не покупают.
+    const ownedPack = hasSoundPack(soundOwned, pack.id);
     const selected = selectedSound === pack.id;
     const affordable = gems >= pack.price;
     return (
@@ -1012,7 +1012,7 @@ export function ShopScreen() {
     }
     if (sheet.kind === 'sound') {
       const pack = sheet.pack;
-      const ownedPack = soundOwned.includes(pack.id);
+      const ownedPack = hasSoundPack(soundOwned, pack.id);
       const selected = selectedSound === pack.id;
       const affordable = gems >= pack.price;
       return (
@@ -1705,7 +1705,7 @@ export function ShopScreen() {
           {/* Мои звуки: какой набор звучит за ответы в уроках */}
           <section className="mb" aria-label="Мои звуки">
             <h2 className="mb">Мои звуки</h2>
-            {SOUND_PACKS.filter((p) => soundOwned.includes(p.id)).map((pack) => (
+            {SOUND_PACKS.filter((p) => hasSoundPack(soundOwned, p.id)).map((pack) => (
               <button
                 key={pack.id}
                 className={`music-choice sound-choice${selectedSound === pack.id ? ' selected' : ''}`}
