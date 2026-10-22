@@ -19,7 +19,14 @@ import { setSoundEnabled, setSoundPack } from './platform/sound';
 import { MUSIC_BY_ID, MUSIC_TRACKS, STARTER_TRACK_IDS } from './engine/music';
 import { playMusic, setMusicEnabled, setMusicVolume, warmTracks } from './platform/music';
 import { setHapticsEnabled } from './platform/haptics';
-import { applyUpdate, shouldSuggestInstall, markInstallHintShown } from './platform/pwa';
+import {
+  applyUpdate,
+  markInstallHintShown,
+  shouldSuggestInstall,
+  startUpdateWatch,
+  takeAppliedVersion,
+} from './platform/pwa';
+import { QUIET_MS, QuickSound } from './ui/QuickSound';
 import { applyTheme, applyThemeStyle, writeThemeMirror, writeThemeStyleMirror } from './platform/theme';
 
 type Tab = 'home' | 'words' | 'shop' | 'parent';
@@ -58,6 +65,7 @@ function Toast() {
 export default function App() {
   const profile = useActiveProfile();
   const settings = useApp((s) => s.settings);
+  const setSettings = useApp((s) => s.setSettings);
   // Подписка ровно на один признак: иначе App перерисовывался бы на каждой
   // записи прогресса (а запись идёт на каждый ответ ребёнка).
   const storageBroken = useStorageHealth((s) => s.kind === 'read-error');
@@ -88,6 +96,15 @@ export default function App() {
   // возвращаем взрослого в тот же раздел, откуда он открыл диагностику.
   const [parentReturnTab, setParentReturnTab] = useState<ParentTabId>('overview');
   const [updateReady, setUpdateReady] = useState(false);
+  /**
+   * «Тишина на время»: до какого момента музыка молчит. Это НЕ настройка
+   * профиля — после перезапуска приложение снова звучит как обычно, поэтому
+   * ребёнок не останется в тишине навсегда из-за случайного долгого нажатия.
+   */
+  const [quietUntil, setQuietUntil] = useState<number | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+  /** Версия, до которой обновились автоматически: показываем плашку один раз. */
+  const [justUpdated] = useState(() => takeAppliedVersion());
 
   useEffect(() => {
     const apply = () => {
@@ -117,20 +134,35 @@ export default function App() {
     writeThemeStyleMirror(settings.themeStyle);
   }, [settings.themeStyle]);
 
+  // Отсчёт «тишины на 15 минут»: один таймер на секунду, только пока она идёт.
+  useEffect(() => {
+    if (quietUntil === null) return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [quietUntil]);
+
+  useEffect(() => {
+    if (quietUntil !== null && quietUntil <= now) setQuietUntil(null);
+  }, [quietUntil, now]);
+
+  const quiet = quietUntil !== null && quietUntil > now;
+  /** Итоговое состояние музыки: настройка профиля, приглушённая временной тишиной. */
+  const musicOn = settings.music && !quiet;
+
   useEffect(() => {
     // SFX и музыка — независимые контуры: эффекты остаются даже без фона,
     // а музыку можно выключить, не потеряв отклик правильных ответов.
     setSoundEnabled(settings.sound);
-    setMusicEnabled(settings.music);
+    setMusicEnabled(musicOn);
     setMusicVolume(settings.musicVolume);
     setHapticsEnabled(settings.haptics);
-  }, [settings.sound, settings.music, settings.musicVolume, settings.haptics]);
+  }, [settings.sound, musicOn, settings.musicVolume, settings.haptics]);
 
   // Музыка принадлежит профилю ребёнка: при смене профиля фон переключается вместе с ним.
   useEffect(() => {
     const trackId = profile?.shop?.musicTrack ?? null;
-    playMusic(settings.music && trackId ? MUSIC_BY_ID[trackId] ?? null : null);
-  }, [profile?.shop?.musicTrack, settings.music]);
+    playMusic(musicOn && trackId ? MUSIC_BY_ID[trackId] ?? null : null);
+  }, [profile?.shop?.musicTrack, musicOn]);
 
   // «Звуки» тоже принадлежат профилю: мелодии ответа переключаются вместе с ребёнком.
   useEffect(() => {
@@ -187,6 +219,34 @@ export default function App() {
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, []);
+
+  /**
+   * Автообновление (0.29.0). Ярлык на телефоне может не закрываться неделями,
+   * поэтому браузер переспрашиваем сами, а обновление применяем в безопасный
+   * момент: не в уроке, не с открытым листом и не на экране «Родителям»
+   * (там могли вводить данные). Иначе ждём следующего окна.
+   */
+  const canApplyUpdate = useRef<() => boolean>(() => false);
+  canApplyUpdate.current = () =>
+    !inLesson.current &&
+    !profilesOpen &&
+    !vlabsOpen &&
+    !hangarOpen &&
+    // В «Родителям» могли вводить имя, PIN или выгружать прогресс — не дёргаем.
+    tab !== 'parent' &&
+    document.visibilityState === 'visible';
+
+  useEffect(() => {
+    // onPending: обновление уже скачано и ждёт — покажем плашку-резерв.
+    return startUpdateWatch(() => canApplyUpdate.current(), () => setUpdateReady(true));
+  }, []);
+
+  // После автообновления — одна короткая плашка, чтобы не было «магии».
+  const showToast = useApp((s) => s.showToast);
+  useEffect(() => {
+    if (!justUpdated) return;
+    showToast({ emoji: '✨', title: `Обновили до v${justUpdated}`, text: 'Всё новое уже здесь' });
+  }, [justUpdated, showToast]);
 
   // Урок закончился — выполняем отложенную во время урока синхронизацию.
   // Чтение стоит в одной очереди с записями сторожа (platform/vault.ts),
@@ -333,6 +393,33 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Быстрый звук: тап — вкл/выкл музыки, долгое нажатие — тишина на 15 минут.
+          В уроке кнопки нет: там своя тихая громкость и лишние цели мешают. */}
+      <QuickSound
+        music={settings.music}
+        quietUntil={quietUntil}
+        now={now}
+        onToggle={() => {
+          const next = !settings.music;
+          setSettings({ music: next });
+          setQuietUntil(null);
+          showToast(
+            next
+              ? { emoji: '🔊', title: 'Музыка включена', text: 'Звуки ответов звучат как раньше' }
+              : { emoji: '🔇', title: 'Музыка выключена', text: 'Звуки ответов остались' },
+          );
+        }}
+        onQuiet={() => {
+          setQuietUntil(Date.now() + QUIET_MS);
+          showToast({ emoji: '🌙', title: 'Тишина на 15 минут', text: 'Музыка вернётся сама — нажимать ничего не надо' });
+        }}
+        onCancelQuiet={() => {
+          setQuietUntil(null);
+          setNow(Date.now());
+          showToast({ emoji: '🔊', title: 'Музыка вернулась', text: 'Тишина отменена' });
+        }}
+      />
 
       <nav className="tabs">
         <button className={`tab ${!profilesOpen && tab === 'home' ? 'on' : ''}`} onClick={() => switchTab('home')}>

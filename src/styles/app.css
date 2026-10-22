@@ -6764,3 +6764,71 @@ p {
 @media (prefers-reduced-motion: reduce) {
   .phone-turntable { transition: none; }
 }
+
+/* ── Быстрый звук (0.29.0) ────────────────────────────────────────────────
+   Тап — вкл/выкл музыки, долгое нажатие — тишина на 15 минут.
+   Слева внизу, зеркально БУКу справа: не мешает шапке, доступна с любого
+   экрана и остаётся под большим пальцем. */
+.quick-sound {
+  position: fixed;
+  left: 12px;
+  bottom: calc(76px + var(--safe-b));
+  z-index: 26;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--ink-2);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.12s ease, background 0.18s ease, color 0.18s ease;
+}
+.quick-sound.on {
+  background: var(--primary-soft);
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--line));
+  color: var(--primary);
+}
+.quick-sound.quiet {
+  background: var(--card-2, var(--card));
+  border-style: dashed;
+}
+.quick-sound.pressing {
+  transform: scale(0.9);
+}
+.quick-sound:active {
+  transform: scale(0.92);
+}
+.quick-sound:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 3px;
+}
+.quick-sound-ico {
+  font-size: 19px;
+  line-height: 1;
+}
+/* Остаток тишины: «14 мин» — мелко, но читаемо; сам кружок не растягивается. */
+.quick-sound-left {
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.2px;
+  opacity: 0.85;
+}
+/* В горизонтальной ориентации и на низких экранах кнопка чуть выше:
+   над строкой вкладок остаётся меньше места. */
+@media (max-height: 520px) {
+  .quick-sound {
+    bottom: calc(64px + var(--safe-b));
+    width: 40px;
+    height: 40px;
+  }
+}
