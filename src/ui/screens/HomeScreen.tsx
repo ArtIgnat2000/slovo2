@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { scheduleWordImages } from '../../platform/word-images';
 import {
+  AVAILABLE_CLASSES,
   CLASS_META,
   LESSONS_BY_GRADE,
   WORDS,
@@ -8,7 +9,7 @@ import {
 } from '../../content/words';
 import { dayKey, useActiveProfile, useApp } from '../../state/store';
 import { Crowns } from '../Bits';
-import { ClassPicker } from '../ClassPicker';
+import { ClassSheet } from '../ClassSheet';
 import { DailyQuests } from '../DailyQuests';
 import { InviteFriend } from '../InviteFriend';
 import { WeeklyRewards } from '../WeeklyRewards';
@@ -65,6 +66,8 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
   const [inviteOpen, setInviteOpen] = useState(false);
   /** Меню ☰ (0.33.0) — заменяет 🎁 в шапке: награды, покупки, ангар, друг, профиль. */
   const [menuOpen, setMenuOpen] = useState(false);
+  /** Лист класса (0.33.0): вход — строкой в меню, а не пилюлей над героем. */
+  const [classOpen, setClassOpen] = useState(false);
   // Программа активного класса: «Мой путь» и герой показывают только её.
   // Класс — свойство профиля, поэтому у каждого ученика свой путь.
   const grade = availableClass(profile?.activeClass ?? 2);
@@ -185,8 +188,6 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
         </button>
       </div>
 
-      <ClassPicker profile={profile} />
-
       {classDone && !reviewDue ? (
         <button
           type="button"
@@ -253,7 +254,14 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
         </span>
       </button>
 
-      <h2 className="home-path-title">Мой путь</h2>
+      {/* Класс живёт здесь, а не пилюлей над героем (0.33.0): заголовок уже
+          есть, а подпись «· 2 класс» даёт ту же ориентацию за 0 px высоты. */}
+      <h2 className="home-path-title">
+        Мой путь
+        {AVAILABLE_CLASSES.length > 1 && (
+          <span className="home-path-class"> · {CLASS_META[grade].title}</span>
+        )}
+      </h2>
       <div className="path">
         {classLessons.map((l) => {
           const st = profile.lessons[l.id];
@@ -282,6 +290,7 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
       </div>
 
       {inviteOpen && <InviteFriend onClose={() => setInviteOpen(false)} />}
+      {classOpen && <ClassSheet profile={profile} onClose={() => setClassOpen(false)} />}
 
       {/* Меню ☰: один уровень, крупные подписанные строки, только вторичные
           дела. Главное действие «Начать ▶» остаётся на экране и в меню не
@@ -398,6 +407,26 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
                 <span className="grow">
                   <span className="menu-row-title">Позови друга</span>
                   <span className="tiny muted">QR-код и ссылка на игру</span>
+                </span>
+                <span className="menu-row-arrow" aria-hidden="true">›</span>
+              </button>
+
+              <div className="menu-sep" aria-hidden="true" />
+
+              <button
+                type="button"
+                className="menu-row"
+                data-menu="class"
+                onClick={() => openMenuSheet(() => setClassOpen(true))}
+              >
+                <span className="menu-row-emoji" aria-hidden="true">🎓</span>
+                <span className="grow">
+                  <span className="menu-row-title">{CLASS_META[grade].title}</span>
+                  <span className="tiny muted">
+                    {classInfo.complete && nextGrade
+                      ? `Пройден · можно перейти в ${CLASS_META[nextGrade].title}`
+                      : `${classInfo.words} ${plural(classInfo.words, 'слово', 'слова', 'слов')} · пройдено ${classInfo.lessonsDone} из ${classInfo.lessons}`}
+                  </span>
                 </span>
                 <span className="menu-row-arrow" aria-hidden="true">›</span>
               </button>

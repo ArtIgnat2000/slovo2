@@ -476,6 +476,13 @@ p {
   font-size: 22px;
   line-height: 1;
 }
+/* Разделитель групп: дела ребёнка сверху, «про меня» — снизу. */
+.menu-sep {
+  height: 2px;
+  margin: 4px 2px;
+  border-radius: 2px;
+  background: var(--line);
+}
 .rewards-backdrop {
   justify-content: flex-end;
   padding: 0;
@@ -493,46 +500,9 @@ p {
   box-shadow: var(--shadow-lg);
 }
 
-/* Переключатель класса: пилюля над героем + нижний лист (docs/proposals/classes-1-4.md).
-   В шапку класс не ставим — на 320 px там уже семь элементов. */
-.class-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  max-width: 100%;
-  min-height: 44px;
-  margin-bottom: 10px;
-  padding: 8px 14px;
-  border: 2px solid var(--line);
-  border-radius: var(--r-pill);
-  background: var(--card);
-  color: var(--ink);
-  font: inherit;
-  font-size: var(--fs-sm);
-  font-weight: 700;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-.class-pill:active {
-  transform: translateY(1px);
-}
-.class-pill:focus-visible {
-  outline: 3px solid var(--primary);
-  outline-offset: 2px;
-}
-.class-pill-title {
-  font-weight: 800;
-}
-.class-pill-count {
-  color: var(--ink-2);
-  font-weight: 600;
-  white-space: nowrap;
-}
-.class-pill-caret {
-  color: var(--ink-2);
-  font-size: 12px;
-}
-
+/* Лист класса (docs/proposals/classes-1-4.md, 0.33.0).
+   Своей кнопки на главной больше нет: вход — строкой «Класс» в меню ☰,
+   а класс на экране называет заголовок «Мой путь · 2 класс». */
 .class-backdrop {
   justify-content: flex-end;
   padding: 0;
@@ -798,6 +768,11 @@ p {
 
 .home-path-title {
   margin: 20px 0 12px;
+}
+/* Класс в заголовке пути — подсказка, а не действие: тише основного текста. */
+.home-path-class {
+  color: var(--ink-2);
+  font-weight: 700;
 }
 /* «Позови друга» на главной (0.32.1): ссылка в один тап с первого экрана.
    Мягкая строка во всю ширину: её видно, но она не спорит с «Начать ▶» —

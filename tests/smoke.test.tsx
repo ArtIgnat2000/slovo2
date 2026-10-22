@@ -1234,8 +1234,8 @@ async function main() {
     menu?.querySelector('.menu-status')?.textContent ?? '',
   );
   check(
-    'в меню есть награды, покупки, ангар, друг и смена ученика',
-    ['rewards', 'purchases', 'hangar', 'invite', 'profiles'].every(
+    'в меню есть награды, покупки, ангар, друг, класс и смена ученика',
+    ['rewards', 'purchases', 'hangar', 'invite', 'class', 'profiles'].every(
       (key) => !!menu?.querySelector(`[data-menu="${key}"]`),
     ),
     Array.from(menu?.querySelectorAll('[data-menu]') ?? []).map((n) => n.getAttribute('data-menu')).join(' | '),
@@ -1306,6 +1306,31 @@ async function main() {
   await sleep(40);
   click(homeTab!);
   await sleep(80);
+
+  // Класс (0.33.0): пилюли над героем больше нет — лист открывается из меню,
+  // а на экране класс называет заголовок «Мой путь · N класс».
+  check(
+    'на главной нет отдельной пилюли класса',
+    !document.querySelector('.class-pill') && !!document.querySelector('.home-path-class'),
+    document.querySelector('.home-path-title')?.textContent ?? '',
+  );
+  await openHomeMenu();
+  const classRow = document.querySelector('[data-menu="class"]');
+  check(
+    'в меню есть строка класса с названием',
+    !!classRow && /\d класс/.test(classRow.textContent ?? ''),
+    classRow?.textContent ?? '',
+  );
+  click(classRow);
+  await sleep(60);
+  check(
+    'класс из меню открывает лист «Какой класс учим?»',
+    !!document.querySelector('.class-sheet') &&
+      document.querySelectorAll('.class-card').length > 1,
+    body().slice(0, 160),
+  );
+  click(btn((b) => (b.getAttribute('aria-label') ?? '') === 'Закрыть'));
+  await sleep(40);
 
   // «Позови друга» (0.32.1): ссылка — в один тап прямо с главной, тихой
   // строкой под героем. Раньше 🤝 прятался за кнопкой профиля, а на экране
