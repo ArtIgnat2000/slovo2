@@ -5,7 +5,7 @@
 // Никаких настроек здесь нет: настройки — это решения, а не отчёт.
 
 import { ACHIEVEMENTS } from '../../engine/rewards';
-import { LESSON_BY_ID, WORDS, WORD_BY_ID } from '../../content/words';
+import { CLASS_META, LESSON_BY_ID, WORDS, WORDS_BY_GRADE, WORD_BY_ID, availableClass } from '../../content/words';
 import { lastDays } from '../../engine/day';
 import { dayKey, masteredCount, todayStat } from '../../state/store';
 import { activeStudyDays } from '../../engine/weekly-rewards';
@@ -86,7 +86,12 @@ export function OverviewTab({ profile, onOpenWords, onOpenSection }: Props) {
   const todayErrorWords = Object.entries(today.errorWords ?? {}).sort((a, b) => b[1] - a[1]);
   const todayAnswered = today.correct + today.wrong;
   const todayAccuracy = todayAnswered >= 5 ? Math.round((today.correct / todayAnswered) * 100) : null;
+  const grade = availableClass(profile.activeClass ?? 2);
+  const gradeWords = WORDS_BY_GRADE[grade];
+  // «Освоено» считаем по программе активного класса, а «всего» показываем рядом:
+  // иначе после смены класса родитель видел бы проценты по чужой программе.
   const mastered = masteredCount(profile);
+  const masteredInGrade = gradeWords.filter((w) => (profile.words[w.id]?.s ?? 0) >= 90).length;
   const totalOk = Object.values(profile.words).reduce((sum, w) => sum + w.ok, 0);
   const totalWrong = Object.values(profile.words).reduce((sum, w) => sum + w.wrong, 0);
   const attempts = totalOk + totalWrong;
@@ -104,6 +109,7 @@ export function OverviewTab({ profile, onOpenWords, onOpenSection }: Props) {
   const weakTotal = Object.keys(profile.errors).length;
 
   const trained = Object.values(profile.words).filter((w) => w.s > 0).length;
+  const trainedInGrade = gradeWords.filter((w) => (profile.words[w.id]?.s ?? 0) > 0).length;
   const earned = profile.achievements.length;
 
   return (
@@ -194,10 +200,18 @@ export function OverviewTab({ profile, onOpenWords, onOpenSection }: Props) {
 
       {/* Общая картина по словам: прогресс важнее абсолютных чисел. */}
       <div className="card">
-        <GroupTitle title="Слова" hint={`всего в программе — ${WORDS.length}`} />
+        <GroupTitle
+          title={`Слова · ${CLASS_META[grade].title}`}
+          hint={`в программе класса — ${gradeWords.length} · всего за 1–4 — ${WORDS.length}`}
+        />
         <div className="stat-grid">
-          <StatTile value={`${mastered}`} label="освоено" hint="отвечает уверенно" tone={mastered > 0 ? 'good' : 'plain'} />
-          <StatTile value={`${trained}`} label="начато" hint="хотя бы раз отвечал" />
+          <StatTile
+            value={`${masteredInGrade}`}
+            label="освоено"
+            hint={`отвечает уверенно · всего за 1–4 — ${mastered}`}
+            tone={masteredInGrade > 0 ? 'good' : 'plain'}
+          />
+          <StatTile value={`${trainedInGrade}`} label="начато в классе" hint={`хотя бы раз отвечал · всего — ${trained}`} />
           <StatTile
             value={attempts > 0 ? `${accuracy}%` : '—'}
             label="точность за всё время"
@@ -205,9 +219,9 @@ export function OverviewTab({ profile, onOpenWords, onOpenSection }: Props) {
           />
         </div>
         <div style={{ marginTop: 12 }}>
-          <Bar value={(mastered / Math.max(1, WORDS.length)) * 100} tone="green" />
+          <Bar value={(masteredInGrade / Math.max(1, gradeWords.length)) * 100} tone="green" />
           <div className="setting-hint" style={{ marginTop: 6 }}>
-            Программа пройдена на {Math.round((mastered / Math.max(1, WORDS.length)) * 100)}%
+            Программа класса пройдена на {Math.round((masteredInGrade / Math.max(1, gradeWords.length)) * 100)}%
           </div>
         </div>
       </div>

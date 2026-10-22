@@ -26,7 +26,7 @@ import './mascot.test';
 import './buk-help.test';
 import { effectiveCards, nextAdaptiveState, recordAttempt } from '../src/engine/adaptive';
 import { buildLesson } from '../src/engine/scheduler';
-import { LESSONS, WORDS } from '../src/content/words';
+import { LESSONS, WORDS, WORDS_BY_GRADE } from '../src/content/words';
 const finish = (independent: number, total = 4) => ({ kind: 'finish' as const, attempts: { total, independent } });
 assert.equal(effectiveCards(undefined, 16), 16);
 assert.equal(effectiveCards(NaN, 16), 16);
@@ -121,12 +121,15 @@ import type { WordState } from '../src/types';
 
 console.log('✓ риски scheduler §13: фразы, отложенные слова, порядок второго круга');
 
-// ── Предтестовый аудит: орфограммы 94 слов и подсветка ошибки робота ─────────
+// ── Предтестовый аудит: орфограммы всех слов банка и подсветка ошибки робота ──
 import { makeTask, pickDanger } from '../src/engine/scheduler';
 import { findFixDiffIdx } from '../src/ui/TaskView';
 
 {
-  assert.equal(WORDS.length, 94, 'в словаре 94 слова 2 класса');
+  // Объём по классам проверяет test:content; здесь важно, что разметка
+  // (ударение, опасные буквы, задания) верна у КАЖДОГО слова любого класса.
+  assert.equal(WORDS_BY_GRADE[2].length, 94, 'в программе 2 класса 94 слова');
+  assert.ok(WORDS.length >= 96, 'в банке есть слова 1 и 2 класса');
   for (const w of WORDS) {
     assert.ok(w.danger.length >= 1, `${w.text}: должна быть хотя бы одна опасная буква`);
     assert.ok(!w.danger.includes(w.stress), `${w.text}: ударная буква не может быть в danger`);
@@ -152,4 +155,4 @@ import { findFixDiffIdx } from '../src/ui/TaskView';
   assert.equal('клас'[findFixDiffIdx('класс', 'клас')], 'с');
 }
 
-console.log('✓ предтестовый аудит: орфограммы 94 слов и подсветка в «Исправь робота»');
+console.log(`✓ предтестовый аудит: орфограммы ${WORDS.length} слов и подсветка в «Исправь робота»`);

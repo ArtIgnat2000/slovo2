@@ -28,6 +28,7 @@ jobs:
       - run: npm run audio:check
       - run: npm run typecheck
       - run: npm run content:check
+      - run: npm run test:content
       - run: npm run test:adaptive
       - run: npm run test:smoke
       - run: npm run build

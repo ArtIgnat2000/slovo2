@@ -3,7 +3,7 @@ import { scheduleWordImages } from '../../platform/word-images';
 import { createStudySessionId, StudyClock } from '../../engine/study';
 import { useEffect, useRef, useState } from 'react';
 import type { Profile, Task, WordState } from '../../types';
-import { LESSON_BY_ID, LESSONS, REVIEW, WORD_BY_ID, WORDS } from '../../content/words';
+import { LESSON_BY_ID, REVIEW, WORD_BY_ID, WORDS, LESSONS_BY_GRADE, availableClass } from '../../content/words';
 import { buildLesson, DEFAULT_LESSON_SIZE, lessonCardLimit, makeTask, pickDanger, repairTask, shuffle } from '../../engine/scheduler';
 import { pickReview, pickReviewWords } from '../../engine/srs';
 import { dayKey, dayPlan, masteredCount, todayStat, useActiveProfile, useApp } from '../../state/store';
@@ -855,8 +855,11 @@ function buildQueue(profile: Profile | null, lessonId: string): Task[] {
   }
 
   // Не подмешиваем в повторение слова текущего урока (и открытого «следующего»):
-  // ребёнок ещё не прошёл их, а повторение должно быть про старое
-  const current = LESSONS.find((l) => (profile?.lessons[l.id]?.level ?? 0) < 5);
+  // ребёнок ещё не прошёл их, а повторение должно быть про старое.
+  // «Следующий» — из программы активного класса: иначе в уроке 1 класса
+  // исключались бы слова из пути 2 класса и интерливинг пустел.
+  const classLessons = LESSONS_BY_GRADE[availableClass(profile?.activeClass ?? 2)];
+  const current = classLessons.find((l) => (profile?.lessons[l.id]?.level ?? 0) < 5);
   const exclude = new Set([...lesson.wordIds, ...(current?.wordIds ?? [])]);
   const review = pickReview(WORDS, states, exclude, 3);
   const tasks = buildLesson({ lesson, level, states, reviewWords: review, maxCards });

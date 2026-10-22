@@ -1,7 +1,8 @@
-import type { DangerKind, Lesson, Word } from '../types';
+import type { ClassId, DangerKind, GradeLesson, Lesson, Word } from '../types';
 
 /**
- * КОНТЕНТ-ПАК 2 КЛАССА — орфографический словарь (94 слова).
+ * КОНТЕНТ-ПАК 1–4 КЛАССОВ — орфографические словари «Школа России».
+ * Сейчас наполнены 1 и 2 классы; 3 и 4 добавляются этапами (docs/proposals/classes-1-4.md).
  *
  * Формат строки:  слово|ударение(индекс)|слоги|опасные_буквы|тип|эмодзи|предложение|пояснение|мнемоника?|картинка?
  *
@@ -12,6 +13,8 @@ import type { DangerKind, Lesson, Word } from '../types';
  * Черновой импорт нового списка: scripts/words-from-text.mjs
  */
 const RAW = `
+лисица|3|ли-си-ца|1|vowel|🦊|Рыжая ____ вышла из леса.|хитрая лесная зверушка|лисИца — как «лис»|
+мальчик|1|маль-чик|3,5|other|👦|Во дворе играет ____.|ребёнок мужского пола|ь в «мальчике» не слышится|
 Москва|5|Мос-ква|1|vowel|🏛️|____ — столица России.|главный город||moskva
 Родина|1|Ро-ди-на|3|vowel|🇷🇺|____ начинается с семьи.|родная страна||rodina
 Россия|4|Рос-си-я|1,2,3,5|other|🇷🇺|____ — наша страна.|наше государство|РоссИя — две С|rossiya
@@ -207,12 +210,128 @@ const THEME_OF: Record<string, string> = {
   'январь': 'winter',
 };
 
+/**
+ * Классы, в словариках которых встречается слово (docs/proposals/classes-1-4.md).
+ *
+ * Храним картой, а не 11-м полем RAW: 94 проверенные строки пака не трогаются,
+ * и релиз класса не может случайно испортить слова 2 класса.
+ * `id` по-прежнему строится из текста (см. parse): если слово есть в программе
+ * 2 класса, префикс исторический — g2_, иначе первый класс, где оно появляется.
+ * Префикс — имя, а не фильтр класса: фильтр — это `grades`.
+ */
+const GRADES_OF: Record<string, ClassId[]> = {
+  // 2 класс — текущий пакет (28 слов входят и в словарик 1 класса)
+  'Москва': [1, 2],
+  'Родина': [2],
+  'Россия': [2],
+  'алфавит': [2],
+  'апрель': [2],
+  'берёза': [2],
+  'быстро': [2],
+  'вдруг': [2],
+  'весело': [1, 2],
+  'ветер': [2],
+  'воробей': [1, 2],
+  'ворона': [1, 2],
+  'город': [2],
+  'девочка': [1, 2],
+  'дежурный': [1, 2],
+  'декабрь': [2],
+  'деревня': [1, 2],
+  'до свидания': [2],
+  'дорога': [2],
+  'завод': [2],
+  'заяц': [1, 2],
+  'здравствуйте': [2],
+  'земляника': [2],
+  'извините': [2],
+  'иней': [2],
+  'капуста': [2],
+  'карандаш': [1, 2],
+  'картина': [2],
+  'класс': [1, 2],
+  'коньки': [2],
+  'корова': [1, 2],
+  'лопата': [2],
+  'лягушка': [2],
+  'магазин': [2],
+  'малина': [2],
+  'машина': [1, 2],
+  'мебель': [2],
+  'медведь': [1, 2],
+  'месяц': [2],
+  'метель': [2],
+  'метро': [2],
+  'молоко': [1, 2],
+  'молоток': [2],
+  'морковь': [2],
+  'мороз': [2],
+  'народ': [2],
+  'ноябрь': [2],
+  'обед': [2],
+  'обезьяна': [2],
+  'облако': [2],
+  'одежда': [2],
+  'октябрь': [2],
+  'осина': [2],
+  'отец': [2],
+  'пальто': [1, 2],
+  'пенал': [1, 2],
+  'петух': [1, 2],
+  'платок': [2],
+  'посуда': [2],
+  'прощай': [2],
+  'работа': [1, 2],
+  'рабочий': [2],
+  'ребята': [1, 2],
+  'рисунок': [2],
+  'русский': [1, 2],
+  'сапоги': [2],
+  'сахар': [2],
+  'сентябрь': [2],
+  'скоро': [2],
+  'снегирь': [2],
+  'собака': [1, 2],
+  'сорока': [1, 2],
+  'спасибо': [2],
+  'стакан': [2],
+  'суббота': [2],
+  'тарелка': [2],
+  'тетрадь': [1, 2],
+  'товарищ': [2],
+  'топор': [2],
+  'улица': [2],
+  'урожай': [2],
+  'ученик': [1, 2],
+  'ученица': [1, 2],
+  'учитель': [1, 2],
+  'учительница': [2],
+  'фамилия': [2],
+  'февраль': [2],
+  'хорошо': [1, 2],
+  'щавель': [2],
+  'яблоко': [2],
+  'яблоня': [2],
+  'ягода': [2],
+  'язык': [1, 2],
+  'январь': [2],
+  // 1 класс — новых карточки две, обе выше в RAW
+  'лисица': [1],
+  'мальчик': [1],
+};
+
 function parse(): Word[] {
   const out: Word[] = [];
   for (const line of RAW) {
     const [text, stress, syll, danger, kind, emoji, sentence, hint, mnemonic, image] = line.split('|');
+    const grades = GRADES_OF[text];
+    // Ошибка в разметке должна падать при импорте контента, а не в уроке у ребёнка.
+    if (!grades?.length) throw new Error(`Нет класса для «${text}» в GRADES_OF`);
+    // Если слово входит в программу 2 класса — исторический префикс g2_ сохраняется
+    // (ключи profile.words уже такие). Иначе — первый класс, где слово появляется.
+    const gradePrefix = grades.includes(2) ? 2 : Math.min(...grades);
     out.push({
-      id: `g2_${text}`,
+      id: `g${gradePrefix}_${text}`,
       text,
       stress: Number(stress),
       syllables: syll.split('-'),
@@ -226,6 +345,7 @@ function parse(): Word[] {
       // картинка необязательна: без неё в заданиях показывается эмодзи
       image: image || undefined,
       theme: THEME_OF[text] ?? 'school',
+      grades,
     });
   }
   return out;
@@ -235,29 +355,119 @@ export const WORDS: Word[] = parse();
 
 export const WORD_BY_ID: Record<string, Word> = Object.fromEntries(WORDS.map((w) => [w.id, w]));
 
+// ── Классы ──────────────────────────────────────────────────────────────────
+
+export const CLASS_IDS: ClassId[] = [1, 2, 3, 4];
+
+export const CLASS_META: Record<ClassId, { title: string; short: string; emoji: string }> = {
+  1: { title: '1 класс', short: '1', emoji: '🎒' },
+  2: { title: '2 класс', short: '2', emoji: '📚' },
+  3: { title: '3 класс', short: '3', emoji: '✏️' },
+  4: { title: '4 класс', short: '4', emoji: '🎓' },
+};
+
 // ── Уроки: тематические блоки по 4–8 слов ───────────────────────────────────
 
-export const LESSONS: Lesson[] = [
-  { id: 'school', title: 'Школа', emoji: '📚', order: 1, wordIds: byTheme('school') },
-  { id: 'schoolpeople', title: 'В школе', emoji: '👩\u200d🏫', order: 2, wordIds: byTheme('schoolpeople') },
-  { id: 'birds', title: 'Птицы', emoji: '🐦', order: 3, wordIds: byTheme('birds') },
-  { id: 'animals', title: 'Звери', emoji: '🐾', order: 4, wordIds: byTheme('animals') },
-  { id: 'food', title: 'Еда', emoji: '🍽️', order: 5, wordIds: byTheme('food') },
-  { id: 'garden', title: 'Сад и ягоды', emoji: '🍎', order: 6, wordIds: byTheme('garden') },
-  { id: 'city', title: 'Город', emoji: '🏙️', order: 7, wordIds: byTheme('city') },
-  { id: 'country', title: 'Наша страна', emoji: '🇷🇺', order: 8, wordIds: byTheme('country') },
-  { id: 'home', title: 'Дом и вещи', emoji: '🏠', order: 9, wordIds: byTheme('home') },
-  { id: 'work', title: 'Труд', emoji: '🔨', order: 10, wordIds: byTheme('work') },
-  { id: 'winter', title: 'Зима', emoji: '❄️', order: 11, wordIds: byTheme('winter') },
-  { id: 'nature', title: 'Природа', emoji: '🌿', order: 12, wordIds: byTheme('nature') },
-  { id: 'calendar', title: 'Календарь', emoji: '📅', order: 13, wordIds: byTheme('calendar') },
-  { id: 'polite', title: 'Вежливые слова', emoji: '🙏', order: 14, wordIds: byTheme('polite') },
-  { id: 'people', title: 'Люди', emoji: '👨\u200d👩\u200d👧', order: 15, wordIds: byTheme('people') },
-  { id: 'adverbs', title: 'Как и когда', emoji: '⏱️', order: 16, wordIds: byTheme('adverbs') },
+/** 2 класс — исторические уроки пака: id не меняются, в profile.lessons уже эти ключи. */
+const G2_LESSONS: GradeLesson[] = [
+  { id: 'school', title: 'Школа', emoji: '📚', order: 1, wordIds: byTheme('school'), grade: 2 },
+  { id: 'schoolpeople', title: 'В школе', emoji: '👩\u200d🏫', order: 2, wordIds: byTheme('schoolpeople'), grade: 2 },
+  { id: 'birds', title: 'Птицы', emoji: '🐦', order: 3, wordIds: byTheme('birds'), grade: 2 },
+  { id: 'animals', title: 'Звери', emoji: '🐾', order: 4, wordIds: byTheme('animals'), grade: 2 },
+  { id: 'food', title: 'Еда', emoji: '🍽️', order: 5, wordIds: byTheme('food'), grade: 2 },
+  { id: 'garden', title: 'Сад и ягоды', emoji: '🍎', order: 6, wordIds: byTheme('garden'), grade: 2 },
+  { id: 'city', title: 'Город', emoji: '🏙️', order: 7, wordIds: byTheme('city'), grade: 2 },
+  { id: 'country', title: 'Наша страна', emoji: '🇷🇺', order: 8, wordIds: byTheme('country'), grade: 2 },
+  { id: 'home', title: 'Дом и вещи', emoji: '🏠', order: 9, wordIds: byTheme('home'), grade: 2 },
+  { id: 'work', title: 'Труд', emoji: '🔨', order: 10, wordIds: byTheme('work'), grade: 2 },
+  { id: 'winter', title: 'Зима', emoji: '❄️', order: 11, wordIds: byTheme('winter'), grade: 2 },
+  { id: 'nature', title: 'Природа', emoji: '🌿', order: 12, wordIds: byTheme('nature'), grade: 2 },
+  { id: 'calendar', title: 'Календарь', emoji: '📅', order: 13, wordIds: byTheme('calendar'), grade: 2 },
+  { id: 'polite', title: 'Вежливые слова', emoji: '🙏', order: 14, wordIds: byTheme('polite'), grade: 2 },
+  { id: 'people', title: 'Люди', emoji: '👨\u200d👩\u200d👧', order: 15, wordIds: byTheme('people'), grade: 2 },
+  { id: 'adverbs', title: 'Как и когда', emoji: '⏱️', order: 16, wordIds: byTheme('adverbs'), grade: 2 },
 ];
 
+/**
+ * Урок класса: слова задаются текстом, а id берётся из банка. Ошибка в разметке
+ * падает при импорте контента, а не в уроке у ребёнка.
+ * id новых классов начинаются с gN_ — исторические id 2 класса не трогаем.
+ */
+function lesson(
+  grade: ClassId,
+  slug: string,
+  title: string,
+  emoji: string,
+  order: number,
+  words: string[],
+): GradeLesson {
+  return {
+    id: `g${grade}_${slug}`,
+    grade,
+    title,
+    emoji,
+    order,
+    wordIds: words.map((text) => {
+      const word = WORDS.find((w) => w.text === text);
+      if (!word) throw new Error(`Урок ${grade}-${slug}: нет слова «${text}»`);
+      if (!word.grades.includes(grade)) throw new Error(`«${text}» не входит в ${grade} класс`);
+      return word.id;
+    }),
+  };
+}
+
+/** 1 класс — словарик учебника (30 слов). */
+const G1_LESSONS: GradeLesson[] = [
+  lesson(1, 'school', 'Школа', '📚', 1, ['класс', 'карандаш', 'пенал', 'тетрадь', 'ученик', 'ученица']),
+  lesson(1, 'schoolpeople', 'В школе', '👩\u200d🏫', 2, ['учитель', 'дежурный', 'ребята', 'русский', 'язык']),
+  lesson(1, 'birds', 'Птицы и звери', '🐦', 3, ['воробей', 'ворона', 'петух', 'корова', 'медведь', 'заяц', 'лисица']),
+  lesson(1, 'home', 'Люди и дом', '🏡', 4, ['девочка', 'мальчик', 'деревня', 'машина', 'молоко', 'пальто', 'Москва']),
+  lesson(1, 'adverbs', 'Как и кто', '🌟', 5, ['весело', 'хорошо', 'работа', 'собака', 'сорока']),
+];
+
+export const LESSONS: GradeLesson[] = [...G1_LESSONS, ...G2_LESSONS];
+
 function byTheme(theme: string): string[] {
-  return WORDS.filter((w) => w.theme === theme).map((w) => w.id);
+  // Только слова программы 2 класса: у новых классов свои уроки, и слово,
+  // попавшее в пак позже, не должно молча появиться в чужом уроке.
+  return WORDS.filter((w) => w.grades.includes(2) && w.theme === theme).map((w) => w.id);
+}
+
+/**
+ * Тема новых слов (`theme` остаётся для обратной совместимости и подсказок при
+ * вычитке): id первого урока, где слово встречается. Старые 94 сохраняют THEME_OF.
+ */
+{
+  const firstLesson = new Map<string, string>();
+  for (const l of LESSONS) {
+    for (const id of l.wordIds) if (!firstLesson.has(id)) firstLesson.set(id, l.id);
+  }
+  for (const w of WORDS) {
+    if (!THEME_OF[w.text]) w.theme = firstLesson.get(w.id) ?? w.theme;
+  }
+}
+
+export const LESSONS_BY_GRADE: Record<ClassId, GradeLesson[]> = {
+  1: G1_LESSONS,
+  2: G2_LESSONS,
+  3: [],
+  4: [],
+};
+
+/** Классы, для которых уже есть программа: интерфейс показывает только их. */
+export const AVAILABLE_CLASSES: ClassId[] = CLASS_IDS.filter((g) => LESSONS_BY_GRADE[g].length > 0);
+
+export const WORDS_BY_GRADE: Record<ClassId, Word[]> = {
+  1: WORDS.filter((w) => w.grades.includes(1)),
+  2: WORDS.filter((w) => w.grades.includes(2)),
+  3: WORDS.filter((w) => w.grades.includes(3)),
+  4: WORDS.filter((w) => w.grades.includes(4)),
+};
+
+/** Программа класса: класс из профиля, но не ниже того, что реально есть в сборке. */
+export function availableClass(grade: ClassId): ClassId {
+  if (AVAILABLE_CLASSES.includes(grade)) return grade;
+  return AVAILABLE_CLASSES[AVAILABLE_CLASSES.length - 1] ?? 2;
 }
 
 /** Особый урок-тренировка: собирается из слов, которые пора повторить. */
