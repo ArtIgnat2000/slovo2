@@ -58,9 +58,13 @@ function WordImage({
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const src = wordImageUrl(word);
+  // Картинки пока нет (слова 1, 3 и 4 класса) — плита работает «эмодзи-карточкой»:
+  // крупный эмодзи на мягкой подложке. Это осознанное решение 0.31.0
+  // (docs/proposals/word-images-1-4.md): пустой рамки быть не должно.
+  const emojiOnly = !src || failed;
   return (
     <span
-      className={`word-art-frame ${className}`}
+      className={`word-art-frame ${emojiOnly ? 'no-image' : ''} ${className}`}
       style={{ '--art-size': typeof size === 'number' ? `${size}px` : size } as CSSProperties}
       aria-hidden="true"
     >

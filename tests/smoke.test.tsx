@@ -1265,7 +1265,7 @@ async function main() {
 
   // Классы 1–4: смена класса не сбрасывает опыт, товары и награды; путь,
   // герой и урок берутся из программы активного класса (0.27.0).
-  await runClassChecks(root);
+  await runClassChecks();
 
   const failures = failureCount();
   console.log(failures ? `\n✗ ошибок: ${failures}` : '\n✓ все проверки пройдены');

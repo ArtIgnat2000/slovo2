@@ -2,8 +2,17 @@ import { effectiveCards, recordAttempt, type Attempts } from '../../engine/adapt
 import { scheduleWordImages } from '../../platform/word-images';
 import { createStudySessionId, StudyClock } from '../../engine/study';
 import { useEffect, useRef, useState } from 'react';
-import type { Profile, Task, WordState } from '../../types';
-import { LESSON_BY_ID, REVIEW, WORD_BY_ID, WORDS, LESSONS_BY_GRADE, availableClass } from '../../content/words';
+import type { ClassId, GradeLesson, Profile, Task, WordState } from '../../types';
+import {
+  CLASS_META,
+  LESSON_BY_ID,
+  REVIEW,
+  WORD_BY_ID,
+  WORDS,
+  LESSONS_BY_GRADE,
+  availableClass,
+} from '../../content/words';
+import { classComplete, classProgress, nextClass } from '../../engine/classes';
 import { buildLesson, DEFAULT_LESSON_SIZE, lessonCardLimit, makeTask, pickDanger, repairTask, shuffle } from '../../engine/scheduler';
 import { pickReview, pickReviewWords } from '../../engine/srs';
 import { dayKey, dayPlan, masteredCount, todayStat, useActiveProfile, useApp } from '../../state/store';
@@ -130,6 +139,11 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
   const [lastGain, setLastGain] = useState(0);
   // Иток пазла за этот прогон урока — карточка на экране результатов.
   const [puzzleAward, setPuzzleAward] = useState<PuzzleAward | null>(null);
+  // Класс, который ребёнок закрыл именно этим уроком: на результатах появляется
+  // карточка «2 класс пройден!» с переходом дальше (0.31.0). Считаем переход
+  // «было → стало», а не «класс пройден сейчас»: иначе карточка висела бы на
+  // каждом уроке уже пройденного класса.
+  const [classWin, setClassWin] = useState<ClassId | null>(null);
 
   // ── Помощник БУК (docs/buk-in-lesson.md) ──────────────────────────────────
   // Настройка: глобальное «Сова БУК: не показывать» сильнее урока — если совы
@@ -405,6 +419,14 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
   const finish = () => {
     if (finalized.current) return;
     let weeklyAwardGems = 0;
+    // Класс урока и его состояние ДО начисления: последний урок программы
+    // закрывает класс, и это нужно показать на результатах.
+    const lessonGrade = (lesson as GradeLesson | undefined)?.grade ?? null;
+    let classWasDone = true;
+    if (lessonGrade) {
+      const before = useApp.getState().profiles.find((p) => p.id === runProfile) ?? null;
+      classWasDone = classComplete(before, lessonGrade);
+    }
     studyClock.current?.finish('completed');
     ensureTouchedToday();
     finalizeAdaptive('finish');
@@ -424,6 +446,11 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
         say('happy', 'Коллекция костюмов собрана — держи кристаллы!');
       }
     }
+    let completedGrade: ClassId | null = null;
+    if (lessonGrade && !classWasDone) {
+      const after = useApp.getState().profiles.find((p) => p.id === runProfile) ?? null;
+      if (classComplete(after, lessonGrade)) completedGrade = lessonGrade;
+    }
     const bonus = XP.lessonDone + (stars === 3 ? XP.perfectBonus : 0);
     addXp(bonus);
     stats.current.xp += bonus;
@@ -442,6 +469,11 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
       say('happy', 'Урок пройден!');
     } else {
       say('think', 'Попробуем ещё раз?');
+    }
+    if (completedGrade) {
+      setConfetti(true);
+      setClassWin(completedGrade);
+      say('dance', `${CLASS_META[completedGrade].title} пройден! 🎉`);
     }
 
     const fresh = useApp.getState().profiles.find((p) => p.id === profile?.id) ?? profile;
@@ -490,6 +522,13 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
           goal={goal}
           xpBefore={xpBefore}
           puzzle={puzzleAward}
+          classWin={classWin}
+          onNextClass={() => {
+            if (!classWin) return;
+            const next = nextClass(classWin);
+            if (next) useApp.getState().setActiveClass(next);
+            onExit();
+          }}
           onHome={onExit}
         />
         <FloatingMascot />
@@ -666,6 +705,8 @@ function Results({
   goal,
   xpBefore,
   puzzle,
+  classWin,
+  onNextClass,
   onHome,
 }: {
   lessonId: string;
@@ -676,6 +717,9 @@ function Results({
   xpBefore: number;
   /** Иток костюмного пазла этого урока (engine/puzzles.ts); null — не за что (повторение). */
   puzzle?: PuzzleAward | null;
+  /** Класс, закрытый именно этим уроком: карточка «класс пройден» с переходом дальше. */
+  classWin?: ClassId | null;
+  onNextClass: () => void;
   onHome: () => void;
 }) {
   const [puzzleOpen, setPuzzleOpen] = useState(true);
@@ -738,6 +782,26 @@ function Results({
             </div>
           )}
         </div>
+
+        {classWin && (
+          <div className="card class-win">
+            <div className="class-win-emoji" aria-hidden="true">🎉</div>
+            <h3 className="class-win-title">{CLASS_META[classWin].title} пройден!</h3>
+            <ClassWinMeta grade={classWin} />
+            {nextClass(classWin) ? (
+              <button className="btn primary wide lg" onClick={onNextClass}>
+                Дальше — {CLASS_META[nextClass(classWin)!].title}
+              </button>
+            ) : (
+              <button className="btn green wide lg" onClick={onHome}>
+                Вся программа позади — к урокам 🗺️
+              </button>
+            )}
+            <p className="tiny" style={{ marginTop: 8 }}>
+              Опыт, кристаллы и покупки остаются с тобой.
+            </p>
+          </div>
+        )}
 
         {puzzle?.event === 'assembled' && puzzleOpen && (
           <div className="card puzzle-win">
@@ -812,6 +876,19 @@ function Results({
         </div>
       </div>
     </div>
+  );
+}
+
+/** Итог класса на карточке победы: уроки и освоенные слова. */
+function ClassWinMeta({ grade }: { grade: ClassId }) {
+  const profile = useActiveProfile();
+  const info = classProgress(profile, grade);
+  return (
+    <p className="tiny" style={{ margin: '0 0 10px' }}>
+      {info.lessons} {plural(info.lessons, 'урок', 'урока', 'уроков')} позади · {info.mastered} из {info.words}{' '}
+      {plural(info.words, 'слова', 'слов', 'слов')} освоено
+      {nextClass(grade) ? ` · дальше ${CLASS_META[nextClass(grade)!].title.toLowerCase()}` : ' · вся программа 1–4'}.
+    </p>
   );
 }
 

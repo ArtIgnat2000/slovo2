@@ -6,7 +6,8 @@ import { createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useApp } from '../src/state/store';
 import App from '../src/App';
-import { AVAILABLE_CLASSES, LESSONS_BY_GRADE, WORDS_BY_GRADE, WORD_BY_ID } from '../src/content/words';
+import { AVAILABLE_CLASSES, CLASS_META, LESSONS_BY_GRADE, WORDS_BY_GRADE, WORD_BY_ID } from '../src/content/words';
+import { classComplete, classProgress, classTable, nextClass } from '../src/engine/classes';
 import { body, btn, btnText, buttons, check, click, currentWord, has, sleep } from './ui-helpers';
 
 const store = () => useApp.getState();
@@ -82,7 +83,102 @@ function diffKeys(a: object, b: object, path = ''): string[] {
   return out;
 }
 
-export async function runClassChecks(root: Root) {
+/**
+ * Пройти урок без единой ошибки: только правильные ответы, до экрана результатов.
+ *
+ * Общий `playLesson` из смоука намеренно ошибается, чтобы проверить отработку, —
+ * для «класс пройден» нужен чистый прогон: порог уровня урока 60%, и случайные
+ * ошибки делали бы проверку рулеткой.
+ */
+async function playClean(): Promise<boolean> {
+  for (let steps = 0; steps < 2000; steps++) {
+    await sleep(12);
+    if (btnText('К урокам') && has('Цель дня') && !document.querySelector('.task')) return true;
+    if (btnText('Далее')) {
+      click(btnText('Далее')!);
+      continue;
+    }
+    // 1. Проговаривание по слогам — неоцениваемое
+    const syllable = buttons().find((b) => b.className.includes('syllable') && !b.disabled);
+    if (syllable) {
+      click(syllable);
+      continue;
+    }
+    // 2. Знакомство / напоминание
+    const intro = btn((b) => /Запомнил|Вспомнил/.test(b.textContent ?? ''));
+    if (intro) {
+      click(intro);
+      continue;
+    }
+    // 3. Сборка слова — жмём нужную букву
+    const letters = Array.from(document.querySelectorAll('.letter')) as HTMLButtonElement[];
+    if (letters.length) {
+      const word = currentWord();
+      if (!word) continue;
+      const filled = document.querySelectorAll('.slot.filled').length;
+      const need = word.text[filled].toLowerCase();
+      const free = letters.find(
+        (b) => !b.className.includes('used') && (b.textContent ?? '').trim().toLowerCase() === need,
+      );
+      if (free) click(free);
+      continue;
+    }
+    // 4. Окошко / исправь робота
+    const options = Array.from(document.querySelectorAll('.option')) as HTMLButtonElement[];
+    if (options.length) {
+      const word = currentWord();
+      const visible = document.querySelector('.word-big')?.textContent ?? '';
+      let correct: HTMLButtonElement | undefined;
+      if (word && visible.includes('□')) {
+        const letter = word.text[visible.indexOf('□')];
+        correct = options.find((o) => (o.textContent ?? '').toLowerCase() === letter);
+      } else if (word) {
+        correct = options.find((o) => (o.textContent ?? '').trim() === word.text);
+      }
+      click(correct ?? options[0]);
+      continue;
+    }
+    // 5. Письмо / зрительный диктант
+    const keys = Array.from(document.querySelectorAll('.key')) as HTMLButtonElement[];
+    const word = currentWord();
+    if (keys.length && word) {
+      const typed = (document.querySelector('.typed')?.textContent ?? '').replace('·', '').trim();
+      const need = word.text.slice(typed.length);
+      for (const ch of need) {
+        const k = keys.find((b) => (b.textContent ?? '').trim().toLowerCase() === ch.toLowerCase());
+        if (!k) break;
+        click(k);
+        await sleep(4);
+      }
+      const checkBtn = btnText('Проверить');
+      if (checkBtn && !checkBtn.disabled) click(checkBtn);
+      continue;
+    }
+  }
+  return false;
+}
+
+/**
+ * Выйти из урока, если он остался открыт от предыдущего блока смоука.
+ * «Быстрый звук» открывает урок и ищет кнопку «Выйти» по тексту — у ✕ только
+ * aria-label, поэтому урок может остаться на экране. Здесь закрываем его
+ * осознанно, чтобы клики по пути были кликами по пути, а не по заданию.
+ */
+async function leaveLessonIfOpen(): Promise<void> {
+  if (!document.querySelector('.lesson-screen')) return;
+  const x = btn((b) => b.getAttribute('aria-label') === 'Выйти из урока');
+  if (x) {
+    click(x);
+    await sleep(80);
+    const out = btn((b) => (b.textContent ?? '').trim() === 'Выйти');
+    if (out) {
+      click(out);
+      await sleep(120);
+    }
+  }
+}
+
+export async function runClassChecks() {
   // ── 1. Чистые инварианты стора ────────────────────────────────────────────
   {
     seedRichProfile();
@@ -114,6 +210,44 @@ export async function runClassChecks(root: Root) {
     store().setActiveClass(2);
     store().setActiveClass(2);
     assert.equal(active().activeClass, 2);
+  }
+
+  // ── 1.5. Движок классов: прогресс, следующий класс, «пройден» ────────────
+  {
+    store().setActiveClass(2);
+    const table = classTable(active());
+    assert.deepEqual(table.map((row) => row.grade), AVAILABLE_CLASSES, 'таблица — по всем классам сборки');
+    const g2 = table.find((row) => row.grade === 2)!;
+    assert.equal(g2.words, WORDS_BY_GRADE[2].length, 'слов в классе — из программы');
+    assert.equal(g2.lessons, LESSONS_BY_GRADE[2].length, 'уроков в классе — из программы');
+    assert.equal(g2.current, true, 'активный класс отмечен');
+    assert.equal(table.filter((row) => row.current).length, 1, 'текущий класс ровно один');
+    assert.equal(g2.complete, false, 'класс с незакрытыми уроками не пройден');
+    assert.equal(g2.pct, Math.round((g2.mastered / g2.words) * 100), 'процент освоения — от слов класса');
+
+    assert.equal(nextClass(1), 2, 'после 1 класса — 2');
+    assert.equal(nextClass(4), null, 'после 4 класса программы нет');
+
+    const id = active().id;
+    useApp.setState((s) => ({
+      profiles: s.profiles.map((p) =>
+        p.id !== id
+          ? p
+          : {
+              ...p,
+              lessons: {
+                ...p.lessons,
+                ...Object.fromEntries(
+                  LESSONS_BY_GRADE[1].map((l) => [l.id, { level: 5, best: 100, doneAt: Date.now(), plays: 2 }]),
+                ),
+              },
+            },
+      ),
+    }));
+    assert.equal(classComplete(active(), 1), true, 'все уроки 1 класса закрыты — класс пройден');
+    assert.equal(classProgress(active(), 1).lessonsDone, LESSONS_BY_GRADE[1].length, 'счётчик пройденных уроков');
+    // Остальные классы это не затрагивает.
+    assert.equal(classComplete(active(), 2), false, 'закрытие 1 класса не закрывает 2');
   }
 
   // ── 2. Старый профиль без поля ────────────────────────────────────────────
@@ -345,6 +479,127 @@ export async function runClassChecks(root: Root) {
     store().setActiveClass(2);
     ui.unmount();
     host.remove();
+  }
+
+  // ── 5. «Класс пройден»: карточка на результатах и переход дальше ─────────
+  {
+    // Закрываем урок, оставшийся от «Быстрого звука», и только потом трогаем класс.
+    await leaveLessonIfOpen();
+    const id = active().id;
+    const grade1 = LESSONS_BY_GRADE[1];
+    const last = grade1[grade1.length - 1];
+    // Последний урок 1 класса — на 4 уровне: один хороший урок закроет класс.
+    store().setActiveClass(1);
+    useApp.setState((s) => ({
+      profiles: s.profiles.map((p) =>
+        p.id !== id
+          ? p
+          : {
+              ...p,
+              lessons: {
+                ...p.lessons,
+                ...Object.fromEntries(
+                  grade1.map((l) => [
+                    l.id,
+                    { level: l.id === last.id ? 4 : 5, best: 100, doneAt: Date.now(), plays: 3 },
+                  ]),
+                ),
+              },
+            },
+      ),
+    }));
+    check('класс ещё не пройден: последний урок на 4 уровне', !classComplete(active(), 1), '');
+
+    // Приложение смоука уже смонтировано в #root — работаем с ним же, а не
+    // поднимаем второй React-корень: два App в документе ловят клики друг друга.
+    const lessonsTab = buttons().find((b) => b.className.includes('tab') && (b.textContent ?? '').includes('Уроки'));
+    if (lessonsTab) {
+      click(lessonsTab);
+      await sleep(80);
+    }
+    const currentNode = document.querySelector<HTMLButtonElement>('.node-btn.current');
+    check('на пути 1 класса открыт последний урок', !!currentNode, body().slice(0, 160));
+    click(currentNode);
+    await sleep(120);
+    const openedId = (document.querySelector('.lesson-screen') as HTMLElement | null)?.dataset.lessonId ?? '';
+    check('открылся последний урок 1 класса', openedId === last.id, `${openedId} вместо ${last.id}`);
+    const finished = await playClean();
+    check('урок 1 класса пройден без ошибок', finished, body().slice(-200));
+    const winCard = document.querySelector('.class-win');
+    check('последний урок класса показывает карточку «класс пройден»', !!winCard, body().slice(-260));
+    check(
+      'карточка называет класс и предлагает следующий',
+      (winCard?.textContent ?? '').includes('1 класс пройден') && (winCard?.textContent ?? '').includes('Дальше — 2 класс'),
+      winCard?.textContent?.slice(0, 200) ?? 'карточки нет',
+    );
+    assert.equal(classComplete(active(), 1), true, 'урок действительно закрыл 1 класс');
+
+    const nextBtn = btnText('Дальше — 2 класс');
+    check('в карточке есть кнопка перехода во 2 класс', !!nextBtn, body().slice(-200));
+    click(nextBtn);
+    await sleep(140);
+    check('кнопка переводит профиль во 2 класс', active().activeClass === 2, String(active().activeClass));
+    check('после перехода открыта главная 2 класса', has('2 класс') && !!document.querySelector('.class-pill'), body().slice(0, 160));
+
+    // Лист классов: пройденный 1 класс помечен, текущий — 2.
+    click(document.querySelector('.class-pill'));
+    await sleep(80);
+    const cards = Array.from(document.querySelectorAll<HTMLButtonElement>('.class-card'));
+    const g1Card = cards.find((c) => (c.textContent ?? '').includes('1 класс'));
+    check(
+      'в листе классов пройденный класс помечен «✓ пройден»',
+      !!g1Card && (g1Card.textContent ?? '').includes('пройден') && g1Card.className.includes('done'),
+      g1Card?.textContent ?? 'карточки 1 класса нет',
+    );
+    // Подсказка «класс пройден — можно перейти дальше» живёт в листе только
+    // для пройденного активного класса: возвращаемся в 1 класс и открываем лист.
+    click(g1Card);
+    await sleep(100);
+    click(document.querySelector('.class-pill'));
+    await sleep(80);
+    check(
+      'в листе классов есть подсказка о переходе дальше',
+      !!document.querySelector('.class-sheet-next') &&
+        (document.querySelector('.class-sheet-next')?.textContent ?? '').includes('2 класс'),
+      body().slice(-200),
+    );
+    const back2 = Array.from(document.querySelectorAll<HTMLButtonElement>('.class-card')).find((c) =>
+      (c.textContent ?? '').includes('2 класс'),
+    );
+    click(back2);
+    await sleep(100);
+    check('из листа можно вернуться во 2 класс', active().activeClass === 2, String(active().activeClass));
+
+    // Герой «Класс пройден»: все уроки 2 класса закрыты — карточка ведёт в 3.
+    useApp.setState((s) => ({
+      profiles: s.profiles.map((p) =>
+        p.id !== id
+          ? p
+          : {
+              ...p,
+              lessons: {
+                ...p.lessons,
+                ...Object.fromEntries(
+                  LESSONS_BY_GRADE[2].map((l) => [l.id, { level: 5, best: 100, doneAt: Date.now(), plays: 2 }]),
+                ),
+              },
+            },
+      ),
+    }));
+    await sleep(100);
+    const hero = document.querySelector('.home-hero') as HTMLButtonElement | null;
+    check(
+      'герой сообщает «2 класс пройден» и предлагает 3 класс',
+      !!hero && (hero.textContent ?? '').includes('Класс пройден') && (hero.textContent ?? '').includes('3 класс'),
+      hero?.textContent ?? 'героя нет',
+    );
+    click(hero);
+    await sleep(120);
+    check('герой «Класс пройден» переключает на 3 класс', active().activeClass === 3, String(active().activeClass));
+
+    // Возвращаем привычный 2 класс: остальные проверки не должны зависеть от этого.
+    store().setActiveClass(2);
+    await sleep(60);
   }
 
   console.log('✓ классы: смена не сбрасывает опыт, товары и награды; путь и урок берутся из своего класса');

@@ -9,7 +9,7 @@
 //  • ошибка в примере-замке показывается на месте, а не модальным окном.
 import { body, btnText, buttons, check, click, has, openParentSection, sleep } from './ui-helpers';
 import { dayKey, useApp } from '../src/state/store';
-import { WORDS } from '../src/content/words';
+import { CLASS_META, WORDS } from '../src/content/words';
 
 const store = () => useApp.getState();
 
@@ -212,6 +212,26 @@ export async function runParentUiChecks(): Promise<void> {
     'обзор не показывает рекламу школы — она не отвлекает от отчёта',
     has('XP за сегодня') && !has('Слово2 сделали в V-labs'),
     body().slice(0, 200),
+  );
+
+  // 7.5. Таблица классов 1–4 (0.31.0): весь путь виден, текущий класс отмечен.
+  const classRows = Array.from(document.querySelectorAll('.class-table-row'));
+  check(
+    'в обзоре есть таблица классов 1–4 — по строке на класс',
+    classRows.length === 4 && has('Классы 1–4'),
+    `строк: ${classRows.length}; текст: ${body().slice(0, 160)}`,
+  );
+  check(
+    'в таблице классов у каждой строки есть слова и уроки',
+    classRows.every((row) => /\d+ \/ \d+ слов/.test(row.textContent ?? '') && /\d+ из \d+/.test(row.textContent ?? '')),
+    classRows.map((row) => row.textContent).join(' | ').slice(0, 220),
+  );
+  check(
+    'в таблице классов ровно один текущий класс, и он подсвечен',
+    classRows.filter((row) => row.className.includes('on')).length === 1 &&
+      has('сейчас') &&
+      (document.querySelector('.class-table-row.on')?.textContent ?? '').includes(CLASS_META[store().profiles.find((p) => p.id === store().activeId)?.activeClass ?? 2].title),
+    document.querySelector('.class-table-row.on')?.textContent ?? 'нет активной строки',
   );
 
   // 8. Отчёт «сегодня»: отдельная запись сессии и ошибки в конкретном слове.
