@@ -1113,7 +1113,10 @@ export const useApp = create<AppState>()(
       setSoundPack: (id) =>
         set((s) => patchActive(s, (prof) => {
           const shop = readShop(prof);
-          if (!SOUND_PACK_BY_ID[id] || !shop.soundOwned?.includes(id)) return prof;
+          const pack = SOUND_PACK_BY_ID[id];
+          // Бесплатный набор доступен без покупки: его не нужно добавлять
+          // в soundOwned, иначе «Выбрать» молча ничего не делает.
+          if (!pack || (!shop.soundOwned?.includes(id) && pack.price !== 0)) return prof;
           return { ...prof, shop: { ...shop, soundPack: id } };
         })),
 

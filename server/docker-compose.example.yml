@@ -1,0 +1,60 @@
+# Пилот на Synology (Container Manager → «Проект») или на любом Docker-хосте.
+#
+# 1. Скопируйте папку server/ на NAS, например в /volume1/docker/slovo-api
+# 2. Скопируйте compose.env.example → compose.env и задайте ADMIN_TOKEN:
+#      openssl rand -base64 32
+#    chmod 600 compose.env
+# 3. Container Manager → Проект → Создать → путь /volume1/docker/slovo-api,
+#    источник: этот файл (переименуйте в docker-compose.yml).
+# 4. Снаружи публикуйте только через DSM Reverse Proxy или Cloudflare Tunnel —
+#    порт 8080 в интернет не открывайте.
+#
+# Порт 8080 выбран потому, что 80 и 443 на DSM заняты самой панелью.
+
+services:
+  api:
+    build: .
+    container_name: slovo-api
+    restart: unless-stopped
+    env_file:
+      - ./compose.env
+    environment:
+      TZ: Europe/Moscow
+      PORT: "8080"
+      DB_PATH: /data/slovo.db
+      BACKUP_DIR: /data/backups
+      # Прокси наш (DSM Reverse Proxy / Caddy), поэтому реальный IP берём
+      # из X-Forwarded-For. Если публикуете контейнер напрямую — уберите.
+      TRUST_PROXY: "1"
+    volumes:
+      - /volume1/docker/slovo-api/data:/data
+    ports:
+      - "8080:8080"
+    # Контейнеру нечего писать вне /data: это сужает последствия ошибки.
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:8080/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+# Ежедневный бэкап: добавьте в Планировщик задач DSM
+# (Пользователь: root, команда):
+#   docker exec slovo-api node --disable-warning=ExperimentalWarning scripts/backup.mjs
+# Файлы появятся в /volume1/docker/slovo-api/data/backups.
+# Раз в неделю копируйте их на второй носитель (Hyper Backup / внешний диск):
+# бэкап на том же диске не защищает от потери диска.

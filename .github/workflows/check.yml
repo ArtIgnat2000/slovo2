@@ -29,6 +29,7 @@ jobs:
       - run: npm run typecheck
       - run: npm run content:check
       - run: npm run test:adaptive
+      - run: npm run server:test
       - run: npm run test:smoke
       - run: npm run build
       - run: npm run test:boot

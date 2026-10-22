@@ -737,7 +737,8 @@ export function ShopScreen() {
   );
 
   const soundCard = (pack: SoundPack) => {
-    const ownedPack = soundOwned.includes(pack.id);
+    // Бесплатный набор не нужно «покупать»: он доступен сразу, как классика.
+    const ownedPack = pack.price === 0 || soundOwned.includes(pack.id);
     const selected = selectedSound === pack.id;
     const affordable = gems >= pack.price;
     return (
