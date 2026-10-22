@@ -1,0 +1,766 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>СЛОВО 2.0 — шапка «Уроков»: разбор и варианты</title>
+    <style>
+      :root {
+        color-scheme: only light;
+        --bg: #fff8ec;
+        --bg-2: #fff;
+        --ink: #241f36;
+        --ink-2: #6b6480;
+        --ink-3: #9c95ad;
+        --primary: #7c5cff;
+        --primary-soft: #ece7ff;
+        --orange: #ff9f0a;
+        --orange-ink: #b45309;
+        --green: #22c55e;
+        --red: #f43f5e;
+        --card: #fff;
+        --line: #efe9dd;
+        --shadow: 0 6px 0 rgba(36, 31, 54, 0.06), 0 10px 24px rgba(36, 31, 54, 0.07);
+        /* В приложении system-ui. В песочнице без эмодзи-шрифта системный стек
+           иногда отдаёт значки чёрно-белыми квадратами — добавляем Noto/Apple/Segoe
+           как fallback; на телефоне всё равно победит системный шрифт. */
+        --font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+          'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+        --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+      :root[data-theme='dark'] {
+        color-scheme: only dark;
+        --bg: #171426;
+        --bg-2: #1f1b33;
+        --ink: #f4f1ff;
+        --ink-2: #b7b0cd;
+        --ink-3: #8b84a3;
+        --card: #241f3a;
+        --line: #322c4d;
+        --primary-soft: #32285c;
+        --shadow: 0 6px 0 rgba(0, 0, 0, 0.24), 0 10px 24px rgba(0, 0, 0, 0.28);
+      }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        background:
+          radial-gradient(120% 60% at 15% 0%, #ffe9c7 0%, transparent 55%),
+          radial-gradient(100% 55% at 100% 0%, #e6e0ff 0%, transparent 60%),
+          var(--bg);
+        color: var(--ink);
+        font-family: var(--font);
+        -webkit-font-smoothing: antialiased;
+      }
+      :root[data-theme='dark'] body { background: var(--bg); }
+      a { color: var(--primary); }
+      .page-head { max-width: 1280px; margin: 0 auto; padding: 40px 24px 0; }
+      .kicker {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: var(--primary-soft);
+        color: var(--primary);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      h1 { margin: 14px 0 10px; font-size: clamp(28px, 4.5vw, 44px); line-height: 1.08; letter-spacing: -0.025em; }
+      .lead { max-width: 900px; margin: 0; color: var(--ink-2); font-size: 17px; line-height: 1.55; }
+      .lead b { color: var(--ink); }
+      .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 20px; }
+      .seg {
+        display: inline-flex; gap: 4px; padding: 4px;
+        border: 2px solid var(--line); border-radius: 999px; background: var(--card);
+      }
+      .seg button {
+        min-height: 38px; padding: 0 14px; border: 0; border-radius: 999px;
+        background: transparent; color: var(--ink-2); font: inherit; font-weight: 800; font-size: 14px;
+        cursor: pointer;
+      }
+      .seg button.on { background: var(--primary); color: #fff; }
+      .tool {
+        display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px;
+        border: 2px solid var(--line); border-radius: 999px; background: var(--card);
+        color: var(--ink); font: inherit; font-weight: 800; font-size: 14px;
+        text-decoration: none; cursor: pointer;
+      }
+      .facts {
+        max-width: 1280px; margin: 26px auto 0; padding: 0 24px;
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;
+      }
+      .fact { background: var(--card); border: 2px solid var(--line); border-radius: 20px; padding: 14px 16px; box-shadow: var(--shadow); }
+      .fact b { display: block; font-size: 26px; line-height: 1.1; color: var(--primary); letter-spacing: -0.02em; }
+      .fact span { display: block; margin-top: 4px; font-size: 13px; color: var(--ink-2); font-weight: 700; }
+      .intro {
+        max-width: 1280px; margin: 22px auto 0; padding: 0 24px;
+        color: var(--ink-2); font-size: 15px; line-height: 1.55;
+      }
+      .intro b { color: var(--ink); }
+      .section-head { max-width: 1280px; margin: 34px auto 0; padding: 0 24px; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+      .section-head h2 { margin: 0; font-size: 24px; letter-spacing: -0.02em; }
+      .section-head .hint { color: var(--ink-3); font-size: 13px; font-weight: 700; }
+      .variants {
+        max-width: 1280px; margin: 14px auto 0; padding: 0 24px;
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(352px, 1fr)); gap: 18px; align-items: start;
+      }
+      .vcard {
+        background: var(--card); border: 2px solid var(--line); border-radius: 26px;
+        padding: 16px; box-shadow: 0 5px 0 rgba(36, 31, 54, 0.05);
+        /* Карточка не должна расширяться под фиксированную ширину телефона:
+           на узком экране телефон скроллится внутри .phone-wrap. */
+        min-width: 0;
+      }
+      .vcard.recommended { border-color: var(--primary); box-shadow: 0 6px 0 var(--primary); }
+      .vhead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+      .vhead h3 { margin: 0; font-size: 20px; letter-spacing: -0.015em; }
+      .tag {
+        display: inline-block; padding: 4px 8px; border-radius: 999px;
+        background: var(--primary-soft); color: var(--primary);
+        font-size: 10px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;
+      }
+      .tag.bad { background: #ffe4e6; color: #be123c; }
+      .tag.good { background: #dcfce7; color: #15803d; }
+      :root[data-theme='dark'] .tag.bad { background: #45192a; color: #fda4af; }
+      :root[data-theme='dark'] .tag.good { background: #1c3a2a; color: #86efac; }
+      .vsub { margin: 8px 0 12px; color: var(--ink-2); font-size: 13.5px; line-height: 1.5; }
+      .phone-wrap { display: flex; justify-content: center; overflow-x: auto; max-width: 100%; padding: 4px 0 10px; }
+      .phone {
+        position: relative; flex: none;
+        width: calc(var(--w, 360px) + 20px);
+        height: 660px;
+        border: 10px solid #241f36; border-radius: 40px;
+        box-sizing: border-box;
+        background: var(--bg); overflow: hidden;
+        box-shadow: 0 16px 34px rgba(36, 31, 54, 0.22);
+      }
+      .screen { position: relative; height: 100%; padding: 14px 16px 78px; overflow: hidden; line-height: normal; }
+      .topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; min-height: 44px; }
+      .topbar[data-alert='1'] { outline: 2px dashed var(--red); outline-offset: 4px; border-radius: 14px; }
+      .grow { flex: 1; min-width: 0; }
+      .avatar {
+        width: 44px; height: 44px; border-radius: 50%;
+        display: grid; place-items: center;
+        font-size: 24px; background: var(--primary-soft);
+        border: 2px solid var(--line); flex: none;
+      }
+      .avatar[type='button'], button.avatar { padding: 0; cursor: pointer; }
+      .topbar-name {
+        min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+        font-size: 18px; font-weight: 800; line-height: 1.2;
+      }
+      .stat-pill {
+        display: inline-flex; align-items: center; gap: 6px;
+        background: var(--card); border: 2px solid var(--line); border-radius: 999px;
+        padding: 6px 12px; font-weight: 800; font-size: 15px;
+      }
+      .stat-pill.fire { color: var(--orange); }
+      .stat-pill.gems { color: var(--primary); }
+      .stat-pill.icon { position: relative; padding: 6px 10px; cursor: pointer; }
+      .stat-pill.wait { border-color: var(--orange); }
+      .rewards-dot {
+        position: absolute; top: 4px; right: 4px; width: 10px; height: 10px; border-radius: 50%;
+        background: var(--orange); box-shadow: 0 0 0 2px var(--card);
+      }
+      .profile-btn {
+        flex: 0 1 auto; min-width: 0; min-height: 44px;
+        display: inline-flex; align-items: center; gap: 8px;
+        padding: 0; border: 0; background: none; color: inherit; font: inherit;
+        text-align: left; cursor: pointer;
+      }
+      .profile-btn .avatar { flex: none; }
+      .topbar-stat {
+        flex: none; display: inline-flex; align-items: center; gap: 4px;
+        font-size: 15px; font-weight: 800; white-space: nowrap;
+        font-variant-numeric: tabular-nums; color: var(--ink);
+      }
+      .rewards-btn {
+        position: relative; flex: none; width: 44px; height: 44px; padding: 0;
+        display: grid; place-items: center;
+        background: var(--card); border: 2px solid var(--line); border-radius: 999px;
+        font-size: 20px; cursor: pointer;
+      }
+      .rewards-count {
+        position: absolute; top: -4px; right: -4px;
+        min-width: 18px; height: 18px; padding: 0 4px;
+        display: grid; place-items: center; border-radius: 999px;
+        background: var(--orange); color: #fff;
+        font-size: 11px; font-weight: 800; line-height: 1;
+        box-shadow: 0 0 0 2px var(--card); pointer-events: none;
+      }
+      [data-w='320'] .topbar.compact { gap: 8px; }
+      [data-w='320'] .topbar.compact .topbar-name { font-size: 16px; }
+      [data-w='320'] .topbar.compact .topbar-stat { font-size: 14px; gap: 3px; }
+
+      .class-pill {
+        display: inline-flex; align-items: center; gap: 8px;
+        min-height: 44px; margin-bottom: 10px; padding: 8px 14px;
+        border: 2px solid var(--line); border-radius: 999px;
+        background: var(--card); font-size: 14px; font-weight: 700;
+      }
+      .class-pill .muted { color: var(--ink-2); font-weight: 600; }
+      .class-pill .caret { color: var(--ink-2); font-size: 11px; }
+
+      .hero {
+        background: var(--primary-soft); color: var(--ink);
+        border-radius: 26px; padding: 14px 14px 12px;
+        box-shadow: 0 6px 0 var(--primary); margin-bottom: 16px;
+      }
+      .hero-kicker {
+        font-size: 11px; font-weight: 800; letter-spacing: 0.06em;
+        text-transform: uppercase; color: var(--primary); margin-bottom: 6px;
+      }
+      .hero-body { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+      .hero-emoji {
+        width: 52px; height: 52px; border-radius: 17px; flex: none;
+        display: grid; place-items: center; font-size: 30px; background: var(--card);
+      }
+      .hero-text { min-width: 0; }
+      .hero-title { display: block; font-size: 21px; font-weight: 800; line-height: 1.15; letter-spacing: -0.02em; }
+      .hero-meta { display: block; margin-top: 3px; font-size: 13px; font-weight: 700; color: var(--ink-2); }
+      .hero-cta {
+        min-height: 50px; border-radius: 18px;
+        display: flex; align-items: center; justify-content: center;
+        background: var(--primary); color: #fff; font-weight: 800; font-size: 17px;
+        box-shadow: 0 4px 0 #5b3ede;
+      }
+      .hero-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+      .hero-top .hero-kicker { margin: 0; }
+      .hero-stats { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 800; white-space: nowrap; }
+      .hero-stats .sep { color: var(--ink-3); }
+      .hero-id { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+      .hero-id .profile-btn { flex: 1; }
+      .path-title { margin: 18px 0 10px; font-size: 18px; font-weight: 800; }
+      .path-row {
+        display: flex; align-items: center; gap: 10px;
+        padding: 9px 12px; margin-bottom: 10px; border-radius: 20px;
+        background: var(--card); border: 2px solid var(--line); box-shadow: 0 3px 0 var(--line);
+      }
+      .path-row.on { background: var(--primary-soft); border-color: var(--primary); box-shadow: 0 3px 0 var(--primary); }
+      .node-emoji {
+        width: 40px; height: 40px; border-radius: 12px; flex: none;
+        display: grid; place-items: center; font-size: 22px; background: var(--bg-2);
+      }
+      .path-row.on .node-emoji { background: var(--card); }
+      .node-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+      .node-text b { font-size: 15px; }
+      .node-text span { font-size: 11px; color: var(--ink-2); }
+      .arrow { color: var(--ink-2); font-size: 16px; }
+      .tabs {
+        position: absolute; left: 0; right: 0; bottom: 0;
+        display: flex; background: var(--card); border-top: 2px solid var(--line);
+      }
+      .tabs .tab {
+        flex: 1; padding: 8px 2px 6px;
+        display: flex; flex-direction: column; align-items: center; gap: 2px;
+        font-size: 10px; font-weight: 800; color: var(--ink-3);
+      }
+      .tabs .tab .ico { font-size: 20px; line-height: 1; }
+      .tabs .tab.on { color: var(--primary); }
+
+      .live {
+        margin: 2px 0 10px; padding: 8px 10px; border-radius: 12px;
+        background: var(--bg-2); border: 1px solid var(--line);
+        font-size: 12px; font-weight: 700; color: var(--ink-2); line-height: 1.4;
+      }
+      .pros { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+      .pros li { position: relative; padding-left: 20px; font-size: 13px; line-height: 1.45; color: var(--ink-2); }
+      .pros li::before { position: absolute; left: 0; top: 0; font-weight: 900; }
+      .pros li.plus::before { content: '+'; color: var(--green); }
+      .pros li.minus::before { content: '−'; color: var(--red); }
+      .pros li b { color: var(--ink); }
+      .emoji-note { margin: 10px 0 0; font-size: 11.5px; line-height: 1.45; color: var(--ink-3); }
+
+      .measure-block { max-width: 1280px; margin: 36px auto 0; padding: 0 24px; }
+      .measure-scroll { max-width: 100%; overflow-x: auto; }
+      .measure-table { width: 100%; border-collapse: separate; border-spacing: 0 6px; font-size: 13px; }
+      .measure-table th, .measure-table td { text-align: left; vertical-align: top; padding: 8px 10px; }
+      .measure-table thead th { color: var(--ink-2); font-size: 12px; letter-spacing: 0.03em; text-transform: uppercase; }
+      .measure-table tbody th { width: 150px; font-size: 14px; }
+      .measure-table tbody tr { background: var(--card); }
+      .measure-table tbody tr th:first-child { border-radius: 14px 0 0 14px; border: 2px solid var(--line); border-right: 0; }
+      .measure-table tbody tr td:last-child { border-radius: 0 14px 14px 0; border: 2px solid var(--line); border-left: 0; }
+      .measure-table tbody td { border-top: 2px solid var(--line); border-bottom: 2px solid var(--line); }
+      .mcell { display: grid; gap: 2px; min-width: 150px; }
+      .mcell span { display: flex; justify-content: space-between; gap: 10px; color: var(--ink-2); }
+      .mcell b { color: var(--ink); font-variant-numeric: tabular-nums; }
+      .mcell.bad b { color: var(--red); }
+      .mcell.warn b { color: var(--orange-ink); }
+      .mcell .flag { display: block; color: var(--red); font-weight: 800; font-size: 11px; }
+      .mcell.none { color: var(--ink-3); }
+      .legend { margin: 8px 0 0; color: var(--ink-3); font-size: 12px; line-height: 1.5; }
+
+      .verdict {
+        max-width: 1280px; margin: 36px auto 0; padding: 0 24px 10px;
+      }
+      .verdict-card {
+        background: var(--card); border: 2px solid var(--primary); border-radius: 28px;
+        padding: 22px; box-shadow: 0 6px 0 var(--primary);
+      }
+      .verdict-card h2 { margin: 0 0 6px; font-size: 24px; letter-spacing: -0.02em; }
+      .verdict-card p { margin: 0 0 12px; color: var(--ink-2); font-size: 15px; line-height: 1.55; }
+      .verdict-card b { color: var(--ink); }
+      .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+      .chip {
+        padding: 8px 12px; border-radius: 999px;
+        background: var(--primary-soft); color: var(--primary);
+        font-size: 12px; font-weight: 800;
+      }
+      .before-after {
+        display: grid; gap: 8px; margin: 14px 0;
+        font-family: var(--mono); font-size: 13px; line-height: 1.5;
+      }
+      .before-after div { white-space: pre-wrap; padding: 10px 12px; border-radius: 12px; background: var(--bg-2); border: 1px solid var(--line); }
+      .before-after .now { color: var(--ink-3); }
+      .before-after .next { color: var(--ink); border-color: var(--primary); }
+      .verdict-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+      .foot { max-width: 1280px; margin: 26px auto 0; padding: 0 24px 48px; color: var(--ink-3); font-size: 12px; line-height: 1.55; }
+      .foot b { color: var(--ink-2); }
+
+      #stage { position: fixed; left: -10000px; top: 0; pointer-events: none; opacity: 0; }
+      #stage .measure-wrap { box-sizing: border-box; font-family: var(--font); }
+      #stage .topbar { margin: 0; }
+
+      @media (max-width: 600px) {
+        .page-head { padding-top: 24px; }
+        .variants { grid-template-columns: minmax(0, 1fr); padding: 0 12px; }
+        .variants > * { min-width: 0; }
+        .vcard { padding: 12px; }
+        .facts, .intro, .section-head, .measure-block, .verdict, .foot { padding-left: 12px; padding-right: 12px; }
+        .measure-table { font-size: 12px; }
+        .measure-table th, .measure-table td { padding: 6px; }
+        .mcell { min-width: 110px; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="page-head">
+      <div class="kicker">СЛОВО 2.0 · предложение · 2026-10-22</div>
+      <h1>Шапка «Уроков»: разбор и варианты</h1>
+      <p class="lead">
+        Семь блоков, четыре кнопки, два «статуса», которые выглядят кнопками,
+        и три значка без подписи. Ниже — <b>живые макеты</b> и замеры прямо
+        в вашем браузере. Главный вывод: дело не в том, что значки плохие,
+        а в том, что у шапки нет правила — и она уже не помещается.
+      </p>
+      <div class="toolbar">
+        <div class="seg" role="group" aria-label="Ширина телефона">
+          <button type="button" data-w="320">320</button>
+          <button type="button" data-w="360" class="on">360</button>
+          <button type="button" data-w="390">390</button>
+          <button type="button" data-w="430">430</button>
+        </div>
+        <button class="tool" type="button" id="theme">Тёмная тема</button>
+        <a class="tool" href="./home-header.md">Полный разбор и спека (.md)</a>
+      </div>
+    </header>
+
+    <section class="facts" aria-label="Коротко">
+      <div class="fact"><b>7 → 4</b><span>блока в шапке (вариант B)</span></div>
+      <div class="fact"><b>2 → 0</b><span>«кнопок», которые не нажимаются</span></div>
+      <div class="fact"><b>36 → 44 px</b><span>минимальная цель для пальца</span></div>
+      <div class="fact"><b>0 → 50 px</b><span>под имя на экране 320 px</span></div>
+    </section>
+
+    <p class="intro">
+      Это не «убрать всё». Серия, кристаллы и награды остаются. Меняется правило:
+      <b>в шапке живёт только «кто я и как у меня дела»</b>. Всё, что отвечает на
+      другие вопросы — «кого позвать», «что я купил», — живёт там, где его смысл.
+      Пилюля класса, герой и путь не трогаются.
+    </p>
+
+    <div class="section-head">
+      <h2>Пять состояний одной шапки</h2>
+      <span class="hint">Ширина переключается сверху · красный пунктир — аннотация, не часть интерфейса · эмодзи без системного шрифта могут выглядеть квадратами — на телефоне они цветные</span>
+    </div>
+    <section class="variants" id="variants" aria-label="Варианты шапки"></section>
+
+    <section class="measure-block" aria-label="Замеры">
+      <div class="section-head" style="padding: 0; margin: 0 0 6px">
+        <h2>Замеры на вашем устройстве</h2>
+      </div>
+      <p class="legend">
+        Ширина контента = экран − 32 px (поля экрана). «Перелив» — насколько
+        строка шире контента; «числа в 2 строки» — пилюли сжались и цифры уехали
+        под эмодзи. Цифры зависят от эмодзи-шрифта устройства (±5–10 %), но
+        поведение — нет.
+      </p>
+      <div class="measure-scroll">
+      <table class="measure-table">
+        <thead>
+          <tr>
+            <th>Вариант</th>
+            <th>320 px</th>
+            <th>360 px</th>
+            <th>390 px</th>
+          </tr>
+        </thead>
+        <tbody id="measure-body"></tbody>
+      </table>
+    </section>
+
+    <section class="verdict">
+      <div class="verdict-card">
+        <h2>★ B. «Тихий статус» + два переезда</h2>
+        <p>
+          <b>4 блока, 2 действия, 44 px, имя на месте.</b> Аватар и имя — одна
+          кнопка. 🔥 и 💎 — тихий текст без рамок, числа тёмные. 🎁 — единственная
+          кнопка в строке, с числом наград вместо точки. Оранжевая рамка ожидания
+          уходит: число справляется лучше.
+        </p>
+        <div class="chips">
+          <span class="chip">Позови друга → «Кто будет учиться?»</span>
+          <span class="chip">Ангар → гардероб БУКа</span>
+          <span class="chip">Точка на наградах → число</span>
+          <span class="chip">Серия и кристаллы → тихий статус</span>
+        </div>
+        <div class="before-after">
+          <div class="now">Сейчас:  [🦊] Маша   🔥 3   💎 42   [🤝] [🚗] [🎁•]</div>
+          <div class="next">Будет:   [🦊 Маша]        🔥 3   💎 42   [🎁②]</div>
+        </div>
+        <p>
+          Ничего не удаляется из продукта, движки SRS, квестов, сундука и недели
+          не трогаются. 🤝 открывается с экрана профилей, 🚗 — из гардероба, где
+          вход уже есть; после покупки техники тост и так зовёт в ангар.
+          Стоимость — примерно день, риск низкий.
+        </p>
+        <div class="verdict-actions">
+          <a class="tool" href="./home-header.md">Спека, тесты и план →</a>
+          <a class="tool" href="#variants">К макетам ↑</a>
+        </div>
+      </div>
+    </section>
+
+    <p class="foot">
+      <b>Как сделан макет.</b> CSS взят из приложения (`tokens.css`, `app.css`):
+      те же радиусы, рамки, тени, шрифтовые размеры и палитра. Шрифты и эмодзи —
+      системные, поэтому на iPhone и Android ширина отличается на 5–10 %.
+      В приложении добавятся `safe-area` и реальные данные профиля. Замеры
+      считаются по фактическим `getBoundingClientRect` в вашем браузере, а не
+      зашиты в таблицу.
+    </p>
+
+    <div id="stage" aria-hidden="true"></div>
+
+    <script>
+      const profileBtn = (name = 'Маша') => `
+        <button type="button" class="profile-btn" aria-label="Профиль: ${name}. Сменить ученика">
+          <span class="avatar" aria-hidden="true">🦊</span>
+          <span class="topbar-name">${name}</span>
+        </button>`;
+
+      const grow = '<div class="grow" aria-hidden="true"></div>';
+
+      const pill = (kind) => `<div class="stat-pill ${kind}">${kind === 'fire' ? '🔥 3' : '💎 42'}</div>`;
+      const iconPill = (label, emoji, extra = '') =>
+        `<button type="button" class="stat-pill icon ${extra}" aria-label="${label}">${emoji}${
+          extra === 'wait' ? '<i class="rewards-dot"></i>' : ''
+        }</button>`;
+
+      const quiet = (kind) => `
+        <div class="topbar-stat ${kind}" role="img" data-stat="${kind === 'fire' ? 'streak' : 'gems'}"
+             aria-label="${kind === 'fire' ? 'Серия: 3 дня' : 'Кристаллы: 42'}">
+          <span aria-hidden="true">${kind === 'fire' ? '🔥' : '💎'}</span>${kind === 'fire' ? '3' : '42'}
+        </div>`;
+
+      const rewardsBtn = (count) => `
+        <button type="button" class="rewards-btn" aria-label="Награды: ${count} можно забрать">
+          <span aria-hidden="true">🎁</span>
+          <span class="rewards-count" aria-hidden="true">${count}</span>
+        </button>`;
+
+      const H = {
+        current: `
+          <div class="topbar">
+            <button type="button" class="avatar" aria-label="Профили">🦊</button>
+            <div class="grow"><div class="topbar-name">Маша</div></div>
+            ${pill('fire')}
+            ${pill('gems')}
+            ${iconPill('Позвать друга', '🤝')}
+            ${iconPill('Ангар БУКа', '🚗')}
+            ${iconPill('Награды, есть что забрать', '🎁', 'wait')}
+          </div>`,
+        a: `<div class="topbar">${profileBtn()}${grow}${pill('fire')}${pill('gems')}${iconPill(
+          'Награды, есть что забрать',
+          '🎁',
+          'wait',
+        )}</div>`,
+        b: `<div class="topbar compact">${profileBtn()}${grow}${quiet('fire')}${quiet('gems')}${rewardsBtn(2)}</div>`,
+        c: `<div class="topbar compact">${profileBtn()}${grow}${rewardsBtn(2)}</div>`,
+        d: '',
+      };
+
+      const VARIANTS = [
+        {
+          id: 'current',
+          title: 'Сейчас',
+          tags: [['bad', '7 блоков'], ['bad', '2 обманки'], ['bad', 'не помещается']],
+          sub: 'Аватар, имя, серия, кристаллы и три значка без подписи. Имя — не кнопка, серия и кристаллы — не кнопки, но выглядят ими.',
+          header: H.current,
+          heroStats: false,
+          heroIdentity: false,
+          pros: ['Статус виден сразу, один тап до профиля', 'Награды и сундук — за 🎁, как и задумано в 0.12.2'],
+          cons: [
+            'Имени нет уже с 390 px: на 430 px остаётся 9 px («М…»)',
+            'Цифры уезжают под эмодзи с 390 px, шапка становится двухэтажной',
+            'На 360 px строка шире контента на 16 px, на 320 px — на 56 px',
+            '💎 выглядит кнопкой, но не нажимается; 🤝 и 🚗 читаются иначе, чем работают',
+            'Оранжевая рамка 🎁 громче кнопки «Начать»',
+          ],
+        },
+        {
+          id: 'a',
+          title: 'A. Минимальная уборка',
+          tags: [['', '4 блока'], ['bad', '2 обманки'], ['bad', 'имя режется']],
+          sub: 'Убрали «Позови друга» и «Ангар», аватар и имя склеили. Пилюли серии и кристаллов остались как были.',
+          header: H.a,
+          heroStats: false,
+          heroIdentity: false,
+          pros: ['Быстро: ~2–4 часа', 'Значков меньше, поведение знакомое'],
+          cons: [
+            'На 320 px имени 25 px, и до 360 px цифры всё ещё переносятся',
+            'Статус всё ещё выглядит кнопкой и не нажимается',
+            'Точка на 🎁 не говорит, сколько забрать',
+          ],
+        },
+        {
+          id: 'b',
+          title: 'B. Тихий статус ★',
+          tags: [['good', 'рекомендую'], ['', '4 блока'], ['good', '2 действия'], ['good', '44 px']],
+          sub: 'Серия и кристаллы — тихий текст без рамок, награды — единственная рамка-кнопка с числом. Аватар и имя — одна кнопка.',
+          header: H.b,
+          heroStats: false,
+          heroIdentity: false,
+          pros: [
+            '<b>Одно действие в строке</b> — награды; профиль читается как личность',
+            'Имя на месте даже на 320 px (50 px под «Машу»), длинное — многоточием',
+            'Цели 44 px, числа тёмные — контраст в норме',
+            'Запас на 320 px — 32 px: строка целая даже с 💎 1234',
+            'Рамка только у наград: статус не притворяется кнопкой',
+          ],
+          cons: [
+            'Статус скромнее на вид — но это статус, а не действие',
+            'Если дети всё равно тыкают в 🔥/💎 — на следующем шаге добавим тост-объяснение',
+          ],
+        },
+        {
+          id: 'c',
+          title: 'C. Статус в герое',
+          tags: [['', '2 блока'], ['', 'статус в герое'], ['bad', 'трогает героя']],
+          sub: 'В шапке только личность и награды. Серия и кристаллы переехали строкой в карточку «Сегодня».',
+          header: H.c,
+          heroStats: true,
+          heroIdentity: false,
+          pros: ['Максимум воздуха, имя никогда не режется', 'Весь верх читается как «я и мой день»'],
+          cons: [
+            'Герой становится мини-дашбордом',
+            'Статистика внутри кнопки-героя: нужно решать вопрос озвучки',
+            '~2 дня работы и средний риск',
+          ],
+        },
+        {
+          id: 'd',
+          title: 'D. Без шапки',
+          tags: [['bad', 'не сейчас'], ['', '0 в шапке'], ['bad', 'перестройка героя']],
+          sub: 'Личность и статус внутри героя, отдельной строки нет.',
+          header: H.d,
+          heroStats: true,
+          heroIdentity: true,
+          pros: ['Совсем без шапки — максимум места', 'Имя и статус в одном блоке «сегодня»'],
+          cons: [
+            'В кнопку-герой нельзя вложить кнопки профиля и наград: нужен <div> + внутренняя кнопка',
+            'Профиль становится менее заметным',
+            '3–4 дня, высокий риск — это уже не уборка шапки',
+          ],
+        },
+      ];
+
+      const bodyHTML = (v) => {
+        const heroTop = v.heroStats
+          ? `<div class="hero-top">
+               <div class="hero-kicker">Сегодня</div>
+               <div class="hero-stats"><span>🔥 3</span><span class="sep">·</span><span>💎 42</span></div>
+             </div>`
+          : `<div class="hero-kicker">Сегодня</div>`;
+        const heroIdentity = v.heroIdentity
+          ? `<div class="hero-id">${profileBtn()}${rewardsBtn(2)}</div>`
+          : '';
+        return `
+          ${v.header}
+          <div class="class-pill"><span>📚</span><b>2 класс</b><span class="muted">· 94 слова</span><span class="caret">▾</span></div>
+          <div class="hero">
+            ${heroIdentity}
+            ${heroTop}
+            <div class="hero-body">
+              <span class="hero-emoji">📚</span>
+              <span class="hero-text">
+                <span class="hero-title">Школа</span>
+                <span class="hero-meta">2 из 6 слов · ур. 5</span>
+              </span>
+            </div>
+            <div class="hero-cta">Начать ▶</div>
+          </div>
+          <div class="path-title">Мой путь</div>
+          <div class="path-row on">
+            <span class="node-emoji">📚</span>
+            <span class="node-text"><b>Школа</b><span>2 / 6 слов</span></span>
+            <span class="arrow">▶</span>
+          </div>
+          <div class="path-row">
+            <span class="node-emoji">🐦</span>
+            <span class="node-text"><b>Птицы</b><span>0 / 6 слов</span></span>
+            <span class="arrow">▸</span>
+          </div>
+          <nav class="tabs" aria-hidden="true">
+            <div class="tab on"><span class="ico">🗺️</span>Уроки</div>
+            <div class="tab"><span class="ico">📖</span>Слова</div>
+            <div class="tab"><span class="ico">🎩</span>БУК</div>
+            <div class="tab"><span class="ico">👨‍👩‍👧</span>Родителям</div>
+          </nav>`;
+      };
+
+      const grid = document.getElementById('variants');
+      for (const v of VARIANTS) {
+        const card = document.createElement('article');
+        card.className = 'vcard' + (v.id === 'b' ? ' recommended' : '');
+        card.dataset.variant = v.id;
+        card.innerHTML = `
+          <div class="vhead">
+            <h3>${v.title}</h3>
+            ${v.tags.map(([cls, text]) => `<span class="tag ${cls}">${text}</span>`).join('')}
+          </div>
+          <p class="vsub">${v.sub}</p>
+          <div class="phone-wrap">
+            <div class="phone"><div class="screen" data-w="360">${bodyHTML(v)}</div></div>
+          </div>
+          <div class="live" data-live></div>
+          <ul class="pros">
+            ${v.pros.map((p) => `<li class="plus">${p}</li>`).join('')}
+            ${v.cons.map((p) => `<li class="minus">${p}</li>`).join('')}
+          </ul>`;
+        grid.appendChild(card);
+      }
+
+      const stage = document.getElementById('stage');
+
+      function measure(v, width) {
+        if (!v.header) return { none: true, blocks: 0, buttons: 0, name: null, overflow: 0, minTarget: null, wrapped: false };
+        const content = width - 32;
+        const wrap = document.createElement('div');
+        wrap.className = 'measure-wrap';
+        wrap.dataset.w = String(width);
+        wrap.style.width = content + 'px';
+        wrap.innerHTML = v.header;
+        stage.replaceChildren(wrap);
+        const row = wrap.querySelector('.topbar');
+        if (!row) return { none: true, blocks: 0, buttons: 0, name: null, overflow: 0, minTarget: null, wrapped: false };
+        const name = row.querySelector('.topbar-name');
+        // scrollWidth учитывает и абсолютно позиционированный бейдж, который
+        // специально свисает с угла кнопки. Считаем по прямым детям строки.
+        const rowRect = row.getBoundingClientRect();
+        const kids = [...row.children].filter((el) => el.getBoundingClientRect().width > 0);
+        const rightEdge = kids.length ? Math.max(...kids.map((el) => el.getBoundingClientRect().right)) : rowRect.right;
+        const overflow = Math.max(0, Math.round(rightEdge - rowRect.right));
+        const stats = [...row.querySelectorAll('.stat-pill, .topbar-stat')];
+        const wrapped = stats.some((el) => el.getBoundingClientRect().height > 40);
+        const btns = [...row.querySelectorAll('button')];
+        const minTarget = btns.length
+          ? Math.round(Math.min(...btns.map((b) => b.getBoundingClientRect().height)))
+          : null;
+        const blocks = [...row.children].filter((el) => !el.classList.contains('grow')).length;
+        const nameWidth = name ? Math.round(name.getBoundingClientRect().width) : null;
+        return { none: false, blocks, buttons: btns.length, name: nameWidth, overflow, minTarget, wrapped };
+      }
+
+      const widths = [320, 360, 390];
+      const body = document.getElementById('measure-body');
+
+      function cell(m) {
+        if (m.none) return '<div class="mcell none">шапки нет<br />личность в герое</div>';
+        const bad = m.overflow > 0 || m.name === 0 || (m.name !== null && m.name < 35);
+        const cls = bad ? 'bad' : m.wrapped ? 'warn' : '';
+        return `<div class="mcell ${cls}">
+          <span>имя <b>${m.name === null ? '—' : m.name}</b></span>
+          <span>перелив <b>${m.overflow ? '+' + m.overflow : '0'}</b></span>
+          <span>цель <b>${m.minTarget ?? '—'}</b></span>
+          ${m.wrapped ? '<span class="flag">числа в 2 строки</span>' : ''}
+        </div>`;
+      }
+
+      function buildTable() {
+        body.innerHTML = VARIANTS.map((v) => {
+          const cells = widths.map((w) => `<td>${cell(measure(v, w))}</td>`).join('');
+          return `<tr><th>${v.title}</th>${cells}</tr>`;
+        }).join('');
+      }
+
+      let currentWidth = 360;
+
+      function renderLive() {
+        for (const card of document.querySelectorAll('.vcard')) {
+          const v = VARIANTS.find((x) => x.id === card.dataset.variant);
+          const m = measure(v, currentWidth);
+          const live = card.querySelector('[data-live]');
+          if (v.id === 'd') {
+            live.textContent =
+              'Шапки нет: личность и статус внутри героя. В коде это потребует перестроить герой — внутри кнопки нельзя кнопки.';
+            continue;
+          }
+          const bits = [
+            `имя ${m.name === null ? '—' : m.name + ' px'}`,
+            m.overflow ? `перелив +${m.overflow} px` : 'перелива нет',
+            `мин. цель ${m.minTarget ?? '—'} px`,
+          ];
+          if (m.wrapped) bits.push('числа переносятся');
+          if (m.name === 0) bits.push('имени не видно');
+          live.textContent = bits.join(' · ');
+          const row = card.querySelector('.topbar');
+          if (row) {
+            row.dataset.alert = m.overflow > 0 || m.wrapped || m.name === 0 || (m.name !== null && m.name < 35) ? '1' : '0';
+          }
+        }
+      }
+
+      /** Таблица и живые подписи считаются одним путём — иначе шрифты успевают
+          подмениться между двумя замерами и цифры расходятся. */
+      function recalcAll() {
+        buildTable();
+        renderLive();
+      }
+
+      function setWidth(width) {
+        currentWidth = width;
+        document.querySelectorAll('.seg button').forEach((b) => b.classList.toggle('on', Number(b.dataset.w) === width));
+        document.querySelectorAll('.phone').forEach((p) => p.style.setProperty('--w', width + 'px'));
+        document.querySelectorAll('.screen').forEach((s) => (s.dataset.w = String(width)));
+        recalcAll();
+      }
+
+      document.querySelectorAll('.seg button').forEach((b) => {
+        b.addEventListener('click', () => setWidth(Number(b.dataset.w)));
+      });
+
+      document.getElementById('theme').addEventListener('click', (e) => {
+        const dark = document.documentElement.dataset.theme !== 'dark';
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        e.currentTarget.textContent = dark ? 'Светлая тема' : 'Тёмная тема';
+      });
+
+      setWidth(360);
+
+      // Шрифты и эмодзи догружаются после первого кадра и меняют ширины:
+      // пересчитываем таблицу, когда они готовы и когда доехали новые начертания.
+      if (document.fonts) {
+        document.fonts.ready.then(recalcAll);
+        document.fonts.addEventListener?.('loadingdone', recalcAll);
+      }
+      window.addEventListener('load', recalcAll);
+      let resizeTimer = 0;
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(recalcAll, 150);
+      });
+    </script>
+  </body>
+</html>
