@@ -311,6 +311,38 @@ export async function runClassChecks(root: Root) {
     assert.equal(active().streak, 9, '3 класс не тронул серию');
     ui3.unmount();
     host3.remove();
+
+    // ── 4 класс: последний класс программы ────────────────────────────────
+    store().setActiveClass(4);
+    const host4 = document.createElement('div');
+    document.body.appendChild(host4);
+    const ui4: Root = createRoot(host4);
+    ui4.render(createElement(App));
+    await sleep(120);
+    const nodes4 = host4.querySelectorAll('.node-btn').length;
+    check('путь 4 класса — 15 уроков', nodes4 === LESSONS_BY_GRADE[4].length, `узлов: ${nodes4}`);
+    check('на главной виден 4 класс', (host4.textContent ?? '').includes('4 класс'));
+    const firstNode4 = host4.querySelector<HTMLButtonElement>('.node-btn')!;
+    click(firstNode4);
+    await sleep(120);
+    const screen4 = host4.querySelector('.lesson-screen') as HTMLElement | null;
+    const opened4 = LESSONS_BY_GRADE[4].find((l) => l.id === (screen4?.dataset.lessonId ?? ''));
+    check('урок 4 класса взят из программы 4 класса', !!opened4, screen4?.dataset.lessonId ?? 'урок не открылся');
+    check(
+      'в уроке 4 класса только слова 4 класса',
+      !!opened4 && opened4.wordIds.every((id) => WORD_BY_ID[id].grades.includes(4)),
+      opened4 ? opened4.wordIds.join(', ') : 'урок не найден',
+    );
+    assert.equal(active().xp, 1234, '4 класс не тронул опыт');
+    assert.equal(active().gems, 87, '4 класс не тронул кристаллы');
+    assert.equal(active().streak, 9, '4 класс не тронул серию');
+    assert.deepEqual(active().shop?.owned, ['phone-retro'], '4 класс не тронул покупки');
+    ui4.unmount();
+    host4.remove();
+
+    // Классы 1–4 в сборке: в листе классов все четыре.
+    check('в сборке доступны все классы 1–4', AVAILABLE_CLASSES.length === 4, AVAILABLE_CLASSES.join(','));
+    store().setActiveClass(2);
     ui.unmount();
     host.remove();
   }

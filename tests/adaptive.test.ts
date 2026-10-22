@@ -130,7 +130,8 @@ import { findFixDiffIdx } from '../src/ui/TaskView';
   // (ударение, опасные буквы, задания) верна у КАЖДОГО слова любого класса.
   assert.equal(WORDS_BY_GRADE[2].length, 94, 'в программе 2 класса 94 слова');
   assert.equal(WORDS_BY_GRADE[3].length, 72, 'в программе 3 класса 72 слова');
-  assert.equal(WORDS.length, 167, 'в банке 167 карточек 1–3 классов');
+  assert.equal(WORDS_BY_GRADE[4].length, 94, 'в программе 4 класса 94 слова');
+  assert.equal(WORDS.length, 257, 'в банке 257 карточек 1–4 классов');
   for (const w of WORDS) {
     assert.ok(w.danger.length >= 1, `${w.text}: должна быть хотя бы одна опасная буква`);
     // Исключение — «ё»: она сама и есть орфограмма («чёрный», а не «чорный»).
