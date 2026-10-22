@@ -7,6 +7,7 @@
 import { ACHIEVEMENTS } from '../../engine/rewards';
 import { CLASS_META, LESSON_BY_ID, WORDS, WORDS_BY_GRADE, WORD_BY_ID, availableClass } from '../../content/words';
 import { lastDays } from '../../engine/day';
+import { classProgress, classTable, nextClass } from '../../engine/classes';
 import { dayKey, masteredCount, todayStat } from '../../state/store';
 import { activeStudyDays } from '../../engine/weekly-rewards';
 import { plural } from '../../engine/quests';
@@ -88,6 +89,10 @@ export function OverviewTab({ profile, onOpenWords, onOpenSection }: Props) {
   const todayAccuracy = todayAnswered >= 5 ? Math.round((today.correct / todayAnswered) * 100) : null;
   const grade = availableClass(profile.activeClass ?? 2);
   const gradeWords = WORDS_BY_GRADE[grade];
+  // Прогресс по всем классам: таблица ниже и подпись «что дальше».
+  const table = classTable(profile);
+  const currentInfo = classProgress(profile, grade);
+  const next = nextClass(grade);
   // «Освоено» считаем по программе активного класса, а «всего» показываем рядом:
   // иначе после смены класса родитель видел бы проценты по чужой программе.
   const mastered = masteredCount(profile);
@@ -224,6 +229,47 @@ export function OverviewTab({ profile, onOpenWords, onOpenSection }: Props) {
             Программа класса пройдена на {Math.round((masteredInGrade / Math.max(1, gradeWords.length)) * 100)}%
           </div>
         </div>
+      </div>
+
+      {/* Таблица классов: видно весь путь 1–4, а не только текущий класс.
+          Родитель спрашивает «а что дальше?» — здесь ответ без переключения
+          программы: сколько слов освоено и сколько уроков закрыто в каждом. */}
+      <div className="card">
+        <GroupTitle
+          title="Классы 1–4"
+          hint={
+            currentInfo.complete && next
+              ? `${CLASS_META[grade].title} пройден — дальше ${CLASS_META[next].title}`
+              : `Сейчас открыт ${CLASS_META[grade].title.toLowerCase()}`
+          }
+        />
+        <div className="class-table">
+          {table.map((row) => (
+            <div className={`class-table-row ${row.current ? 'on' : ''}`} key={row.grade}>
+              <div className="class-table-head">
+                <span className="class-table-name">
+                  <span aria-hidden="true">{row.emoji}</span> {row.title}
+                  {row.complete && <span className="class-table-done"> ✓ пройден</span>}
+                  {row.current && <span className="class-table-now"> · сейчас</span>}
+                </span>
+                <span className="class-table-nums">
+                  {row.mastered} / {row.words} слов
+                </span>
+              </div>
+              <Bar value={row.pct} tone={row.complete ? 'green' : undefined} />
+              <div className="class-table-foot">
+                <span>освоено {row.pct}%</span>
+                <span>
+                  {row.lessonsDone} из {row.lessons} {plural(row.lessons, 'урок', 'урока', 'уроков')}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="setting-hint" style={{ marginTop: 8 }}>
+          «Пройден» — все уроки класса закрыты до пятого уровня. Слова закрепляются отдельно: их видно по
+          проценту освоения.
+        </p>
       </div>
 
       {/* Разбор слабых мест: конкретные слова, а не «мало занимался». */}

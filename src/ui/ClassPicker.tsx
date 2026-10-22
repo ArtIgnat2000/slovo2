@@ -2,11 +2,10 @@ import { useEffect, useState } from 'react';
 import {
   AVAILABLE_CLASSES,
   CLASS_META,
-  LESSONS_BY_GRADE,
-  WORDS_BY_GRADE,
   availableClass,
 } from '../content/words';
 import { useApp } from '../state/store';
+import { classProgress, nextClass } from '../engine/classes';
 import { plural } from '../engine/quests';
 import type { ClassId, Profile } from '../types';
 
@@ -27,6 +26,8 @@ export function ClassPicker({ profile }: { profile: Profile }) {
   const [open, setOpen] = useState(false);
   const active = availableClass(profile.activeClass ?? 2);
   const meta = CLASS_META[active];
+  const activeInfo = classProgress(profile, active);
+  const next = nextClass(active);
 
   useEffect(() => {
     if (!open) return;
@@ -62,7 +63,7 @@ export function ClassPicker({ profile }: { profile: Profile }) {
       >
         <span aria-hidden="true">{meta.emoji}</span>
         <span className="class-pill-title">{meta.title}</span>
-        <span className="class-pill-count">{wordsLabel(WORDS_BY_GRADE[active].length)}</span>
+        <span className="class-pill-count">{wordsLabel(activeInfo.words)}</span>
         <span className="class-pill-caret" aria-hidden="true">
           ▾
         </span>
@@ -88,15 +89,13 @@ export function ClassPicker({ profile }: { profile: Profile }) {
 
             <div className="class-list">
               {AVAILABLE_CLASSES.map((grade) => {
-                const lessons = LESSONS_BY_GRADE[grade];
-                const done = lessons.filter((l) => (profile.lessons[l.id]?.level ?? 0) >= 5).length;
-                const words = WORDS_BY_GRADE[grade].length;
+                const info = classProgress(profile, grade);
                 const on = grade === active;
                 return (
                   <button
                     key={grade}
                     type="button"
-                    className={`class-card ${on ? 'on' : ''}`}
+                    className={`class-card ${on ? 'on' : ''} ${info.complete ? 'done' : ''}`}
                     aria-pressed={on}
                     onClick={() => choose(grade)}
                   >
@@ -109,7 +108,11 @@ export function ClassPicker({ profile }: { profile: Profile }) {
                         {on && <span className="class-card-check" aria-hidden="true"> ✓</span>}
                       </span>
                       <span className="class-card-meta">
-                        {wordsLabel(words)} · пройдено {done} из {lessons.length}
+                        {info.complete ? (
+                          <>✓ пройден · {wordsLabel(info.words)} · все {info.lessons} {plural(info.lessons, 'урок', 'урока', 'уроков')}</>
+                        ) : (
+                          <>{wordsLabel(info.words)} · пройдено {info.lessonsDone} из {info.lessons} · слов освоено {info.mastered}</>
+                        )}
                       </span>
                     </span>
                   </button>
@@ -117,6 +120,11 @@ export function ClassPicker({ profile }: { profile: Profile }) {
               })}
             </div>
 
+            {activeInfo.complete && next && (
+              <p className="class-sheet-next">
+                🎉 {meta.title} пройден — можно перейти в {CLASS_META[next].title}: прогресс, покупки и награды останутся.
+              </p>
+            )}
             <p className="tiny center" style={{ marginTop: 12 }}>
               Меняется только набор слов. Опыт, кристаллы, серия, награды и покупки остаются.
             </p>

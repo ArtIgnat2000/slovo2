@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { scheduleWordImages } from '../../platform/word-images';
 import {
-  CLASS_IDS,
   CLASS_META,
   LESSONS_BY_GRADE,
   WORDS,
@@ -14,6 +13,7 @@ import { DailyQuests } from '../DailyQuests';
 import { InviteFriend } from '../InviteFriend';
 import { WeeklyRewards } from '../WeeklyRewards';
 import { levelOf } from '../../engine/rewards';
+import { classProgress, nextClass } from '../../engine/classes';
 import { pickReviewWords } from '../../engine/srs';
 import {
   allQuestsDone,
@@ -60,10 +60,11 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
   const current =
     classLessons.find((l) => (profile?.lessons[l.id]?.level ?? 0) < 5) ??
     classLessons[classLessons.length - 1];
-  const classDone = classLessons.every((l) => (profile?.lessons[l.id]?.level ?? 0) >= 5);
-  const nextGrade = CLASS_IDS.find(
-    (g) => g > grade && LESSONS_BY_GRADE[g].length > 0,
-  );
+  // «Класс пройден» — все уроки программы закрыты (уровень 5). Следующий класс
+  // берём из движка классов: там же это правило используют лист класса и отчёт.
+  const classInfo = classProgress(profile, grade);
+  const classDone = classInfo.complete;
+  const nextGrade = nextClass(grade);
   useEffect(
     () => (current ? scheduleWordImages(WORDS.filter((w) => current.wordIds.includes(w.id))) : undefined),
     [current],
@@ -170,12 +171,14 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
             <span className="grow">
               <span className="home-hero-title">{CLASS_META[grade].title} пройден!</span>
               <span className="home-hero-meta">
-                {classLessons.length} {plural(classLessons.length, 'урок', 'урока', 'уроков')} позади
-                {nextGrade ? ` · дальше ${CLASS_META[nextGrade].title.toLowerCase()}` : ' · вся программа 1–4'}
+                {classLessons.length} {plural(classLessons.length, 'урок', 'урока', 'уроков')} позади ·{' '}
+                {classInfo.mastered} из {classInfo.words} {plural(classInfo.words, 'слово', 'слова', 'слов')} освоено
               </span>
             </span>
           </div>
-          <span className="home-hero-cta">{nextGrade ? 'Дальше ▶' : 'Повторить ▶'}</span>
+          <span className="home-hero-cta">
+            {nextGrade ? `${CLASS_META[nextGrade].title} ▶` : 'Повторить ▶'}
+          </span>
         </button>
       ) : (
         <button

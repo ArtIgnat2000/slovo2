@@ -479,6 +479,22 @@ p {
   font-size: var(--fs-sm);
   font-weight: 600;
 }
+.class-card.done {
+  border-color: var(--green);
+}
+.class-card.done .class-card-meta {
+  color: var(--green);
+}
+/* Подсказка в листе класса: активный класс пройден, впереди следующий. */
+.class-sheet-next {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border: 2px solid var(--green);
+  border-radius: var(--r-md);
+  background: var(--green-soft);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
 
 .home-hero {
   display: block;
@@ -4005,6 +4021,17 @@ p {
   line-height: 1;
   font-size: calc(var(--art-size) * 0.46);
 }
+/* Слово без иллюстрации: эмодзи — полноценный образ, а не «дырка» в карточке.
+   Крупнее обычного и с мягкой тенью, чтобы плита читалась как картинка. */
+.word-art-frame.no-image {
+  background:
+    radial-gradient(120% 120% at 30% 0%, var(--art-plate-glow) 0%, transparent 62%),
+    var(--art-plate);
+}
+.word-art-frame.no-image .word-art-placeholder {
+  font-size: calc(var(--art-size) * 0.54);
+  filter: drop-shadow(0 4px 6px rgba(36, 31, 54, 0.12));
+}
 .word-art-frame > .word-art-inner > .word-art {
   position: absolute;
   inset: 0;
@@ -5725,6 +5752,74 @@ p {
 }
 .study-today-errors .wordlist {
   margin-top: 8px;
+}
+
+/* ── Таблица классов 1–4 в «Родителям → Обзор» (0.31.0) ───────────────────
+   Одна строка — один класс: название, освоенные слова, полоска и уроки.
+   Полоска остаётся читаемой на 320 px: цифры стоят по краям, не в середине. */
+.class-table {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+.class-table-row {
+  padding: 8px 10px;
+  border: 2px solid transparent;
+  border-radius: var(--r-md);
+}
+.class-table-row.on {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.class-table-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: var(--fs-sm);
+}
+.class-table-name {
+  font-weight: 800;
+  min-width: 0;
+}
+.class-table-done {
+  color: var(--green);
+}
+.class-table-now {
+  color: var(--ink-2);
+  font-weight: 600;
+}
+.class-table-nums {
+  flex: none;
+  color: var(--ink-2);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.class-table-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+  color: var(--ink-2);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+
+/* ── Карточка «класс пройден» на экране результатов урока (0.31.0) ────────
+   Показывается один раз — тем уроком, который закрыл последний урок класса. */
+.class-win {
+  border-color: var(--green);
+  text-align: center;
+}
+.class-win-emoji {
+  font-size: 40px;
+  line-height: 1;
+}
+.class-win-title {
+  margin: 6px 0 4px;
+  color: var(--ink);
 }
 .word-chip.study-error {
   border-color: var(--orange);
