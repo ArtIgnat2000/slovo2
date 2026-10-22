@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useApp } from '../../state/store';
 import { AVAILABLE_CLASSES, CLASS_META, WORDS_BY_GRADE, availableClass } from '../../content/words';
 import { ConfirmDialog } from '../Bits';
-import { ShareApp } from '../ShareApp';
+import { InviteFriend } from '../InviteFriend';
 import type { ClassId } from '../../types';
 
 const AVATARS = ['🦊', '🐱', '🐼', '🦉', '🐸', '🦄', '🐨', '🐯', '🐙', '🦖'];
@@ -21,6 +21,8 @@ export function ProfilesScreen({ onClose, manage = false }: { onClose?: () => vo
   const [classId, setClassId] = useState<ClassId | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
+  /** Лист «Позови друга» — с 0.32.0 вход живёт здесь, а не значком 🤝 в шапке. */
+  const [inviteOpen, setInviteOpen] = useState(false);
 
   const create = () => {
     const n = name.trim();
@@ -148,8 +150,14 @@ export function ProfilesScreen({ onClose, manage = false }: { onClose?: () => vo
         )}
       </div>
 
-      {/* Новому ученику нужна ссылка: её и передают отсюда (замечание 2026-10-14). */}
-      <ShareApp compact />
+      {/* Новому ученику нужна ссылка: её и передают отсюда (замечание 2026-10-14).
+          0.32.0: сюда же переехал 🤝 с шапки главной (docs/proposals/home-header.md) —
+          «позвать друга» и означает «ещё один ученик», это тот же экран. */}
+      <button type="button" className="btn ghost wide mt" onClick={() => setInviteOpen(true)}>
+        🤝 Позови друга
+      </button>
+
+      {inviteOpen && <InviteFriend onClose={() => setInviteOpen(false)} />}
 
       {onClose && profiles.length > 0 && (
         <button className="btn ghost wide mt" onClick={onClose}>

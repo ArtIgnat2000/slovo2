@@ -1626,11 +1626,12 @@ export function ShopScreen() {
               <h2 className="grow" style={{ margin: 0 }}>
                 Моя техника
               </h2>
-              {ownedToys.length > 0 && (
-                <button type="button" className="btn sm ghost" onClick={openHangar}>
-                  Открыть ангар ➜
-                </button>
-              )}
+              {/* 0.32.0: вход виден всегда — в том числе при пустой коллекции.
+                  Из шапки главной значок 🚗 убран, ангар живёт здесь и на
+                  полке «Техника» (docs/proposals/home-header.md). */}
+              <button type="button" className="btn sm ghost" onClick={openHangar}>
+                Открыть ангар ➜
+              </button>
             </div>
             {ownedToys.length === 0 && (
               <div className="card tiny mb" style={{ textAlign: 'center' }}>

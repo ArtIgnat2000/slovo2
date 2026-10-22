@@ -10,7 +10,6 @@ import { dayKey, useActiveProfile, useApp } from '../../state/store';
 import { Crowns } from '../Bits';
 import { ClassPicker } from '../ClassPicker';
 import { DailyQuests } from '../DailyQuests';
-import { InviteFriend } from '../InviteFriend';
 import { WeeklyRewards } from '../WeeklyRewards';
 import { levelOf } from '../../engine/rewards';
 import { classProgress, nextClass } from '../../engine/classes';
@@ -33,26 +32,32 @@ interface Props {
   onOpenProfiles: () => void;
   /** «Пора повторить» — отдельный режим тренировки, id урока не нужен */
   onStartReview: () => void;
-  /** 🚗 в шапке — сцена коллекции техники «Ангар БУКа» (0.22.0) */
-  onOpenHangar: () => void;
 }
 
-/** Есть ли в листе наград что забрать: квест, сундук или бонусный сундук. */
-function rewardsWaiting(profile: Profile): boolean {
+/**
+ * Сколько наград ждёт в листе (0.32.0): число на кнопке 🎁 — обещание,
+ * поэтому считаем ровно те действия, которые ребёнок там найдёт, —
+ * «Забрать» у задания, «Открыть сундук БУКа» и «Открыть бонусный сундук».
+ *
+ * Недельные награды не считаем: они начисляются сами в `finishLesson`
+ * (state/store.ts), в листе только показывается прогресс — забирать нечего.
+ * Иначе бейдж звал бы за наградой, которой там нет.
+ */
+function rewardsCount(profile: Profile): number {
   const day = dayKey();
   const plan = planOf(profile, day);
   const st = profile.daily && profile.daily.day === day ? profile.daily : null;
   const metrics = dayMetrics(profile.days[day]);
-  if (claimableQuests(plannedQuests(plan), metrics, st?.claimed ?? [], day).length) return true;
-  if (allQuestsDone(plan, metrics) && !dailyChestClaimed(st ?? undefined)) return true;
-  return bonusChestsReady(metrics.lessons, st?.bonusChestsClaimed ?? 0) > 0;
+  let count = claimableQuests(plannedQuests(plan), metrics, st?.claimed ?? [], day).length;
+  if (allQuestsDone(plan, metrics) && !dailyChestClaimed(st ?? undefined)) count += 1;
+  count += bonusChestsReady(metrics.lessons, st?.bonusChestsClaimed ?? 0);
+  return count;
 }
 
-export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpenHangar }: Props) {
+export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview }: Props) {
   const profile = useActiveProfile();
   const setActiveClass = useApp((s) => s.setActiveClass);
   const [rewardsOpen, setRewardsOpen] = useState(false);
-  const [inviteOpen, setInviteOpen] = useState(false);
   // Программа активного класса: «Мой путь» и герой показывают только её.
   // Класс — свойство профиля, поэтому у каждого ученика свой путь.
   const grade = availableClass(profile?.activeClass ?? 2);
@@ -106,7 +111,7 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
   const reviews = review.words;
   const reviewDue = reviews.length > 0 && review.kind === 'due';
   const currentDone = current.wordIds.filter((id) => (profile.words[id]?.s ?? 0) > 0).length;
-  const waiting = rewardsWaiting(profile);
+  const rewards = rewardsCount(profile);
 
   const startHero = () => {
     if (reviewDue) onStartReview();
@@ -115,42 +120,61 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
 
   return (
     <div className="screen">
+      {/* Шапка «четыре блока, два действия» (0.32.0, docs/proposals/home-header.md):
+          профиль одной кнопкой, серия и кристаллы — тихий статус без рамок,
+          награды — единственная рамка-кнопка с числом. 🤝 переехал на экран
+          «Кто будет учиться?», 🚗 — в гардероб БУКа: там их и ищут. */}
       <div className="topbar">
-        <button className="avatar" onClick={onOpenProfiles} title="Профили">
-          {profile.avatar}
+        <button
+          type="button"
+          className="profile-btn"
+          title="Профили"
+          aria-label={`Профиль: ${profile.name}. Сменить ученика`}
+          onClick={onOpenProfiles}
+        >
+          <span className="avatar" aria-hidden="true">
+            {profile.avatar}
+          </span>
+          <span className="topbar-name">{profile.name}</span>
         </button>
-        <div className="grow">
-          <div className="topbar-name">{profile.name}</div>
+
+        <div className="grow" aria-hidden="true" />
+
+        <div
+          className="topbar-stat fire"
+          role="img"
+          data-stat="streak"
+          aria-label={`Серия: ${profile.streak} ${plural(profile.streak, 'день', 'дня', 'дней')}`}
+        >
+          <span aria-hidden="true">🔥 {profile.streak}</span>
         </div>
-        <div className="stat-pill fire">🔥 {profile.streak}</div>
-        <div className="stat-pill gems">💎 {profile.gems}</div>
-        <button
-          type="button"
-          className="stat-pill invite-btn"
-          aria-label="Позвать друга"
-          title="Позови друга — ссылка и QR-код"
-          onClick={() => setInviteOpen(true)}
+        <div
+          className="topbar-stat gems"
+          role="img"
+          data-stat="gems"
+          aria-label={`Кристаллы: ${profile.gems}`}
         >
-          🤝
-        </button>
+          <span aria-hidden="true">💎 {profile.gems}</span>
+        </div>
+
         <button
           type="button"
-          className="stat-pill hangar-btn"
-          aria-label="Ангар БУКа"
-          title="Ангар БУКа — твоя техника"
-          onClick={onOpenHangar}
-        >
-          🚗
-        </button>
-        <button
-          type="button"
-          className={`stat-pill rewards-btn ${waiting ? 'wait' : ''}`}
-          aria-label={waiting ? 'Награды, есть что забрать' : 'Награды'}
+          className="rewards-btn"
+          data-stat="rewards"
+          aria-label={
+            rewards > 0
+              ? `Награды: ${rewards} ${plural(rewards, 'награда ждёт', 'награды ждут', 'наград ждут')}`
+              : 'Награды'
+          }
           aria-expanded={rewardsOpen}
           onClick={() => setRewardsOpen(true)}
         >
-          🎁
-          {waiting && <span className="rewards-dot" aria-hidden="true" />}
+          <span aria-hidden="true">🎁</span>
+          {rewards > 0 && (
+            <span className="rewards-count" aria-hidden="true">
+              {rewards > 9 ? '9+' : rewards}
+            </span>
+          )}
         </button>
       </div>
 
@@ -232,8 +256,6 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
           );
         })}
       </div>
-
-      {inviteOpen && <InviteFriend onClose={() => setInviteOpen(false)} />}
 
       {rewardsOpen && (
         <div className="sheet-backdrop rewards-backdrop" onClick={() => setRewardsOpen(false)}>

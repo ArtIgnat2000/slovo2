@@ -252,6 +252,11 @@ p {
 
 /* ── Верхняя панель ──────────────────────────────────────────────────────── */
 
+/* Шапка «Уроков» — четыре блока и два действия (0.32.0,
+   docs/proposals/home-header.md): профиль (аватар + имя) одной кнопкой,
+   серия и кристаллы тихим текстом без рамок, награды — единственная
+   рамка-кнопка с числом. 🤝 и 🚗 из шапки ушли: им место в «Кто будет
+   учиться?» и в гардеробе БУКа. */
 .topbar {
   display: flex;
   align-items: center;
@@ -268,6 +273,62 @@ p {
   font-size: 24px;
   border: 2px solid var(--line);
   cursor: pointer;
+}
+/* Профиль: аватар и имя — одна цель нажатия (≥44 px), имя сокращается
+   многоточием, но не сжимает аватар. */
+.profile-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--r-pill);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.profile-btn .avatar {
+  flex: none;
+}
+.profile-btn:active .avatar {
+  transform: scale(0.96);
+}
+.topbar .grow { min-width: 0; }
+.topbar-name {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 800;
+  font-size: 18px;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+/* Серия и кристаллы — статус, а не кнопка: без рамки и без фона, чтобы
+   не выглядели нажимаемыми. Числа не «пляшут» при смене значения. */
+.topbar-stat {
+  flex: none;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  line-height: 1.2;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.topbar-stat.fire {
+  color: var(--orange);
+}
+.topbar-stat.gems {
+  color: var(--primary);
+}
+@media (max-width: 359px) {
+  /* 320 px: четыре блока должны влезть в строку без перелива
+     (замер — 271 из 288 px). */
+  .topbar { gap: 8px; }
+  .topbar-name { font-size: 16px; }
+  .topbar-stat { font-size: 14px; }
 }
 .stat-pill {
   display: inline-flex;
@@ -286,39 +347,37 @@ p {
 .stat-pill.xp {
   color: var(--primary);
 }
-/* Имя сокращается многоточием: в шапке главной с 0.22.0 ещё одна кнопка
-   (🚗 ангар) — на узких экранах строка не должна ломаться. */
-.topbar .grow { min-width: 0; }
-.topbar-name {
-  overflow: hidden;
-  font-weight: 800;
-  font-size: 18px;
-  line-height: 1.2;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
 
 /* ── Главная «Уроки»: герой «Сегодня» и спокойные мета-блоки (2026-10-15) ─
    Один главный удар на первый экран. Цель, квесты, неделя остаются, но
    без рамки-на-рамке и без второго CTA. Путь — отдельная глава ниже. */
 
+/* 🎁 — единственная рамка в шапке и единственное действие «что-то получить».
+   Вместо точки — число: ребёнок видит, сколько наград его ждёт. */
 .rewards-btn {
   position: relative;
-  padding-left: 10px;
-  padding-right: 10px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 6px 10px;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  font-weight: 800;
+  font-size: var(--fs-sm);
+  line-height: 1;
+  cursor: pointer;
 }
-.rewards-btn.wait {
-  border-color: var(--orange);
+.rewards-btn[aria-expanded='true'] {
+  border-color: var(--primary);
 }
-.rewards-dot {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--orange);
-  box-shadow: 0 0 0 2px var(--card);
+.rewards-count {
+  font-variant-numeric: tabular-nums;
+  color: var(--primary);
 }
 .rewards-backdrop {
   justify-content: flex-end;
@@ -2943,12 +3002,6 @@ p {
 .hangar-note { margin-top: 4px; text-align: center; }
 /* Входы в ангар: кнопка на полке витрины и «Открыть ангар» в гардеробе. */
 .hangar-open { margin: 2px 0 12px; }
-/* Значок в шапке главной — компактный, как 🎁 наград. */
-.stat-pill.hangar-btn {
-  padding-right: 10px;
-  padding-left: 10px;
-  cursor: pointer;
-}
 @media (max-width: 359px) {
   .hangar-main-art .car-art,
   .hangar-main-art .ship-art,
@@ -3486,10 +3539,6 @@ p {
 }
 .share-steps li + li {
   margin-top: 3px;
-}
-.share-app.compact .share-qr-art {
-  width: 108px;
-  height: 108px;
 }
 .share-zoom {
   position: fixed;
@@ -6751,12 +6800,7 @@ p {
   color: var(--theme-danger-ink);
 }
 
-/* ── «Позови друга» (ребёнок, с главного экрана) ───────────────────────── */
-.stat-pill.invite-btn {
-  padding-right: 10px;
-  padding-left: 10px;
-  cursor: pointer;
-}
+/* ── «Позови друга» (ребёнок; с 0.32.0 — с экрана «Кто будет учиться?») ── */
 .invite-sheet {
   width: 100%;
   max-width: var(--screen-max);
