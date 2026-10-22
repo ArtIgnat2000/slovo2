@@ -201,10 +201,10 @@ export async function runPuzzleUiChecks(playLesson: (second?: boolean) => Promis
   await sleep(60);
   check('пазлы: «Надеть» возвращает костюм', active().puzzle?.worn === COSTUMES[0].id, String(active().puzzle?.worn));
 
-  // ── Гардероб: иконки в строках «Мои костюмы» (жалоба 2026-10-19) ──────────
+  // ── Мои покупки: иконки в строках «Костюмы» (жалоба 2026-10-19) ───────────
   // Собранный костюм обязан показываться в гардеробе строкой С КАРТИНКОЙ БУКа:
   // иконка живёт внутри плитки `.shop-wear-icon`, а не «плавает» по экрану.
-  click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Гардероб'))!);
+  click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Мои покупки'))!);
   await sleep(40);
   const wearRows = Array.from(document.querySelectorAll('.shop-wear'));
   check(

@@ -252,6 +252,11 @@ p {
 
 /* ── Верхняя панель ──────────────────────────────────────────────────────── */
 
+/* Шапка «Уроков» — четыре блока и два действия (0.32.0,
+   docs/proposals/home-header.md): профиль (аватар + имя) одной кнопкой,
+   серия и кристаллы тихим текстом без рамок, награды — единственная
+   рамка-кнопка с числом. 🤝 и 🚗 из шапки ушли: им место в «Кто будет
+   учиться?» и в гардеробе БУКа. */
 .topbar {
   display: flex;
   align-items: center;
@@ -268,6 +273,62 @@ p {
   font-size: 24px;
   border: 2px solid var(--line);
   cursor: pointer;
+}
+/* Профиль: аватар и имя — одна цель нажатия (≥44 px), имя сокращается
+   многоточием, но не сжимает аватар. */
+.profile-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--r-pill);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.profile-btn .avatar {
+  flex: none;
+}
+.profile-btn:active .avatar {
+  transform: scale(0.96);
+}
+.topbar .grow { min-width: 0; }
+.topbar-name {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 800;
+  font-size: 18px;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+/* Серия и кристаллы — статус, а не кнопка: без рамки и без фона, чтобы
+   не выглядели нажимаемыми. Цвет несут эмодзи, числа — обычным текстом:
+   оранжевая цифра на светлом фоне давала бы контраст ≈2:1. */
+.topbar-stat {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 800;
+  font-size: var(--fs-sm);
+  line-height: 1.2;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+@media (max-width: 359px) {
+  /* 320 px: четыре блока должны влезть в строку без перелива
+     (замер — 271 из 288 px). */
+  .topbar { gap: 8px; }
+  .topbar-name { font-size: 16px; }
+  .topbar-stat { font-size: 14px; gap: 3px; }
+  .rewards-btn { font-size: 19px; }
 }
 .stat-pill {
   display: inline-flex;
@@ -286,39 +347,69 @@ p {
 .stat-pill.xp {
   color: var(--primary);
 }
-/* Имя сокращается многоточием: в шапке главной с 0.22.0 ещё одна кнопка
-   (🚗 ангар) — на узких экранах строка не должна ломаться. */
-.topbar .grow { min-width: 0; }
-.topbar-name {
-  overflow: hidden;
+
+/* ── «Мои покупки»: пустое состояние одной карточкой (0.32.1) ─────────────
+   У новичка секции «Наряды / Техника / Костюмы / Музыка» раньше показывали
+   четыре подряд «Пока пусто». Теперь пустых секций нет, а вместо них —
+   одно приглашение в витрину (docs/proposals/buk-shop-ux.md). */
+.shop-empty {
+  padding: 20px 16px;
+  text-align: center;
+}
+.shop-empty-emoji {
+  font-size: 40px;
+  line-height: 1;
+}
+.shop-empty-title {
+  margin-top: 6px;
+  font-size: var(--fs-lg);
   font-weight: 800;
-  font-size: 18px;
-  line-height: 1.2;
-  white-space: nowrap;
-  text-overflow: ellipsis;
 }
 
 /* ── Главная «Уроки»: герой «Сегодня» и спокойные мета-блоки (2026-10-15) ─
    Один главный удар на первый экран. Цель, квесты, неделя остаются, но
    без рамки-на-рамке и без второго CTA. Путь — отдельная глава ниже. */
 
+/* 🎁 — единственная рамка в шапке и единственное действие «что-то получить».
+   Вместо точки — число: ребёнок видит, сколько наград его ждёт. */
 .rewards-btn {
   position: relative;
-  padding-left: 10px;
-  padding-right: 10px;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
 }
-.rewards-btn.wait {
-  border-color: var(--orange);
+.rewards-btn[aria-expanded='true'] {
+  border-color: var(--primary);
 }
-.rewards-dot {
+/* Бейдж-счётчик: тёмные цифры по оранжевому — 8:1. Белые на этом оранжевом
+   давали бы ≈2:1, а цифру читает и ребёнок, и слабовидящий. */
+.rewards-count {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-pill);
   background: var(--orange);
+  color: #2b1a00;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
   box-shadow: 0 0 0 2px var(--card);
+  pointer-events: none;
 }
 .rewards-backdrop {
   justify-content: flex-end;
@@ -641,6 +732,39 @@ p {
 
 .home-path-title {
   margin: 20px 0 12px;
+}
+/* «Позови друга» на главной (0.32.1): ссылка в один тап с первого экрана.
+   Мягкая строка во всю ширину: её видно, но она не спорит с «Начать ▶» —
+   у героя сплошная заливка, здесь бледный фон и ни одной рамки. */
+.invite-cta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  margin: 2px 0 0;
+  padding: 8px 14px;
+  background: var(--primary-soft);
+  border: none;
+  border-radius: var(--r-pill);
+  color: var(--ink);
+  font-weight: 800;
+  font-size: var(--fs-sm);
+  line-height: 1.2;
+  text-align: left;
+  cursor: pointer;
+}
+.invite-cta-text {
+  min-width: 0;
+}
+/* Стрелка уводит вправо — так строка читается как переход, а не как подпись. */
+.invite-cta-arrow {
+  margin-left: auto;
+  color: var(--primary);
+}
+.invite-cta:active {
+  background: var(--primary-soft);
+  filter: brightness(0.96);
 }
 .node-btn.quiet {
   box-shadow: 0 2px 0 var(--line);
@@ -2943,12 +3067,6 @@ p {
 .hangar-note { margin-top: 4px; text-align: center; }
 /* Входы в ангар: кнопка на полке витрины и «Открыть ангар» в гардеробе. */
 .hangar-open { margin: 2px 0 12px; }
-/* Значок в шапке главной — компактный, как 🎁 наград. */
-.stat-pill.hangar-btn {
-  padding-right: 10px;
-  padding-left: 10px;
-  cursor: pointer;
-}
 @media (max-width: 359px) {
   .hangar-main-art .car-art,
   .hangar-main-art .ship-art,
@@ -3486,10 +3604,6 @@ p {
 }
 .share-steps li + li {
   margin-top: 3px;
-}
-.share-app.compact .share-qr-art {
-  width: 108px;
-  height: 108px;
 }
 .share-zoom {
   position: fixed;
@@ -6751,12 +6865,7 @@ p {
   color: var(--theme-danger-ink);
 }
 
-/* ── «Позови друга» (ребёнок, с главного экрана) ───────────────────────── */
-.stat-pill.invite-btn {
-  padding-right: 10px;
-  padding-left: 10px;
-  cursor: pointer;
-}
+/* ── «Позови друга» (ребёнок; с 0.32.0 — с экрана «Кто будет учиться?») ── */
 .invite-sheet {
   width: 100%;
   max-width: var(--screen-max);

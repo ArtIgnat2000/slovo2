@@ -351,6 +351,19 @@ export async function runQuestUiChecks(): Promise<void> {
   const gemsBefore = active().gems;
   const claim = questStart('Повтори');
   const claimBtn = questAction('Повтори', 'Забрать');
+
+  // 0.32.0: число на 🎁 — обещание, а не украшение. Задание закрыто и ждёт
+  // «Забрать», значит на кнопке наград есть число, и оно не меньше числа
+  // кнопок «Забрать» в листе (сундуки и бонусы считаются отдельно).
+  const badge = document.querySelector('.rewards-count');
+  const claimables = Array.from(document.querySelectorAll('.rewards-sheet button')).filter((b) =>
+    (b.textContent ?? '').includes('Забрать'),
+  ).length;
+  check(
+    'награда ждёт: на 🎁 есть число, и «Забрать» в листе не больше него',
+    !!badge && claimables > 0 && Number(badge.textContent) >= claimables,
+    `на кнопке ${badge?.textContent ?? '—'}, кнопок «Забрать» ${claimables}`,
+  );
   check(
     'задания дня: у закрытого задания кнопка «Забрать» вместо строки запуска',
     !claim && !!claimBtn,

@@ -54,7 +54,7 @@ import { BackgroundThemeCard } from '../BackgroundThemeCard';
  * Магазин БУКа (концепция 2026-10-17, docs/shop-concept.md).
  *
  * Что изменилось по сравнению с «одной лентой»:
- *  • два верхних уровня — **Витрина** (чего хочу) и **Гардероб** (что моё);
+ *  • два верхних уровня — **Витрина** (чего хочу) и **Мои покупки** (что моё);
  *    раньше купленное терялось в общей ленте среди продаваемого;
  *  • витрина режется **чипами-полками**: наряды / техника / костюмы / музыка /
  *    фоны / звуки; новый раздел не требует переделки экрана;
@@ -321,6 +321,14 @@ export function ShopScreen() {
     .reduce<ShopItem | null>((best, item) => (!best || item.price < best.price ? item : best), null);
   const ownedOutfits = OUTFIT_ITEMS.filter((item) => isOwned(owned, item.id));
   const ownedToys = TOY_ITEMS.filter((item) => isOwned(owned, item.id));
+  /**
+   * Покупок ещё нет ни одной (0.32.1). Раньше «Мои покупки» у новичка
+   * показывали четыре пустые карточки подряд — стена «Пока пусто»,
+   * в которой тонет единственное полезное (звуки) и «Мечты».
+   * Теперь пустые секции не рисуются, а вместо них — одна строка-приглашение.
+   */
+  const noPurchases =
+    ownedOutfits.length === 0 && ownedToys.length === 0 && pz.assembled.length === 0 && musicOwned.length === 0;
 
   const tapWish = (id: string, title: string) => {
     sfx.tap();
@@ -330,7 +338,7 @@ export function ShopScreen() {
       showToast({
         emoji: '🤍',
         title: `«${title}» — в мечтах!`,
-        text: 'Прогресс копления виден в Гардеробе',
+        text: 'Прогресс копления — в «Моих покупках»',
       });
     } else {
       showToast({
@@ -1129,7 +1137,7 @@ export function ShopScreen() {
     );
   })();
 
-  // ── Гардероб: мои вещи ────────────────────────────────────────────────
+  // ── Мои покупки: что уже моё ──────────────────────────────────────────
 
   const wardrobeRow = (key: string, target: Detail, art: ReactNode, title: string, state: string, wearing: boolean, actionLabel: string, onAction: () => void) => (
     <div key={key} className={`shop-wear${wearing ? ' on' : ''}`} role="button" tabIndex={0} aria-label={title}
@@ -1161,16 +1169,16 @@ export function ShopScreen() {
       <div className="shop-sticky">
         <div className="row mb">
           <h1 className="grow" style={{ margin: 0 }}>
-            Магазин БУКа 🎩
+            БУК 🎩
           </h1>
           <div className="stat-pill gems">💎 {gems}</div>
         </div>
-        <div className="shop-seg" role="tablist" aria-label="Витрина или гардероб">
+        <div className="shop-seg" role="tablist" aria-label="Витрина или покупки">
           <button role="tab" aria-selected={view === 'vitrina'} className={view === 'vitrina' ? 'on' : ''} onClick={() => setView('vitrina')}>
             🛍️ Витрина
           </button>
           <button role="tab" aria-selected={view === 'wardrobe'} className={view === 'wardrobe' ? 'on' : ''} onClick={() => setView('wardrobe')}>
-            👕 Гардероб · {owned.length + pz.assembled.length + musicOwned.length + soundOwned.length}
+            🎒 Мои покупки · {owned.length + pz.assembled.length + musicOwned.length + soundOwned.length}
           </button>
         </div>
         {view === 'vitrina' && (
@@ -1242,7 +1250,7 @@ export function ShopScreen() {
                           showToast({
                             emoji: '🤍',
                             title: 'Копим!',
-                            text: `«${hero.item.title}»: ещё ${missing} 💎. В списке «Мечты» в Гардеробе`,
+                            text: `«${hero.item.title}»: ещё ${missing} 💎. Мечты — в «Моих покупках»`,
                           });
                         } else {
                           showToast({
@@ -1364,7 +1372,7 @@ export function ShopScreen() {
                           showToast({
                             emoji: '🤍',
                             title: 'Копим!',
-                            text: `«${hero.track.title}»: ещё ${missing} 💎. В списке «Мечты» в Гардеробе`,
+                            text: `«${hero.track.title}»: ещё ${missing} 💎. Мечты — в «Моих покупках»`,
                           });
                         } else {
                           showToast({
@@ -1586,14 +1594,25 @@ export function ShopScreen() {
             </div>
           </div>
 
-          {/* Мои наряды: по слотам, только купленное */}
-          <section className="mb" aria-label="Мои наряды">
-            <h2 className="mb">Мои наряды</h2>
-            {ownedOutfits.length === 0 && (
-              <div className="card tiny mb" style={{ textAlign: 'center' }}>
-                Пока пусто. Купленное в витрине сразу попадает сюда 🎩
+          {/* Приглашение вместо стены пустых карточек: у новичка «Мои покупки»
+              должны быть короткими. */}
+          {noPurchases && (
+            <div className="card shop-empty mb">
+              <div className="shop-empty-emoji" aria-hidden="true">🛍️</div>
+              <div className="shop-empty-title">Пока ничего не куплено</div>
+              <div className="tiny muted">
+                В витрине ждут наряды, техника, костюмы и музыка. Купленное сразу появится здесь.
               </div>
-            )}
+              <button type="button" className="btn primary wide mt" onClick={() => setView('vitrina')}>
+                В витрину ➜
+              </button>
+            </div>
+          )}
+
+          {/* Наряды: по слотам, только купленное. Пустая секция не рисуется. */}
+          {ownedOutfits.length > 0 && (
+          <section className="mb" aria-label="Наряды">
+            <h2 className="mb">Наряды</h2>
             {(['head', 'face', 'neck', 'badge'] as const).map((slot) => {
               const items = ownedBySlot(slot);
               if (!items.length) return null;
@@ -1618,25 +1637,23 @@ export function ShopScreen() {
               );
             })}
           </section>
+          )}
 
-          {/* Моя техника: авто, телефоны и корабли (0.19.0 → 0.20.0).
+          {/* Техника: авто, телефоны и корабли (0.19.0 → 0.20.0).
               0.22.0: техника не на БУКе — коллекция в сцене «Ангар», вход здесь. */}
-          <section className="mb" aria-label="Моя техника">
+          <section className="mb" aria-label="Техника">
             <div className="row mb" style={{ alignItems: 'center' }}>
               <h2 className="grow" style={{ margin: 0 }}>
-                Моя техника
+                Техника
               </h2>
-              {ownedToys.length > 0 && (
-                <button type="button" className="btn sm ghost" onClick={openHangar}>
-                  Открыть ангар ➜
-                </button>
-              )}
+              {/* 0.32.0: вход виден всегда — в том числе при пустой коллекции.
+                  Из шапки главной значок 🚗 убран, ангар живёт здесь и на
+                  полке «Техника» (docs/proposals/home-header.md). */}
+              <button type="button" className="btn sm ghost" onClick={openHangar}>
+                Открыть ангар ➜
+              </button>
             </div>
-            {ownedToys.length === 0 && (
-              <div className="card tiny mb" style={{ textAlign: 'center' }}>
-                Пока пусто. Полка «Техника» в витрине
-              </div>
-            )}
+            {ownedToys.length > 0 && (
             <div className="col">
               {ownedToys.map((item) =>
                 wardrobeRow(
@@ -1651,16 +1668,12 @@ export function ShopScreen() {
                 ),
               )}
             </div>
+            )}
           </section>
 
-          {/* Мои костюмы: собранное */}
-          <section className="mb" aria-label="Мои костюмы">
-            <h2 className="mb">Мои костюмы</h2>
-            {pz.assembled.length === 0 && (
-              <div className="card tiny mb" style={{ textAlign: 'center' }}>
-                Пока ни одного костюма. Каждый урок приносит фрагмент 🧩
-              </div>
-            )}
+          {pz.assembled.length > 0 && (
+          <section className="mb" aria-label="Костюмы">
+            <h2 className="mb">Костюмы</h2>
             <div className="col">
               {COSTUMES.filter((c) => pz.assembled.includes(c.id)).map((c) =>
                 wardrobeRow(
@@ -1676,10 +1689,11 @@ export function ShopScreen() {
               )}
             </div>
           </section>
+          )}
 
-          {/* Моя музыка: коллекция и выбор фона */}
-          <section className="mb" aria-label="Моя музыка">
-            <h2 className="mb">Моя музыка</h2>
+          {musicOwned.length > 0 && (
+          <section className="mb" aria-label="Музыка">
+            <h2 className="mb">Музыка</h2>
             {selectedMusic && (
               <button className="music-choice" onClick={() => chooseMusic(null)}>
                 <span className="music-emoji">🔇</span>
@@ -1697,14 +1711,12 @@ export function ShopScreen() {
                 {selectedMusic === track.id && <span aria-label="Выбрано">✓</span>}
               </button>
             ))}
-            {musicOwned.length === 0 && (
-              <p className="tiny">Пока нет мелодий. Витрина ➜ полка «Музыка» — две стартовые бесплатно.</p>
-            )}
           </section>
+          )}
 
-          {/* Мои звуки: какой набор звучит за ответы в уроках */}
-          <section className="mb" aria-label="Мои звуки">
-            <h2 className="mb">Мои звуки</h2>
+          {/* Звуки: какой набор звучит за ответы в уроках */}
+          <section className="mb" aria-label="Звуки">
+            <h2 className="mb">Звуки</h2>
             {SOUND_PACKS.filter((p) => hasSoundPack(soundOwned, p.id)).map((pack) => (
               <button
                 key={pack.id}

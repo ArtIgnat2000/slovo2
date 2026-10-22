@@ -503,7 +503,22 @@ async function main() {
   check('во вкладках есть магазин БУКа', !!shopTab);
   click(shopTab!);
   await sleep(80);
-  check('магазин открылся', has('Магазин БУКа'), body().slice(0, 200));
+  // 0.32.1: раздел называется «БУК», потому что внутри и витрина, и покупки.
+  // Сегмент покупок — «Мои покупки» (слово «Гардероб» устарело), а внутри
+  // него секции без повтора «Мои»: Наряды, Техника, Костюмы, Музыка, Звуки.
+  check(
+    'раздел БУКа открылся: «БУК 🎩», «Витрина», «Мои покупки»',
+    (document.querySelector('.screen h1')?.textContent ?? '').includes('БУК') &&
+      has('Витрина') &&
+      has('Мои покупки'),
+    document.querySelector('.screen h1')?.textContent ?? '--',
+  );
+  check(
+    'сегмент покупок называется «Мои покупки», а не «Гардероб»',
+    !!Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Мои покупки')) &&
+      !has('Гардероб'),
+    Array.from(document.querySelectorAll('.shop-seg button')).map((b) => b.textContent).join(' | '),
+  );
   check('витрина по умолчанию — полка нарядов', has('Наряды БУКа'), '');
   check(
     'полки — чипами, «Звуки» уже открыты',
@@ -512,6 +527,19 @@ async function main() {
   );
   check('полка «Фоны» активна', !!Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Фоны') && !c.hasAttribute('disabled')), '');
   check('показан баланс кристаллов', has(`💎 ${useApp.getState().profiles[0].gems}`), '');
+
+  // 0.32.0: 🚗 убран из шапки главной, поэтому вход в ангар из покупок
+  // виден всегда — даже пока коллекция пуста (иначе ангар было бы не найти).
+  click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Мои покупки'))!);
+  await sleep(40);
+  check(
+    'в «Моих покупках» «Открыть ангар ➜» виден и при пустой коллекции техники',
+    (useApp.getState().profiles[0].shop?.owned ?? []).length === 0 &&
+      !!buttons().find((b) => (b.textContent ?? '').includes('Открыть ангар')),
+    `куплено вещей: ${(useApp.getState().profiles[0].shop?.owned ?? []).length}`,
+  );
+  click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Витрина'))!);
+  await sleep(40);
 
   const backgroundShelf = Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Фоны'));
   click(backgroundShelf);
@@ -696,30 +724,28 @@ async function main() {
   await sleep(50);
   check('ангар закрывается крестиком', !document.querySelector('.hangar'), '');
 
-  // Вход из гардероба: у полки «Моя техника» своя кнопка.
-  click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Гардероб'))!);
+  // Вход из покупок: у секции «Техника» своя кнопка.
+  click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Мои покупки'))!);
   await sleep(40);
   const wardrobeHangarBtn = buttons().find((b) => (b.textContent ?? '').includes('Открыть ангар'));
-  check('в гардеробе есть вход «Открыть ангар ➜»', !!wardrobeHangarBtn, '');
+  check('в «Моих покупках» есть вход «Открыть ангар ➜»', !!wardrobeHangarBtn, '');
   click(wardrobeHangarBtn);
   await sleep(60);
-  check('ангар открылся из гардероба', !!document.querySelector('.hangar'), '');
+  check('ангар открылся из «Моих покупок»', !!document.querySelector('.hangar'), '');
   click(document.querySelector('.hangar [aria-label="Закрыть ангар"]'));
   await sleep(40);
   click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Витрина'))!);
   await sleep(40);
 
-  // Вход с главной: значок 🚗 в шапке экрана «Уроки».
+  // Вход с главной (0.32.0): значка 🚗 в шапке больше нет — ангар живёт
+  // в гардеробе и на полке «Техника», а первый экран разгружен.
   click(buttons().find((b) => (b.textContent ?? '').includes('Уроки') && b.className.includes('tab'))!);
   await sleep(60);
-  const homeHangarBtn = document.querySelector('button[aria-label="Ангар БУКа"]');
-  check('в шапке главной есть значок «Ангар БУКа»', !!homeHangarBtn, '');
-  click(homeHangarBtn);
-  await sleep(60);
-  check('ангар открылся с главной', !!document.querySelector('.hangar'), '');
-  click(document.querySelector('.hangar [aria-label="Закрыть ангар"]'));
-  await sleep(50);
-  check('после ангара видна главная', !document.querySelector('.hangar') && has('Мой путь'), '');
+  check(
+    'в шапке главной больше нет значка 🚗',
+    !document.querySelector('.topbar [aria-label="Ангар БУКа"]') && has('Мой путь'),
+    '',
+  );
   click(buttons().find((b) => (b.textContent ?? '').includes('БУК') && b.className.includes('tab'))!);
   await sleep(60);
 
@@ -867,23 +893,56 @@ async function main() {
   }));
   await sleep(30);
 
-  // Гардероб: примерочная и коллекция музыки (единственный вход — полка)
-  click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Гардероб'))!);
+  // «Мои покупки»: примерочная и коллекция музыки (единственный вход — полка)
+  click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Мои покупки'))!);
   await sleep(30);
-  check('гардероб: примерочная с БУком', has('мой наряд'), '');
-  check('гардероб: честная пустота, когда ничего не куплено', has('Пока без обновок'), '');
-  const musicChoice = Array.from(document.querySelectorAll('.music-choice'))
-    .find((button) => (button.textContent ?? '').includes('Лимончик')) as HTMLButtonElement | undefined;
-  check('коллекция предлагает стартовые мелодии', !!musicChoice, '');
-  if (musicChoice) click(musicChoice);
-  await sleep(30);
-  check('выбранная музыка сохраняется в профиле', useApp.getState().profiles[0].shop?.musicTrack === 'easy-lemon', String(useApp.getState().profiles[0].shop?.musicTrack));
-  const silenceRow = Array.from(document.querySelectorAll('.music-choice')).find((button) => (button.textContent ?? '').includes('Тишина'));
-  check('у играющей мелодии есть строка «Тишина»', !!silenceRow, '');
-  if (silenceRow) click(silenceRow);
-  await sleep(30);
-  check('музыку можно выключить из коллекции', useApp.getState().profiles[0].shop?.musicTrack === null, String(useApp.getState().profiles[0].shop?.musicTrack));
-  check('гардероб показывает «Мои звуки» со стартовыми наборами', has('Мои звуки') && document.querySelectorAll('.sound-choice').length === STARTER_SOUND_IDS.length, '');
+  check('покупки: примерочная с БУком', has('мой наряд'), '');
+  check('покупки: честная пустота, когда ничего не куплено', has('Пока без обновок'), '');
+  // 0.32.1: пустые секции не рисуются — вместо четырёх «Пока пусто» у новичка
+  // одно приглашение в витрину. Проверяем на честно пустом профиле: временно
+  // снимаем стартовые мелодии и звуки, потом возвращаем.
+  const shopBeforeEmpty = useApp.getState().profiles[0].shop!;
+  useApp.setState((s) => ({
+    profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, shop: { ...p.shop!, owned: [], musicOwned: [], soundOwned: [] } } : p)),
+  }));
+  await sleep(60);
+  check(
+    'покупки новичка: одна карточка «Пока ничего не куплено» вместо стены пустоты',
+    (document.querySelector('.shop-empty')?.textContent ?? '').includes('Пока ничего не куплено') &&
+      Array.from(document.querySelectorAll('.screen section, .shop-empty')).filter((s) => /Пока пусто|Пока ни одного/.test(s.textContent ?? '')).length === 0,
+    Array.from(document.querySelectorAll('.screen section')).map((s) => s.getAttribute('aria-label')).join(' | '),
+  );
+  const emptySections = Array.from(document.querySelectorAll('.screen section')).map((s) => s.getAttribute('aria-label'));
+  check(
+    'пустые «Наряды», «Костюмы» и «Музыка» не рисуются, «Техника» и «Звуки» на месте',
+    !emptySections.includes('Наряды') && !emptySections.includes('Костюмы') && !emptySections.includes('Музыка') &&
+      emptySections.includes('Техника') && emptySections.includes('Звуки'),
+    emptySections.join(' | '),
+  );
+  check(
+    'в покупках секции без повтора «Мои»',
+    !has('Мои наряды') && !has('Моя техника') && !has('Мои костюмы') && !has('Моя музыка'),
+    body().slice(0, 160),
+  );
+  const toVitrina = Array.from(document.querySelectorAll('.shop-empty button')).find((b) => (b.textContent ?? '').includes('В витрину')) as HTMLButtonElement | undefined;
+  check('из пустых покупок есть кнопка «В витрину»', !!toVitrina, '');
+  if (toVitrina) {
+    click(toVitrina);
+    await sleep(40);
+    check('кнопка возвращает на витрину', !!document.querySelector('.shop-cats .chip'), '');
+  }
+  // Возвращаем покупки как были и снова открываем «Мои покупки» для музыки.
+  useApp.setState((s) => ({
+    profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, shop: shopBeforeEmpty } : p)),
+  }));
+  await sleep(60);
+  click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Мои покупки'))!);
+  await sleep(40);
+  check(
+    'после покупки секция появляется: «Музыка» снова видна',
+    Array.from(document.querySelectorAll('.screen section')).some((s) => s.getAttribute('aria-label') === 'Музыка'),
+    Array.from(document.querySelectorAll('.screen section')).map((s) => s.getAttribute('aria-label')).join(' | '),
+  );
   click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Витрина'))!);
   await sleep(30);
   click(Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Наряды'))!);
@@ -931,7 +990,7 @@ async function main() {
     await sleep(50);
     check('надевание обратно работает', Object.keys(useApp.getState().profiles[0].shop?.equipped ?? {}).length === 1, '');
     // Купленное живёт в гардеробе, сгруппированное по слотам
-    click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Гардероб'))!);
+    click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Мои покупки'))!);
     await sleep(30);
     check('купленная вещь живёт в гардеробе по слотам', has('Головные уборы'), '');
     check('секция «Мечты 🤍» отображает отложенную вещь', has('Мечты 🤍') && has(wishItem.title) && !!document.querySelector('.wishlist-card'), '');
@@ -1094,7 +1153,7 @@ async function main() {
 
   // ── Рост БУКа (пункт 5) ───────────────────────────────────────────────────
   // Ступень роста живёт в примерочной гардероба
-  click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Гардероб'))!);
+  click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Мои покупки'))!);
   await sleep(30);
   check('магазин показывает ступень роста', /Птенец|Ученик|Знаток|Магистр/.test(body()), body().slice(0, 300));
   const before = useApp.getState().profiles[0];
@@ -1119,9 +1178,13 @@ async function main() {
   const homeTab = buttons().find((b) => (b.textContent ?? '').includes('Уроки') && b.className.includes('tab'));
   click(homeTab!);
   await sleep(80);
+  // ── Шапка «Уроков»: четыре блока, два действия (0.32.0) ────────────────
+  // docs/proposals/home-header.md, вариант B «Тихий статус». В шапке остаются
+  // профиль, серия, кристаллы и 🎁; 🤝 ушёл на экран «Кто будет учиться?»,
+  // 🚗 — в гардероб БУКа.
   check(
     'на главной есть серия дней',
-    has('🔥') && !!document.querySelector('.stat-pill.fire'),
+    has('🔥') && !!document.querySelector('[data-stat="streak"]'),
     body().slice(0, 200),
   );
   check(
@@ -1129,10 +1192,102 @@ async function main() {
     !!btn((b) => (b.getAttribute('aria-label') ?? '').startsWith('Награды')) && !document.querySelector('.quest'),
     '',
   );
+  const topbarButtons = Array.from(document.querySelectorAll('.topbar button'));
+  check(
+    'в шапке главной ровно два действия: профиль и награды',
+    topbarButtons.length === 2,
+    topbarButtons.map((b) => b.getAttribute('aria-label') ?? b.className).join(' | '),
+  );
+  const profileBtn = document.querySelector('.topbar .profile-btn') as HTMLButtonElement | null;
+  check(
+    'профиль в шапке — одна кнопка с аватаром и именем',
+    !!profileBtn && (profileBtn.getAttribute('aria-label') ?? '').startsWith('Профиль:') && !!profileBtn.querySelector('.topbar-name'),
+    profileBtn?.getAttribute('aria-label') ?? 'нет кнопки',
+  );
+  check(
+    'серия и кристаллы — тихий статус без рамок-пилюль',
+    !!document.querySelector('[data-stat="streak"]') &&
+      !!document.querySelector('[data-stat="gems"]') &&
+      !document.querySelector('.topbar .stat-pill'),
+    document.querySelector('.topbar')?.innerHTML.slice(0, 120) ?? '',
+  );
+  check(
+    '🤝 и 🚗 из шапки убраны',
+    !document.querySelector('.topbar [aria-label="Позвать друга"]') &&
+      !document.querySelector('.topbar [aria-label="Ангар БУКа"]'),
+    '',
+  );
 
-  // «Позови друга» — ребёнок передаёт ссылку сам, без раздела «Родителям».
-  const inviteBtn = btn((b) => (b.getAttribute('aria-label') ?? '') === 'Позвать друга');
-  check('на главной есть кнопка «Позвать друга» (🤝)', !!inviteBtn, '');
+  // Награды: на кнопке число, а не точки-загадки. В начале дня заданий ещё
+  // нет, поэтому числа нет — и это тоже обещание: забирать нечего.
+  const rewardsBtnEl = btn((b) => (b.getAttribute('aria-label') ?? '').startsWith('Награды'));
+  const rewardsBadge = document.querySelector('.rewards-count');
+  check(
+    'у 🎁 число наград вместо точки, пусто — без числа',
+    !!rewardsBtnEl && (rewardsBadge ? /^([1-9]|9\+)$/.test(rewardsBadge.textContent ?? '') : true),
+    rewardsBadge?.textContent ?? 'числа нет',
+  );
+
+  // Число на 🎁 — не украшение, а обещание: оно совпадает с числом действий
+  // «забрать», которые ребёнок реально найдёт в листе (задания + сундуки).
+  const badgeNumber = () => {
+    const node = document.querySelector('.rewards-count');
+    return node ? Number(node.textContent) : 0;
+  };
+  const rewardsButton = () => btn((b) => (b.getAttribute('aria-label') ?? '').startsWith('Награды'));
+  click(rewardsButton());
+  await sleep(60);
+  const sheet = document.querySelector('.rewards-sheet')!;
+  const sheetButtons = Array.from(sheet.querySelectorAll('button'));
+  const claimCount = sheetButtons.filter((b) => (b.textContent ?? '').includes('Забрать')).length;
+  const dailyChest = sheetButtons.some((b) => (b.textContent ?? '').includes('Открыть сундук БУКа')) ? 1 : 0;
+  // Бонусных сундуков может ждать несколько, а кнопка в листе одна: «ещё N»
+  // лист пишет словами — сверяем число на 🎁 с суммой всех ожидающих наград.
+  const bonusMatch = (sheet.textContent ?? '').match(/бонусных готово: (\d+)/);
+  const sheetRewards = claimCount + dailyChest + (bonusMatch ? Number(bonusMatch[1]) : 0);
+  check(
+    'число на 🎁 совпадает с числом наград, которые ждут в листе',
+    sheetRewards === badgeNumber(),
+    `на кнопке ${badgeNumber()}, в листе ${sheetRewards} (задания ${claimCount}, сундук ${dailyChest}, бонусные ${bonusMatch?.[1] ?? 0})`,
+  );
+  click(btn((b) => (b.getAttribute('aria-label') ?? '') === 'Закрыть'));
+  await sleep(40);
+
+  // «Позови друга» (0.32.1): ссылка — в один тап прямо с главной, тихой
+  // строкой под героем. Раньше 🤝 прятался за кнопкой профиля, а на экране
+  // профилей — ещё и под формой нового ученика: «найти сложно».
+  const homeInvite = document.querySelector('.invite-cta') as HTMLButtonElement | null;
+  check(
+    'на главной есть «Позови друга» — один тап без меню',
+    !!homeInvite && (homeInvite.textContent ?? '').includes('Позови друга'),
+    document.querySelector('.home-hero')?.parentElement?.textContent?.slice(0, 120) ?? '',
+  );
+  if (homeInvite) {
+    click(homeInvite);
+    await sleep(60);
+    check(
+      'лист «Позови друга» открывается прямо с главной (QR и ссылка)',
+      !!document.querySelector('.invite-qr-art') && !!document.querySelector('.invite-link') && !!document.querySelector('.invite-sheet'),
+      body().slice(0, 200),
+    );
+    click(btn((b) => (b.getAttribute('aria-label') ?? '') === 'Закрыть'));
+    await sleep(40);
+    check('лист закрывается, главная на месте', !document.querySelector('.invite-sheet') && has('Мой путь'), '');
+  }
+
+  // Второй вход — на экране профилей, и он теперь выше формы нового ученика.
+  click(document.querySelector('.topbar .profile-btn') as HTMLButtonElement);
+  await sleep(60);
+  const inviteBtn = btn((b) => (b.textContent ?? '').includes('Позови друга'));
+  check('на экране «Кто будет учиться?» есть «🤝 Позови друга»', !!inviteBtn, '');
+  const newStudentForm = Array.from(document.querySelectorAll('h3')).find((h) => (h.textContent ?? '').includes('Новый ученик'));
+  check(
+    'кнопка «Позови друга» стоит выше формы нового ученика',
+    !!inviteBtn &&
+      !!newStudentForm &&
+      (inviteBtn.compareDocumentPosition(newStudentForm) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0,
+    '',
+  );
   if (inviteBtn) {
     click(inviteBtn);
     await sleep(60);
@@ -1145,6 +1300,8 @@ async function main() {
     await sleep(40);
     check('лист «Позови друга» закрывается', !document.querySelector('.invite-sheet'), '');
   }
+  click(buttons().find((b) => (b.textContent ?? '').includes('Уроки') && b.className.includes('tab')));
+  await sleep(60);
 
   // ── Настройка размера урока в разделе «Родителям» ─────────────────────────
   const parentTab = buttons().find((b) => (b.textContent ?? '').includes('Родителям') && b.className.includes('tab'));

@@ -177,16 +177,27 @@ export async function runShareAppChecks(): Promise<void> {
   // Идём туда через «Дети» в родительском разделе (это тот же экран профилей).
   click(buttons().find((b) => (b.textContent ?? '').includes('Дети') && !b.className.includes('tab')));
   await sleep(80);
+  // 0.32.0: сюда переехал 🤝 из шапки главной (docs/proposals/home-header.md) —
+  // «позвать друга» и «ещё один ученик» это один и тот же экран. Карточку
+  // «Передать приложение» сюда не дублируем: её место — «Родителям».
+  const inviteBtn = buttons().find((b) => (b.textContent ?? '').includes('Позови друга'));
   check(
-    'на экране «Кто будет учиться?» тоже есть ссылка для нового ученика',
-    has('Кто будет учиться') && !!shareCard() && has(linkLabel()),
+    'на экране «Кто будет учиться?» ссылку передают кнопкой «🤝 Позови друга»',
+    has('Кто будет учиться') && !!inviteBtn && !shareCard(),
     document.body.textContent?.slice(0, 200) ?? '',
   );
-  check(
-    'короткая карточка обходится без пошаговой инструкции',
-    !!document.querySelector('.share-app.compact') && !has('Наведи камеру'),
-    document.body.textContent?.slice(0, 200) ?? '',
-  );
+  if (inviteBtn) {
+    click(inviteBtn);
+    await sleep(60);
+    check(
+      'кнопка открывает тот же лист с QR-кодом и ссылкой',
+      !!document.querySelector('.invite-qr-art') && !!document.querySelector('.invite-link'),
+      document.body.textContent?.slice(0, 200) ?? '',
+    );
+    click(buttons().find((b) => (b.getAttribute('aria-label') ?? '') === 'Закрыть'));
+    await sleep(40);
+    check('лист «Позови друга» закрывается', !document.querySelector('.invite-sheet'), '');
+  }
   const closeProfiles = buttons().find((b) => (b.textContent ?? '').trim() === 'Закрыть');
   if (closeProfiles) {
     click(closeProfiles);
