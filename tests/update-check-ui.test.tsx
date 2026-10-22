@@ -12,7 +12,7 @@
 //  • ожидающий воркер — это обновление, а установка нового воркера — тоже,
 //    даже если update() уже вернул управление;
 //  • по кнопке «Обновить сейчас» показывается только при найденном обновлении.
-import { checkForUpdate } from '../src/platform/pwa';
+import { checkForUpdate, FORCE_AFTER_MS, startUpdateWatch, takeAppliedVersion, updatePending } from '../src/platform/pwa';
 import { body, btnText, buttons, check, click, has, openParentSection, sleep } from './ui-helpers';
 
 /** Открыть «Родителям» и решить пример-замок (раздел блокируется при уходе). */
@@ -219,7 +219,44 @@ export async function runUpdateCheckUiChecks(): Promise<void> {
       has('Есть новая версия') && !!btnText('Обновить сейчас'),
       document.querySelector('.update-status')?.textContent?.slice(0, 220) ?? 'ответа нет',
     );
+    // 10. Сторож автообновлений (0.29.0): пока перезагружать нельзя — только
+    //     запоминаем ожидание, ничего не применяя.
+    const pendingReg: FakeRegistration = {
+      waiting: { state: 'installed' },
+      installing: null,
+      update: async () => {},
+    };
+    installFakeServiceWorker(pendingReg);
+    localStorage.removeItem('slovo2-update-pending');
+    let stop = startUpdateWatch(() => false);
+    document.dispatchEvent(new window.Event('visibilitychange'));
+    await sleep(120);
+    check('сторож обновлений: в неподходящий момент ничего не применяет', !localStorage.getItem('slovo2-update-applied'));
+    check('сторож обновлений: ожидание запомнено', updatePending(), String(localStorage.getItem('slovo2-update-pending')));
+    stop();
+
+    // 11. Как только перезагружать безопасно — применяет и пишет версию для плашки.
+    localStorage.removeItem('slovo2-update-pending');
+    localStorage.removeItem('slovo2-update-applied');
+    stop = startUpdateWatch(() => true);
+    document.dispatchEvent(new window.Event('visibilitychange'));
+    await sleep(120);
+    check('сторож обновлений: в безопасный момент применяет обновление', !!localStorage.getItem('slovo2-update-applied'));
+    check('сторож обновлений: применяет один раз и снимает ожидание', !updatePending());
+    stop();
+
+    // 12. Плашка «Обновили до версии» показывается один раз.
+    const applied = takeAppliedVersion();
+    check('после автообновления известна версия для плашки', applied === 'test', String(applied));
+    check('плашка «Обновили» показывается один раз', takeAppliedVersion() === null);
+    check(
+      'ожидание обновления не висит вечно',
+      FORCE_AFTER_MS === 24 * 60 * 60 * 1000,
+      String(FORCE_AFTER_MS),
+    );
   } finally {
     restoreNavigator(swDescriptor, onlineDescriptor);
+    localStorage.removeItem('slovo2-update-pending');
+    localStorage.removeItem('slovo2-update-applied');
   }
 }

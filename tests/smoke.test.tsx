@@ -18,6 +18,7 @@ import { runPretestAuditChecks } from './pretest-audit.test';
 import { runPuzzleUiChecks } from './puzzles-ui.test';
 import { runDiagnosticsRouteChecks } from './diagnostics-ui.test';
 import { runUpdateCheckUiChecks } from './update-check-ui.test';
+import { runQuickSoundChecks } from './quick-sound-ui.test';
 import { runShareAppChecks } from './share-ui.test';
 import { runThemeChecks } from './theme-ui.test';
 import { runFloatingMascotChecks } from './mascot-ui.test';
@@ -1257,6 +1258,10 @@ async function main() {
   // Ручная проверка обновлений: кнопка в «Родителям» → «Приложение» и все
   // ответы сервис-воркера (есть новая / последняя / нет сети / нельзя проверить).
   await runUpdateCheckUiChecks();
+
+  // Быстрый звук (0.29.0): тап — вкл/выкл музыки, долгое нажатие — тишина на
+  // 15 минут; кнопка есть на всех экранах, кроме урока.
+  await runQuickSoundChecks();
 
   // Классы 1–4: смена класса не сбрасывает опыт, товары и награды; путь,
   // герой и урок берутся из программы активного класса (0.27.0).
