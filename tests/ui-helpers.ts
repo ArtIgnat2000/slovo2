@@ -15,12 +15,24 @@ export const btn = (pred: (b: HTMLButtonElement) => boolean) => buttons().find(p
 export const btnText = (t: string) => btn((b) => (b.textContent ?? '').includes(t));
 export const has = (t: string) => body().includes(t);
 
-/** Лист наград на главной: квесты, сундук, неделя. Идемпотентно, если уже открыт. */
+/** Меню ☰ на главной (0.33.0). Идемпотентно, если уже открыто. */
+export async function openHomeMenu(): Promise<void> {
+  if (document.querySelector('.home-menu')) return;
+  const trigger = document.querySelector('[data-menu-trigger]');
+  if (trigger) {
+    click(trigger);
+    await sleep(60);
+  }
+}
+
+/** Лист наград на главной: квесты, сундук, неделя. Идемпотентно, если уже открыт.
+ *  С 0.33.0 🎁 в шапке нет — награды живут первой строкой меню ☰. */
 export async function openRewardsSheet(): Promise<void> {
   if (document.querySelector('.rewards-sheet')) return;
-  const tab = buttons().find((b) => (b.getAttribute('aria-label') ?? '').startsWith('Награды'));
-  if (tab) {
-    click(tab);
+  await openHomeMenu();
+  const row = document.querySelector('[data-menu="rewards"]');
+  if (row) {
+    click(row);
     await sleep(60);
   }
 }

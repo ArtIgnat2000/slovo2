@@ -102,6 +102,14 @@ export default function App() {
   /** Версия, до которой обновились автоматически: показываем плашку один раз. */
   const [justUpdated] = useState(() => takeAppliedVersion());
 
+  // Куда откроется БУК: меню ☰ на главной ведёт прямо в «Мои покупки» или
+  // «Ангар» (0.33.0). Состояние должно стоять до ранних return'ов — иначе
+  // число хуков меняется между рендерами.
+  const [shopEntry, setShopEntry] = useState<{ view: 'vitrina' | 'wardrobe'; hangar: boolean }>({
+    view: 'vitrina',
+    hangar: false,
+  });
+
   useEffect(() => {
     const apply = () => {
       applyTheme(settings.theme);
@@ -290,6 +298,20 @@ export default function App() {
     setTab(next);
   };
 
+  /**
+   * Куда открыть БУК из меню на главной (0.33.0).
+   *
+   * Меню — единственный прямой путь к «Моим покупкам» и «Ангару»: и то и другое
+   * иначе лежит на два-три тапа внутри вкладки БУК. Вкладка внизу по-прежнему
+   * открывает витрину: тап по ней сбрасывает вход, чтобы ребёнок не попадал
+   * в «покупки» неожиданно.
+   */
+  const openShop = (view: 'vitrina' | 'wardrobe', hangar = false) => {
+    setShopEntry({ view, hangar });
+    setProfilesOpen(false);
+    setTab('shop');
+  };
+
   if (lessonId) {
     return (
       <div className="app">
@@ -325,11 +347,19 @@ export default function App() {
           onStartLesson={startLesson}
           onOpenProfiles={() => setProfilesOpen(true)}
           onStartReview={() => startLesson('review')}
+          onOpenShop={openShop}
         />
       ) : tab === 'words' ? (
         <WordsScreen />
       ) : tab === 'shop' ? (
-        <ShopScreen />
+        <ShopScreen
+          // Ключ пересоздаёт экран, когда меняется точка входа: иначе тап по
+          // нижней вкладке «БУК» из «Моих покупок» не вернул бы витрину —
+          // useState(initialView) читается только при монтировании.
+          key={`${shopEntry.view}-${shopEntry.hangar}`}
+          initialView={shopEntry.view}
+          initialHangar={shopEntry.hangar}
+        />
       ) : (
         <ParentScreen
           unlocked={parentUnlocked}
@@ -420,7 +450,14 @@ export default function App() {
           <span className="ico">📖</span>
           Слова
         </button>
-        <button className={`tab ${!profilesOpen && tab === 'shop' ? 'on' : ''}`} onClick={() => switchTab('shop')}>
+        <button
+          className={`tab ${!profilesOpen && tab === 'shop' ? 'on' : ''}`}
+          onClick={() => {
+            // Вкладка всегда открывает витрину, а не то, куда завёл меню.
+            setShopEntry({ view: 'vitrina', hangar: false });
+            switchTab('shop');
+          }}
+        >
           <span className="ico">🎩</span>
           БУК
         </button>

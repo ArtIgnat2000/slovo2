@@ -307,9 +307,9 @@ p {
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-/* Серия и кристаллы — статус, а не кнопка: без рамки и без фона, чтобы
-   не выглядели нажимаемыми. Цвет несут эмодзи, числа — обычным текстом:
-   оранжевая цифра на светлом фоне давала бы контраст ≈2:1. */
+/* Кристаллы — главный и единственный счётчик в шапке (0.33.0): крупнее имени,
+   без рамки и фона, чтобы не выглядеть кнопкой. Цвет несут эмодзи, числа —
+   обычным текстом: оранжевая цифра давала бы контраст ≈2:1. */
 .topbar-stat {
   flex: none;
   display: inline-flex;
@@ -322,13 +322,35 @@ p {
   font-variant-numeric: tabular-nums;
   color: var(--ink);
 }
+.topbar-stat.gems {
+  font-size: 20px;
+}
 @media (max-width: 359px) {
-  /* 320 px: четыре блока должны влезть в строку без перелива
-     (замер — 271 из 288 px). */
+  /* 320 px: имя, алмазы и меню должны влезть в строку без перелива. */
   .topbar { gap: 8px; }
   .topbar-name { font-size: 16px; }
   .topbar-stat { font-size: 14px; gap: 3px; }
-  .rewards-btn { font-size: 19px; }
+  .topbar-stat.gems { font-size: 18px; }
+}
+
+/* ☰ — единственная рамка в шапке: одно действие «а ещё вот это». */
+.menu-btn {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  font-size: 20px;
+  line-height: 1;
+  color: var(--ink);
+  cursor: pointer;
+}
+.menu-btn[aria-expanded='true'] {
+  border-color: var(--primary);
 }
 .stat-pill {
   display: inline-flex;
@@ -370,52 +392,103 @@ p {
    Один главный удар на первый экран. Цель, квесты, неделя остаются, но
    без рамки-на-рамке и без второго CTA. Путь — отдельная глава ниже. */
 
-/* 🎁 — единственная рамка в шапке и единственное действие «что-то получить».
-   Вместо точки — число: ребёнок видит, сколько наград его ждёт. */
-.rewards-btn {
-  position: relative;
-  flex: none;
-  width: 44px;
-  height: 44px;
-  padding: 0;
+/* ── Меню ☰ на главной (0.33.0) ─────────────────────────────────────────
+   Нижний лист, как у наград и ангара: привычная механика для ребёнка.
+   Один уровень, крупные строки с эмодзи и подписью, справа стрелка. */
+.home-menu {
   display: grid;
-  place-items: center;
+  gap: 12px;
+}
+
+/* Счётчики со словами: у 🔥 и 💎 должно быть объяснение, а не только цифра. */
+.menu-status {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  margin-bottom: 12px;
   background: var(--card);
   border: 2px solid var(--line);
-  border-radius: var(--r-pill);
+  border-radius: var(--r-lg);
+}
+.menu-status-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.menu-status-emoji {
+  flex: none;
   font-size: 20px;
-  line-height: 1;
+  line-height: 1.2;
+}
+.menu-status-title {
+  font-weight: 800;
+}
+.menu-list {
+  display: grid;
+  gap: 8px;
+}
+.menu-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 12px;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: var(--r-lg);
+  color: inherit;
+  text-align: left;
   cursor: pointer;
 }
-.rewards-btn[aria-expanded='true'] {
-  border-color: var(--primary);
+.menu-row:active {
+  transform: scale(0.99);
 }
-/* Бейдж-счётчик: тёмные цифры по оранжевому — 8:1. Белые на этом оранжевом
-   давали бы ≈2:1, а цифру читает и ребёнок, и слабовидящий. */
-.rewards-count {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 4px;
+.menu-row-emoji {
+  flex: none;
+  width: 32px;
+  font-size: 24px;
+  line-height: 1;
+  text-align: center;
+}
+.menu-row-title {
+  display: block;
+  font-weight: 800;
+}
+.menu-count {
+  flex: none;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
   display: grid;
   place-items: center;
   border-radius: var(--r-pill);
   background: var(--orange);
   color: #2b1a00;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  box-shadow: 0 0 0 2px var(--card);
-  pointer-events: none;
+}
+.menu-row-arrow {
+  flex: none;
+  color: var(--ink-3);
+  font-size: 22px;
+  line-height: 1;
+}
+/* Разделитель групп: дела ребёнка сверху, «про меня» — снизу. */
+.menu-sep {
+  height: 2px;
+  margin: 4px 2px;
+  border-radius: 2px;
+  background: var(--line);
 }
 .rewards-backdrop {
   justify-content: flex-end;
   padding: 0;
 }
-.rewards-sheet {
+.rewards-sheet,
+.home-menu {
   width: 100%;
   max-width: var(--screen-max);
   max-height: min(88dvh, 740px);
@@ -427,46 +500,9 @@ p {
   box-shadow: var(--shadow-lg);
 }
 
-/* Переключатель класса: пилюля над героем + нижний лист (docs/proposals/classes-1-4.md).
-   В шапку класс не ставим — на 320 px там уже семь элементов. */
-.class-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  max-width: 100%;
-  min-height: 44px;
-  margin-bottom: 10px;
-  padding: 8px 14px;
-  border: 2px solid var(--line);
-  border-radius: var(--r-pill);
-  background: var(--card);
-  color: var(--ink);
-  font: inherit;
-  font-size: var(--fs-sm);
-  font-weight: 700;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-.class-pill:active {
-  transform: translateY(1px);
-}
-.class-pill:focus-visible {
-  outline: 3px solid var(--primary);
-  outline-offset: 2px;
-}
-.class-pill-title {
-  font-weight: 800;
-}
-.class-pill-count {
-  color: var(--ink-2);
-  font-weight: 600;
-  white-space: nowrap;
-}
-.class-pill-caret {
-  color: var(--ink-2);
-  font-size: 12px;
-}
-
+/* Лист класса (docs/proposals/classes-1-4.md, 0.33.0).
+   Своей кнопки на главной больше нет: вход — строкой «Класс» в меню ☰,
+   а класс на экране называет заголовок «Мой путь · 2 класс». */
 .class-backdrop {
   justify-content: flex-end;
   padding: 0;
@@ -732,6 +768,11 @@ p {
 
 .home-path-title {
   margin: 20px 0 12px;
+}
+/* Класс в заголовке пути — подсказка, а не действие: тише основного текста. */
+.home-path-class {
+  color: var(--ink-2);
+  font-weight: 700;
 }
 /* «Позови друга» на главной (0.32.1): ссылка в один тап с первого экрана.
    Мягкая строка во всю ширину: её видно, но она не спорит с «Начать ▶» —

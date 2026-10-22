@@ -19,6 +19,15 @@ function active() {
   return p;
 }
 
+/** Лист класса живёт в меню ☰ (0.33.0): пилюли над героем больше нет. */
+async function openClassSheet() {
+  if (document.querySelector('.class-sheet')) return;
+  click(document.querySelector('[data-menu-trigger]'));
+  await sleep(60);
+  click(document.querySelector('[data-menu="class"]'));
+  await sleep(60);
+}
+
 /** Профиль со всем, что можно накопить: опыт, товары, пазлы, награды, дни. */
 function seedRichProfile() {
   const id = active().id;
@@ -352,13 +361,23 @@ export async function runClassChecks() {
     ui.render(createElement(App));
     await sleep(80);
 
-    const pill = Array.from(host.querySelectorAll<HTMLButtonElement>('.class-pill'))[0];
-    check('на главной есть пилюля класса', !!pill, body().slice(0, 200));
-    check('в пилюле написан класс', !!pill && (pill.textContent ?? '').includes('2 класс'), pill?.textContent ?? '');
+    // 0.33.0: класс переехал в меню ☰, а на экране его называет заголовок пути.
+    check('на главной нет отдельной пилюли класса', !host.querySelector('.class-pill'), '');
+    const pathClass = host.querySelector('.home-path-class');
+    check(
+      'заголовок «Мой путь» называет класс',
+      !!pathClass && (pathClass.textContent ?? '').includes('2 класс'),
+      pathClass?.textContent ?? '',
+    );
+    click(host.querySelector('[data-menu-trigger]'));
+    await sleep(60);
+    const classRow = host.querySelector<HTMLButtonElement>('[data-menu="class"]');
+    check('класс доступен из меню ☰', !!classRow, body().slice(0, 200));
+    check('в строке меню написан класс', !!classRow && (classRow.textContent ?? '').includes('2 класс'), classRow?.textContent ?? '');
     const nodes2 = host.querySelectorAll('.node-btn').length;
     check('путь 2 класса — 16 уроков', nodes2 === LESSONS_BY_GRADE[2].length, `узлов: ${nodes2}`);
 
-    click(pill!);
+    click(classRow!);
     await sleep(50);
     const cards = Array.from(host.querySelectorAll<HTMLButtonElement>('.class-card'));
     check('лист класса открыт', cards.length === AVAILABLE_CLASSES.length, `карточек: ${cards.length}`);
@@ -539,11 +558,14 @@ export async function runClassChecks() {
     click(nextBtn);
     await sleep(140);
     check('кнопка переводит профиль во 2 класс', active().activeClass === 2, String(active().activeClass));
-    check('после перехода открыта главная 2 класса', has('2 класс') && !!document.querySelector('.class-pill'), body().slice(0, 160));
+    check(
+      'после перехода открыта главная 2 класса',
+      has('2 класс') && (document.querySelector('.home-path-class')?.textContent ?? '').includes('2 класс'),
+      body().slice(0, 160),
+    );
 
     // Лист классов: пройденный 1 класс помечен, текущий — 2.
-    click(document.querySelector('.class-pill'));
-    await sleep(80);
+    await openClassSheet();
     const cards = Array.from(document.querySelectorAll<HTMLButtonElement>('.class-card'));
     const g1Card = cards.find((c) => (c.textContent ?? '').includes('1 класс'));
     check(
@@ -555,8 +577,7 @@ export async function runClassChecks() {
     // для пройденного активного класса: возвращаемся в 1 класс и открываем лист.
     click(g1Card);
     await sleep(100);
-    click(document.querySelector('.class-pill'));
-    await sleep(80);
+    await openClassSheet();
     check(
       'в листе классов есть подсказка о переходе дальше',
       !!document.querySelector('.class-sheet-next') &&

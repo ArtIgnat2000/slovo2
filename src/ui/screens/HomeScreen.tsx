@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { scheduleWordImages } from '../../platform/word-images';
 import {
+  AVAILABLE_CLASSES,
   CLASS_META,
   LESSONS_BY_GRADE,
   WORDS,
@@ -8,7 +9,7 @@ import {
 } from '../../content/words';
 import { dayKey, useActiveProfile, useApp } from '../../state/store';
 import { Crowns } from '../Bits';
-import { ClassPicker } from '../ClassPicker';
+import { ClassSheet } from '../ClassSheet';
 import { DailyQuests } from '../DailyQuests';
 import { InviteFriend } from '../InviteFriend';
 import { WeeklyRewards } from '../WeeklyRewards';
@@ -33,11 +34,13 @@ interface Props {
   onOpenProfiles: () => void;
   /** «Пора повторить» — отдельный режим тренировки, id урока не нужен */
   onStartReview: () => void;
+  /** Меню ведёт прямо в «Мои покупки» или в «Ангар» (0.33.0) */
+  onOpenShop: (view: 'vitrina' | 'wardrobe', hangar?: boolean) => void;
 }
 
 /**
- * Сколько наград ждёт в листе (0.32.0): число на кнопке 🎁 — обещание,
- * поэтому считаем ровно те действия, которые ребёнок там найдёт, —
+ * Сколько наград ждёт в листе (0.32.0): число у «Наград» в меню ☰ (0.33.0) —
+ * обещание, поэтому считаем ровно те действия, которые ребёнок там найдёт, —
  * «Забрать» у задания, «Открыть сундук БУКа» и «Открыть бонусный сундук».
  *
  * Недельные награды не считаем: они начисляются сами в `finishLesson`
@@ -55,12 +58,16 @@ function rewardsCount(profile: Profile): number {
   return count;
 }
 
-export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview }: Props) {
+export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpenShop }: Props) {
   const profile = useActiveProfile();
   const setActiveClass = useApp((s) => s.setActiveClass);
   const [rewardsOpen, setRewardsOpen] = useState(false);
   /** «Позови друга» — 0.32.1: ссылка должна быть в один тап с первого экрана. */
   const [inviteOpen, setInviteOpen] = useState(false);
+  /** Меню ☰ (0.33.0) — заменяет 🎁 в шапке: награды, покупки, ангар, друг, профиль. */
+  const [menuOpen, setMenuOpen] = useState(false);
+  /** Лист класса (0.33.0): вход — строкой в меню, а не пилюлей над героем. */
+  const [classOpen, setClassOpen] = useState(false);
   // Программа активного класса: «Мой путь» и герой показывают только её.
   // Класс — свойство профиля, поэтому у каждого ученика свой путь.
   const grade = availableClass(profile?.activeClass ?? 2);
@@ -116,6 +123,21 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview }: Pro
   const currentDone = current.wordIds.filter((id) => (profile.words[id]?.s ?? 0) > 0).length;
   const rewards = rewardsCount(profile);
 
+  /** Escape закрывает меню, как любой лист в приложении. */
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenuOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [menuOpen]);
+
+  const openMenuSheet = (open: () => void) => {
+    setMenuOpen(false);
+    open();
+  };
+
   const startHero = () => {
     if (reviewDue) onStartReview();
     else onStartLesson(current.id);
@@ -123,10 +145,11 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview }: Pro
 
   return (
     <div className="screen">
-      {/* Шапка «четыре блока, два действия» (0.32.0, docs/proposals/home-header.md):
-          профиль одной кнопкой, серия и кристаллы — тихий статус без рамок,
-          награды — единственная рамка-кнопка с числом. 🤝 переехал на экран
-          «Кто будет учиться?», 🚗 — в гардероб БУКа: там их и ищут. */}
+      {/* Шапка (0.33.0): три блока и два действия. 💎 — главный и единственный
+          счётчик в строке: кристаллы ребёнок видит, тратит и понимает. 🔥 из
+          шапки ушёл в меню — там у огонька есть слова, а не только цифра.
+          ☰ заменил 🎁: в меню не только награды, но и покупки, ангар, друг
+          и смена ученика (docs/proposals/home-menu.md). */}
       <div className="topbar">
         <button
           type="button"
@@ -144,14 +167,6 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview }: Pro
         <div className="grow" aria-hidden="true" />
 
         <div
-          className="topbar-stat fire"
-          role="img"
-          data-stat="streak"
-          aria-label={`Серия: ${profile.streak} ${plural(profile.streak, 'день', 'дня', 'дней')}`}
-        >
-          <span aria-hidden="true">🔥 {profile.streak}</span>
-        </div>
-        <div
           className="topbar-stat gems"
           role="img"
           data-stat="gems"
@@ -162,26 +177,16 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview }: Pro
 
         <button
           type="button"
-          className="rewards-btn"
-          data-stat="rewards"
-          aria-label={
-            rewards > 0
-              ? `Награды: ${rewards} ${plural(rewards, 'награда ждёт', 'награды ждут', 'наград ждут')}`
-              : 'Награды'
-          }
-          aria-expanded={rewardsOpen}
-          onClick={() => setRewardsOpen(true)}
+          className="menu-btn"
+          data-menu-trigger
+          aria-label="Меню: награды, покупки и другое"
+          aria-haspopup="dialog"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen(true)}
         >
-          <span aria-hidden="true">🎁</span>
-          {rewards > 0 && (
-            <span className="rewards-count" aria-hidden="true">
-              {rewards > 9 ? '9+' : rewards}
-            </span>
-          )}
+          <span aria-hidden="true">☰</span>
         </button>
       </div>
-
-      <ClassPicker profile={profile} />
 
       {classDone && !reviewDue ? (
         <button
@@ -249,7 +254,14 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview }: Pro
         </span>
       </button>
 
-      <h2 className="home-path-title">Мой путь</h2>
+      {/* Класс живёт здесь, а не пилюлей над героем (0.33.0): заголовок уже
+          есть, а подпись «· 2 класс» даёт ту же ориентацию за 0 px высоты. */}
+      <h2 className="home-path-title">
+        Мой путь
+        {AVAILABLE_CLASSES.length > 1 && (
+          <span className="home-path-class"> · {CLASS_META[grade].title}</span>
+        )}
+      </h2>
       <div className="path">
         {classLessons.map((l) => {
           const st = profile.lessons[l.id];
@@ -278,6 +290,164 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview }: Pro
       </div>
 
       {inviteOpen && <InviteFriend onClose={() => setInviteOpen(false)} />}
+      {classOpen && <ClassSheet profile={profile} onClose={() => setClassOpen(false)} />}
+
+      {/* Меню ☰: один уровень, крупные подписанные строки, только вторичные
+          дела. Главное действие «Начать ▶» остаётся на экране и в меню не
+          прячется. Сверху — расшифровка счётчиков: у 🔥 и 💎 должны быть слова. */}
+      {menuOpen && (
+        <div className="sheet-backdrop rewards-backdrop" onClick={() => setMenuOpen(false)}>
+          <div
+            className="home-menu"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Меню"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="row mb">
+              <h2 className="grow" style={{ margin: 0 }}>
+                Меню
+              </h2>
+              <button type="button" className="lesson-exit" aria-label="Закрыть" onClick={() => setMenuOpen(false)}>
+                ✕
+              </button>
+            </div>
+
+            <div className="menu-status">
+              <div className="menu-status-row">
+                <span className="menu-status-emoji" aria-hidden="true">💎</span>
+                <div className="grow">
+                  <div className="menu-status-title">Кристаллы: {profile.gems}</div>
+                  <div className="tiny muted">
+                    Копятся за уроки и задания. Тратятся в БУКе — на наряды, технику и музыку.
+                  </div>
+                </div>
+              </div>
+              <div className="menu-status-row">
+                <span className="menu-status-emoji" aria-hidden="true">🔥</span>
+                <div className="grow">
+                  <div className="menu-status-title">
+                    Серия: {profile.streak > 0
+                      ? `${profile.streak} ${plural(profile.streak, 'день', 'дня', 'дней')} подряд`
+                      : 'пока нет'}
+                  </div>
+                  <div className="tiny muted">
+                    {profile.streak > 0
+                      ? 'Столько дней подряд ты занимаешься. Пропустишь день — счёт начнётся заново.'
+                      : 'Позанимайся сегодня — и серия начнётся. День за днём она растёт.'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="menu-list">
+              <button
+                type="button"
+                className="menu-row"
+                data-menu="rewards"
+                aria-label={
+                  rewards > 0
+                    ? `Награды: ${rewards} ${plural(rewards, 'награда ждёт', 'награды ждут', 'наград ждут')}`
+                    : 'Награды'
+                }
+                onClick={() => openMenuSheet(() => setRewardsOpen(true))}
+              >
+                <span className="menu-row-emoji" aria-hidden="true">🎁</span>
+                <span className="grow">
+                  <span className="menu-row-title">Награды</span>
+                  <span className="tiny muted">
+                    {rewards > 0
+                      ? `${rewards} ${plural(rewards, 'награда ждёт', 'награды ждут', 'наград ждут')}`
+                      : 'Пока всё получено'}
+                  </span>
+                </span>
+                {rewards > 0 && (
+                  <span className="menu-count" aria-hidden="true">
+                    {rewards > 9 ? '9+' : rewards}
+                  </span>
+                )}
+                <span className="menu-row-arrow" aria-hidden="true">›</span>
+              </button>
+
+              <button
+                type="button"
+                className="menu-row"
+                data-menu="purchases"
+                onClick={() => openMenuSheet(() => onOpenShop('wardrobe'))}
+              >
+                <span className="menu-row-emoji" aria-hidden="true">🎒</span>
+                <span className="grow">
+                  <span className="menu-row-title">Мои покупки</span>
+                  <span className="tiny muted">Наряды, техника, костюмы и музыка</span>
+                </span>
+                <span className="menu-row-arrow" aria-hidden="true">›</span>
+              </button>
+
+              <button
+                type="button"
+                className="menu-row"
+                data-menu="hangar"
+                onClick={() => openMenuSheet(() => onOpenShop('wardrobe', true))}
+              >
+                <span className="menu-row-emoji" aria-hidden="true">🚗</span>
+                <span className="grow">
+                  <span className="menu-row-title">Ангар</span>
+                  <span className="tiny muted">Твоя техника крупным планом</span>
+                </span>
+                <span className="menu-row-arrow" aria-hidden="true">›</span>
+              </button>
+
+              <button
+                type="button"
+                className="menu-row"
+                data-menu="invite"
+                onClick={() => openMenuSheet(() => setInviteOpen(true))}
+              >
+                <span className="menu-row-emoji" aria-hidden="true">🤝</span>
+                <span className="grow">
+                  <span className="menu-row-title">Позови друга</span>
+                  <span className="tiny muted">QR-код и ссылка на игру</span>
+                </span>
+                <span className="menu-row-arrow" aria-hidden="true">›</span>
+              </button>
+
+              <div className="menu-sep" aria-hidden="true" />
+
+              <button
+                type="button"
+                className="menu-row"
+                data-menu="class"
+                onClick={() => openMenuSheet(() => setClassOpen(true))}
+              >
+                <span className="menu-row-emoji" aria-hidden="true">🎓</span>
+                <span className="grow">
+                  <span className="menu-row-title">{CLASS_META[grade].title}</span>
+                  <span className="tiny muted">
+                    {classInfo.complete && nextGrade
+                      ? `Пройден · можно перейти в ${CLASS_META[nextGrade].title}`
+                      : `${classInfo.words} ${plural(classInfo.words, 'слово', 'слова', 'слов')} · пройдено ${classInfo.lessonsDone} из ${classInfo.lessons}`}
+                  </span>
+                </span>
+                <span className="menu-row-arrow" aria-hidden="true">›</span>
+              </button>
+
+              <button
+                type="button"
+                className="menu-row"
+                data-menu="profiles"
+                onClick={() => openMenuSheet(onOpenProfiles)}
+              >
+                <span className="menu-row-emoji" aria-hidden="true">👤</span>
+                <span className="grow">
+                  <span className="menu-row-title">Сменить ученика</span>
+                  <span className="tiny muted">Профили и новый ученик</span>
+                </span>
+                <span className="menu-row-arrow" aria-hidden="true">›</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {rewardsOpen && (
         <div className="sheet-backdrop rewards-backdrop" onClick={() => setRewardsOpen(false)}>
