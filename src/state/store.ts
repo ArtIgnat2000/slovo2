@@ -26,7 +26,7 @@ import {
 } from '../engine/quests';
 import { ITEM_BY_ID, isOwned, normalizeWishlist, sellPrice } from '../engine/shop';
 import { migrateMusicShop, MUSIC_BY_ID } from '../engine/music';
-import { DEFAULT_SOUND_PACK, normalizeSoundShop, SOUND_PACK_BY_ID } from '../engine/sounds';
+import { canBuySoundPack, DEFAULT_SOUND_PACK, hasSoundPack, normalizeSoundShop, SOUND_PACK_BY_ID } from '../engine/sounds';
 import { normalizeTuning, recolor, type RecolorOutcome } from '../engine/tints';
 import {
   COSTUMES,
@@ -1118,7 +1118,8 @@ export const useApp = create<AppState>()(
         const p = getActive(get());
         if (!pack || !p) return false;
         const shop = readShop(p);
-        if (shop.soundOwned?.includes(id) || p.gems < pack.price) return false;
+        // Бесплатные наборы не покупаются, а уже открытые — не покупаются повторно.
+        if (!canBuySoundPack(pack, p.gems, shop.soundOwned ?? [])) return false;
         set((s) => patchActive(s, (prof) => {
           const current = readShop(prof);
           return {
@@ -1133,7 +1134,8 @@ export const useApp = create<AppState>()(
       setSoundPack: (id) =>
         set((s) => patchActive(s, (prof) => {
           const shop = readShop(prof);
-          if (!SOUND_PACK_BY_ID[id] || !shop.soundOwned?.includes(id)) return prof;
+          // Бесплатный стартовый набор доступен без записи в soundOwned.
+          if (!SOUND_PACK_BY_ID[id] || !hasSoundPack(shop.soundOwned, id)) return prof;
           return { ...prof, shop: { ...shop, soundPack: id } };
         })),
 

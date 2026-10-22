@@ -166,8 +166,21 @@ export function cueOf(packId: string | null | undefined, cue: SoundCue): SoundNo
   return pack[cue];
 }
 
+/**
+ * Набор доступен в уроках. Бесплатные (стартовые) наборы не нужно «покупать»:
+ * с 0.26.1 новый профиль начинает с пустым `soundOwned`, и требование записи
+ * в нём оставляло «Ксилофон» недоступным — карточка предлагала покупку за 0 💎,
+ * а выбор молча ничего не делал.
+ */
+export function hasSoundPack(owned: string[] | undefined, packId: string): boolean {
+  const pack = SOUND_PACK_BY_ID[packId];
+  if (!pack) return false;
+  return pack.price === 0 || !!owned?.includes(packId);
+}
+
 export function canBuySoundPack(pack: SoundPack, gems: number, owned: string[]): boolean {
-  return !owned.includes(pack.id) && gems >= pack.price;
+  // Бесплатный набор не товар: его выбирают, а не покупают.
+  return pack.price > 0 && !owned.includes(pack.id) && gems >= pack.price;
 }
 
 export interface SoundShopSelection {
