@@ -238,7 +238,18 @@ function Sheet(props: { onClose: () => void; children: React.ReactNode }) {
   );
 }
 
-export function ShopScreen() {
+/**
+ * @param initialView — какой сегмент открыть: меню главной ведёт сразу
+ *   в «Мои покупки», вкладка внизу — на витрину (0.33.0).
+ * @param initialHangar — открыть сцену «Ангар» сразу (вход из меню).
+ */
+export function ShopScreen({
+  initialView = 'vitrina',
+  initialHangar = false,
+}: {
+  initialView?: 'vitrina' | 'wardrobe';
+  initialHangar?: boolean;
+} = {}) {
   const profile = useActiveProfile();
   const look = useLook();
   const buyItem = useApp((s) => s.buyItem);
@@ -255,7 +266,7 @@ export function ShopScreen() {
   const toggleWishlist = useApp((s) => s.toggleWishlist);
   const themeStyle = useApp((s) => s.settings.themeStyle);
   const setSettings = useApp((s) => s.setSettings);
-  const [view, setView] = useState<View>('vitrina');
+  const [view, setView] = useState<View>(initialView);
   const [cat, setCat] = useState<Cat>('outfits');
   const [toyShelf, setToyShelf] = useState<ToyKind>('car');
   // Подробная карточка и её палитра (палитра — только в sheet)
@@ -270,7 +281,7 @@ export function ShopScreen() {
   const [mood, setMood] = useState<'idle' | 'happy' | 'dance'>('idle');
   // «Ангар БУКа» (0.22.0): сцена коллекции техники, открывается из гардероба
   // и с полки «Техника» (ещё один вход — значок 🚗 в шапке главной, App.tsx).
-  const [hangarOpen, setHangarOpen] = useState(false);
+  const [hangarOpen, setHangarOpen] = useState(initialHangar);
 
   /** Sheet закрывается по фону, по Escape и — если играла примерка —
    *  возвратом к выбранной мелодии (примерка не остаётся «висеть»). */

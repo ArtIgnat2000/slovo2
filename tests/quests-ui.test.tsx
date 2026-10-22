@@ -13,7 +13,7 @@ import type { Profile, QuestPlanItem } from '../src/types';
 import { LESSONS, WORDS } from '../src/content/words';
 import { dayKey, useApp } from '../src/state/store';
 import { CHEST_WAKE_TAPS, planOf, questsForDay, specFor } from '../src/engine/quests';
-import { btn, btnText, buttons, check, click, currentWord, has, openRewardsSheet, sleep } from './ui-helpers';
+import { btn, btnText, buttons, check, click, currentWord, has, openHomeMenu, openRewardsSheet, sleep } from './ui-helpers';
 
 const store = () => useApp.getState();
 const DAY = 86_400_000;
@@ -347,22 +347,26 @@ export async function runQuestUiChecks(): Promise<void> {
   // 7. Добираем оставшиеся слова и забираем награду
   for (const wordId of LESSONS[0].wordIds) store().answer(wordId, 5, true);
   await sleep(80);
+  // 0.33.0: число у «Наград» в меню ☰ — обещание, а не украшение. Задание
+  // закрыто и ждёт «Забрать», значит в меню есть число, и оно не меньше числа
+  // кнопок «Забрать» в листе (сундуки и бонусы считаются отдельно).
+  // Число читаем до открытия листа: в открытом листе меню уже закрыто.
+  await openHomeMenu();
+  const badge = document.querySelector('.menu-count');
+  const badgeText = badge?.textContent ?? '';
+  click(btn((b) => (b.getAttribute('aria-label') ?? '') === 'Закрыть'));
+  await sleep(40);
   await showRewards();
   const gemsBefore = active().gems;
   const claim = questStart('Повтори');
   const claimBtn = questAction('Повтори', 'Забрать');
-
-  // 0.32.0: число на 🎁 — обещание, а не украшение. Задание закрыто и ждёт
-  // «Забрать», значит на кнопке наград есть число, и оно не меньше числа
-  // кнопок «Забрать» в листе (сундуки и бонусы считаются отдельно).
-  const badge = document.querySelector('.rewards-count');
   const claimables = Array.from(document.querySelectorAll('.rewards-sheet button')).filter((b) =>
     (b.textContent ?? '').includes('Забрать'),
   ).length;
   check(
-    'награда ждёт: на 🎁 есть число, и «Забрать» в листе не больше него',
-    !!badge && claimables > 0 && Number(badge.textContent) >= claimables,
-    `на кнопке ${badge?.textContent ?? '—'}, кнопок «Забрать» ${claimables}`,
+    'награда ждёт: у «Наград» в меню есть число, и «Забрать» в листе не больше него',
+    !!badge && claimables > 0 && Number(badgeText) >= claimables,
+    `в меню ${badgeText || '—'}, кнопок «Забрать» ${claimables}`,
   );
   check(
     'задания дня: у закрытого задания кнопка «Забрать» вместо строки запуска',

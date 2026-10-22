@@ -7,7 +7,7 @@ import './adaptive.test';
 import { createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from '../src/App';
-import { body, btn, btnText, buttons, check, click, currentWord, failureCount, has, openParentSection, openRewardsSheet, sleep } from './ui-helpers';
+import { body, btn, btnText, buttons, check, click, currentWord, failureCount, has, openHomeMenu, openParentSection, openRewardsSheet, sleep } from './ui-helpers';
 import { runAdaptiveUiChecks } from './adaptive-ui.test';
 import { runQuestUiChecks } from './quests-ui.test';
 import { runInstallHintChecks } from './install-hint.test';
@@ -1178,23 +1178,28 @@ async function main() {
   const homeTab = buttons().find((b) => (b.textContent ?? '').includes('Уроки') && b.className.includes('tab'));
   click(homeTab!);
   await sleep(80);
-  // ── Шапка «Уроков»: четыре блока, два действия (0.32.0) ────────────────
-  // docs/proposals/home-header.md, вариант B «Тихий статус». В шапке остаются
-  // профиль, серия, кристаллы и 🎁; 🤝 ушёл на экран «Кто будет учиться?»,
-  // 🚗 — в гардероб БУКа.
+  // ── Шапка «Уроков»: три блока, два действия (0.33.0) ────────────────────
+  // docs/proposals/home-menu.md. Главный счётчик — 💎: кристаллы ребёнок
+  // понимает и тратит. 🔥 из шапки ушёл в меню ☰, где у него есть слова.
+  // ☰ заменил 🎁: в меню не только награды, но и покупки, ангар, друг и профиль.
   check(
-    'на главной есть серия дней',
-    has('🔥') && !!document.querySelector('[data-stat="streak"]'),
+    'в шапке главной кристаллы — главный счётчик',
+    !!document.querySelector('.topbar .topbar-stat.gems') && has('💎'),
     body().slice(0, 200),
   );
   check(
-    'на главной награды за иконкой 🎁, а не полотном',
-    !!btn((b) => (b.getAttribute('aria-label') ?? '').startsWith('Награды')) && !document.querySelector('.quest'),
+    'огня и подарка в шапке больше нет',
+    !document.querySelector('.topbar [data-stat="streak"]') && !document.querySelector('.topbar .rewards-btn'),
+    document.querySelector('.topbar')?.innerHTML.slice(0, 160) ?? '',
+  );
+  check(
+    'на главной награды за меню ☰, а не полотном',
+    !!document.querySelector('[data-menu-trigger]') && !document.querySelector('.quest'),
     '',
   );
   const topbarButtons = Array.from(document.querySelectorAll('.topbar button'));
   check(
-    'в шапке главной ровно два действия: профиль и награды',
+    'в шапке главной ровно два действия: профиль и меню',
     topbarButtons.length === 2,
     topbarButtons.map((b) => b.getAttribute('aria-label') ?? b.className).join(' | '),
   );
@@ -1205,53 +1210,102 @@ async function main() {
     profileBtn?.getAttribute('aria-label') ?? 'нет кнопки',
   );
   check(
-    'серия и кристаллы — тихий статус без рамок-пилюль',
-    !!document.querySelector('[data-stat="streak"]') &&
-      !!document.querySelector('[data-stat="gems"]') &&
-      !document.querySelector('.topbar .stat-pill'),
+    'кристаллы — тихий статус без рамок-пилюль',
+    !!document.querySelector('.topbar [data-stat="gems"]') && !document.querySelector('.topbar .stat-pill'),
     document.querySelector('.topbar')?.innerHTML.slice(0, 120) ?? '',
   );
+
+  // Меню ☰: один уровень, всё вторичное — награды, покупки, ангар, друг,
+  // смена ученика. Сверху расшифровка счётчиков: у 🔥 и 💎 есть слова.
+  click(document.querySelector('[data-menu-trigger]'));
+  await sleep(60);
+  const menu = document.querySelector('.home-menu');
+  check('☰ открывает меню', !!menu, body().slice(0, 200));
   check(
-    '🤝 и 🚗 из шапки убраны',
-    !document.querySelector('.topbar [aria-label="Позвать друга"]') &&
-      !document.querySelector('.topbar [aria-label="Ангар БУКа"]'),
-    '',
+    'в меню объяснена серия дней',
+    (menu?.textContent ?? '').includes('Серия') &&
+      (menu?.textContent ?? '').includes('подряд') &&
+      (menu?.textContent ?? '').includes('занимаешься'),
+    menu?.querySelector('.menu-status')?.textContent ?? '',
+  );
+  check(
+    'в меню объяснены кристаллы',
+    (menu?.textContent ?? '').includes('Кристаллы') && (menu?.textContent ?? '').includes('Тратятся в БУКе'),
+    menu?.querySelector('.menu-status')?.textContent ?? '',
+  );
+  check(
+    'в меню есть награды, покупки, ангар, друг и смена ученика',
+    ['rewards', 'purchases', 'hangar', 'invite', 'profiles'].every(
+      (key) => !!menu?.querySelector(`[data-menu="${key}"]`),
+    ),
+    Array.from(menu?.querySelectorAll('[data-menu]') ?? []).map((n) => n.getAttribute('data-menu')).join(' | '),
   );
 
-  // Награды: на кнопке число, а не точки-загадки. В начале дня заданий ещё
+  // Число на наградах — не украшение, а обещание. В начале дня заданий ещё
   // нет, поэтому числа нет — и это тоже обещание: забирать нечего.
-  const rewardsBtnEl = btn((b) => (b.getAttribute('aria-label') ?? '').startsWith('Награды'));
-  const rewardsBadge = document.querySelector('.rewards-count');
+  const rewardsBadge = menu?.querySelector('.menu-count');
   check(
-    'у 🎁 число наград вместо точки, пусто — без числа',
-    !!rewardsBtnEl && (rewardsBadge ? /^([1-9]|9\+)$/.test(rewardsBadge.textContent ?? '') : true),
+    'у наград число вместо точки, пусто — без числа',
+    rewardsBadge ? /^([1-9]|9\+)$/.test(rewardsBadge.textContent ?? '') : true,
     rewardsBadge?.textContent ?? 'числа нет',
   );
 
-  // Число на 🎁 — не украшение, а обещание: оно совпадает с числом действий
-  // «забрать», которые ребёнок реально найдёт в листе (задания + сундуки).
-  const badgeNumber = () => {
-    const node = document.querySelector('.rewards-count');
-    return node ? Number(node.textContent) : 0;
-  };
-  const rewardsButton = () => btn((b) => (b.getAttribute('aria-label') ?? '').startsWith('Награды'));
-  click(rewardsButton());
+  // Число запоминаем до перехода: в листе меню уже закрыто.
+  const badgeCount = rewardsBadge ? Number(rewardsBadge.textContent) : 0;
+
+  // Награды из меню открывают тот же лист, что раньше открывал 🎁.
+  click(menu?.querySelector('[data-menu="rewards"]'));
   await sleep(60);
   const sheet = document.querySelector('.rewards-sheet')!;
-  const sheetButtons = Array.from(sheet.querySelectorAll('button'));
+  check('награды из меню открывают лист наград', !!sheet, body().slice(0, 200));
+  const sheetButtons = Array.from(sheet?.querySelectorAll('button') ?? []);
   const claimCount = sheetButtons.filter((b) => (b.textContent ?? '').includes('Забрать')).length;
   const dailyChest = sheetButtons.some((b) => (b.textContent ?? '').includes('Открыть сундук БУКа')) ? 1 : 0;
   // Бонусных сундуков может ждать несколько, а кнопка в листе одна: «ещё N»
-  // лист пишет словами — сверяем число на 🎁 с суммой всех ожидающих наград.
+  // лист пишет словами — сверяем число в меню с суммой всех ожидающих наград.
   const bonusMatch = (sheet.textContent ?? '').match(/бонусных готово: (\d+)/);
   const sheetRewards = claimCount + dailyChest + (bonusMatch ? Number(bonusMatch[1]) : 0);
   check(
-    'число на 🎁 совпадает с числом наград, которые ждут в листе',
-    sheetRewards === badgeNumber(),
-    `на кнопке ${badgeNumber()}, в листе ${sheetRewards} (задания ${claimCount}, сундук ${dailyChest}, бонусные ${bonusMatch?.[1] ?? 0})`,
+    'число у наград совпадает с числом наград, которые ждут в листе',
+    sheetRewards === badgeCount,
+    `в меню ${badgeCount}, в листе ${sheetRewards} (задания ${claimCount}, сундук ${dailyChest}, бонусные ${bonusMatch?.[1] ?? 0})`,
   );
   click(btn((b) => (b.getAttribute('aria-label') ?? '') === 'Закрыть'));
   await sleep(40);
+
+  // «Мои покупки» и «Ангар» из меню — в один тап, на нужный сегмент БУКа.
+  await openHomeMenu();
+  click(document.querySelector('[data-menu="purchases"]'));
+  await sleep(80);
+  const wardrobeTab = document.querySelector('.shop-seg button[aria-selected="true"]');
+  check(
+    '«Мои покупки» из меню открывают БУК на сегменте покупок',
+    !!wardrobeTab && (wardrobeTab.textContent ?? '').includes('Мои покупки') && !document.querySelector('.home-menu'),
+    body().slice(0, 200),
+  );
+  // Нижняя вкладка «БУК» — всегда витрина, даже если меню завело в покупки.
+  click(buttons().find((b) => (b.textContent ?? '').includes('БУК') && b.className.includes('tab')));
+  await sleep(80);
+  const shopTabSelect = document.querySelector('.shop-seg button[aria-selected="true"]');
+  check(
+    'нижняя вкладка «БУК» возвращает на витрину',
+    !!shopTabSelect && (shopTabSelect.textContent ?? '').includes('Витрина'),
+    body().slice(0, 160),
+  );
+  click(homeTab!);
+  await sleep(80);
+  await openHomeMenu();
+  click(document.querySelector('[data-menu="hangar"]'));
+  await sleep(80);
+  check(
+    '«Ангар» из меню открывает ангар',
+    !!document.querySelector('.hangar') || has('Ангар БУКа'),
+    body().slice(0, 200),
+  );
+  click(btn((b) => (b.getAttribute('aria-label') ?? '') === 'Закрыть ангар'));
+  await sleep(40);
+  click(homeTab!);
+  await sleep(80);
 
   // «Позови друга» (0.32.1): ссылка — в один тап прямо с главной, тихой
   // строкой под героем. Раньше 🤝 прятался за кнопкой профиля, а на экране

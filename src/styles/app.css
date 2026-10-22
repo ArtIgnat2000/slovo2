@@ -307,9 +307,9 @@ p {
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-/* Серия и кристаллы — статус, а не кнопка: без рамки и без фона, чтобы
-   не выглядели нажимаемыми. Цвет несут эмодзи, числа — обычным текстом:
-   оранжевая цифра на светлом фоне давала бы контраст ≈2:1. */
+/* Кристаллы — главный и единственный счётчик в шапке (0.33.0): крупнее имени,
+   без рамки и фона, чтобы не выглядеть кнопкой. Цвет несут эмодзи, числа —
+   обычным текстом: оранжевая цифра давала бы контраст ≈2:1. */
 .topbar-stat {
   flex: none;
   display: inline-flex;
@@ -322,13 +322,35 @@ p {
   font-variant-numeric: tabular-nums;
   color: var(--ink);
 }
+.topbar-stat.gems {
+  font-size: 20px;
+}
 @media (max-width: 359px) {
-  /* 320 px: четыре блока должны влезть в строку без перелива
-     (замер — 271 из 288 px). */
+  /* 320 px: имя, алмазы и меню должны влезть в строку без перелива. */
   .topbar { gap: 8px; }
   .topbar-name { font-size: 16px; }
   .topbar-stat { font-size: 14px; gap: 3px; }
-  .rewards-btn { font-size: 19px; }
+  .topbar-stat.gems { font-size: 18px; }
+}
+
+/* ☰ — единственная рамка в шапке: одно действие «а ещё вот это». */
+.menu-btn {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  font-size: 20px;
+  line-height: 1;
+  color: var(--ink);
+  cursor: pointer;
+}
+.menu-btn[aria-expanded='true'] {
+  border-color: var(--primary);
 }
 .stat-pill {
   display: inline-flex;
@@ -370,52 +392,96 @@ p {
    Один главный удар на первый экран. Цель, квесты, неделя остаются, но
    без рамки-на-рамке и без второго CTA. Путь — отдельная глава ниже. */
 
-/* 🎁 — единственная рамка в шапке и единственное действие «что-то получить».
-   Вместо точки — число: ребёнок видит, сколько наград его ждёт. */
-.rewards-btn {
-  position: relative;
-  flex: none;
-  width: 44px;
-  height: 44px;
-  padding: 0;
+/* ── Меню ☰ на главной (0.33.0) ─────────────────────────────────────────
+   Нижний лист, как у наград и ангара: привычная механика для ребёнка.
+   Один уровень, крупные строки с эмодзи и подписью, справа стрелка. */
+.home-menu {
   display: grid;
-  place-items: center;
+  gap: 12px;
+}
+
+/* Счётчики со словами: у 🔥 и 💎 должно быть объяснение, а не только цифра. */
+.menu-status {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  margin-bottom: 12px;
   background: var(--card);
   border: 2px solid var(--line);
-  border-radius: var(--r-pill);
+  border-radius: var(--r-lg);
+}
+.menu-status-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.menu-status-emoji {
+  flex: none;
   font-size: 20px;
-  line-height: 1;
+  line-height: 1.2;
+}
+.menu-status-title {
+  font-weight: 800;
+}
+.menu-list {
+  display: grid;
+  gap: 8px;
+}
+.menu-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 12px;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: var(--r-lg);
+  color: inherit;
+  text-align: left;
   cursor: pointer;
 }
-.rewards-btn[aria-expanded='true'] {
-  border-color: var(--primary);
+.menu-row:active {
+  transform: scale(0.99);
 }
-/* Бейдж-счётчик: тёмные цифры по оранжевому — 8:1. Белые на этом оранжевом
-   давали бы ≈2:1, а цифру читает и ребёнок, и слабовидящий. */
-.rewards-count {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 4px;
+.menu-row-emoji {
+  flex: none;
+  width: 32px;
+  font-size: 24px;
+  line-height: 1;
+  text-align: center;
+}
+.menu-row-title {
+  display: block;
+  font-weight: 800;
+}
+.menu-count {
+  flex: none;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
   display: grid;
   place-items: center;
   border-radius: var(--r-pill);
   background: var(--orange);
   color: #2b1a00;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  box-shadow: 0 0 0 2px var(--card);
-  pointer-events: none;
+}
+.menu-row-arrow {
+  flex: none;
+  color: var(--ink-3);
+  font-size: 22px;
+  line-height: 1;
 }
 .rewards-backdrop {
   justify-content: flex-end;
   padding: 0;
 }
-.rewards-sheet {
+.rewards-sheet,
+.home-menu {
   width: 100%;
   max-width: var(--screen-max);
   max-height: min(88dvh, 740px);
