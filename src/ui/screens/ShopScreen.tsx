@@ -461,6 +461,7 @@ export function ShopScreen({
 
   const confirmBuy = () => {
     if (!ask) return;
+    const toy = isToy(ask);
     const ok = buyItem(ask.id);
     setAsk(null);
     if (ok) {
@@ -468,14 +469,27 @@ export function ShopScreen({
       haptic.correct();
       setMood('dance');
       setTimeout(() => setMood('idle'), 1800);
-      const toy = isToy(ask);
       showToast({
         emoji: ask.emoji ?? '🎩',
         title: `${ask.title} — твой!`,
-        text: toy ? 'Поставим в ангаре — зайди посмотреть!' : 'БУК уже примерил обновку',
+        text: toy ? 'Уже на подиуме в Ангаре — показываю!' : 'БУК уже примерил обновку',
       });
+      if (toy) {
+        // Баг «кристаллы списались, а товара нет» (0.36.0): техника живёт в
+        // ангаре и на БУКе не рисуется, а диалог обещал «появится рядом с
+        // БУКом». Ребёнок покупал и не находил вещь. Теперь покупка техники
+        // сразу показывает её там, где она правда лежит.
+        setSheet(null);
+        setHangarOpen(true);
+      }
     } else {
-      showToast({ emoji: '💎', title: 'Не хватает кристаллов', text: `Нужно ещё ${missingGems(ask, gems)}` });
+      // Честная причина: «не хватает кристаллов» — только когда их правда мало.
+      const short = missingGems(ask, gems);
+      showToast(
+        short > 0
+          ? { emoji: '💎', title: 'Не хватает кристаллов', text: `Нужно ещё ${short}` }
+          : { emoji: '🎒', title: 'Вещь уже у тебя', text: `«${ask.title}» — в твоей коллекции` },
+      );
     }
   };
 
@@ -1991,7 +2005,7 @@ export function ShopScreen({
           title={`Купить «${ask.title}»?`}
           text={
             isToy(ask)
-              ? `Отдашь ${ask.price} 💎 из ${gems}. Покупка сразу появится рядом с БУКом.`
+              ? `Отдашь ${ask.price} 💎 из ${gems}. Вещь сразу встанет на подиум в Ангаре БУКа — покажу её после покупки.`
               : `Отдашь ${ask.price} 💎 из ${gems}. БУК сразу это примерит.`
           }
           stayLabel={`Купить за 💎${ask.price}`}

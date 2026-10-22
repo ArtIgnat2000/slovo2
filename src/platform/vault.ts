@@ -13,6 +13,12 @@ import { snapshotDecision, snapshotMetaOf, type SnapshotMeta } from '../engine/v
 export const MAIN_KEY = 'slovo2';
 /** Копии живут отдельными ключами: основная запись остаётся совместимой. */
 export const snapshotKey = (slot: number) => `slovo2.snap.${slot}`;
+/**
+ * Копия «до последней покупки» (0.36.0). Отдельный ключ, потому что это не
+ * точка отката «по времени», а страховка конкретной траты: она снимается ВСЕГДА
+ * перед списанием и хранит состояние, в котором кристаллы ещё целы.
+ */
+export const PURCHASE_KEY = 'slovo2.snap.purchase';
 
 export async function readSnapshot(slot: number): Promise<string | null> {
   try {
@@ -24,6 +30,18 @@ export async function readSnapshot(slot: number): Promise<string | null> {
 
 export async function writeSnapshot(slot: number, raw: string): Promise<void> {
   await idbStorage.setItem(snapshotKey(slot), raw);
+}
+
+export async function readPurchaseArchive(): Promise<string | null> {
+  try {
+    return (await idbStorage.getItem(PURCHASE_KEY)) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function writePurchaseArchive(raw: string): Promise<void> {
+  await idbStorage.setItem(PURCHASE_KEY, raw);
 }
 
 export async function clearSnapshot(slot: number): Promise<void> {

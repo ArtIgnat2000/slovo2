@@ -17,7 +17,15 @@ import { GroupTitle } from './ParentBits';
 export function ProgressTab({ profile }: { profile: Profile }) {
   const settings = useApp((s) => s.settings);
   const vault = useApp((s) => s.vault);
-  const { replaceAll, resetProfile, noteExport, restoreSnapshot, restoreTrashed, dropTrashed } = useApp();
+  const {
+    replaceAll,
+    resetProfile,
+    noteExport,
+    restoreSnapshot,
+    restorePurchaseArchive,
+    restoreTrashed,
+    dropTrashed,
+  } = useApp();
   // Подписка на поля по отдельности: иначе карточка перерисовывалась бы на каждую запись.
   const kind = useStorageHealth((s) => s.kind);
   const lastWriteAt = useStorageHealth((s) => s.lastWriteAt);
@@ -61,6 +69,7 @@ export function ProgressTab({ profile }: { profile: Profile }) {
   };
 
   const snapshots = [...vault.snapshots].sort((a, b) => b.at - a.at);
+  const purchase = vault.purchase;
   const trash = [...vault.trash].sort((a, b) => b.at - a.at);
   const journal = [...vault.log].slice(-12).reverse();
   const exportOverdue = !vault.lastExportAt || Date.now() - vault.lastExportAt > EXPORT_REMINDER_MS;
@@ -68,6 +77,58 @@ export function ProgressTab({ profile }: { profile: Profile }) {
 
   return (
     <div className="parent-stack">
+      <div className="card">
+        <GroupTitle
+          title="Защита накоплений"
+          hint="Режим максимальной защиты. Включён всегда и не выключается: отключаемая защита не защищает."
+        />
+        <div className="kv">
+          <span>Режим</span>
+          <b>максимальный</b>
+        </div>
+        <ul className="setting-hint" style={{ margin: '6px 0 0 18px', padding: 0 }}>
+          <li>перед каждой покупкой сохраняется копия записи — с кристаллами, но без покупки;</li>
+          <li>после покупки приложение проверяет, что она правда сохранилась;</li>
+          <li>если запись не удалась, покупка отменяется, а кристаллы возвращаются;</li>
+          <li>копию можно вернуть здесь, не дожидаясь сбоя.</li>
+        </ul>
+        {purchase ? (
+          <div className="kv mt">
+            <span>
+              Копия перед покупкой «{purchase.label}»
+              <span className="setting-hint">
+                {' · '}
+                {agoLabel(purchase.at)} · 💎 {purchase.gemsBefore} → {purchase.gemsAfter}
+              </span>
+            </span>
+            <button
+              className="btn ghost sm"
+              disabled={busy}
+              onClick={() => {
+                if (
+                  !confirm(
+                    `Вернуть состояние до покупки «${purchase.label}»? ` +
+                      `Кристаллы вернутся (${purchase.gemsBefore} 💎), вещи из этой покупки не будет. ` +
+                      `Нынешнее состояние останется в копиях.`,
+                  )
+                ) {
+                  return;
+                }
+                setBusy(true);
+                void restorePurchaseArchive().then((ok) => {
+                  setBusy(false);
+                  if (!ok) alert('Копия не читается');
+                });
+              }}
+            >
+              Вернуть
+            </button>
+          </div>
+        ) : (
+          <p className="setting-hint mt">Копия появится, как только ребёнок что-нибудь купит.</p>
+        )}
+      </div>
+
       <div className="card">
         <GroupTitle
           title="Копия прогресса"
