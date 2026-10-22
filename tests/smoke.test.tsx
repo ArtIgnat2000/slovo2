@@ -1354,18 +1354,57 @@ async function main() {
     check('лист закрывается, главная на месте', !document.querySelector('.invite-sheet') && has('Мой путь'), '');
   }
 
-  // Второй вход — на экране профилей, и он теперь выше формы нового ученика.
+  // Экран «Кто будет учиться?» (0.33.0): сначала выбор ученика и одна главная
+  // кнопка «Продолжить ▶», а форма нового ученика — за «+ Новый ученик».
+  // Раньше форма была раскрыта всегда и заканчивалась кнопкой «Начать
+  // учиться»: взрослый, пришедший сменить класс, начинал заводить второго.
   click(document.querySelector('.topbar .profile-btn') as HTMLButtonElement);
   await sleep(60);
   const inviteBtn = btn((b) => (b.textContent ?? '').includes('Позови друга'));
   check('на экране «Кто будет учиться?» есть «🤝 Позови друга»', !!inviteBtn, '');
+  check(
+    'экран профилей открывается без формы нового ученика',
+    !Array.from(document.querySelectorAll('h3')).some((h) => (h.textContent ?? '').includes('Новый ученик')),
+    body().slice(0, 200),
+  );
+  check(
+    'на экране есть одна главная кнопка «Продолжить ▶»',
+    !!btn((b) => (b.textContent ?? '').includes('Продолжить ▶')),
+    Array.from(document.querySelectorAll('.screen > .btn')).map((b) => (b.textContent ?? '').trim()).join(' | '),
+  );
+  const newStudentBtn = btn((b) => (b.textContent ?? '').includes('+ Новый ученик'));
+  check('новый ученик — за кнопкой «+ Новый ученик»', !!newStudentBtn, '');
+  click(newStudentBtn);
+  await sleep(60);
   const newStudentForm = Array.from(document.querySelectorAll('h3')).find((h) => (h.textContent ?? '').includes('Новый ученик'));
+  check('«+ Новый ученик» раскрывает форму', !!newStudentForm, body().slice(0, 200));
+  const inviteInFormState = btn((b) => (b.textContent ?? '').includes('Позови друга'));
   check(
     'кнопка «Позови друга» стоит выше формы нового ученика',
-    !!inviteBtn &&
+    !!inviteInFormState &&
       !!newStudentForm &&
-      (inviteBtn.compareDocumentPosition(newStudentForm) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0,
+      (inviteInFormState.compareDocumentPosition(newStudentForm) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0,
     '',
+  );
+  check(
+    'в форме нового ученика кнопка «Создать ученика», а не «Начать учиться»',
+    !!btn((b) => (b.textContent ?? '').trim() === 'Создать ученика') && !has('Начать учиться'),
+    body().slice(0, 240),
+  );
+  check(
+    'пока форма открыта, главной кнопки «Продолжить» нет',
+    !btn((b) => (b.textContent ?? '').includes('Продолжить ▶')),
+    '',
+  );
+  click(btn((b) => (b.textContent ?? '').trim() === 'Отмена'));
+  await sleep(60);
+  // Тап по карточке и «Продолжить ▶» ведут на уроки выбранного ученика.
+  const continueBtn = btn((b) => (b.textContent ?? '').includes('Продолжить ▶'));
+  check(
+    'после отмены форма снова закрыта',
+    !Array.from(document.querySelectorAll('h3')).some((h) => (h.textContent ?? '').includes('Новый ученик')) &&
+      !!continueBtn,
+    body().slice(0, 200),
   );
   if (inviteBtn) {
     click(inviteBtn);
@@ -1379,6 +1418,45 @@ async function main() {
     await sleep(40);
     check('лист «Позови друга» закрывается', !document.querySelector('.invite-sheet'), '');
   }
+  // Карандаш у профиля — тот самый путь «поменять класс текущему ученику».
+  // Он открывает «Изменить профиль» и не предлагает создать ещё одного.
+  click(document.querySelector('.profile-card .profile-card-edit'));
+  await sleep(60);
+  const editHeading = Array.from(document.querySelectorAll('h3')).find((h) =>
+    (h.textContent ?? '').includes('Изменить профиль'),
+  );
+  check('карандаш открывает «Изменить профиль»', !!editHeading, body().slice(0, 200));
+  check(
+    'в форме редактирования выбран текущий класс',
+    !!document.querySelector('.class-form-btn[aria-pressed="true"]') &&
+      !!btn((b) => (b.textContent ?? '').trim() === 'Сохранить'),
+    body().slice(0, 240),
+  );
+  check(
+    'в форме редактирования нет кнопки «Создать ученика»',
+    !btn((b) => (b.textContent ?? '').trim() === 'Создать ученика'),
+    '',
+  );
+  const profilesInEdit = useApp.getState().profiles.length;
+  click(btn((b) => (b.textContent ?? '').trim() === 'Сохранить'));
+  await sleep(60);
+  check(
+    'сохранение профиля не создаёт второго ученика',
+    useApp.getState().profiles.length === profilesInEdit &&
+      !Array.from(document.querySelectorAll('h3')).some((h) => (h.textContent ?? '').includes('Изменить профиль')),
+    `было ${profilesInEdit}, стало ${useApp.getState().profiles.length}`,
+  );
+
+  // «Продолжить ▶» — главное действие экрана: запускает уроки выбранного
+  // ученика и закрывает экран, а не создаёт нового.
+  const profilesBefore = useApp.getState().profiles.length;
+  click(btn((b) => (b.textContent ?? '').includes('Продолжить ▶')));
+  await sleep(80);
+  check(
+    '«Продолжить ▶» возвращает на уроки выбранного ученика',
+    !has('Кто будет учиться?') && has('Мой путь') && useApp.getState().profiles.length === profilesBefore,
+    body().slice(0, 160),
+  );
   click(buttons().find((b) => (b.textContent ?? '').includes('Уроки') && b.className.includes('tab')));
   await sleep(60);
 

@@ -528,6 +528,84 @@ p {
   font-weight: 700;
   white-space: nowrap;
 }
+/* ── Экран «Кто будет учиться?»: карточки учеников (0.33.0) ──────────────
+   Экран отвечает на вопрос «кто учится?», поэтому ученик — крупная строка,
+   а не мелкая подпись над формой нового профиля. Тап по строке = выбрать
+   и продолжить; «Продолжить ▶» под списком — та же цель словами. */
+.profile-list {
+  display: grid;
+  gap: 8px;
+}
+.profile-card {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px 6px 6px;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: var(--r-lg);
+}
+.profile-card.on {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.profile-card-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 2px 4px;
+  background: none;
+  border: none;
+  border-radius: var(--r-md);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.profile-card-main:focus-visible,
+.profile-card-edit:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+.profile-card-avatar {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  font-size: 22px;
+}
+.profile-card-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.profile-card-name {
+  overflow: hidden;
+  font-weight: 800;
+  font-size: var(--fs-md);
+  line-height: 1.2;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.profile-card-meta {
+  color: var(--ink-2);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+.profile-card-chevron {
+  flex: none;
+  margin-left: auto;
+  color: var(--ink-2);
+  font-size: 22px;
+  line-height: 1;
+}
+.profile-card-edit,
+.profile-card .chip {
+  flex: none;
+  align-self: center;
+}
+
 .class-form-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
