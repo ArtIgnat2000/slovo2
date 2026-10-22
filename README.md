@@ -34,6 +34,7 @@ npm run images         # пересобрать картинки слов из i
 npm run chests:art     # пересобрать арт обликов сундука из images-src/ (chroma key, ImageMagick)
 npm run promo          # лист превью костюмов в docs/promo/<сегодня>/ (нужен @resvg/resvg-js)
 npm run test:qr        # внешняя проверка QR-кода: jsqr читает матрицу, qrcode сверяет (нужно npm i --no-save qrcode jsqr)
+npm run server:test    # 12 контрактных тестов пилотного API (server/)
 ```
 
 ## Структура
@@ -45,7 +46,25 @@ src/
   platform/  — IndexedDB, звук, вибрация, PWA
   state/     — zustand-сторы (прогресс, настройки, маскот)
   ui/        — экраны и компоненты
+server/      — пилотный API классов, звёзд и телеметрии (не входит в сборку PWA)
 ```
+
+## Серверная часть (пилот)
+
+Приложение остаётся офлайн-PWA: сервер нужен только для закрытых
+соревнований класса и обезличенной телеметрии. План, варианты хостинга,
+право и смета — [`docs/proposals/backend-social-plan.md`](./docs/proposals/backend-social-plan.md);
+работающий референс — [`server/README.md`](./server/README.md).
+
+```bash
+npm run server:test     # 12 тестов контракта
+ADMIN_TOKEN="$(openssl rand -base64 32)" DB_PATH=/tmp/slovo.db npm run server:start
+```
+
+На Synology — Container Manager → «Проект» → `server/docker-compose.example.yml`
+(переименовать в `docker-compose.yml`, заполнить `compose.env`). Порт 8080
+в интернет не открывать: наружу — DSM Reverse Proxy или Cloudflare Tunnel.
+Это **пилот**, а не прод: кабинетов учителя и родителя в нём нет.
 
 ## Версии и релизы
 
