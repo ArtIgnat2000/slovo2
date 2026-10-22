@@ -253,7 +253,36 @@ export async function runQuestUiChecks(): Promise<void> {
     !!document.querySelector('.home-hero') && has('Сегодня') && !!btnText('Начать'),
     bodyText(),
   );
-  check('главная: на доме нет карточки заданий — они за 🎁', !document.querySelector('.quest'), bodyText());
+  // 0.35.0: задания вернулись на главную полоской-итогом (одна кнопка),
+  // а подробности и «Забрать» остались в листе наград.
+  const strip = document.querySelector('.quest-strip') as HTMLButtonElement | null;
+  check('главная: «Задания дня» видны сразу — полоской над героем', !!strip, bodyText().slice(0, 160));
+  check(
+    'главная: полоска стоит выше героя',
+    !!strip &&
+      !!document.querySelector('.home-hero') &&
+      (strip.compareDocumentPosition(document.querySelector('.home-hero')!) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0,
+    '',
+  );
+  check(
+    'главная: в полоске прогресс и обещание сундука',
+    !!strip && /0 из 3|1 из 3|2 из 3|3 из 3/.test(strip.textContent ?? '') && (strip.textContent ?? '').includes('сундук'),
+    strip?.textContent ?? '',
+  );
+  check(
+    'главная: на доме нет строк заданий и дублей «Забрать»/«Начать» из квестов',
+    !document.querySelector('.quest') && !document.querySelector('.quest-main') && !document.querySelector('.home-quests'),
+    bodyText(),
+  );
+  {
+    // Одна кнопка: тап по полоске открывает тот же лист наград.
+    click(strip);
+    await sleep(60);
+    check('главная: полоска открывает лист наград', !!document.querySelector('.rewards-sheet'), bodyText().slice(0, 160));
+    click(btn((b) => (b.getAttribute('aria-label') ?? '') === 'Закрыть'));
+    await sleep(40);
+    check('главная: после закрытия листа главная на месте', !!document.querySelector('.quest-strip') && !document.querySelector('.rewards-sheet'), '');
+  }
   click(document.querySelector('.home-hero'));
   await sleep(100);
   check('главная: «Начать» у героя открывает урок', !!document.querySelector('.task'), bodyText().slice(0, 120));
@@ -347,6 +376,14 @@ export async function runQuestUiChecks(): Promise<void> {
   // 7. Добираем оставшиеся слова и забираем награду
   for (const wordId of LESSONS[0].wordIds) store().answer(wordId, 5, true);
   await sleep(80);
+  // 0.35.0: полоска на главной — не украшение: закрытое задание сразу
+  // превращается в «награда ждёт», подсвечивается и ведёт в лист наград.
+  const readyStrip = document.querySelector('.quest-strip');
+  check(
+    'главная: закрытое задание видно на полоске — «ждёт награда»',
+    !!readyStrip && (readyStrip.textContent ?? '').includes('ждёт') && readyStrip.className.includes('ready'),
+    readyStrip?.textContent ?? '',
+  );
   // 0.33.0: число у «Наград» в меню ☰ — обещание, а не украшение. Задание
   // закрыто и ждёт «Забрать», значит в меню есть число, и оно не меньше числа
   // кнопок «Забрать» в листе (сундуки и бонусы считаются отдельно).
