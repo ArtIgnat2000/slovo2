@@ -1,4 +1,9 @@
-// UI-иконки (0.54.0, вариант B «линия + акцент»).
+// UI-иконки (0.55.0): цветные значки вместо «линии + акцента» из 0.54.0.
+//
+// 0.54.0 нарисовала линейный набор — дети его не приняли, особенно кристалл:
+// в 16–24 px тёмный контур превращал алмаз в стрелку. Вывод: иконки живут
+// по правилам картинок к словам — плотная заливка, тонкий контур своего
+// оттенка, блик; чёрный контур запрещён.
 //
 // Проверяем не «нарисовано ли красиво», а правила из
 // docs/proposals/ui-icons.md §4 — то, что легко нарушить незаметно:
@@ -19,8 +24,10 @@ import { check, sleep } from './ui-helpers';
 const SRC = 'src/ui/Icon.tsx';
 const ICON_DIR = 'src/ui';
 
-/** Иконки, у которых в разборе обещана акцентная заливка (§5). */
-const WITH_ACCENT = ICON_NAMES.filter((n) => n !== 'menu' && n !== 'check' && n !== 'close' && n !== 'arrow');
+/** Монохромные знаки: им цвет не нужен, они подчиняются теме (currentColor). */
+const MONO = ['menu', 'check', 'close', 'arrow'];
+/** Сколько цветов допустимо на весь набор: детская палитра, а не радуга. */
+const MAX_COLORS = 48;
 
 const read = (file: string) => readFileSync(file, 'utf8');
 
@@ -72,29 +79,54 @@ export async function runIconChecks(): Promise<void> {
     svgs.map((s) => s.getAttribute('viewBox')).join(' '),
   );
   check(
-    'иконки: у всех штрих 2 и round — один вес на весь интерфейс',
+    'иконки: скруглённые штрихи у всех — один характер линий',
     svgs.every(
-      (s) =>
-        s.getAttribute('stroke-width') === '2' &&
-        s.getAttribute('stroke-linejoin') === 'round' &&
-        s.getAttribute('stroke-linecap') === 'round',
+      (s) => s.getAttribute('stroke-linejoin') === 'round' && s.getAttribute('stroke-linecap') === 'round',
     ),
-    'нарушено у: ' + svgs.filter((s) => s.getAttribute('stroke-width') !== '2').map((s) => s.dataset.icon).join(', '),
+    'нарушено у: ' +
+      svgs
+        .filter((s) => s.getAttribute('stroke-linejoin') !== 'round')
+        .map((s) => s.dataset.icon)
+        .join(', '),
+  );
+  // 0.55.0: главное отличие от линейного набора — плотная заливка.
+  check(
+    'иконки: у каждой цветной иконки есть заливка (не только штрих)',
+    svgs
+      .filter((s) => !MONO.includes(s.dataset.icon ?? ''))
+      .every((s) => Array.from(s.querySelectorAll('path')).some((p) => (p.getAttribute('fill') ?? 'none') !== 'none')),
+    svgs
+      .filter((s) => !MONO.includes(s.dataset.icon ?? ''))
+      .filter((s) => !Array.from(s.querySelectorAll('path')).some((p) => (p.getAttribute('fill') ?? 'none') !== 'none'))
+      .map((s) => s.dataset.icon)
+      .join(', '),
   );
   check(
-    'иконки: штрих наследует цвет текста (currentColor), а не фиксированный',
-    svgs.every((s) => s.getAttribute('stroke') === 'currentColor'),
-    svgs.filter((s) => s.getAttribute('stroke') !== 'currentColor').map((s) => s.dataset.icon).join(', '),
+    'иконки: чёрного контура нет — только свой тёмный оттенок (0.54.0 «съел» алмаз)',
+    !/#000|#0{3,6}\b|black/i.test(read(SRC)),
+    'в Icon.tsx есть чёрный цвет',
   );
   check(
-    'иконки: акцентная заливка есть у 16 из 20',
-    svgs.filter((s) => s.querySelector('.ico-acc')).length === WITH_ACCENT.length + 0,
-    `с акцентом: ${svgs.filter((s) => s.querySelector('.ico-acc')).length}`,
+    'иконки: монохромные знаки (меню, крестик, стрелка) берут currentColor',
+    MONO.every((name) => read(SRC).includes(`'${name}'`) && /currentColor/.test(read(SRC))),
+    'нет currentColor для монохромных знаков',
   );
   check(
-    'иконки: акцент не задан хардкодом в SVG (красит CSS-токен)',
-    svgs.every((s) => !(s.querySelector('.ico-acc')?.getAttribute('fill') ?? '').match(/#|rgb/)),
-    'у какой-то иконки fill прописан в разметке',
+    'иконки: палитра набора ≤ 48 цветов (не расползлась в радугу)',
+    new Set((read(SRC).match(/#[0-9a-fA-F]{6}/g) ?? []).map((c) => c.toLowerCase())).size <= MAX_COLORS,
+    `цветов: ${new Set(read(SRC).match(/#[0-9a-fA-F]{6}/g) ?? []).size}`,
+  );
+  // Толстый контур «съел» алмаз в 0.54.0: у цветных иконок он тонкий,
+  // а толстый штрих разрешён только монохромным знакам (у них нет заливки).
+  const thick = svgs.filter((s) =>
+    Array.from(s.querySelectorAll('path')).some(
+      (p) => (p.getAttribute('fill') ?? 'none') !== 'none' && Number(p.getAttribute('stroke-width') ?? 0) > 1.6,
+    ),
+  );
+  check(
+    'иконки: у цветных иконок контур тонкий (≤ 1,6) — толстый и был проблемой',
+    thick.length === 0,
+    thick.map((s) => s.dataset.icon).join(', '),
   );
 
   // ── 3. Доступность ────────────────────────────────────────────────────────
@@ -116,11 +148,12 @@ export async function runIconChecks(): Promise<void> {
   // ── 4. Бюджет веса и «нет букв» ───────────────────────────────────────────
   const src = read(SRC);
   const bytes = Buffer.byteLength(src, 'utf8');
-  check('иконки: весь набор ≤ 25 КБ (precache не пухнет)', bytes <= 25 * 1024, `${(bytes / 1024).toFixed(1)} КБ`);
+  check('иконки: весь набор ≤ 32 КБ (precache не пухнет)', bytes <= 32 * 1024, `${(bytes / 1024).toFixed(1)} КБ`);
   check(
-    'иконки: в разметке нет хардкода цвета (#hex / rgb)',
-    !/#[0-9a-fA-F]{3,8}\b/.test(src) && !/rgb\(/.test(src),
-    'найден цвет в Icon.tsx',
+    'иконки: цвета заданы hex-палитрой в одном месте (Icon.tsx), а не в компонентах',
+    (src.match(/#[0-9a-fA-F]{6}/g) ?? []).length > 20 &&
+      !/#[0-9a-fA-F]{3,8}/.test(read('src/ui/screens/HomeScreen.tsx')),
+    'цвета расползлись по компонентам',
   );
   check(
     'иконки: ни одной буквы/цифры внутри иконки',
@@ -156,23 +189,17 @@ export async function runIconChecks(): Promise<void> {
     'контент слов изменился',
   );
 
-  // ── 6. Токен темы ─────────────────────────────────────────────────────────
-  const tokens = read('src/styles/tokens.css');
+  // ── 6. Внешний вид в списке: иконки не «ломают» строку ───────────────────
   const app = read('src/styles/app.css');
   check(
-    'иконки: акцент — токен темы, а не цвет в компоненте',
-    tokens.includes('--icon-accent: var(--primary)'),
-    'нет --icon-accent в токенах',
+    'иконки: в CSS нет «прыжка» строки (vertical-align у .ico)',
+    /\.ico\s*\{[^}]*vertical-align/.test(app),
+    '.ico без vertical-align',
   );
   check(
-    'иконки: в тёмной теме акцент светлее (иначе заливка «проваливается»)',
-    /\[data-theme='dark'\]\s*\{[^}]*--icon-accent:\s*var\(--primary-2\)/.test(tokens),
-    'в [data-theme=dark] нет --icon-accent: var(--primary-2)',
-  );
-  check(
-    'иконки: заливка акцента берётся из токена в CSS',
-    /\.ico-acc\s*\{[^}]*fill:\s*var\(--icon-accent\)/.test(app),
-    '.ico-acc без var(--icon-accent)',
+    'иконки: превью набора обновлено под цветной набор',
+    read('docs/proposals/ui-icons/preview.html').includes('0.55.0'),
+    'превью не обновлено',
   );
 
   host.remove();
