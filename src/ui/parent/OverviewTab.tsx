@@ -8,11 +8,12 @@ import { ACHIEVEMENTS } from '../../engine/rewards';
 import { CLASS_META, LESSON_BY_ID, WORDS, WORDS_BY_GRADE, WORD_BY_ID, availableClass } from '../../content/words';
 import { lastDays } from '../../engine/day';
 import { classProgress, classTable, nextClass } from '../../engine/classes';
-import { dayKey, masteredCount, todayStat } from '../../state/store';
+import { dayKey, masteredCount, todayStat, useApp } from '../../state/store';
 import { activeStudyDays } from '../../engine/weekly-rewards';
 import { plural } from '../../engine/quests';
 import { Bar } from '../Bits';
 import { GroupTitle, StatTile } from './ParentBits';
+import { PRESET_LISTS, presetText } from '../../content/preset-lists';
 import type { Profile, StudySession, TaskKind, Word } from '../../types';
 
 interface Props {
@@ -90,6 +91,8 @@ export function OverviewTab({ profile, onOpenWords, onOpenSection }: Props) {
   // Слова из списков к контрольной (0.58.0) в отчёте должны читаться словами,
   // а не id «c_podlezhashchee»: родитель пришёл сюда за понятным ответом.
   const wordText = (id: string) => wordTextOf(id, profile.customWords);
+  // Добавление готового списка прямо из обзора (0.59.0): одно нажатие.
+  const addList = useApp((state) => state.addList);
   const today = todayStat(profile);
   const todaySessions = (profile.studySessions ?? [])
     .filter((session) => session.day === dayKey())
@@ -153,9 +156,24 @@ export function OverviewTab({ profile, onOpenWords, onOpenSection }: Props) {
             Пока нет ни одного списка — поэтому на «Уроках» карточки «Контрольная» нет.
           </p>
         )}
-        <button className="btn primary sm" data-overview-add-list onClick={() => onOpenSection('lists')}>
-          {lists.length > 0 ? 'Открыть списки' : '+ Добавить список к контрольной'}
-        </button>
+        <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+          {lists.length === 0 && (
+            // 0.59.0: список из школы добавляется одним нажатием прямо здесь.
+            <button
+              className="btn primary sm"
+              data-overview-preset-add={PRESET_LISTS[0]?.id}
+              onClick={() => {
+                const preset = PRESET_LISTS[0];
+                if (preset) addList(preset.title, presetText(preset), {});
+              }}
+            >
+              ＋ Добавить готовый список ({PRESET_LISTS[0]?.words.length ?? 0} слов)
+            </button>
+          )}
+          <button className="btn ghost sm" data-overview-add-list onClick={() => onOpenSection('lists')}>
+            {lists.length > 0 ? 'Открыть списки' : 'Другие списки'}
+          </button>
+        </div>
       </div>
 
       {/* Сегодня — время, фактически записанные действия и результат именно за этот день. */}
