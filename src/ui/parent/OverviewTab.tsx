@@ -20,7 +20,7 @@ interface Props {
   /** Показать экран со списком слов (та же вкладка, что у ребёнка) */
   onOpenWords: () => void;
   /** Перейти в другой раздел родительского экрана (частые дела — в один тап) */
-  onOpenSection: (id: 'progress' | 'app') => void;
+  onOpenSection: (id: 'lists' | 'progress' | 'app') => void;
 }
 
 const WEEKDAY_SHORT = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
@@ -127,8 +127,37 @@ export function OverviewTab({ profile, onOpenWords, onOpenSection }: Props) {
   const trainedInGrade = gradeWords.filter((w) => (profile.words[w.id]?.s ?? 0) > 0).length;
   const earned = profile.achievements.length;
 
+  const lists = profile.lists ?? [];
+
   return (
     <div className="parent-stack">
+      {/* Списки к контрольной (0.58.1): вход в них должен быть виден из обзора,
+          иначе родитель ищет «Контрольную» в уроках и не находит — карточка
+          на «Уроках» появляется только после создания списка. */}
+      <div className="card" data-overview-lists>
+        <GroupTitle
+          title="Списки к контрольной"
+          hint="Слова, которые задали в школе: вставляете текст — ребёнок тренирует именно их."
+        />
+        {lists.length > 0 ? (
+          <p className="setting-hint" style={{ marginTop: 0 }}>
+            Списков: {lists.length} · {plural(
+              lists.reduce((n, l) => n + l.words.length, 0),
+              'слово',
+              'слова',
+              'слов',
+            )} всего. Ребёнок видит их на «Уроках» карточкой «🏫 Контрольная».
+          </p>
+        ) : (
+          <p className="setting-hint" style={{ marginTop: 0 }}>
+            Пока нет ни одного списка — поэтому на «Уроках» карточки «Контрольная» нет.
+          </p>
+        )}
+        <button className="btn primary sm" data-overview-add-list onClick={() => onOpenSection('lists')}>
+          {lists.length > 0 ? 'Открыть списки' : '+ Добавить список к контрольной'}
+        </button>
+      </div>
+
       {/* Сегодня — время, фактически записанные действия и результат именно за этот день. */}
       <div className="card">
         <GroupTitle title="Сегодня" hint={new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })} />

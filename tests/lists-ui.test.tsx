@@ -279,6 +279,32 @@ export async function runListsChecks(): Promise<void> {
     'нет подстановки своих слов в отчёт',
   );
 
+  // ── 4d. Находимость: вход в списки видно из «Обзора», диагностика отвечает ──
+  const overviewSrc = readFileSync('src/ui/parent/OverviewTab.tsx', 'utf8');
+  check(
+    'списки: вход «Списки к контрольной» есть в «Обзоре» родителя',
+    /data-overview-add-list/.test(overviewSrc) && /onOpenSection\('lists'\)/.test(overviewSrc),
+    'в обзоре нет карточки-входа в списки',
+  );
+  check(
+    'списки: обзор честно говорит, что карточки на «Уроках» нет, пока нет списка',
+    /Поэтому на «Уроках» карточки «Контрольная» нет|поэтому на «Уроках» карточки «Контрольная» нет/i.test(overviewSrc),
+    'нет объяснения пустого состояния',
+  );
+  const diagSrc = readFileSync('src/ui/DiagnosticsScreen.tsx', 'utf8');
+  check(
+    'списки: диагностика показывает число списков (и без имени ребёнка)',
+    /Списки к контрольной:/.test(diagSrc) && !/Списки к контрольной у «/.test(diagSrc),
+    'в диагностике нет строки о списках или есть имя',
+  );
+  check(
+    'списки: вкладки родителя не сжимаются в один ряд на узком экране',
+    /@media \(max-width: 560px\)[\s\S]*?\.seg-tabs[\s\S]*?grid-template-columns: repeat\(3/.test(
+      readFileSync('src/styles/app.css', 'utf8'),
+    ),
+    'нет правила для пяти вкладок на узком экране',
+  );
+
   // ── 5. Родительский экран: создание списка из текста ──────────────────────
   const homeTab = buttons().find((b) => (b.textContent ?? '').includes('Уроки') && b.className.includes('tab'));
   if (homeTab) {

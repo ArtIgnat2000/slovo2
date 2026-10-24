@@ -55,11 +55,38 @@ function reportText(report: StorageDiagnosticReport, health: string): string {
     `IndexedDB: ${report.indexedDbAvailable ? 'доступна' : `ошибка (${report.indexedDbError ?? 'неизвестно'})`}`,
     `Запись прогресса: ${recordLabel(record.status)}; ${formatBytes(record.bytes)}`,
     `В записи: профилей ${record.profiles ?? '—'}, слов ${record.words ?? '—'}, XP ${record.xp ?? '—'}`,
+    ...listLines(),
     `Постоянное хранилище: ${persistenceLabel(report.persisted)}`,
     `Состояние приложения: ${health}`,
     ...themeLines(),
     ...snapshots,
   ].join('\n');
+}
+
+/**
+ * Списки слов к контрольной (0.58.0).
+ *
+ * Строка отвечает на вопрос поддержки «почему на „Уроках“ нет карточки»:
+ * карточка появляется только когда у активного профиля есть список, поэтому
+ * здесь видно и профиль, и число списков, и сколько в них своих слов.
+ */
+function listLines(): string[] {
+  const state = useApp.getState();
+  const profile = state.profiles.find((p) => p.id === state.activeId);
+  if (!profile) return ['Списки к контрольной: нет активного профиля'];
+  const lists = profile.lists ?? [];
+  const custom = Object.keys(profile.customWords ?? {}).length;
+  // Имя ребёнка в сводку не попадает: её копируют и пересылают
+  // (правило из 0.16.x — «браузер есть, имён учеников нет»).
+  if (!lists.length) {
+    return ['Списки к контрольной: нет (карточка на «Уроках» не показывается)'];
+  }
+  return [
+    `Списки к контрольной: ${lists.length} · своих слов: ${custom}`,
+    ...lists.map(
+      (l) => `  «${l.title}»: слов ${l.words.length}${l.lastRunAt ? `, тренировали ${formatDate(l.lastRunAt)}` : ''}`,
+    ),
+  ];
 }
 
 /**
