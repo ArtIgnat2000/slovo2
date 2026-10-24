@@ -5,6 +5,7 @@ import { dangerSummary } from '../engine/word-facts';
 import { Keyboard } from './Keyboard';
 import { sfx } from '../platform/sound';
 import { haptic } from '../platform/haptics';
+import { Icon } from './Icon';
 
 export type SolveFn = (quality: number | null, given?: string) => void;
 
@@ -58,20 +59,27 @@ function HintBtn({
   return (
     <button
       className="btn ghost sm"
+      data-hint=""
       onClick={() => {
         sfx.hint();
         onClick();
       }}
       disabled={disabled}
     >
-      💡 {label}
+      {/* 0.54.0: лампочка — иконка вместо 💡. Текст «Подсказка» остаётся:
+          иконка не единственный носитель смысла (WCAG 1.4.1). */}
+      <Icon name="bulb" size={18} /> {label}
     </button>
   );
 }
 
 /** Мнемоника или объяснение опасных букв — второй слой каждой подсказки. */
 function HintCard({ word }: { word: Word }) {
-  return <div className="banner">💡 {word.mnemonic ?? dangerSummary(word)}</div>;
+  return (
+    <div className="banner">
+      <Icon name="bulb" size={18} /> {word.mnemonic ?? dangerSummary(word)}
+    </div>
+  );
 }
 
 // ── 1. Знакомство: LOOK → SAY → увидеть опасное место ────────────────────────
@@ -224,7 +232,9 @@ function Gap({ word, task, onSolve, onAttempt }: Props) {
       </div>
       {hintUsed ? (
         word.mnemonic ? (
-          <div className="banner">💡 {word.mnemonic}</div>
+          <div className="banner">
+            <Icon name="bulb" size={18} /> {word.mnemonic}
+          </div>
         ) : (
           <p className="tiny">Осталось два варианта — вспомни, как пишется! 👆</p>
         )

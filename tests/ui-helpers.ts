@@ -37,6 +37,20 @@ export async function openRewardsSheet(): Promise<void> {
   }
 }
 
+/**
+ * Кристалл и число в интерфейсе (0.54.0): эмодзи 💎 заменён компонентом
+ * `<Gem>` — SVG-иконка с `aria-hidden` плюс число. Текста «💎 128» больше нет,
+ * поэтому ищем по классу и сравниваем число.
+ */
+export const gemAmounts = () =>
+  Array.from(document.querySelectorAll('.gem-amount')).map((el) => (el.textContent ?? '').trim());
+
+/** Есть ли где-то на экране счётчик/цена с этим числом кристаллов. */
+export const hasGem = (n: number | string) => gemAmounts().includes(String(n));
+
+/** Кнопка подсказки в задании: 0.54.0 — иконка вместо «💡 Подсказка». */
+export const hintButton = () => document.querySelector('[data-hint]') as HTMLButtonElement | null;
+
 let failures = 0;
 
 export function check(name: string, cond: boolean, extra = '') {

@@ -28,6 +28,32 @@ button {
   min-height: 100dvh;
 }
 
+/* ── UI-иконки (0.54.0) ─────────────────────────────────────────────────────
+   Набор из 20 SVG (src/ui/Icon.tsx). Штрих — currentColor (цвет текста),
+   акцентная деталь — `--icon-accent`. `vertical-align` нужен, чтобы иконка
+   в строке текста вставала по базовой линии, а не «прыгала». */
+.ico {
+  flex: 0 0 auto;
+  vertical-align: -0.15em;
+  display: inline-block;
+}
+.ico-acc {
+  fill: var(--icon-accent);
+  stroke: none;
+  opacity: 0.92;
+}
+
+/* Кристалл и число одной группой: заменяет текстовое «💎 128». */
+.gem-amount {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28em;
+  font-variant-numeric: tabular-nums;
+}
+.gem-amount .ico {
+  vertical-align: 0;
+}
+
 /* ── Каркас ──────────────────────────────────────────────────────────────── */
 
 .app {

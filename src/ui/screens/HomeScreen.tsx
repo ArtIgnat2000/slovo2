@@ -12,6 +12,7 @@ import { Crowns } from '../Bits';
 import { ClassSheet } from '../ClassSheet';
 import { DailyQuests } from '../DailyQuests';
 import { DailyQuestStrip } from '../DailyQuestStrip';
+import { Icon, Gem } from '../Icon';
 import { InviteFriend } from '../InviteFriend';
 import { WeeklyRewards } from '../WeeklyRewards';
 import { levelOf } from '../../engine/rewards';
@@ -173,7 +174,9 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
           data-stat="gems"
           aria-label={`Кристаллы: ${profile.gems}`}
         >
-          <span aria-hidden="true">💎 {profile.gems}</span>
+          {/* 0.54.0: кристалл — SVG-иконка, а не эмодзи: в 16–18 px эмодзи
+              «плывёт» от шрифта к устройству, а иконка наследует цвет текста. */}
+          <Gem value={profile.gems} />
         </div>
 
         <button
@@ -185,7 +188,7 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen(true)}
         >
-          <span aria-hidden="true">☰</span>
+          <Icon name="menu" size={22} />
         </button>
       </div>
 
@@ -316,13 +319,15 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
                 Меню
               </h2>
               <button type="button" className="lesson-exit" aria-label="Закрыть" onClick={() => setMenuOpen(false)}>
-                ✕
+                <Icon name="close" size={18} />
               </button>
             </div>
 
             <div className="menu-status">
               <div className="menu-status-row">
-                <span className="menu-status-emoji" aria-hidden="true">💎</span>
+                <span className="menu-status-emoji" aria-hidden="true">
+                  <Icon name="crystal" size={22} />
+                </span>
                 <div className="grow">
                   <div className="menu-status-title">Кристаллы: {profile.gems}</div>
                   <div className="tiny muted">
@@ -331,7 +336,9 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
                 </div>
               </div>
               <div className="menu-status-row">
-                <span className="menu-status-emoji" aria-hidden="true">🔥</span>
+                <span className="menu-status-emoji" aria-hidden="true">
+                  <Icon name="flame" size={22} />
+                </span>
                 <div className="grow">
                   <div className="menu-status-title">
                     Серия: {profile.streak > 0

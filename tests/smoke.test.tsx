@@ -7,7 +7,7 @@ import './adaptive.test';
 import { createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from '../src/App';
-import { body, btn, btnText, buttons, check, click, currentWord, failureCount, has, openHomeMenu, openParentSection, openRewardsSheet, sleep } from './ui-helpers';
+import { body, btn, btnText, buttons, check, click, currentWord, failureCount, gemAmounts, has, hasGem, hintButton, openHomeMenu, openParentSection, openRewardsSheet, sleep } from './ui-helpers';
 import { runAdaptiveUiChecks } from './adaptive-ui.test';
 import { runQuestUiChecks } from './quests-ui.test';
 import { runInstallHintChecks } from './install-hint.test';
@@ -198,7 +198,7 @@ async function playLesson(second = false) {
     }
 
     // 6. Любая подсказка — если задание почему-то не поддаётся
-    const anyHint = btn((b) => (b.textContent ?? '').trim().startsWith('💡'));
+    const anyHint = hintButton();
     if (anyHint) {
       idle = 0;
       click(anyHint);
@@ -306,7 +306,7 @@ async function main() {
     plan.map((q) => questTitle(q.spec, q.target)).join(' / '),
   );
   check('сундук начинает с нулём ключей', has('Ключи: 0 из 3'), '');
-  check('кристаллов пока 0', has('💎 0'), '');
+  check('кристаллов пока 0', hasGem(0), gemAmounts().join(' / '));
   click(btn((b) => (b.getAttribute('aria-label') ?? '') === 'Закрыть'));
   await sleep(40);
 
@@ -526,7 +526,7 @@ async function main() {
     '',
   );
   check('полка «Фоны» активна', !!Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Фоны') && !c.hasAttribute('disabled')), '');
-  check('показан баланс кристаллов', has(`💎 ${useApp.getState().profiles[0].gems}`), '');
+  check('показан баланс кристаллов', hasGem(useApp.getState().profiles[0].gems), gemAmounts().join(' / '));
 
   // 0.32.0: 🚗 убран из шапки главной, поэтому вход в ангар из покупок
   // виден всегда — даже пока коллекция пуста (иначе ангар было бы не найти).
@@ -646,7 +646,7 @@ async function main() {
   check('телефон поворачивается и в подробной карточке', detailPhone?.getAttribute('aria-pressed') === 'true', '');
   click(document.querySelector('.shop-sheet-veil'));
   await sleep(30);
-  check('ближайшая покупка соответствует открытому разделу', has('Ближайшая покупка') && has('💎 25'), '');
+  check('ближайшая покупка соответствует открытому разделу', has('Ближайшая покупка') && hasGem(25), gemAmounts().join(' / '));
   // Подробный просмотр техники — про сам товар: крупный рисунок телефона,
   // БУКа на примерке нет (технику он не носит).
   if (phoneCard) click(phoneCard);
@@ -1146,7 +1146,7 @@ async function main() {
     check('трейд-ин: вещь ушла из гардероба и с подиума', !afterSell.shop?.owned.includes('car-racer') && !afterSell.shop?.equipped?.toy, JSON.stringify(afterSell.shop));
     check('трейд-ин: краски вещи обнулены', !afterSell.shop?.tuning?.current?.['car-racer'] && !afterSell.shop?.tuning?.unlocked?.['car-racer'], JSON.stringify(afterSell.shop?.tuning));
     check('трейд-ин: сдать вторично нельзя', !useApp.getState().sellItem('car-racer'), '');
-    check('трейд-ин: витрина снова предлагает купить вещь', has('💎 35'), '');
+    check('трейд-ин: витрина снова предлагает купить вещь', hasGem(35), gemAmounts().join(' / '));
   }
   const expensive = buttons().find((b) => (b.textContent ?? '').includes('Ещё') && b.className.includes('btn'));
   check('на дорогие вещи кнопка показывает, сколько не хватает', !!expensive, '');
@@ -1184,8 +1184,8 @@ async function main() {
   // ☰ заменил 🎁: в меню не только награды, но и покупки, ангар, друг и профиль.
   check(
     'в шапке главной кристаллы — главный счётчик',
-    !!document.querySelector('.topbar .topbar-stat.gems') && has('💎'),
-    body().slice(0, 200),
+    !!document.querySelector('.topbar .topbar-stat.gems [data-icon="crystal"]'),
+    document.querySelector('.topbar')?.innerHTML.slice(0, 200) ?? '',
   );
   check(
     'огня и подарка в шапке больше нет',

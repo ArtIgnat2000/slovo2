@@ -7,6 +7,7 @@ import {
   plural,
   questProgress,
 } from '../engine/quests';
+import { Icon } from './Icon';
 
 /**
  * Полоска «Задания дня» на главной (0.35.0, docs/proposals/daily-quests-on-home.md).
@@ -67,7 +68,8 @@ export function DailyQuestStrip({ onOpen }: { onOpen: () => void }) {
       onClick={onOpen}
     >
       <span className="quest-strip-icon" aria-hidden="true">
-        🎁
+        {/* 0.54.0: сундук — иконка; смысл полоски несут текст и aria-label. */}
+        <Icon name="chest" size={26} />
       </span>
       <span className="quest-strip-text">
         <span className="quest-strip-title">
