@@ -4,6 +4,7 @@ import { OverviewTab } from '../parent/OverviewTab';
 import { ProgressTab } from '../parent/ProgressTab';
 import { SettingsTab } from '../parent/SettingsTab';
 import { AppTab } from '../parent/AppTab';
+import { ListsTab } from '../parent/ListsTab';
 import { PARENT_TABS, ParentPanel, ParentTabs, type ParentTabId } from '../parent/ParentBits';
 
 interface Props {
@@ -16,6 +17,8 @@ interface Props {
   initialTab?: ParentTabId;
   /** Открыть вкладку «Слова» (из обзора — «посмотреть все слова») */
   onOpenWords: () => void;
+  /** Тренировать список к контрольной (0.58.0): уводит на экран урока. */
+  onStartList: (listId: string) => void;
 }
 
 /**
@@ -39,7 +42,7 @@ interface Props {
  * стал честнее: ошибка показывается на месте, ответ не стирается, Enter
  * отправляет форму.
  */
-export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs, onOpenDiagnostics, initialTab = 'overview', onOpenWords }: Props) {
+export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs, onOpenDiagnostics, initialTab = 'overview', onOpenWords, onStartList }: Props) {
   const profile = useActiveProfile();
   const [tab, setTab] = useState<ParentTabId>(initialTab);
 
@@ -78,6 +81,11 @@ export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs, 
       {tab === 'overview' && (
         <ParentPanel id="overview">
           <OverviewTab profile={profile} onOpenWords={onOpenWords} onOpenSection={setTab} />
+        </ParentPanel>
+      )}
+      {tab === 'lists' && (
+        <ParentPanel id="lists">
+          <ListsTab profile={profile} onTrain={onStartList} />
         </ParentPanel>
       )}
       {tab === 'progress' && (

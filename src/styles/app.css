@@ -28,6 +28,205 @@ button {
   min-height: 100dvh;
 }
 
+/* ── Списки слов к контрольной (0.58.0) ────────────────────────────────────
+   Главная: карточка списка — как полоска заданий: иконка, название, сколько
+   слов, одна кнопка. Родитель: строки списков и форма с предпросмотром
+   разбора (✅ из словарика, ＋ своё слово с выбором ударения). */
+.list-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.list-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.list-card:active {
+  transform: scale(0.995);
+}
+.list-card-icon {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  background: var(--primary-soft);
+}
+.list-card-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.list-card-title {
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.list-card-meta {
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.list-card-go {
+  flex: none;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+/* Родительский раздел «Списки» */
+.list-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+.list-row:last-of-type {
+  border-bottom: 0;
+}
+.list-row-main {
+  min-width: 0;
+  flex: 1;
+}
+.list-row-title {
+  font-weight: 700;
+}
+.list-row-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.list-row-edit {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+.list-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+.list-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.list-textarea {
+  resize: vertical;
+  min-height: 120px;
+  font: inherit;
+  line-height: 1.45;
+}
+/* В родительском разделе поле ввода чуть компактнее: это не главный экран. */
+.parent-screen .list-form .input {
+  padding: 10px 12px;
+  font-size: var(--fs-sm);
+  border-width: 2px;
+}
+.list-error {
+  color: var(--red);
+}
+.list-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.list-preview-summary {
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+}
+.list-preview-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.list-preview-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+}
+.list-preview-item.dup {
+  opacity: 0.6;
+}
+.list-preview-badge {
+  flex: none;
+  width: 18px;
+  text-align: center;
+}
+.list-preview-word {
+  font-weight: 700;
+}
+.list-syllables {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.list-syl {
+  font: inherit;
+  font-size: 13px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  cursor: pointer;
+}
+.list-syl.on {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  font-weight: 700;
+}
+.list-custom-words {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.list-custom-word {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.list-custom-word:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.list-custom-word-text b {
+  color: var(--primary);
+}
+
 /* ── UI-иконки (0.55.0) ─────────────────────────────────────────────────────
    Набор из 20 SVG (src/ui/Icon.tsx). Цветные заливки зашиты в саму иконку —
    как у картинок к словам; монохромные знаки (меню, крестик, стрелка) берут

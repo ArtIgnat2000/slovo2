@@ -2,7 +2,7 @@ import { nextAdaptiveState, type Outcome } from '../engine/adaptive';
 import { isThemeStyle, type ThemeStyle } from '../engine/theme-styles';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { ClassId, DailyState, DayStat, LessonSize, LessonState, Profile, ShopState, ShopSlot, ShopTuning, StudyAnswerMeta, StudySession, StudySessionStatus, WeeklyState, WordState } from '../types';
+import type { ClassId, DailyState, DayStat, LessonSize, LessonState, PracticeList, Profile, ShopState, ShopSlot, ShopTuning, StudyAnswerMeta, StudySession, StudySessionStatus, WeeklyState, Word, WordState } from '../types';
 import { applyAnswer, initState } from '../engine/srs';
 import { idbStorage } from '../platform/storage';
 import { GEMS_PER_STREAK, levelOf } from '../engine/rewards';
@@ -38,6 +38,13 @@ import {
 } from '../engine/puzzles';
 import { activeChestSkin, skinById, skinState, type ChestSkinId } from '../engine/chests';
 import { DEFAULT_LESSON_SIZE } from '../engine/scheduler';
+import {
+  makeList,
+  normalizeCustomWords,
+  normalizeLists,
+  parseWordList,
+  withStress,
+} from '../engine/word-lists';
 import { normalizeStudySessions, STUDY_SESSION_RETENTION_DAYS } from '../engine/study';
 import {
   addTrash,
@@ -329,6 +336,10 @@ function normalizeProfile(raw: Partial<Profile> | null | undefined): Profile | n
       // Строка идёт после ...raw, иначе невалидное значение из файла пережило бы санитайзер.
       activeClass,
       weekly: normalizeWeekly(raw.weekly, base.weekly!),
+      // Списки к контрольной и свои слова (0.58.0): мусор из файла выбрасываем,
+      // чужие id слов чиним при чтении — уроки списков не должны падать.
+      lists: normalizeLists(raw.lists),
+      customWords: normalizeCustomWords(raw.customWords),
       lessonSize:
         raw.lessonSize === 'short' || raw.lessonSize === 'standard' || raw.lessonSize === 'full'
           ? raw.lessonSize
@@ -491,6 +502,26 @@ interface AppState {
   /** То же для конкретного профиля — экран «Профили» редактирует и других детей. */
   setProfileClass: (profileId: string, classId: ClassId) => void;
   adaptLesson: (profileId: string, ceiling: number, outcome: Outcome) => void;
+
+  // ── Списки слов к контрольной (0.58.0) ───────────────────────────────────
+  /**
+   * Создать список из вставленного текста. Разбор и сопоставление с банком —
+   * `engine/word-lists.ts`; свои слова сохраняются в профиль и живут только
+   * в своих списках. Возвращает созданный список и статистику разбора.
+   */
+  addList: (title: string, rawText: string, customWords?: Record<string, Word>) => {
+    list: PracticeList | null;
+    bank: number;
+    custom: number;
+    duplicates: number;
+  };
+  /** Удалить список. Свои слова остаются в профиле: они могут быть в другом списке. */
+  removeList: (listId: string) => void;
+  renameList: (listId: string, title: string) => void;
+  /** Переставить ударение своего слова и пересчитать «опасные» буквы. */
+  setCustomWordStress: (wordId: string, index: number) => void;
+  /** Отметить, что список тренировали (подпись «последний раз — вчера»). */
+  touchList: (listId: string) => void;
 
   /** Сейф прогресса: корзина профилей, журнал событий, метки копий, дата выгрузки. */
   vault: VaultState;
@@ -1520,6 +1551,47 @@ export const useApp = create<AppState>()(
           return { ...p, adaptiveCards: next.cards, adaptiveGood: next.good };
         }),
       })),
+      // ── Списки слов к контрольной (0.58.0) ─────────────────────────────────
+      addList: (title, rawText, customWords) => {
+        const state = get();
+        const active = state.profiles.find((p) => p.id === state.activeId);
+        const grade = active?.activeClass ?? 2;
+        const parsed = parseWordList(rawText, { ...(active?.customWords ?? {}), ...(customWords ?? {}) }, grade);
+        if (!parsed.wordIds.length) return { list: null, bank: 0, custom: 0, duplicates: parsed.items.filter((i) => i.source === 'duplicate').length };
+        const list = makeList(title, parsed.wordIds);
+        set((s) => patchActive(s, (p) => ({
+          ...p,
+          lists: [...(p.lists ?? []), list].slice(-20),
+          customWords: { ...(p.customWords ?? {}), ...parsed.customWords },
+        })));
+        return {
+          list,
+          bank: parsed.items.filter((i) => i.source === 'bank').length,
+          custom: parsed.items.filter((i) => i.source === 'custom').length,
+          duplicates: parsed.items.filter((i) => i.source === 'duplicate').length,
+        };
+      },
+      removeList: (listId) =>
+        set((s) => patchActive(s, (p) => ({ ...p, lists: (p.lists ?? []).filter((l) => l.id !== listId) }))),
+      renameList: (listId, title) =>
+        set((s) => patchActive(s, (p) => ({
+          ...p,
+          lists: (p.lists ?? []).map((l) =>
+            l.id === listId ? { ...l, title: title.trim() ? title.trim().slice(0, 80) : l.title } : l,
+          ),
+        }))),
+      setCustomWordStress: (wordId, index) =>
+        set((s) => patchActive(s, (p) => {
+          const word = p.customWords?.[wordId];
+          if (!word) return p;
+          return { ...p, customWords: { ...p.customWords, [wordId]: withStress(word, index) } };
+        })),
+      touchList: (listId) =>
+        set((s) => patchActive(s, (p) => ({
+          ...p,
+          lists: (p.lists ?? []).map((l) => (l.id === listId ? { ...l, lastRunAt: Date.now() } : l)),
+        }))),
+
       setLessonSize: (size) =>
         set((s) => patchActive(s, (p) => ({ ...p, lessonSize: size, adaptiveGood: 0 }))),
 

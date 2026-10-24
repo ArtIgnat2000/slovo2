@@ -348,6 +348,7 @@ export default function App() {
           onOpenProfiles={() => setProfilesOpen(true)}
           onStartReview={() => startLesson('review')}
           onOpenShop={openShop}
+          onStartList={(listId) => startLesson(`list:${listId}`)}
         />
       ) : tab === 'words' ? (
         <WordsScreen />
@@ -362,6 +363,10 @@ export default function App() {
         />
       ) : (
         <ParentScreen
+          onStartList={(listId) => {
+            setParentUnlocked(false);
+            startLesson(`list:${listId}`);
+          }}
           unlocked={parentUnlocked}
           onUnlock={() => setParentUnlocked(true)}
           initialTab={parentReturnTab}

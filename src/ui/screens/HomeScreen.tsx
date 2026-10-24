@@ -12,6 +12,7 @@ import { Crowns } from '../Bits';
 import { ClassSheet } from '../ClassSheet';
 import { DailyQuests } from '../DailyQuests';
 import { DailyQuestStrip } from '../DailyQuestStrip';
+import { listStats } from '../../engine/word-lists';
 import { Icon, Gem } from '../Icon';
 import { InviteFriend } from '../InviteFriend';
 import { WeeklyRewards } from '../WeeklyRewards';
@@ -38,6 +39,8 @@ interface Props {
   onStartReview: () => void;
   /** Меню ведёт прямо в «Мои покупки» или в «Ангар» (0.33.0) */
   onOpenShop: (view: 'vitrina' | 'wardrobe', hangar?: boolean) => void;
+  /** Тренировка списка слов к контрольной (0.58.0). */
+  onStartList: (listId: string) => void;
 }
 
 /**
@@ -60,7 +63,7 @@ function rewardsCount(profile: Profile): number {
   return count;
 }
 
-export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpenShop }: Props) {
+export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpenShop, onStartList }: Props) {
   const profile = useActiveProfile();
   const setActiveClass = useApp((s) => s.setActiveClass);
   const [rewardsOpen, setRewardsOpen] = useState(false);
@@ -196,6 +199,38 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
           каждый день, но подробности, «Забрать» и сундук остаются в листе
           наград: на главной ноль конкурирующих кнопок, «Начать ▶» — главное
           действие. docs/proposals/daily-quests-on-home.md */}
+      {/* Слова к контрольной (0.58.0): списки создаёт родитель, ребёнок видит
+          их здесь — узкой карточкой с одной кнопкой. Если списков нет, блока
+          тоже нет: лишних обещаний на главной не появляется. */}
+      {(profile.lists ?? []).length > 0 && (
+        <div className="list-cards">
+          {(profile.lists ?? []).map((list) => {
+            const stats = listStats(list, profile.customWords ?? {});
+            const trained = list.words.filter((id) => (profile.words?.[id]?.ok ?? 0) > 0).length;
+            return (
+              <button
+                key={list.id}
+                type="button"
+                className="list-card"
+                data-list-card={list.id}
+                aria-label={`Контрольная: ${list.title}, ${stats.total} слов. Начать тренировку`}
+                onClick={() => onStartList(list.id)}
+              >
+                <span className="list-card-icon" aria-hidden="true">🏫</span>
+                <span className="list-card-text">
+                  <span className="list-card-title">{list.title}</span>
+                  <span className="list-card-meta">
+                    {stats.total} слов
+                    {trained > 0 ? ` · тренировано ${trained}` : ''}
+                  </span>
+                </span>
+                <span className="list-card-go" aria-hidden="true">Тренировать</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       <DailyQuestStrip onOpen={() => setRewardsOpen(true)} />
 
       {classDone && !reviewDue ? (
