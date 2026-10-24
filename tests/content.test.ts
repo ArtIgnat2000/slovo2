@@ -5,6 +5,9 @@
 // классов в src/content/words.ts сломана, и ребёнок увидит урок без слов
 // или слово чужого класса.
 import assert from 'node:assert/strict';
+// Заморозка ударений (0.60.0): отдельный файл, но в том же прогоне, чтобы
+// сдвинутое ударение ловилось там же, где проверяется контент.
+import './stress.test';
 import {
   AVAILABLE_CLASSES,
   CLASS_IDS,

@@ -146,6 +146,7 @@ export function makeCustomWord(text: string, grade: ClassId = 2): Word {
   const clean = normalizeCustomText(text);
   let vowels = vowelIndexes(clean);
   const known = knownStress(matchKey(clean));
+  const guessed = known === undefined;
   const stress = known !== undefined && clean[known] ? known : vowels.length ? vowels[vowels.length - 1] : 0;
   const danger = vowels.filter((i) => i !== stress).slice(0, MAX_AUTO_DANGER);
   return {
@@ -162,6 +163,9 @@ export function makeCustomWord(text: string, grade: ClassId = 2): Word {
     sentence: `Контрольная: ____.`,
     theme: 'custom',
     grades: [grade],
+    // 0.60.0: автогадание помечаем — в предпросмотре списка родитель увидит
+    // «проверьте ударение» и поправит одним тапом, а не будет верить молча.
+    ...(guessed ? { stressGuessed: true } : {}),
   };
 }
 
@@ -180,7 +184,8 @@ export function withStress(word: Word, index: number, manual = false): Word {
     stress: index,
     danger,
     dangerKind: danger.length ? 'vowel' : 'other',
-    ...(manual ? { stressManual: true } : {}),
+    // Ручной выбор снимает пометку «подставлено»: теперь это проверенный факт.
+    ...(manual ? { stressManual: true, stressGuessed: false } : {}),
   };
 }
 
@@ -343,6 +348,8 @@ export function normalizeCustomWords(raw: unknown): Record<string, Word> {
         : null;
     const known = w.stressManual ? undefined : knownStress(matchKey(text));
     const stress = known !== undefined && text[known] ? known : stored ?? 0;
+    // Пометка «подставлено» пересчитывается при чтении: словарь мог пополниться.
+    const guessed = !w.stressManual && known === undefined;
     const danger = Array.isArray(w.danger)
       ? [...new Set(w.danger.filter((i): i is number => typeof i === 'number' && i >= 0 && i < text.length))]
       : [];
@@ -351,6 +358,7 @@ export function normalizeCustomWords(raw: unknown): Record<string, Word> {
       text,
       stress,
       ...(w.stressManual ? { stressManual: true } : {}),
+      ...(guessed ? { stressGuessed: true } : {}),
       syllables,
       danger,
       dangerKind: danger.length ? 'vowel' : 'other',

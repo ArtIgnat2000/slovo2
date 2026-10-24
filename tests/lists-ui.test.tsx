@@ -218,6 +218,39 @@ export async function runListsChecks(): Promise<void> {
     `stress=${manual.c_podlezhashchee?.stress}`,
   );
 
+  // ── 2c. Пометка «проверьте ударение» для слов вне словаря ─────────────────
+  const unknown = makeCustomWord('Портфельчик', 2); // слова нет в словаре
+  check(
+    'ударение: слово вне словаря помечается «подставлено» (не выдаём догадку за факт)',
+    unknown.stressGuessed === true,
+    JSON.stringify({ stress: unknown.stress, guessed: unknown.stressGuessed }),
+  );
+  const knownWord = makeCustomWord('Портфель', 2); // есть в словаре
+  check(
+    'ударение: слово из словаря приходит без пометки',
+    !knownWord.stressGuessed && [...knownWord.text].map((c, i) => (i === knownWord.stress ? c.toUpperCase() : c)).join('') === 'портфЕль',
+    JSON.stringify({ stress: knownWord.stress, guessed: knownWord.stressGuessed }),
+  );
+  // Ставим ударение на гласную (индекс 5 = «е» в «портфельчик»).
+  const fixed = withStress(unknown, 5, true);
+  check(
+    'ударение: ручной выбор снимает пометку «подставлено»',
+    fixed.stressManual === true && fixed.stressGuessed === false,
+    JSON.stringify({ manual: fixed.stressManual, guessed: fixed.stressGuessed }),
+  );
+  const legacyGuess = normalizeCustomWords({ c_abc: { text: 'портфельчик', stress: 9 } });
+  check(
+    'ударение: пометка пересчитывается при чтении (словарь мог пополниться)',
+    legacyGuess.c_abc?.stressGuessed === true,
+    JSON.stringify(legacyGuess.c_abc),
+  );
+  const knownAfterReload = normalizeCustomWords({ c_abc: { text: 'портфель', stress: 9 } });
+  check(
+    'ударение: при чтении словарь исправляет и снимает пометку',
+    knownAfterReload.c_abc?.stress === 5 && !knownAfterReload.c_abc?.stressGuessed,
+    JSON.stringify({ stress: knownAfterReload.c_abc?.stress, guessed: knownAfterReload.c_abc?.stressGuessed }),
+  );
+
   // ── 3. Свои слова не попадают в программу класса ──────────────────────────
   const gradeWords = WORDS_BY_GRADE[2].length;
   check(
