@@ -352,7 +352,15 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
   useEffect(() => {
     if (done) return;
     // Look ahead only a few cards, including dynamically inserted repair tasks.
-    return scheduleWordImages(queue.slice(index + 1, index + 4).map((t) => WORD_BY_ID[t.wordId]));
+    // Карточки берём через резолвер: у слов из списка к контрольной (0.61.0)
+    // теперь свои картинки, и они тоже должны быть прогреты заранее.
+    const lookup = lookupOf(profile);
+    return scheduleWordImages(
+      queue
+        .slice(index + 1, index + 4)
+        .map((t) => lookup(t.wordId))
+        .filter((w): w is NonNullable<typeof w> => !!w),
+    );
   }, [queue, index, done]);
 
   /** Выход из урока: если ещё ничего не отвечено — терять нечего, выходим сразу. */

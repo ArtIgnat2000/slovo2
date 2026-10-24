@@ -21,6 +21,7 @@
 import type { ClassId, PracticeList, Word } from '../types';
 import { WORDS } from '../content/words';
 import { knownStress } from '../content/stress-dict';
+import { customWordCard } from '../content/custom-words';
 
 /** Префикс id урока-тренировки списка: `list:l_xxx`. */
 export const LIST_LESSON_PREFIX = 'list:';
@@ -144,23 +145,29 @@ export function normalizeCustomText(text: string): string {
  */
 export function makeCustomWord(text: string, grade: ClassId = 2): Word {
   const clean = normalizeCustomText(text);
-  let vowels = vowelIndexes(clean);
-  const known = knownStress(matchKey(clean));
+  const key = matchKey(clean);
+  const vowels = vowelIndexes(clean);
+  const known = knownStress(key);
   const guessed = known === undefined;
   const stress = known !== undefined && clean[known] ? known : vowels.length ? vowels[vowels.length - 1] : 0;
   const danger = vowels.filter((i) => i !== stress).slice(0, MAX_AUTO_DANGER);
+  // 0.61.0: готовые карточки для слов вне банка (content/custom-words.ts) —
+  // картинка, объяснение значения и предложение-контекст. Без них ребёнок
+  // видел «Контрольная: ____» и общую книгу вместо образа слова.
+  const card = customWordCard(key);
   return {
     id: `${CUSTOM_WORD_PREFIX}${slugOf(clean)}`,
     text: clean,
     stress,
-    syllables: splitSyllables(clean),
+    syllables: card?.syllables?.length ? card.syllables : splitSyllables(clean),
     danger,
     dangerKind: danger.length ? 'vowel' : 'other',
-    hint: 'Слово из списка к контрольной',
+    hint: card?.hint ?? 'слово из школьного списка: значение подскажет взрослый',
     emoji: '📖',
     // Предложение с пропуском: задания с выбором и «исправь робота» работают
     // так же, как у слов банка.
-    sentence: `Контрольная: ____.`,
+    sentence: card?.sentence ?? `${clean[0]?.toUpperCase() ?? ''}____.`,
+    ...(card ? { image: card.image, mnemonic: card.mnemonic } : {}),
     theme: 'custom',
     grades: [grade],
     // 0.60.0: автогадание помечаем — в предпросмотре списка родитель увидит
@@ -362,9 +369,20 @@ export function normalizeCustomWords(raw: unknown): Record<string, Word> {
       syllables,
       danger,
       dangerKind: danger.length ? 'vowel' : 'other',
-      hint: typeof w.hint === 'string' && w.hint.trim() ? w.hint : 'Слово из списка к контрольной',
+      // Карточка из реестра важнее сохранённого: картинка и объяснение могли
+      // появиться позже (0.61.0), а в старом профиле их просто нет.
+      hint:
+        (typeof w.hint === 'string' && w.hint.trim() && w.hint !== 'Слово из списка к контрольной'
+          ? w.hint
+          : customWordCard(matchKey(text))?.hint) ??
+        'слово из школьного списка: значение подскажет взрослый',
       emoji: '📖',
-      sentence: typeof w.sentence === 'string' && w.sentence.includes('____') ? w.sentence : `Контрольная: ____.`,
+      sentence:
+        (typeof w.sentence === 'string' && w.sentence.includes('____') && !w.sentence.startsWith('Контрольная')
+          ? w.sentence
+          : customWordCard(matchKey(text))?.sentence) ?? `${text[0]?.toUpperCase() ?? ''}____.`,
+      ...(customWordCard(matchKey(text))?.image ? { image: customWordCard(matchKey(text))!.image } : {}),
+      ...(customWordCard(matchKey(text))?.mnemonic ? { mnemonic: customWordCard(matchKey(text))!.mnemonic } : {}),
       theme: 'custom',
       grades: [2],
     };
