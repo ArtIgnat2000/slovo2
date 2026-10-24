@@ -35,6 +35,7 @@ import { nudge } from './motion';
 import { growthStage } from '../engine/shop';
 import { sfx } from '../platform/sound';
 import { haptic } from '../platform/haptics';
+import { Icon, Gem } from './Icon';
 
 type ChestView = { reward: Chest; kind: ChestKind; celebrate: boolean };
 type ChestKeyItem = { id: string; done: boolean };
@@ -303,11 +304,11 @@ export function DailyQuests({ onStart }: Props) {
                 )}
                 {canClaim ? (
                   <button className="btn green sm" onClick={() => claim(id, spec.reward)}>
-                    Забрать 💎{spec.reward}
+                    Забрать · <Gem value={spec.reward} size={16} />
                   </button>
                 ) : (
                   <span className={`quest-gem ${isClaimed ? 'taken' : ''}`}>
-                    {isClaimed ? '✓' : `💎${spec.reward}`}
+                    {isClaimed ? <Icon name="check" size={16} /> : <Gem value={spec.reward} size={16} />}
                   </span>
                 )}
               </div>

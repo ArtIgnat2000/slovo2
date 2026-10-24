@@ -49,6 +49,7 @@ import { playMusic } from '../../platform/music';
 import { MusicCreditsToggle } from '../Credits';
 import { THEME_STYLES, type ThemeStyle } from '../../engine/theme-styles';
 import { BackgroundThemeCard } from '../BackgroundThemeCard';
+import { Icon, Gem } from '../Icon';
 
 /**
  * Магазин БУКа (концепция 2026-10-17, docs/shop-concept.md).
@@ -93,12 +94,15 @@ type View = 'vitrina' | 'wardrobe';
 /** Полки витрины — по типу товара, не по слоту совы. */
 type Cat = 'outfits' | 'toys' | 'costumes' | 'music' | 'sounds' | 'backgrounds';
 
-const CATS: { id: Cat; title: string; emoji: string }[] = [
-  { id: 'outfits', title: 'Наряды', emoji: '🎩' },
+// 0.54.0: у полок магазина — те же иконки набора, что в остальном интерфейсе.
+// У «Техники», «Музыки» и «Фонов» своей иконки в наборе 20 пока нет — остаются
+// эмодзи до следующей партии (см. docs/proposals/ui-icons.md §6, шаг 3b).
+const CATS: { id: Cat; title: string; emoji: string; icon?: 'hat' | 'puzzle' | 'speaker' }[] = [
+  { id: 'outfits', title: 'Наряды', emoji: '🎩', icon: 'hat' },
   { id: 'toys', title: 'Техника', emoji: '🚗' },
-  { id: 'costumes', title: 'Костюмы', emoji: '🧩' },
+  { id: 'costumes', title: 'Костюмы', emoji: '🧩', icon: 'puzzle' },
   { id: 'music', title: 'Музыка', emoji: '🎵' },
-  { id: 'sounds', title: 'Звуки', emoji: '🔊' },
+  { id: 'sounds', title: 'Звуки', emoji: '🔊', icon: 'speaker' },
   { id: 'backgrounds', title: 'Фоны', emoji: '🖼️' },
 ];
 
@@ -136,9 +140,9 @@ function ShopCard(props: {
   cardCls?: string;
   /** Между подписью и ценой — например, точки прогресса пазла */
   extra?: ReactNode;
-  priceLabel?: string;
+  priceLabel?: ReactNode;
   afford?: boolean;
-  actionLabel: string;
+  actionLabel: ReactNode;
   actionTone: 'primary' | 'green' | 'ghost';
   actionDisabled?: boolean;
   wished?: boolean;
@@ -596,7 +600,7 @@ export function ShopScreen({
         // Арт техники рисуется целиком, без совы: на полке это товар,
         // а не ещё один наряд на БУКе.
         cardCls={[wearing ? 'on' : owned_ ? 'owned' : '', toy ? 'toy-item' : ''].filter(Boolean).join(' ') || undefined}
-        priceLabel={owned_ ? (toy ? 'В ангаре ✓' : 'Твоя ✓') : `💎 ${item.price}`}
+        priceLabel={owned_ ? (toy ? 'В ангаре ✓' : 'Твоя ✓') : <Gem value={item.price} size={16} />}
         afford={affordable}
         wished={wished}
         onWish={!owned_ ? () => tapWish(item.id, item.title) : undefined}
@@ -708,7 +712,7 @@ export function ShopScreen({
         title={track.title}
         desc={`${fmtTime(track.seconds)} · ${track.shelf === 'calm' ? 'спокойный фон' : 'награда'}`}
         cardCls={`music-item${selected ? ' on' : ownedTrack ? ' owned' : ''}`}
-        priceLabel={ownedTrack ? 'Твоя ✓' : `💎 ${track.price}`}
+        priceLabel={ownedTrack ? 'Твоя ✓' : <Gem value={track.price} size={16} />}
         afford={affordable}
         actionLabel={
           ownedTrack
@@ -787,7 +791,7 @@ export function ShopScreen({
         desc={pack.desc}
         cardCls={`music-item sound-item${selected ? ' on' : ownedPack ? ' owned' : ''}`}
         extra={cueButtons(pack, 'sm')}
-        priceLabel={ownedPack ? 'Твои ✓' : `💎 ${pack.price}`}
+        priceLabel={ownedPack ? 'Твои ✓' : <Gem value={pack.price} size={16} />}
         afford={affordable}
         actionLabel={
           ownedPack
@@ -1194,9 +1198,12 @@ export function ShopScreen({
       <div className="shop-sticky">
         <div className="row mb">
           <h1 className="grow" style={{ margin: 0 }}>
-            БУК 🎩
+            БУК <Icon name="hat" size={22} />
           </h1>
-          <div className="stat-pill gems">💎 {gems}</div>
+          {/* 0.54.0: счётчик кристаллов — иконка + число (Gem). */}
+          <div className="stat-pill gems">
+            <Gem value={gems} />
+          </div>
         </div>
         <div className="shop-seg" role="tablist" aria-label="Витрина или покупки">
           <button role="tab" aria-selected={view === 'vitrina'} className={view === 'vitrina' ? 'on' : ''} onClick={() => setView('vitrina')}>
@@ -1210,7 +1217,7 @@ export function ShopScreen({
           <div className="shop-cats" role="tablist" aria-label="Разделы магазина">
             {CATS.map((c) => (
               <button key={c.id} role="tab" aria-selected={cat === c.id} className={`chip${cat === c.id ? ' on' : ''}`} onClick={() => setCat(c.id)}>
-                {c.emoji} {c.title}
+                {c.icon ? <Icon name={c.icon} size={16} /> : c.emoji} {c.title}
               </button>
             ))}
           </div>
