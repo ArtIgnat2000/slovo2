@@ -288,11 +288,16 @@ export function ListsTab({ profile, onTrain }: Props) {
                     }
                     // Своё слово: ударение ставится тапом по слогу.
                     const stressed = word ? withStress(word, stressFix[word.id] ?? word.stress) : null;
+                    // 0.60.0: если ударение подставило автополе (слова нет в
+                    // словаре), просим проверить, а не подаём догадку как факт.
+                    const guessed = !!word?.stressGuessed && stressFix[word.id] === undefined;
                     return (
                       <li key={key} className="list-preview-item custom">
                         <span className="list-preview-badge" aria-hidden="true">＋</span>
                         <span className="list-preview-word">{item.text}</span>
-                        <span className="setting-hint">новое слово — выберите ударение:</span>
+                        <span className={guessed ? 'setting-hint list-guess' : 'setting-hint'}>
+                          {guessed ? 'проверьте ударение:' : 'новое слово — выберите ударение:'}
+                        </span>
                         <span className="list-syllables">
                           {stressed?.syllables.map((syl, idx) => {
                             // Индекс ударной гласной в цельном слове: сумма длин прошлых слогов.
@@ -424,6 +429,11 @@ export function ListsTab({ profile, onTrain }: Props) {
                     )}
                   </span>
                   <span className="setting-hint">ударная {stressLetter || '—'}</span>
+                  {word.stressGuessed && (
+                    <span className="list-guess-badge" title="Ударение подставлено автоматически — проверьте">
+                      проверьте
+                    </span>
+                  )}
                   <span className="list-syllables">
                     {word.syllables.map((syl, idx) => {
                       const offset = word.syllables.slice(0, idx).reduce((n, s) => n + s.length, 0);
