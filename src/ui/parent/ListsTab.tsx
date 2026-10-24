@@ -18,6 +18,7 @@ import { useApp } from '../../state/store';
 import { listStats, parseWordList, withStress, type ParsedList } from '../../engine/word-lists';
 import { plural } from '../../engine/quests';
 import { GroupTitle } from './ParentBits';
+import { PRESET_LISTS, presetText } from '../../content/preset-lists';
 
 interface Props {
   profile: Profile;
@@ -39,6 +40,10 @@ export function ListsTab({ profile, onTrain }: Props) {
   /** Правки ударения до сохранения: id слова → индекс гласной. */
   const [stressFix, setStressFix] = useState<Record<string, number>>({});
   const [error, setError] = useState('');
+  /** Какой пресет только что добавили — чтобы показать «добавлен». */
+  const [addedPreset, setAddedPreset] = useState<string | null>(null);
+  /** Ошибка чтения буфера обмена (браузер может запретить без жеста). */
+  const [clipError, setClipError] = useState('');
 
   const grade = profile.activeClass ?? 2;
 
@@ -208,6 +213,30 @@ export function ListsTab({ profile, onTrain }: Props) {
               <span className="setting-hint">
                 По одному слову в строке или через запятую. Регистр и «ё» не важны: «Береза» найдётся как «берёза».
               </span>
+              {/* Один тап вместо выделения текста: читаем буфер обмена, если браузер разрешает. */}
+              <button
+                type="button"
+                className="btn ghost sm"
+                data-list-paste
+                onClick={async () => {
+                  setClipError('');
+                  try {
+                    const text = await navigator.clipboard.readText();
+                    if (!text.trim()) {
+                      setClipError('В буфере обмена пусто. Скопируйте сообщение из чата класса и нажмите снова.');
+                      return;
+                    }
+                    setRaw(text);
+                    setParsed(null);
+                    setStressFix({});
+                  } catch {
+                    setClipError('Браузер не дал прочитать буфер. Вставьте текст в поле вручную (долгое нажатие → «Вставить»).');
+                  }
+                }}
+              >
+                Вставить из буфера обмена
+              </button>
+              {clipError && <span className="setting-hint list-error">{clipError}</span>}
             </label>
 
             {error && (
@@ -313,6 +342,41 @@ export function ListsTab({ profile, onTrain }: Props) {
             )}
           </div>
         ) : (
+          <>
+            <div className="list-presets" data-list-presets>
+            {/* 0.59.0: список из школы добавляется одной кнопкой — вставлять
+                текст руками не нужно. Пресет разбирается тем же кодом, что и
+                вставка из чата, поэтому свои слова создаются сами. */}
+            {PRESET_LISTS.map((preset) => {
+              const already = lists.some((l) => l.words.length && l.title === preset.title);
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  className="btn ghost list-preset"
+                  data-preset-add={preset.id}
+                  disabled={already}
+                  onClick={() => {
+                    const result = addList(preset.title, presetText(preset), {});
+                    if (result.list) {
+                      setAddedPreset(preset.id);
+                      setError('');
+                    } else {
+                      setError('Не удалось добавить готовый список — попробуйте ещё раз.');
+                    }
+                  }}
+                >
+                  {already ? '✓ Список уже добавлен' : `＋ Добавить: ${preset.source}`}
+                </button>
+              );
+            })}
+            {addedPreset && (
+              <p className="setting-hint" data-preset-added>
+                Готово: список добавлен, он уже виден ребёнку на «Уроках» в карточке «🏫 Контрольная».
+              </p>
+            )}
+            </div>
+
           <button
             type="button"
             className="btn primary"
@@ -327,8 +391,9 @@ export function ListsTab({ profile, onTrain }: Props) {
               setError('');
             }}
           >
-            + Новый список к контрольной
+            + Свой список (вставить текст)
           </button>
+          </>
         )}
       </div>
 

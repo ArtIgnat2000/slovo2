@@ -28,6 +28,7 @@ import {
   withStress,
 } from '../src/engine/word-lists';
 import { WORDS, WORDS_BY_GRADE } from '../src/content/words';
+import { PRESET_LISTS, presetText } from '../src/content/preset-lists';
 import { buildLesson, bankLookup, lookupWith } from '../src/engine/scheduler';
 import { useApp } from '../src/state/store';
 import { body, btnText, buttons, check, click, has, openParentSection, sleep } from './ui-helpers';
@@ -346,6 +347,60 @@ export async function runListsChecks(): Promise<void> {
       'списки: список создан из формы и сохранён в профиле',
       !!made && made.words.length === 4,
       JSON.stringify((active().lists ?? []).map((l) => [l.title, l.words.length])),
+    );
+  }
+
+  // ── 5b. Готовый список из школы: одна кнопка, без вставки текста ──────────
+  const preset = PRESET_LISTS[0];
+  check(
+    'пресет: школьный список есть и в нём 26 слов',
+    !!preset && preset.words.length === 26,
+    String(preset?.words.length),
+  );
+  const presetParsed = parseWordList(presetText(preset), {}, 2);
+  check(
+    'пресет: 23 слова из банка + 3 своих (прощайте, подлежащее, сказуемое)',
+    presetParsed.items.filter((i) => i.source === 'bank').length === 23 &&
+      presetParsed.items.filter((i) => i.source === 'custom').length === 3,
+    JSON.stringify({
+      bank: presetParsed.items.filter((i) => i.source === 'bank').length,
+      custom: presetParsed.items.filter((i) => i.source === 'custom').length,
+    }),
+  );
+  check(
+    'пресет: у своих слов рабочие карточки (ударение и опасные буквы)',
+    Object.values(presetParsed.customWords).every((w) => w.syllables.length > 0 && w.text.length > 3),
+    JSON.stringify(Object.values(presetParsed.customWords).map((w) => [w.text, w.syllables.join('-')])),
+  );
+
+  // Убираем списки, чтобы кнопка пресета была активна, и добавляем одной кнопкой.
+  for (const l of active().lists ?? []) store().removeList(l.id);
+  if (homeTab) {
+    click(homeTab);
+    await sleep(60);
+  }
+  await openParent();
+  await openParentSection('Списки');
+  const presetBtn = document.querySelector('[data-preset-add]') as HTMLButtonElement | null;
+  check('пресет: в «Списках» есть кнопка «Добавить» без вставки текста', !!presetBtn, body().slice(0, 160));
+  if (presetBtn) {
+    click(presetBtn);
+    await sleep(100);
+    const schoolList = (active().lists ?? []).find((l) => l.title === preset.title);
+    check(
+      'пресет: одно нажатие добавило список из 26 слов',
+      !!schoolList && schoolList.words.length === 26,
+      JSON.stringify((active().lists ?? []).map((l) => [l.title, l.words.length])),
+    );
+    check(
+      'пресет: свои слова появились в профиле',
+      Object.keys(active().customWords ?? {}).length >= 3,
+      String(Object.keys(active().customWords ?? {}).length),
+    );
+    check(
+      'пресет: после добавления кнопка становится «✓ уже добавлен»',
+      !!document.querySelector('[data-preset-added]'),
+      document.querySelector('[data-list-presets]')?.textContent?.slice(0, 120) ?? '',
     );
   }
 
