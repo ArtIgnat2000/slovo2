@@ -78,7 +78,7 @@ export function ParentTabs({ items, value, onChange }: TabsProps) {
           <span className="seg-tab-emoji" aria-hidden="true">
             {item.emoji}
           </span>
-          {item.title}
+          <span className="seg-tab-label">{item.title}</span>
         </button>
       ))}
     </div>

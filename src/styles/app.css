@@ -6283,6 +6283,17 @@ p {
   background: var(--bg);
   border-bottom: 2px solid var(--line);
 }
+/* С 0.58.1 вкладок пять (Обзор, Списки, Прогресс, Настройки, Приложение).
+   На узком экране пять подписанных вкладок в один ряд сжимались до нечитаемых:
+   «Приложение» ломалось на три строки, а «Списки» терялся. Складываем в две
+   строки — все вкладки видны без прокрутки и без обрезки подписей. */
+@media (max-width: 560px) {
+  .seg-tabs {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 .seg-tab {
   display: flex;
   align-items: center;
@@ -6303,6 +6314,15 @@ p {
 .seg-tab-emoji {
   font-size: 17px;
   line-height: 1;
+}
+@media (max-width: 560px) {
+  .seg-tab {
+    padding: 6px 4px;
+    gap: 4px;
+  }
+  .seg-tab .seg-tab-label {
+    font-size: 12px;
+  }
 }
 .seg-tab.on {
   border-color: var(--primary);
