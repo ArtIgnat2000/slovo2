@@ -304,11 +304,11 @@ export function DailyQuests({ onStart }: Props) {
                 )}
                 {canClaim ? (
                   <button className="btn green sm" onClick={() => claim(id, spec.reward)}>
-                    Забрать · <Gem value={spec.reward} size={16} />
+                    Забрать · <Gem value={spec.reward} size={18} />
                   </button>
                 ) : (
                   <span className={`quest-gem ${isClaimed ? 'taken' : ''}`}>
-                    {isClaimed ? <Icon name="check" size={16} /> : <Gem value={spec.reward} size={16} />}
+                    {isClaimed ? <Icon name="check" size={16} /> : <Gem value={spec.reward} size={18} />}
                   </span>
                 )}
               </div>

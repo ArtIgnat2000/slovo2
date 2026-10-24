@@ -176,7 +176,7 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
         >
           {/* 0.54.0: кристалл — SVG-иконка, а не эмодзи: в 16–18 px эмодзи
               «плывёт» от шрифта к устройству, а иконка наследует цвет текста. */}
-          <Gem value={profile.gems} />
+          <Gem value={profile.gems} size={26} />
         </div>
 
         <button

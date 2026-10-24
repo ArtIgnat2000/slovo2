@@ -49,8 +49,26 @@ button {
 .gem-amount {
   display: inline-flex;
   align-items: center;
-  gap: 0.28em;
+  gap: 0.24em;
   font-variant-numeric: tabular-nums;
+  /* 0.56.0: счётчик кристаллов — заметная пара «камень + число».
+     Ребёнок должен видеть сумму, а не искать мелкий значок. */
+  line-height: 1;
+}
+.gem-amount > span {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+/* В шапке камень — главный счётчик: он крупнее цифр и не «плывёт» при
+   длинном числе. На 320 px чуть меньше, иначе имя и меню не влезают. */
+.topbar-stat.gems .gem-amount {
+  gap: 0.22em;
+}
+@media (max-width: 359px) {
+  .topbar-stat.gems .ico {
+    width: 22px;
+    height: 22px;
+  }
 }
 .gem-amount .ico {
   vertical-align: 0;
