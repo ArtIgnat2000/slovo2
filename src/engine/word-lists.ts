@@ -20,6 +20,7 @@
 
 import type { ClassId, PracticeList, Word } from '../types';
 import { WORDS } from '../content/words';
+import { knownStress } from '../content/stress-dict';
 
 /** Префикс id урока-тренировки списка: `list:l_xxx`. */
 export const LIST_LESSON_PREFIX = 'list:';
@@ -134,15 +135,18 @@ export function normalizeCustomText(text: string): string {
 /**
  * Автополя своего слова.
  *
- * Ударение по умолчанию — **последняя гласная**: это самый частый случай для
- * слов, которые дают в школе, и одна ошибка правится одним тапом в
- * предпросмотре списка (проверка реальных слов была прямой просьбой родителя).
+ * Ударение берётся из словаря известных слов (`content/stress-dict.ts`) —
+ * там школьные термины и вежливые формы, где «последняя гласная» ошибается:
+ * подлЕжащее, сказУемое, прощАйте. Если слова в словаре нет, ставим на
+ * последнюю гласную: это самый частый случай, и одна ошибка правится одним
+ * тапом в предпросмотре.
  * «Опасные» буквы — безударные гласные, не больше трёх.
  */
 export function makeCustomWord(text: string, grade: ClassId = 2): Word {
   const clean = normalizeCustomText(text);
-  const vowels = vowelIndexes(clean);
-  const stress = vowels.length ? vowels[vowels.length - 1] : 0;
+  let vowels = vowelIndexes(clean);
+  const known = knownStress(matchKey(clean));
+  const stress = known !== undefined && clean[known] ? known : vowels.length ? vowels[vowels.length - 1] : 0;
   const danger = vowels.filter((i) => i !== stress).slice(0, MAX_AUTO_DANGER);
   return {
     id: `${CUSTOM_WORD_PREFIX}${slugOf(clean)}`,
@@ -161,12 +165,23 @@ export function makeCustomWord(text: string, grade: ClassId = 2): Word {
   };
 }
 
-/** Поставить ударение на гласную с индексом `index` (остальное пересчитать). */
-export function withStress(word: Word, index: number): Word {
+/**
+ * Поставить ударение на гласную с индексом `index` (остальное пересчитать).
+ *
+ * `manual` = true ставит флаг «выбрано человеком»: такой выбор словарь
+ * ударений больше не перебивает (`normalizeCustomWords`).
+ */
+export function withStress(word: Word, index: number, manual = false): Word {
   const vowels = vowelIndexes(word.text);
   if (!vowels.includes(index)) return word;
   const danger = vowels.filter((i) => i !== index).slice(0, MAX_AUTO_DANGER);
-  return { ...word, stress: index, danger, dangerKind: danger.length ? 'vowel' : 'other' };
+  return {
+    ...word,
+    stress: index,
+    danger,
+    dangerKind: danger.length ? 'vowel' : 'other',
+    ...(manual ? { stressManual: true } : {}),
+  };
 }
 
 export interface ParsedItem {
@@ -319,10 +334,15 @@ export function normalizeCustomWords(raw: unknown): Record<string, Word> {
     if (!id.startsWith(CUSTOM_WORD_PREFIX)) continue;
     const text = w.text.trim().replace(/\s+/g, ' ').slice(0, 48);
     const syllables = Array.isArray(w.syllables) && w.syllables.length ? w.syllables.filter((x) => typeof x === 'string') : splitSyllables(text);
-    const stress =
+    // Ударение из файла или словаря. Словарь исправляет и те профили, где
+    // автополе уже сохранило неверное ударение (0.59.1), но выбор родителя
+    // (`stressManual`) неприкосновенен.
+    const stored =
       typeof w.stress === 'number' && Number.isFinite(w.stress) && w.stress >= 0 && w.stress < text.length
         ? Math.floor(w.stress)
-        : 0;
+        : null;
+    const known = w.stressManual ? undefined : knownStress(matchKey(text));
+    const stress = known !== undefined && text[known] ? known : stored ?? 0;
     const danger = Array.isArray(w.danger)
       ? [...new Set(w.danger.filter((i): i is number => typeof i === 'number' && i >= 0 && i < text.length))]
       : [];
@@ -330,6 +350,7 @@ export function normalizeCustomWords(raw: unknown): Record<string, Word> {
       id,
       text,
       stress,
+      ...(w.stressManual ? { stressManual: true } : {}),
       syllables,
       danger,
       dangerKind: danger.length ? 'vowel' : 'other',

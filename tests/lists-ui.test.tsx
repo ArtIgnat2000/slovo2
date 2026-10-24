@@ -29,6 +29,7 @@ import {
 } from '../src/engine/word-lists';
 import { WORDS, WORDS_BY_GRADE } from '../src/content/words';
 import { PRESET_LISTS, presetText } from '../src/content/preset-lists';
+import { KNOWN_STRESS } from '../src/content/stress-dict';
 import { buildLesson, bankLookup, lookupWith } from '../src/engine/scheduler';
 import { useApp } from '../src/state/store';
 import { body, btnText, buttons, check, click, has, openParentSection, sleep } from './ui-helpers';
@@ -161,6 +162,61 @@ export async function runListsChecks(): Promise<void> {
     word.id,
   );
   check('слоги: «прощайте» режется без потери букв', splitSyllables('прощайте').join('') === 'прощайте', splitSyllables('прощайте').join('-'));
+
+  // ── 2b. Ударение в школьных словах: словарь, а не «последняя гласная» ──────
+  // Отклик 2026-10-24: «в словах подлежащее и сказуемое неправильно поставлено
+  // ударение». Автополе ставило на последнюю гласную (подлежащЕе, сказуемоЕ).
+  const schoolCustom = Object.fromEntries(
+    Object.entries(parsed.customWords).map(([id, w]) => [w.text, w]),
+  );
+  const stressed = (text: string) => {
+    const w = schoolCustom[text];
+    if (!w) return '—';
+    return [...w.text].map((ch, i) => (i === w.stress ? ch.toUpperCase() : ch)).join('');
+  };
+  check(
+    'ударение: «подлежащее» → подлЕжащее',
+    stressed('подлежащее') === 'подлЕжащее',
+    stressed('подлежащее'),
+  );
+  check(
+    'ударение: «сказуемое» → сказУемое',
+    stressed('сказуемое') === 'сказУемое',
+    stressed('сказуемое'),
+  );
+  check(
+    'ударение: «прощайте» → прощАйте',
+    stressed('прощайте') === 'прощАйте',
+    stressed('прощайте'),
+  );
+  check(
+    'ударение: ударная буква не попадает в «опасные» (её не спрашивают в заданиях)',
+    Object.values(parsed.customWords).every((w) => !w.danger.includes(w.stress)),
+    JSON.stringify(Object.values(parsed.customWords).map((w) => [w.text, w.stress, w.danger])),
+  );
+  check(
+    'ударение: словарь покрывает все три школьных слова',
+    ['подлежащее', 'сказуемое', 'прощайте'].every((k) => KNOWN_STRESS[k] !== undefined),
+    JSON.stringify(KNOWN_STRESS),
+  );
+
+  // Уже сохранённые профили с неверным ударением чинятся при чтении.
+  const legacy = normalizeCustomWords({
+    c_podlezhashchee: { text: 'подлежащее', stress: 9, syllables: ['под', 'ле', 'жа', 'ще', 'е'], danger: [1, 4, 6] },
+  });
+  check(
+    'ударение: старое неверное значение (последняя гласная) исправляется словарём',
+    legacy.c_podlezhashchee?.stress === 4,
+    `stress=${legacy.c_podlezhashchee?.stress}`,
+  );
+  const manual = normalizeCustomWords({
+    c_podlezhashchee: { text: 'подлежащее', stress: 6, stressManual: true, syllables: ['под', 'ле', 'жа', 'ще', 'е'] },
+  });
+  check(
+    'ударение: ручной выбор родителя словарь не перебивает',
+    manual.c_podlezhashchee?.stress === 6 && manual.c_podlezhashchee?.stressManual === true,
+    `stress=${manual.c_podlezhashchee?.stress}`,
+  );
 
   // ── 3. Свои слова не попадают в программу класса ──────────────────────────
   const gradeWords = WORDS_BY_GRADE[2].length;
@@ -371,6 +427,16 @@ export async function runListsChecks(): Promise<void> {
     'пресет: у своих слов рабочие карточки (ударение и опасные буквы)',
     Object.values(presetParsed.customWords).every((w) => w.syllables.length > 0 && w.text.length > 3),
     JSON.stringify(Object.values(presetParsed.customWords).map((w) => [w.text, w.syllables.join('-')])),
+  );
+  check(
+    'пресет: «подлежащее», «сказуемое» и «прощайте» приходят с верным ударением',
+    Object.values(presetParsed.customWords)
+      .map((w) => [...w.text].map((ch, i) => (i === w.stress ? ch.toUpperCase() : ch)).join(''))
+      .sort()
+      .join(' | ') === 'подлЕжащее | прощАйте | сказУемое',
+    Object.values(presetParsed.customWords)
+      .map((w) => [...w.text].map((ch, i) => (i === w.stress ? ch.toUpperCase() : ch)).join(''))
+      .join(' | '),
   );
 
   // Убираем списки, чтобы кнопка пресета была активна, и добавляем одной кнопкой.

@@ -1584,7 +1584,7 @@ export const useApp = create<AppState>()(
         set((s) => patchActive(s, (p) => {
           const word = p.customWords?.[wordId];
           if (!word) return p;
-          return { ...p, customWords: { ...p.customWords, [wordId]: withStress(word, index) } };
+          return { ...p, customWords: { ...p.customWords, [wordId]: withStress(word, index, true) } };
         })),
       touchList: (listId) =>
         set((s) => patchActive(s, (p) => ({
