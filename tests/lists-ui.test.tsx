@@ -30,6 +30,8 @@ import {
 import { WORDS, WORDS_BY_GRADE } from '../src/content/words';
 import { PRESET_LISTS, presetText } from '../src/content/preset-lists';
 import { KNOWN_STRESS } from '../src/content/stress-dict';
+import { CUSTOM_WORD_CARDS } from '../src/content/custom-words';
+import { existsSync } from 'node:fs';
 import { buildLesson, bankLookup, lookupWith } from '../src/engine/scheduler';
 import { useApp } from '../src/state/store';
 import { body, btnText, buttons, check, click, has, openParentSection, sleep } from './ui-helpers';
@@ -250,6 +252,67 @@ export async function runListsChecks(): Promise<void> {
     knownAfterReload.c_abc?.stress === 5 && !knownAfterReload.c_abc?.stressGuessed,
     JSON.stringify({ stress: knownAfterReload.c_abc?.stress, guessed: knownAfterReload.c_abc?.stressGuessed }),
   );
+
+  // ── 2d. У КАЖДОГО слова контрольной есть картинка и понятная подсказка ────
+  // Отклик 2026-10-24: у своих слов не было картинки (общая книга), а подсказка
+  // «Слово из списка к контрольной» ничего не объясняла — по такому заданию
+  // нельзя понять, о каком слове речь.
+  {
+    const presetAll = parseWordList(presetText(PRESET_LISTS[0]), {}, 2);
+    const cards = listWords(
+      { id: 'l_check', title: 'Проверка', words: presetAll.wordIds, createdAt: 0 },
+      presetAll.customWords,
+    );
+    check(
+      'контрольная: в наборе все 26 слов',
+      cards.length === 26,
+      String(cards.length),
+    );
+    const noImage = cards.filter((w) => !w.image);
+    check(
+      'контрольная: у каждого слова есть картинка (никакой общей заглушки)',
+      noImage.length === 0,
+      'без картинки: ' + noImage.map((w) => w.text).join(', '),
+    );
+    const missingFile = cards.filter((w) => w.image && !existsSync(`public/words/${w.image}.webp`));
+    check(
+      'контрольная: файл картинки существует в public/words',
+      missingFile.length === 0,
+      'нет файла: ' + missingFile.map((w) => `${w.text}→${w.image}`).join(', '),
+    );
+    const uniqueImages = new Set(cards.map((w) => w.image));
+    check(
+      'контрольная: картинки разные, а не одна на все слова',
+      uniqueImages.size === cards.length,
+      `${uniqueImages.size} уникальных из ${cards.length}`,
+    );
+    const badHint = cards.filter(
+      (w) =>
+        w.hint.trim().length < 12 ||
+        w.hint.toLowerCase().includes(w.text.toLowerCase()) ||
+        w.hint === 'Слово из списка к контрольной',
+    );
+    check(
+      'контрольная: у каждого слова объяснение значения (≥ 12 символов, не шаблон)',
+      badHint.length === 0,
+      'слабые подсказки: ' + badHint.map((w) => `${w.text}: «${w.hint}»`).join(' | '),
+    );
+    const badSentence = cards.filter(
+      (w) => !w.sentence.includes('____') || w.sentence.startsWith('Контрольная'),
+    );
+    check(
+      'контрольная: у каждого слова предложение-контекст, а не «Контрольная: ____»',
+      badSentence.length === 0,
+      'плохие предложения: ' + badSentence.map((w) => `${w.text}: «${w.sentence}»`).join(' | '),
+    );
+    // Свои слова — с готовой карточкой из реестра, а не «из воздуха».
+    const customCards = Object.values(presetAll.customWords);
+    check(
+      'контрольная: у своих слов есть карточка в реестре (картинка, подсказка, предложение)',
+      customCards.every((w) => !!CUSTOM_WORD_CARDS[matchKey(w.text)]),
+      customCards.map((w) => w.text).join(', '),
+    );
+  }
 
   // ── 3. Свои слова не попадают в программу класса ──────────────────────────
   const gradeWords = WORDS_BY_GRADE[2].length;
