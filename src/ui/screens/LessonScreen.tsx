@@ -13,7 +13,8 @@ import {
   availableClass,
 } from '../../content/words';
 import { classComplete, classProgress, nextClass } from '../../engine/classes';
-import { buildLesson, DEFAULT_LESSON_SIZE, lessonCardLimit, makeTask, pickDanger, repairTask, shuffle } from '../../engine/scheduler';
+import { buildLesson, DEFAULT_LESSON_SIZE, lessonCardLimit, lookupWith, makeTask, pickDanger, repairTask, shuffle, type WordLookup } from '../../engine/scheduler';
+import { listIdFromLesson, listWords, MAX_LIST_WORDS } from '../../engine/word-lists';
 import { pickReview, pickReviewWords } from '../../engine/srs';
 import { dayKey, dayPlan, masteredCount, todayStat, useActiveProfile, useApp } from '../../state/store';
 import { BONUS_CHEST_GEMS, claimableQuests, dayMetrics, plural, questId } from '../../engine/quests';
@@ -63,8 +64,15 @@ interface Stats {
 }
 
 export function LessonScreen({ lessonId, onExit, goal }: Props) {
-  const lesson = LESSON_BY_ID[lessonId];
   const profile = useActiveProfile();
+  // Тренировка списка к контрольной (0.58.0): урока в программе нет, набор
+  // слов берём из списка, а «урок» собираем на месте. Всё остальное —
+  // обычный экран урока: те же задания, тот же прогресс по словам.
+  const listId = listIdFromLesson(lessonId);
+  const list = listId ? (profile?.lists ?? []).find((l) => l.id === listId) : undefined;
+  const lesson = list
+    ? { id: lessonId, title: list.title, emoji: '🏫', order: 0, wordIds: list.words }
+    : LESSON_BY_ID[lessonId];
   // Действия стора берём без подписки на всё состояние (ссылки стабильны):
   // подписка на весь стор заставляла бы урок перерисовываться на каждый чих.
   const { touchDay, answer, addXp, finishLesson, finishPuzzleLesson, grantAchievement } = useApp.getState();
@@ -79,7 +87,7 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
   const finalizeAdaptive = (kind: 'finish' | 'quit') => {
     if (finalized.current) return;
     finalized.current = true;
-    if (lessonId !== REVIEW.id && runProfile) useApp.getState().adaptLesson(runProfile, ceiling,
+    if (lessonId !== REVIEW.id && !listId && runProfile) useApp.getState().adaptLesson(runProfile, ceiling,
       kind === 'quit' ? { kind } : { kind, attempts: attempts.current });
   };
   const stats = useRef<Stats>({ correct: 0, wrong: 0, xp: 0 });
@@ -400,7 +408,7 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
         if (task.reason === 'repair') return q;
         if (q.some((t, i) => i > index && t.wordId === task.wordId && t.reason === 'repair')) return q;
         const at = Math.min(index + 3, q.length);
-        return [...q.slice(0, at), repairTask(task.wordId), ...q.slice(at)];
+        return [...q.slice(0, at), repairTask(task.wordId, lookupOf(profile)), ...q.slice(at)];
       });
     }
 
@@ -434,8 +442,10 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
     const answered = correct + wrong;
     const pct = answered === 0 ? 100 : Math.round((correct / answered) * 100);
     const stars = starsFor(correct, answered);
-    // «Повторение» — тренировка, а не урок: короны и счётчик уроков оно не наращивает
-    if (lessonId !== REVIEW.id) {
+    // «Повторение» и список к контрольной — тренировки, а не уроки программы:
+    // короны, пазлы и счётчик уроков дня они не наращивают.
+    if (listId) useApp.getState().touchList(listId);
+    if (lessonId !== REVIEW.id && !listId) {
       weeklyAwardGems = finishLesson(lessonId, pct).reduce((sum, reward) => sum + reward.gems, 0);
       const pz = finishPuzzleLesson();
       setPuzzleAward(pz);
@@ -492,7 +502,7 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
     const after = claimableToday(useApp.getState().profiles.find((p) => p.id === profile?.id) ?? null);
     const newQuestRewards = after.length > claimableBefore.length;
     const messages: string[] = [];
-    if (lessonId !== REVIEW.id) messages.push(`На главной ждёт бонусный сундук: +${BONUS_CHEST_GEMS} 💎.`);
+    if (lessonId !== REVIEW.id && !listId) messages.push(`На главной ждёт бонусный сундук: +${BONUS_CHEST_GEMS} 💎.`);
     if (newQuestRewards) messages.push('Награду за задания дня можно забрать на главной.');
     if (weeklyAwardGems > 0) messages.push(`Недельная награда уже начислена: +${weeklyAwardGems} 💎.`);
     if (messages.length) {
@@ -548,7 +558,8 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
       </div>
     );
   }
-  const word = WORD_BY_ID[task.wordId];
+  // Карточка слова: банк или своё слово списка к контрольной (0.58.0).
+  const word = lookupOf(profile)(task.wordId) ?? WORD_BY_ID[task.wordId];
   // Прогресс — от исходного плана и только вперёд (отработки ошибок не откатывают полоску)
   const stepsDone = Math.min(index + (verdict ? 1 : 0), total);
   const progress = (stepsDone / Math.max(1, total)) * 100;
@@ -905,6 +916,34 @@ function claimableToday(profile: Profile | null): string[] {
 // ── Формирование очереди заданий ────────────────────────────────────────────
 
 function buildQueue(profile: Profile | null, lessonId: string): Task[] {
+  const listId = listIdFromLesson(lessonId);
+  if (listId) {
+    const list = (profile?.lists ?? []).find((l) => l.id === listId);
+    if (!list) return [];
+    // Источник карточек: банк + свои слова профиля. Без этого «подлежащее»
+    // из списка не нашлось бы (его нет в банке 257 слов).
+    const lookup = lookupWith(profile?.customWords);
+    const words = listWords(list, profile?.customWords ?? {});
+    if (!words.length) return [];
+    const states: Record<string, WordState> = profile?.words ?? {};
+    const maxCards = effectiveCards(
+      profile?.adaptiveCards,
+      lessonCardLimit(profile?.lessonSize ?? DEFAULT_LESSON_SIZE),
+    );
+    // Каких слов не хватает в наборе, если список длиннее одного захода:
+    // сначала те, что ребёнок ещё не видел, потом самые слабые. Так за
+    // несколько заходов список проходится целиком, а не первые 12 слов.
+    const order = [...words]
+      .sort((a, b) => needOf(states[b.id]) - needOf(states[a.id]))
+      .slice(0, Math.min(maxCards, MAX_LIST_WORDS))
+      .map((w) => w.id);
+    const lesson = { id: lessonId, title: list.title, emoji: '🏫', order: 0, wordIds: order };
+    const tasks = buildLesson({ lesson, level: 1, states, reviewWords: [], maxCards: 0, lookup });
+    const intro = tasks.filter((t) => t.kind === 'intro');
+    const rest = shuffle(tasks.filter((t) => t.kind !== 'intro'));
+    return [...intro, ...rest];
+  }
+
   const lesson = LESSON_BY_ID[lessonId];
   const states: Record<string, WordState> = profile?.words ?? {};
   const level = profile?.lessons?.[lessonId]?.level ?? 0;
@@ -951,6 +990,21 @@ function buildQueue(profile: Profile | null, lessonId: string): Task[] {
   const rest = shuffle(tasks.filter((t) => t.kind !== 'intro' && t.reason !== 'review'));
   const rev = tasks.filter((t) => t.reason === 'review');
   return [...intro, ...rest, ...rev];
+}
+
+/**
+ * Насколько слову нужна тренировка (0.58.0): большое число — берём раньше.
+ * Слова, которых ребёнок ещё не видел, идут первыми, затем самые слабые и
+ * просроченные. Так список длиннее одного захода проходится целиком за
+ * несколько заходов, а не крутит первые 12 слов.
+ */
+/** Источник карточек для профиля: банк плюс свои слова списков. */
+const lookupOf = (profile: Profile | null): WordLookup => lookupWith(profile?.customWords);
+
+function needOf(st: WordState | undefined): number {
+  if (!st) return 1000;
+  const overdue = st.due && st.due < Date.now() ? 200 : 0;
+  return overdue + (100 - st.s);
 }
 
 function makeReviewTask(kind: 'write' | 'fix', wordId: string): Task {

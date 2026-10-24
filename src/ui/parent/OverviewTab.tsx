@@ -13,7 +13,7 @@ import { activeStudyDays } from '../../engine/weekly-rewards';
 import { plural } from '../../engine/quests';
 import { Bar } from '../Bits';
 import { GroupTitle, StatTile } from './ParentBits';
-import type { Profile, StudySession, TaskKind } from '../../types';
+import type { Profile, StudySession, TaskKind, Word } from '../../types';
 
 interface Props {
   profile: Profile;
@@ -39,7 +39,14 @@ function formatStudyTime(seconds: number): string {
   return rest === 0 ? `${hours} ч` : `${hours} ч ${rest} мин`;
 }
 
-function SessionDetails({ session }: { session: StudySession }) {
+/**
+ * Текст слова для отчёта: банк → свои слова списков (0.58.0) → сам id.
+ * Без этого в отчёте появлялось «c_podlezhashchee» вместо «подлежащее».
+ */
+const wordTextOf = (id: string, custom?: Record<string, Word>) =>
+  WORD_BY_ID[id]?.text ?? custom?.[id]?.text ?? id;
+
+function SessionDetails({ session, customWords }: { session: StudySession; customWords?: Record<string, Word> }) {
   const errors = Object.entries(session.errorWords).sort((a, b) => b[1] - a[1]);
   const kindErrors = Object.entries(session.taskKindErrors)
     .filter(([, count]) => (count ?? 0) > 0)
@@ -61,7 +68,7 @@ function SessionDetails({ session }: { session: StudySession }) {
         <div>{session.tasks} {plural(session.tasks, 'задание', 'задания', 'заданий')} · {session.correct} верно · {session.wrong} {plural(session.wrong, 'ошибка', 'ошибки', 'ошибок')}</div>
         {errors.length > 0 && (
           <div className="study-session-errors">
-            <b>Ошибки в словах:</b> {errors.map(([id, count]) => `${WORD_BY_ID[id]?.text ?? id} · ${count}`).join(', ')}
+            <b>Ошибки в словах:</b> {errors.map(([id, count]) => `${wordTextOf(id, customWords)} · ${count}`).join(', ')}
           </div>
         )}
         {kindErrors.length > 0 && (
@@ -71,7 +78,7 @@ function SessionDetails({ session }: { session: StudySession }) {
         )}
         {session.recoveredWords.length > 0 && (
           <div className="study-session-recovered">
-            После ошибки верно повторил: {session.recoveredWords.map((id) => WORD_BY_ID[id]?.text ?? id).join(', ')}
+            После ошибки верно повторил: {session.recoveredWords.map((id) => wordTextOf(id, customWords)).join(', ')}
           </div>
         )}
       </div>
@@ -80,6 +87,9 @@ function SessionDetails({ session }: { session: StudySession }) {
 }
 
 export function OverviewTab({ profile, onOpenWords, onOpenSection }: Props) {
+  // Слова из списков к контрольной (0.58.0) в отчёте должны читаться словами,
+  // а не id «c_podlezhashchee»: родитель пришёл сюда за понятным ответом.
+  const wordText = (id: string) => wordTextOf(id, profile.customWords);
   const today = todayStat(profile);
   const todaySessions = (profile.studySessions ?? [])
     .filter((session) => session.day === dayKey())
@@ -155,11 +165,11 @@ export function OverviewTab({ profile, onOpenWords, onOpenSection }: Props) {
                 <div className="setting-title">Ошибки сегодня · {todayErrorWords.length} {plural(todayErrorWords.length, 'слово', 'слова', 'слов')}</div>
                 <div className="wordlist">
                   {todayErrorWords.slice(0, 6).map(([id, count]) => (
-                    <span className="word-chip study-error" key={id}>{WORD_BY_ID[id]?.text ?? id} · {count}</span>
+                    <span className="word-chip study-error" key={id}>{wordText(id)} · {count}</span>
                   ))}
                 </div>
                 {today.recoveredWords?.length ? (
-                  <p className="study-session-recovered">После ошибки верно повторил: {today.recoveredWords.map((id) => WORD_BY_ID[id]?.text ?? id).join(', ')}</p>
+                  <p className="study-session-recovered">После ошибки верно повторил: {today.recoveredWords.map((id) => wordText(id)).join(', ')}</p>
                 ) : (
                   <p className="setting-hint">Ошибка — часть обучения. Эти слова приложение вернёт на повторение.</p>
                 )}
@@ -170,7 +180,9 @@ export function OverviewTab({ profile, onOpenWords, onOpenSection }: Props) {
         {todaySessions.length > 0 && (
           <div className="study-session-list">
             <div className="study-session-list-title">Занятия сегодня</div>
-            {todaySessions.map((session) => <SessionDetails key={session.id} session={session} />)}
+            {todaySessions.map((session) => (
+              <SessionDetails key={session.id} session={session} customWords={profile.customWords} />
+            ))}
           </div>
         )}
         <div className="study-today-streak">
@@ -283,7 +295,7 @@ export function OverviewTab({ profile, onOpenWords, onOpenSection }: Props) {
             <div className="wordlist">
               {weak.map(([id, count]) => (
                 <span className="word-chip weak" key={id}>
-                  {WORD_BY_ID[id]?.text ?? id} · {count}
+                  {wordText(id)} · {count}
                 </span>
               ))}
             </div>

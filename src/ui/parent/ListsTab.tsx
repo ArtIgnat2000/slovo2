@@ -1,0 +1,389 @@
+// ── Списки слов к контрольной: экран родителя (0.58.0) ──────────────────────
+//
+// Решения пользователя (docs/proposals/word-lists.md):
+//  • списки создаёт родитель — здесь, в своём разделе;
+//  • за тренировку — только XP, без кристаллов;
+//  • свои слова (нет в банке) живут только внутри списка;
+//  • ввод — текстом: «вставьте слова из чата класса».
+//
+// Экран из двух состояний: список существующих списков и форма нового.
+// В форме сначала «Проверить» — предпросмотр разбора: что нашлось в банке,
+// что добавится своим словом, что дубль. Для своих слов ударение ставится
+// одним тапом по слогу: автополе — последняя гласная, и это правится здесь
+// же, до сохранения.
+
+import { useState } from 'react';
+import type { PracticeList, Profile } from '../../types';
+import { useApp } from '../../state/store';
+import { listStats, parseWordList, withStress, type ParsedList } from '../../engine/word-lists';
+import { plural } from '../../engine/quests';
+import { GroupTitle } from './ParentBits';
+
+interface Props {
+  profile: Profile;
+  /** Открыть тренировку списка (уходит на экран урока). */
+  onTrain: (listId: string) => void;
+}
+
+export function ListsTab({ profile, onTrain }: Props) {
+  const { addList, removeList, renameList, setCustomWordStress } = useApp.getState();
+  const lists = profile.lists ?? [];
+  const customWords = profile.customWords ?? {};
+
+  /** null — форма закрыта; 'new' — создаём новый; id — переименовываем. */
+  const [editing, setEditing] = useState<null | 'new' | string>(null);
+  const [title, setTitle] = useState('');
+  const [raw, setRaw] = useState('');
+  /** Предпросмотр разбора: считается один раз по кнопке «Проверить». */
+  const [parsed, setParsed] = useState<ParsedList | null>(null);
+  /** Правки ударения до сохранения: id слова → индекс гласной. */
+  const [stressFix, setStressFix] = useState<Record<string, number>>({});
+  const [error, setError] = useState('');
+
+  const grade = profile.activeClass ?? 2;
+
+  const close = () => {
+    setEditing(null);
+    setTitle('');
+    setRaw('');
+    setParsed(null);
+    setStressFix({});
+    setError('');
+  };
+
+  const preview = () => {
+    const result = parseWordList(raw, customWords, grade);
+    if (!result.wordIds.length) {
+      setError('Не нашлось ни одного слова. Вставьте список: по одному слову в строке или через запятую.');
+      setParsed(null);
+      return;
+    }
+    setError('');
+    setParsed({
+      ...result,
+      items: result.items.map((item) =>
+        item.word ? { ...item, word: withStress(item.word, stressFix[item.word.id] ?? item.word.stress) } : item,
+      ),
+    });
+  };
+
+  const save = () => {
+    if (!parsed) return;
+    // Правки ударения применяются к своим словам прямо перед сохранением:
+    // карточки уходят в профиль уже с правильным ударением.
+    const fixed: Record<string, (typeof customWords)[string]> = {};
+    for (const [id, word] of Object.entries(parsed.customWords)) {
+      fixed[id] = stressFix[id] !== undefined ? withStress(word, stressFix[id]) : word;
+    }
+    const result = addList(title || 'Контрольная', raw, fixed);
+    if (!result.list) {
+      setError('Список пустой — проверьте слова и попробуйте снова.');
+      return;
+    }
+    close();
+  };
+
+  const customCount = (list: PracticeList) => listStats(list, customWords);
+  const whenTrained = (list: PracticeList) =>
+    list.lastRunAt
+      ? ` · тренировали ${new Date(list.lastRunAt).toLocaleDateString('ru-RU')}`
+      : '';
+
+  return (
+    <div className="parent-stack">
+      <div className="card">
+        <GroupTitle
+          title="Списки к контрольной"
+          hint="Вставьте слова, которые задали в школе, — ребёнок потренирует именно их. Списки у каждого ученика свои."
+        />
+
+        {lists.length === 0 && !editing && (
+          <p className="setting-hint">
+            Пока пусто. Список создаётся из текста: подойдёт сообщение из чата класса, даже с лишними запятыми
+            и заглавными буквами.
+          </p>
+        )}
+
+        {lists.map((list) => {
+          const stats = customCount(list);
+          const isEditing = editing === list.id;
+          return (
+            <div key={list.id} className="list-row" data-list={list.id}>
+              {isEditing ? (
+                <div className="list-row-edit">
+                  <input
+                    className="input"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    aria-label={`Название списка ${list.title}`}
+                    maxLength={80}
+                  />
+                  <button
+                    type="button"
+                    className="btn sm primary"
+                    onClick={() => {
+                      renameList(list.id, title);
+                      close();
+                    }}
+                  >
+                    Сохранить
+                  </button>
+                  <button type="button" className="btn ghost sm" onClick={close}>
+                    Отмена
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="list-row-main">
+                    <div className="list-row-title">{list.title}</div>
+                    <div className="setting-hint">
+                      {stats.total} {plural(stats.total, 'слово', 'слова', 'слов')}
+                      {stats.custom > 0 ? ` · своих: ${stats.custom}` : ''}
+                      {whenTrained(list)}
+                    </div>
+                  </div>
+                  <div className="list-row-actions">
+                    <button
+                      type="button"
+                      className="btn sm primary"
+                      data-train-list={list.id}
+                      onClick={() => onTrain(list.id)}
+                    >
+                      Тренировать
+                    </button>
+                    <button
+                      type="button"
+                      className="btn ghost sm"
+                      aria-label={`Переименовать «${list.title}»`}
+                      onClick={() => {
+                        setEditing(list.id);
+                        setTitle(list.title);
+                      }}
+                    >
+                      ✎
+                    </button>
+                    <button
+                      type="button"
+                      className="btn ghost sm"
+                      aria-label={`Удалить «${list.title}»`}
+                      data-remove-list={list.id}
+                      onClick={() => removeList(list.id)}
+                    >
+                      Удалить
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })}
+
+        {editing === 'new' ? (
+          <div className="list-form">
+            <label className="list-field">
+              <span className="setting-title">Название</span>
+              <input
+                className="input"
+                value={title}
+                placeholder="Например: Контрольная 12 ноября"
+                onChange={(e) => setTitle(e.target.value)}
+                maxLength={80}
+                data-list-title
+              />
+            </label>
+            <label className="list-field">
+              <span className="setting-title">Слова из школы</span>
+              <textarea
+                className="input list-textarea"
+                value={raw}
+                rows={7}
+                placeholder={'Хорошо\nУченик\nУченица\n…'}
+                onChange={(e) => {
+                  setRaw(e.target.value);
+                  setParsed(null);
+                  setStressFix({});
+                }}
+                data-list-input
+              />
+              <span className="setting-hint">
+                По одному слову в строке или через запятую. Регистр и «ё» не важны: «Береза» найдётся как «берёза».
+              </span>
+            </label>
+
+            {error && (
+              <p className="setting-hint list-error" role="alert">
+                {error}
+              </p>
+            )}
+
+            {!parsed && (
+              <button type="button" className="btn primary" onClick={preview} data-list-preview>
+                Проверить список
+              </button>
+            )}
+
+            {parsed && (
+              <div className="list-preview" data-list-preview-result>
+                <div className="list-preview-summary">
+                  <b>{parsed.wordIds.length}</b> {plural(parsed.wordIds.length, 'слово', 'слова', 'слов')} в списке
+                  {' · '}
+                  из банка: {parsed.items.filter((i) => i.source === 'bank').length}
+                  {' · '}
+                  своих: {parsed.items.filter((i) => i.source === 'custom').length}
+                  {parsed.items.some((i) => i.source === 'duplicate')
+                    ? ` · повторов убрано: ${parsed.items.filter((i) => i.source === 'duplicate').length}`
+                    : ''}
+                </div>
+
+                <ul className="list-preview-items">
+                  {parsed.items.map((item, i) => {
+                    const word = item.word;
+                    const key = `${item.text}-${i}`;
+                    if (item.source === 'duplicate') {
+                      return (
+                        <li key={key} className="list-preview-item dup">
+                          <span className="list-preview-badge" aria-hidden="true">↺</span>
+                          <span className="list-preview-word">{item.text}</span>
+                          <span className="setting-hint">повтор — убрали</span>
+                        </li>
+                      );
+                    }
+                    if (item.source === 'bank') {
+                      return (
+                        <li key={key} className="list-preview-item bank">
+                          <span className="list-preview-badge" aria-hidden="true">✓</span>
+                          <span className="list-preview-word">{item.text}</span>
+                          <span className="setting-hint">из словарика</span>
+                        </li>
+                      );
+                    }
+                    // Своё слово: ударение ставится тапом по слогу.
+                    const stressed = word ? withStress(word, stressFix[word.id] ?? word.stress) : null;
+                    return (
+                      <li key={key} className="list-preview-item custom">
+                        <span className="list-preview-badge" aria-hidden="true">＋</span>
+                        <span className="list-preview-word">{item.text}</span>
+                        <span className="setting-hint">новое слово — выберите ударение:</span>
+                        <span className="list-syllables">
+                          {stressed?.syllables.map((syl, idx) => {
+                            // Индекс ударной гласной в цельном слове: сумма длин прошлых слогов.
+                            const offset = stressed.syllables.slice(0, idx).reduce((n, s) => n + s.length, 0);
+                            const vowelIdx = offset + [...syl].findIndex((ch) => 'аеёиоуыэюя'.includes(ch.toLowerCase()));
+                            const on = stressed.stress === vowelIdx;
+                            return (
+                              <button
+                                key={`${syl}-${idx}`}
+                                type="button"
+                                className={`list-syl${on ? ' on' : ''}`}
+                                aria-pressed={on}
+                                aria-label={`Ударение на «${syl}»`}
+                                onClick={() => {
+                                  if (!word) return;
+                                  setStressFix((prev) => ({ ...prev, [word.id]: vowelIdx }));
+                                }}
+                              >
+                                {on ? `${syl}´` : syl}
+                              </button>
+                            );
+                          })}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+
+                <div className="row" style={{ gap: 8, marginTop: 10 }}>
+                  <button type="button" className="btn primary" onClick={save} data-list-save>
+                    Сохранить список
+                  </button>
+                  <button type="button" className="btn ghost" onClick={() => { setParsed(null); setStressFix({}); }}>
+                    Изменить слова
+                  </button>
+                  <button type="button" className="btn ghost" onClick={close}>
+                    Отмена
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!parsed && (
+              <button type="button" className="btn ghost sm" onClick={close}>
+                Отмена
+              </button>
+            )}
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="btn primary"
+            style={{ marginTop: 10 }}
+            data-add-list
+            onClick={() => {
+              setEditing('new');
+              setTitle('');
+              setRaw('');
+              setParsed(null);
+              setStressFix({});
+              setError('');
+            }}
+          >
+            + Новый список к контрольной
+          </button>
+        )}
+      </div>
+
+      <div className="card">
+        <GroupTitle
+          title="Как это считается"
+          hint="Тренировка списка — это опыт и прогресс по словам, но не урок программы."
+        />
+        <ul className="setting-hint" style={{ margin: 0, paddingLeft: 18 }}>
+          <li>задания те же, что в уроках: подсказки, выбор буквы, сборка, письмо;</li>
+          <li>XP начисляется, кристаллы — нет: иначе список выгодно перезапускать;</li>
+          <li>прогресс по словам идёт в общий словарик и дневной отчёт;</li>
+          <li>свои слова не попадают в программу класса — только в свой список.</li>
+        </ul>
+      </div>
+
+      {customWords && Object.keys(customWords).length > 0 && (
+        <div className="card">
+          <GroupTitle title="Свои слова" hint="Слова из списков, которых нет в школьном словарике. Ударение можно поправить." />
+          <ul className="list-custom-words">
+            {Object.values(customWords).map((word) => {
+              const stressLetter = word.text[word.stress]?.toUpperCase() ?? '';
+              return (
+                <li key={word.id} className="list-custom-word" data-custom-word={word.id}>
+                  <span className="list-custom-word-text">
+                    {[...word.text].map((ch, i) =>
+                      i === word.stress ? <b key={i}>{ch.toUpperCase()}</b> : <span key={i}>{ch}</span>,
+                    )}
+                  </span>
+                  <span className="setting-hint">ударная {stressLetter || '—'}</span>
+                  <span className="list-syllables">
+                    {word.syllables.map((syl, idx) => {
+                      const offset = word.syllables.slice(0, idx).reduce((n, s) => n + s.length, 0);
+                      const vowelIdx = offset + [...syl].findIndex((ch) => 'аеёиоуыэюя'.includes(ch.toLowerCase()));
+                      const on = word.stress === vowelIdx;
+                      return (
+                        <button
+                          key={`${syl}-${idx}`}
+                          type="button"
+                          className={`list-syl${on ? ' on' : ''}`}
+                          aria-pressed={on}
+                          aria-label={`Ударение на «${syl}» у слова ${word.text}`}
+                          onClick={() => setCustomWordStress(word.id, vowelIdx)}
+                        >
+                          {syl}
+                        </button>
+                      );
+                    })}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}

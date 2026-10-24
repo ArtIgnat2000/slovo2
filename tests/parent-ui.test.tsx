@@ -60,9 +60,9 @@ export async function runParentUiChecks(): Promise<void> {
   // 3. Четыре раздела-вкладки с корректной семантикой (aria) — и ровно один на экране.
   const tabs = tabButtons();
   check(
-    'в разделе четыре раздела-вкладки: обзор, прогресс, настройки, приложение',
-    tabs.length === 4 &&
-      ['Обзор', 'Прогресс', 'Настройки', 'Приложение'].every((title) =>
+    'в разделе пять разделов-вкладок: обзор, списки, прогресс, настройки, приложение',
+    tabs.length === 5 &&
+      ['Обзор', 'Списки', 'Прогресс', 'Настройки', 'Приложение'].every((title) =>
         tabs.some((t) => (t.textContent ?? '').includes(title)),
       ),
     tabs.map((t) => t.textContent).join(' | '),

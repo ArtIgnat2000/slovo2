@@ -1,5 +1,24 @@
 import type { Lesson, LessonSize, Task, TaskKind, Word, WordState } from '../types';
 import { WORD_BY_ID } from '../content/words';
+
+/**
+ * Как найти карточку слова по id (0.58.0).
+ *
+ * Раньше движок смотрел только в банк (`WORD_BY_ID`), поэтому слова из списка
+ * к контрольной, которых в банке нет («подлежащее»), тренировать было нельзя.
+ * Теперь источник слов передаётся параметром: обычные уроки получают банк,
+ * урок списка — банк плюс свои слова профиля. По умолчанию — банк, поэтому
+ * все существующие вызовы работают как раньше.
+ */
+export type WordLookup = (id: string) => Word | undefined;
+
+export const bankLookup: WordLookup = (id) => WORD_BY_ID[id];
+
+/** Источник слов: банк и свои слова списка. */
+export function lookupWith(custom?: Record<string, Word>): WordLookup {
+  if (!custom) return bankLookup;
+  return (id) => WORD_BY_ID[id] ?? custom[id];
+}
 import { priority } from './srs';
 
 const VOWELS = 'аеёиоуыэюя';
@@ -160,15 +179,22 @@ export /**
  * Фразы («до свидания») нельзя собирать из букв и печатать — для них остаются
  * задания с выбором: окошко, исправь ошибку, знакомство, слоги.
  */
-function safeKind(kind: TaskKind, wordId: string): TaskKind {
-  const w = WORD_BY_ID[wordId];
-  if (kind === 'intro' || kind === 'syllables' || !w.text.includes(' ')) return kind;
+function safeKind(kind: TaskKind, wordId: string, lookup: WordLookup): TaskKind {
+  const w = lookup(wordId);
+  if (kind === 'intro' || kind === 'syllables' || !w?.text.includes(' ')) return kind;
   return kind === 'fix' || kind === 'gap' ? kind : 'gap';
 }
 
-export function makeTask(kind: TaskKind, wordId: string, reason: Task['reason'], dangerIdx: number): Task {
-  const kind0 = safeKind(kind, wordId);
-  const w = WORD_BY_ID[wordId];
+export function makeTask(
+  kind: TaskKind,
+  wordId: string,
+  reason: Task['reason'],
+  dangerIdx: number,
+  lookup: WordLookup = bankLookup,
+): Task {
+  const w = lookup(wordId);
+  if (!w) throw new Error(`Нет карточки слова ${wordId}`);
+  const kind0 = safeKind(kind, wordId, lookup);
   const t: Task = { uid: uid(), kind: kind0, wordId, reason, dangerIdx };
   if (kind0 === 'gap') t.options = letterOptions(w.text[dangerIdx]);
   if (kind0 === 'build') t.letters = buildLetters(w);
@@ -198,6 +224,8 @@ function firstKind(level: number, st: WordState | undefined): TaskKind {
 
 export interface BuildLessonArgs {
   lesson: Lesson;
+  /** Источник карточек: банк (по умолчанию) или банк + свои слова списка. */
+  lookup?: WordLookup;
   level: number;
   states: Record<string, WordState>;
   reviewWords: Word[];
@@ -238,9 +266,19 @@ function selectedWordIds(
  * слова. Сокращается второй круг уверенных слов; карточки repair не проходят
  * через этот лимит и добавляются LessonScreen после ошибки.
  */
-export function buildLesson({ lesson, level, states, reviewWords, maxCards }: BuildLessonArgs): Task[] {
+export function buildLesson({
+  lesson,
+  level,
+  states,
+  reviewWords,
+  maxCards,
+  lookup = bankLookup,
+}: BuildLessonArgs): Task[] {
+  // Свои слова списка приходят сюда через `lookup`; слова без карточки
+  // (например, список почистили) просто не попадают в очередь, а не роняют урок.
+  const ids = lesson.wordIds.filter((id) => !!lookup(id));
   const kinds = practiceKinds(level);
-  const selectedIds = selectedWordIds(lesson.wordIds, states, maxCards, reviewWords.length);
+  const selectedIds = selectedWordIds(ids, states, maxCards, reviewWords.length);
 
   // 1. Знакомство + 2. первое закрепление выбранных слов
   const intro = selectedIds
@@ -248,20 +286,20 @@ export function buildLesson({ lesson, level, states, reviewWords, maxCards }: Bu
       const st = states[id];
       return !st || st.ok + st.wrong === 0;
     })
-    .map((id) => makeTask('intro', id, 'learn', pickDanger(WORD_BY_ID[id])));
+    .map((id) => makeTask('intro', id, 'learn', pickDanger(lookup(id)!), lookup));
   const first = selectedIds.map((id) =>
-    makeTask(firstKind(level, states[id]), id, 'practice', pickDanger(WORD_BY_ID[id])),
+    makeTask(firstKind(level, states[id]), id, 'practice', pickDanger(lookup(id)!), lookup),
   );
 
   // 3. Второй круг — другие типы заданий (перемешиваем, чтобы не было «одного и того же»)
   const second = shuffle(selectedIds).sort((a, b) => wordNeedScore(b, states) - wordNeedScore(a, states)).map((id, i) =>
-    makeTask(kinds[i % kinds.length], id, 'practice', pickDanger(WORD_BY_ID[id])),
+    makeTask(kinds[i % kinds.length], id, 'practice', pickDanger(lookup(id)!), lookup),
   );
 
   // 4. Интерливинг: повторение слов из прошлых уроков
   const review = reviewWords.map((w) => {
     const kind: TaskKind = level >= 2 ? 'write' : 'fix';
-    return makeTask(kind, w.id, 'review', pickDanger(w));
+    return makeTask(kind, w.id, 'review', pickDanger(w), lookup);
   });
 
   if (!maxCards) return [...intro, ...first, ...second, ...review];
@@ -278,8 +316,10 @@ export function buildLesson({ lesson, level, states, reviewWords, maxCards }: Bu
 }
 
 /** Задание «исправь ошибку» — вставляется в урок чуть позже после промаха. */
-export function repairTask(wordId: string): Task {
-  return makeTask('write', wordId, 'repair', pickDanger(WORD_BY_ID[wordId]));
+export function repairTask(wordId: string, lookup: WordLookup = bankLookup): Task {
+  const w = lookup(wordId);
+  if (!w) throw new Error(`repairTask: нет карточки ${wordId}`);
+  return makeTask('write', wordId, 'repair', pickDanger(w), lookup);
 }
 
 /** Сортировка очереди «слабых» слов для отдельной тренировки ошибок. */

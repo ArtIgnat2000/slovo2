@@ -14,6 +14,7 @@ import { runInstallHintChecks } from './install-hint.test';
 import { runChestCeremonyChecks } from './chest-ceremony-ui.test';
 import { runChestSkinsUiChecks } from './chest-skins-ui.test';
 import { runParentUiChecks } from './parent-ui.test';
+import { runListsChecks } from './lists-ui.test';
 import { runPretestAuditChecks } from './pretest-audit.test';
 import { runPuzzleUiChecks } from './puzzles-ui.test';
 import { runDiagnosticsRouteChecks } from './diagnostics-ui.test';
@@ -1532,6 +1533,7 @@ async function main() {
   await runChestCeremonyChecks();
   await runChestSkinsUiChecks();
   await runParentUiChecks();
+  await runListsChecks();
 
   // ── Задания дня: понятность и выполнимость (обратная связь 2026-09-29) ────
   await runQuestUiChecks();

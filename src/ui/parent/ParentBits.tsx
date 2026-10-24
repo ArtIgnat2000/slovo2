@@ -12,7 +12,7 @@
 
 import type { ReactNode } from 'react';
 
-export type ParentTabId = 'overview' | 'progress' | 'settings' | 'app';
+export type ParentTabId = 'overview' | 'lists' | 'progress' | 'settings' | 'app';
 
 export interface ParentTabItem {
   id: ParentTabId;
@@ -20,9 +20,16 @@ export interface ParentTabItem {
   title: string;
 }
 
-/** Разделы родительского экрана: «как дела» → «сохранность» → «как заниматься» → «приложение». */
+/**
+ * Разделы родительского экрана: «как дела» → «что задали» → «сохранность» →
+ * «как заниматься» → «приложение».
+ *
+ * «Списки» (0.58.0) — слова к контрольной из школы: родитель вставляет текст,
+ * ребёнок тренирует (docs/proposals/word-lists.md).
+ */
 export const PARENT_TABS: ParentTabItem[] = [
   { id: 'overview', emoji: '📊', title: 'Обзор' },
+  { id: 'lists', emoji: '🏫', title: 'Списки' },
   { id: 'progress', emoji: '💾', title: 'Прогресс' },
   { id: 'settings', emoji: '⚙️', title: 'Настройки' },
   { id: 'app', emoji: '📲', title: 'Приложение' },

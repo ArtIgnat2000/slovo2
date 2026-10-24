@@ -385,8 +385,8 @@ export async function runPuzzleUiChecks(playLesson: (second?: boolean) => Promis
   // «Повторение» фрагментов не даёт: выдача вызывается только в ветке non-review
   const src = readFileSync('src/ui/screens/LessonScreen.tsx', 'utf8');
   check(
-    'пазлы: выдача привязана к завершению настоящего урока, не повторения',
-    /if \(lessonId !== REVIEW\.id\) \{[\s\S]*?finishPuzzleLesson\(\)/.test(src),
+    'пазлы: выдача привязана к завершению настоящего урока, не повторения и не списка',
+    /if \(lessonId !== REVIEW\.id && !listId\) \{[\s\S]*?finishPuzzleLesson\(\)/.test(src),
     'нет guard-а в LessonScreen',
   );
 }
