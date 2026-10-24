@@ -101,6 +101,27 @@ export async function runIconChecks(): Promise<void> {
       .map((s) => s.dataset.icon)
       .join(', '),
   );
+  // 0.56.0: отклик «алмаз слишком маленький, плохо видно». Проверяем, что
+  // главный значок занимает почти всю клетку, а не сидит в середине с полями.
+  const crystal = svgs.find((s) => s.dataset.icon === 'crystal')!;
+  const nums = (crystal.innerHTML.match(/-?\d+(\.\d+)?/g) ?? []).map(Number);
+  const xs = nums.filter((_, i) => i % 2 === 0);
+  const ys = nums.filter((_, i) => i % 2 === 1);
+  const spanX = Math.max(...xs) - Math.min(...xs);
+  const spanY = Math.max(...ys) - Math.min(...ys);
+  check(
+    'иконки: кристалл занимает почти всю сетку (≤ 1,6 поля с каждой стороны)',
+    Math.min(...xs) <= 1.8 && Math.min(...ys) <= 3.4 && spanX >= 20 && spanY >= 18,
+    `x: ${Math.min(...xs)}..${Math.max(...xs)}, y: ${Math.min(...ys)}..${Math.max(...ys)}`,
+  );
+  check(
+    'иконки: у кристалла чередуются светлые и тёмные грани (объём, а не плоское пятно)',
+    new Set(
+      (read(SRC).match(/'crystal': \[[\s\S]*?\n  \],/) ?? [''])[0].match(/#[0-9a-f]{6}/g) ?? [],
+    ).size >= 4,
+    'меньше 4 оттенков у кристалла',
+  );
+
   check(
     'иконки: чёрного контура нет — только свой тёмный оттенок (0.54.0 «съел» алмаз)',
     !/#000|#0{3,6}\b|black/i.test(read(SRC)),
@@ -175,6 +196,18 @@ export async function runIconChecks(): Promise<void> {
     check(`иконки: ${where} — без функциональных эмодзи`, !pattern.test(text), `${file}: ${text.match(pattern)?.[0] ?? ''}`);
   }
   check(
+    'иконки: в шапке кристалл крупный (≥ 24 px), а не мелкая иконка',
+    /<Gem value=\{profile\.gems\} size=\{(\d+)\}/.test(readCode(`${ICON_DIR}/screens/HomeScreen.tsx`)) &&
+      Number(readCode(`${ICON_DIR}/screens/HomeScreen.tsx`).match(/<Gem value=\{profile\.gems\} size=\{(\d+)\}/)![1]) >= 24,
+    'размер счётчика в шапке меньше 24 px',
+  );
+  check(
+    'иконки: Gem по умолчанию растёт вместе с кеглем (1.15em), а не фиксированные 18 px',
+    /value, size = '1\.15em'/.test(read(SRC)),
+    'у Gem фиксированный размер по умолчанию',
+  );
+
+  check(
     'иконки: шапка и магазин используют набор, а не текст',
     readCode(`${ICON_DIR}/screens/HomeScreen.tsx`).includes('<Gem value={profile.gems}') &&
       readCode(`${ICON_DIR}/screens/ShopScreen.tsx`).includes('<Gem value={gems}'),
@@ -197,8 +230,8 @@ export async function runIconChecks(): Promise<void> {
     '.ico без vertical-align',
   );
   check(
-    'иконки: превью набора обновлено под цветной набор',
-    read('docs/proposals/ui-icons/preview.html').includes('0.55.0'),
+    'иконки: превью набора обновлено под текущий набор',
+    read('docs/proposals/ui-icons/preview.html').includes('0.56.0'),
     'превью не обновлено',
   );
 

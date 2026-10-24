@@ -600,7 +600,7 @@ export function ShopScreen({
         // Арт техники рисуется целиком, без совы: на полке это товар,
         // а не ещё один наряд на БУКе.
         cardCls={[wearing ? 'on' : owned_ ? 'owned' : '', toy ? 'toy-item' : ''].filter(Boolean).join(' ') || undefined}
-        priceLabel={owned_ ? (toy ? 'В ангаре ✓' : 'Твоя ✓') : <Gem value={item.price} size={16} />}
+        priceLabel={owned_ ? (toy ? 'В ангаре ✓' : 'Твоя ✓') : <Gem value={item.price} size={18} />}
         afford={affordable}
         wished={wished}
         onWish={!owned_ ? () => tapWish(item.id, item.title) : undefined}
@@ -712,7 +712,7 @@ export function ShopScreen({
         title={track.title}
         desc={`${fmtTime(track.seconds)} · ${track.shelf === 'calm' ? 'спокойный фон' : 'награда'}`}
         cardCls={`music-item${selected ? ' on' : ownedTrack ? ' owned' : ''}`}
-        priceLabel={ownedTrack ? 'Твоя ✓' : <Gem value={track.price} size={16} />}
+        priceLabel={ownedTrack ? 'Твоя ✓' : <Gem value={track.price} size={18} />}
         afford={affordable}
         actionLabel={
           ownedTrack
@@ -791,7 +791,7 @@ export function ShopScreen({
         desc={pack.desc}
         cardCls={`music-item sound-item${selected ? ' on' : ownedPack ? ' owned' : ''}`}
         extra={cueButtons(pack, 'sm')}
-        priceLabel={ownedPack ? 'Твои ✓' : <Gem value={pack.price} size={16} />}
+        priceLabel={ownedPack ? 'Твои ✓' : <Gem value={pack.price} size={18} />}
         afford={affordable}
         actionLabel={
           ownedPack
@@ -1202,7 +1202,7 @@ export function ShopScreen({
           </h1>
           {/* 0.54.0: счётчик кристаллов — иконка + число (Gem). */}
           <div className="stat-pill gems">
-            <Gem value={gems} />
+            <Gem value={gems} size={22} />
           </div>
         </div>
         <div className="shop-seg" role="tablist" aria-label="Витрина или покупки">
