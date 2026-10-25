@@ -144,8 +144,9 @@ export async function runListsChecks(): Promise<void> {
   check('своё слово: слоги по гласным', word.syllables.join('-') === 'под-ле-жа-ще-е', word.syllables.join('-'));
   check(
     'своё слово: ударение стоит на гласной, «опасные» буквы непустые',
-    word.stress >= 0 && word.text[word.stress] === 'е' && word.danger.length > 0 && word.danger.length <= 3,
-    `stress=${word.stress}, danger=${JSON.stringify(word.danger)}`,
+    // «подлежащее» → ударная «а» (индекс 6), см. 0.61.1 и проверку по словарям.
+    word.stress === 6 && word.text[word.stress] === 'а' && word.danger.length > 0 && word.danger.length <= 3,
+    `stress=${word.stress} (${word.text[word.stress]}), danger=${JSON.stringify(word.danger)}`,
   );
   check(
     'своё слово: опасные буквы — только гласные, и ударная среди них не попадает',
@@ -177,8 +178,8 @@ export async function runListsChecks(): Promise<void> {
     return [...w.text].map((ch, i) => (i === w.stress ? ch.toUpperCase() : ch)).join('');
   };
   check(
-    'ударение: «подлежащее» → подлЕжащее',
-    stressed('подлежащее') === 'подлЕжащее',
+    'ударение: «подлежащее» → подлежАщее (проверено по словарям, 0.61.1)',
+    stressed('подлежащее') === 'подлежАщее',
     stressed('подлежащее'),
   );
   check(
@@ -207,8 +208,8 @@ export async function runListsChecks(): Promise<void> {
     c_podlezhashchee: { text: 'подлежащее', stress: 9, syllables: ['под', 'ле', 'жа', 'ще', 'е'], danger: [1, 4, 6] },
   });
   check(
-    'ударение: старое неверное значение (последняя гласная) исправляется словарём',
-    legacy.c_podlezhashchee?.stress === 4,
+    'ударение: старое неверное значение исправляется словарём (было 9, стало 6 — «а»)',
+    legacy.c_podlezhashchee?.stress === 6,
     `stress=${legacy.c_podlezhashchee?.stress}`,
   );
   const manual = normalizeCustomWords({
@@ -529,7 +530,7 @@ export async function runListsChecks(): Promise<void> {
     Object.values(presetParsed.customWords)
       .map((w) => [...w.text].map((ch, i) => (i === w.stress ? ch.toUpperCase() : ch)).join(''))
       .sort()
-      .join(' | ') === 'подлЕжащее | прощАйте | сказУемое',
+      .join(' | ') === 'подлежАщее | прощАйте | сказУемое',
     Object.values(presetParsed.customWords)
       .map((w) => [...w.text].map((ch, i) => (i === w.stress ? ch.toUpperCase() : ch)).join(''))
       .join(' | '),

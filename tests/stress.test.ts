@@ -13,6 +13,7 @@ import assert from 'node:assert/strict';
 import { WORDS } from '../src/content/words';
 import { KNOWN_STRESS, knownStress } from '../src/content/stress-dict';
 import { STRESS_SNAPSHOT, STRESS_SNAPSHOT_SIZE } from './stress-snapshot';
+import { STRESS_DICT_SNAPSHOT, STRESS_DICT_SIZE } from './stress-dict-snapshot';
 
 /** Слово с заглавной ударной буквой — для сообщений и для чтения глазами. */
 const marked = (text: string, stress: number) =>
@@ -102,23 +103,58 @@ for (const [key, index] of Object.entries(KNOWN_STRESS)) {
   );
 }
 
-// Школьные слова, из-за которых и появился словарь (0.59.1).
-const expectedDict: Record<string, string> = {
-  подлежащее: 'подлЕжащее',
+// ── 4. Словарь заморожен снимком ─────────────────────────────────────────────
+// В 0.59.1 в словарь попала ошибка (подлЕжащее вместо подлежАщее), и заметил
+// её пользователь, а не тест: ударения словаря сверялись только для трёх слов
+// и «правильным» считалось то же неверное значение. Теперь снимок на все слова.
+
+assert.equal(
+  dictKeys.length,
+  STRESS_DICT_SIZE,
+  `в словаре ${dictKeys.length} слов, а в снимке ${STRESS_DICT_SIZE} — обновите tests/stress-dict-snapshot.ts`,
+);
+
+for (const [key, index] of Object.entries(KNOWN_STRESS)) {
+  const expected = STRESS_DICT_SNAPSHOT[key];
+  assert.notEqual(
+    expected,
+    undefined,
+    `«${key}» нет в снимке словаря ударений — добавьте строку в tests/stress-dict-snapshot.ts`,
+  );
+  assert.equal(
+    marked(key, index),
+    expected,
+    `«${key}»: в словаре «${marked(key, index)}», а в снимке «${expected}»`,
+  );
+}
+for (const key of Object.keys(STRESS_DICT_SNAPSHOT)) {
+  assert.notEqual(
+    KNOWN_STRESS[key],
+    undefined,
+    `в снимке словаря есть «${key}», а в словаре нет — слово удалили?`,
+  );
+}
+
+// Школьные слова, из-за которых появился словарь (0.59.1), и ударение,
+// проверенное по словарям (0.61.1): Викисловарь «под-ле-жа́-ще·е»,
+// Грамота.ру «ПОДЛЕЖА́ЩЕЕ», МАС «сказу́емое», «проща́йте».
+const checkedByDictionaries: Record<string, string> = {
+  подлежащее: 'подлежАщее',
   сказуемое: 'сказУемое',
   прощайте: 'прощАйте',
 };
-for (const [key, expected] of Object.entries(expectedDict)) {
+for (const [key, expected] of Object.entries(checkedByDictionaries)) {
   const index = KNOWN_STRESS[key];
   assert.notEqual(index, undefined, `в словаре нет «${key}»`);
   assert.equal(
     marked(key, index!),
     expected,
-    `«${key}»: ожидалось «${expected}», получилось «${marked(key, index!)}»`,
+    `«${key}»: ожидалось «${expected}» (проверено по словарям), получилось «${marked(key, index!)}»`,
   );
 }
 
 console.log(
   `✓ ударения: снимок из ${STRESS_SNAPSHOT_SIZE} слов совпадает с контентом; ` +
-    `словарь известных ударений — ${dictKeys.length} слов (подлЕжащее, сказУемое, прощАйте и др.)`,
+    `словарь известных ударений — ${dictKeys.length} слов, сверен со снимком ` +
+    `(подлежАщее, сказУемое, прощАйте)`,
 );
