@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import type { Task, Word } from '../types';
 import { Sentence, WordCard, WordClue, WordLetters } from './WordView';
-import { dangerSummary } from '../engine/word-facts';
+import { dangerSummary, sameTypedWord } from '../engine/word-facts';
 import { Keyboard } from './Keyboard';
 import { sfx } from '../platform/sound';
 import { haptic } from '../platform/haptics';
@@ -392,7 +392,7 @@ function Write({ word, task, onSolve, onAttempt }: Props) {
   };
 
   const check = () => {
-    const ok = val.trim().toLowerCase() === word.text.toLowerCase();
+    const ok = sameTypedWord(val, word.text);
     const quality = ok ? (hintUsed ? 3 : 5) : 0;
     onAttempt?.(quality);
     setState(ok ? 'ok' : 'bad');
@@ -477,7 +477,7 @@ function Visual({ word, task, onSolve, onAttempt }: Props) {
   };
 
   const check = () => {
-    const ok = val.trim().toLowerCase() === word.text.toLowerCase();
+    const ok = sameTypedWord(val, word.text);
     const quality = ok ? (hintUsed ? 3 : 5) : 0;
     onAttempt?.(quality);
     setState(ok ? 'ok' : 'bad');

@@ -26,6 +26,7 @@ import { runFloatingMascotChecks } from './mascot-ui.test';
 import { runBukLessonChecks } from './buk-lesson-ui.test';
 import { runLessonArtChecks } from './lesson-art-ui.test';
 import { runVerdictChecks } from './verdict-ui.test';
+import { runTypingChecks } from './typing-ui.test';
 import { runClassChecks } from './classes.test';
 // Смена цвета купленной вещи не должна включать музыку (регрессия магазина).
 import './recolor-music.test';
@@ -1563,6 +1564,7 @@ async function main() {
   // Пауза после ответа: отвеченная карточка остаётся на экране, полоса вердикта
   // показывает результат, награду и написание слова (замечание 2026-10-15).
   await runVerdictChecks();
+  await runTypingChecks();
 
   // «Передать приложение»: QR и ссылка для нового ученика (замечание 2026-10-14).
   await runShareAppChecks();
