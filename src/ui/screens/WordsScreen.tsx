@@ -114,7 +114,8 @@ export function WordsScreen() {
               <p className="tiny center">{dangerSummary(word)}</p>
               {profile?.words[word.id] && (
                 <p className="tiny center">
-                  Освоенность: {profile.words[word.id].s}% · ошибок: {profile.words[word.id].wrong}
+                  {/* 0.66.0: «освоенность» — слово взрослого, ребёнку оно ничего не говорит. */}
+                  знаешь на {profile.words[word.id].s}% · ошибок: {profile.words[word.id].wrong}
                 </p>
               )}
               <button className="btn ghost wide" onClick={() => setOpen(null)}>

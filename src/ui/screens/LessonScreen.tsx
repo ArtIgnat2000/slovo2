@@ -989,16 +989,23 @@ function Results({
                 <b>{check?.wrong.length}</b>
               </div>
             )}
-            {previous && (
-              <div className="kv" data-run-compare>
-                <span>Прошлый раз</span>
-                <b>
-                  {previous.correct} из {previous.total}
-                  {' → '}
-                  {check?.correct ?? correct} из {check?.total ?? answered}
-                </b>
-              </div>
-            )}
+            {previous && (() => {
+              // 0.66.0: сравнение словами, а не стрелкой. «4 из 6 → 6 из 6»
+              // ребёнок читал как два числа без вывода — теперь вывод есть.
+              const nowCorrect = check?.correct ?? correct;
+              const nowTotal = check?.total ?? answered;
+              const better = nowCorrect > previous.correct;
+              const worse = nowCorrect < previous.correct;
+              return (
+                <div className="kv" data-run-compare>
+                  <span>В прошлый раз</span>
+                  <b>
+                    {previous.correct} из {previous.total}, сейчас {nowCorrect} из {nowTotal}
+                    {better ? ' — лучше!' : worse ? ' — потренируемся' : ' — так же'}
+                  </b>
+                </div>
+              );
+            })()}
 
             {!!checkedWords?.length && (
               <div className="check-words" data-check-words>
@@ -1037,8 +1044,7 @@ function Results({
             </div>
             {isCheck && (
               <p className="tiny muted" style={{ margin: '8px 0 0' }}>
-                Контрольная проверяет, а не учит: подсказок и отработки здесь нет — ошибки
-                лучше отдельно потренировать кнопкой выше.
+                Здесь мы проверяем, а не учим. Потренировать ошибки можно кнопкой выше.
               </p>
             )}
           </div>
