@@ -283,15 +283,23 @@ export async function runBukLessonChecks(): Promise<void> {
   // Ошибиться можно на любой карточке с ответом, поэтому сценарий не зависит от
   // того, попалось ли в уроке «окошко»: письмо и сборка тоже умеют ошибаться.
   let verdictLine = '';
-  for (let i = 0; i < 10 && !verdictLine; i++) {
+  // Попыток с запасом: набор карточек зависит от уровня урока и от
+  // детерминированного «рандома» смоука, а карточка «запомни слово» требует
+  // полного цикла (показ → выбор → вердикт). 0.63.0: было 10, не хватало.
+  for (let i = 0; i < 20 && !verdictLine; i++) {
     if (btnText('К урокам')) {
       if (!(await startLesson())) break;
       await toPracticeCard();
       continue;
     }
     if (!isAnswerable()) {
-      await answerCorrectly();
-      continue;
+      // «Запомни слово» сначала ПОКАЗЫВАЕТ слово (≈2 с), варианты появляются
+      // позже — без ожидания цикл крутится на месте (0.63.0).
+      for (let w = 0; w < 14 && !isAnswerable(); w++) await sleep(200);
+      if (!isAnswerable()) {
+        await answerCorrectly();
+        continue;
+      }
     }
     await answerOnce(true);
     // При ошибке вердикт показывается через 1,2–1,3 с (TaskView)

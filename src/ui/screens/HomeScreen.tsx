@@ -12,8 +12,7 @@ import { Crowns } from '../Bits';
 import { ClassSheet } from '../ClassSheet';
 import { DailyQuests } from '../DailyQuests';
 import { DailyQuestStrip } from '../DailyQuestStrip';
-import { listStats } from '../../engine/word-lists';
-import { lessonCardLimit } from '../../engine/scheduler';
+import { drillLimit, hardWords, listStats } from '../../engine/word-lists';
 import { Icon, Gem } from '../Icon';
 import { InviteFriend } from '../InviteFriend';
 import { WeeklyRewards } from '../WeeklyRewards';
@@ -208,7 +207,10 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
           {(profile.lists ?? []).map((list) => {
             const stats = listStats(list, profile.customWords ?? {});
             const trained = list.words.filter((id) => (profile.words?.[id]?.ok ?? 0) > 0).length;
-            const errors = list.lastCheck?.wrong.length ?? 0;
+            // 0.63.0: «трудные» — по всей истории заходов, а не только по
+            // последней контрольной; размер тренировки — отдельный параметр.
+            const errors = hardWords(list, 20).length || (list.lastCheck?.wrong.length ?? 0);
+            const perRun = drillLimit(profile, stats.total);
             // 0.62.0: два режима вместо одного. Тренировка берёт часть слов
             // (по размеру урока) и даёт подсказки; полный контроль проходит
             // ВСЕ слова по одному заданию без подсказок и с отчётом.
@@ -231,7 +233,7 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
                     </span>
                   </span>
                   <span className="list-card-go" aria-hidden="true">
-                    Тренировка · {Math.min(stats.total, lessonCardLimit(profile.lessonSize))}
+                    Тренировка · {perRun}
                   </span>
                 </button>
                 <div className="list-card-modes">
@@ -250,7 +252,7 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
                       data-list-errors={list.id}
                       onClick={() => onStartList(list.id, 'errors')}
                     >
-                      🔁 Ошибки · {errors}
+                      🔁 Трудные · {Math.min(errors, perRun)}
                     </button>
                   )}
                 </div>

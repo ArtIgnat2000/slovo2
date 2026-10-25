@@ -18,7 +18,7 @@
 //  • карточка своего слова с автополями (слоги, ударение, опасные буквы);
 //  • id для уроков: `list:<id>`.
 
-import type { ClassId, PracticeList, Word } from '../types';
+import type { ClassId, ListRunMode, PracticeList, Word } from '../types';
 import { WORDS } from '../content/words';
 import { knownStress } from '../content/stress-dict';
 import { customWordCard } from '../content/custom-words';
@@ -43,6 +43,21 @@ export const CUSTOM_WORD_PREFIX = 'c_';
 
 /** Сколько своих слов разрешаем в одном списке — защита от «вставил роман». */
 export const MAX_LIST_WORDS = 120;
+
+/** Сколько последних заходов по списку храним (0.63.0). */
+export const LIST_RUNS_LIMIT = 30;
+
+/** Варианты размера одной тренировки списка: «сколько слов за раз». */
+export const LIST_DRILL_SIZES: { id: number; title: string; hint: string }[] = [
+  { id: 4, title: '4 слова', hint: 'совсем коротко, на пять минут' },
+  { id: 6, title: '6 слов', hint: 'по умолчанию: легко начать' },
+  { id: 8, title: '8 слов', hint: 'чуть больше' },
+  { id: 12, title: '12 слов', hint: 'как короткий урок' },
+  { id: 0, title: 'весь список', hint: 'все слова за один заход' },
+];
+
+/** Размер тренировки по умолчанию: легче урока, чтобы не бросать. */
+export const DEFAULT_LIST_DRILL_SIZE = 6;
 
 /** Сколько «опасных» букв максимум ставим своему слову автоматически. */
 const MAX_AUTO_DANGER = 3;
@@ -319,6 +334,7 @@ export function parseWordList(
 }
 
 /** Слова списка как карточки (для уроков и предпросмотра). */
+
 export function listWords(
   list: PracticeList,
   customWords: Record<string, Word> = {},
@@ -332,6 +348,101 @@ export function listStats(list: PracticeList, customWords: Record<string, Word> 
   const words = listWords(list, customWords);
   const custom = words.filter((w) => w.id.startsWith(CUSTOM_WORD_PREFIX)).length;
   return { total: words.length, custom, bank: words.length - custom };
+}
+
+/** Один заход в читаемом виде — для списка истории в интерфейсе. */
+export interface RunSummary {
+  at: number;
+  mode: ListRunMode;
+  total: number;
+  correct: number;
+  /** Доля верных слов: 0..1. */
+  ratio: number;
+  wrong: string[];
+  listSize?: number;
+}
+
+/**
+ * Динамика заходов по списку (0.63.0).
+ *
+ * `runs` в профиле лежат в порядке добавления (последний — последним).
+ * Возвращаем в том же порядке, но с посчитанной долей верных слов — по ней
+ * интерфейс рисует полоски и считает «стало лучше / хуже».
+ */
+export function runHistory(list: PracticeList, limit = 12): RunSummary[] {
+  const runs = (list.runs ?? []).slice(-limit);
+  return runs.map((r) => ({
+    at: r.at,
+    mode: r.mode,
+    total: r.total,
+    correct: r.correct,
+    ratio: r.total > 0 ? r.correct / r.total : 0,
+    wrong: r.wrong,
+    ...(r.listSize ? { listSize: r.listSize } : {}),
+  }));
+}
+
+/**
+ * «Стало лучше» по последним заходам одного режима.
+ *
+ * Сравниваем средний результат первой половины и второй половины истории:
+ * так одна неудачная контрольная не превращается в «всё стало хуже».
+ * null — данных мало (меньше двух заходов).
+ */
+export function trendOf(list: PracticeList, mode?: ListRunMode): { delta: number; better: boolean } | null {
+  const runs = (list.runs ?? []).filter((r) => !mode || r.mode === mode);
+  if (runs.length < 2) return null;
+  const half = Math.floor(runs.length / 2);
+  const avg = (arr: typeof runs) => arr.reduce((n, r) => n + (r.total ? r.correct / r.total : 0), 0) / Math.max(1, arr.length);
+  const before = avg(runs.slice(0, half || 1));
+  const after = avg(runs.slice(runs.length - half || runs.length - 1));
+  return { delta: after - before, better: after >= before };
+}
+
+/** Сколько раз слово ошибочно — по всей истории заходов. */
+export function wordErrorCounts(list: PracticeList): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const run of list.runs ?? []) {
+    for (const id of run.wrong) out[id] = (out[id] ?? 0) + 1;
+  }
+  return out;
+}
+
+/**
+ * «Трудные слова» списка (0.63.0): слова, которые ошибались чаще других.
+ *
+ * Сортируем по числу ошибок, затем по «свежести» — слово, проваленное в
+ * последнем заходе, важнее старого провала с тем же счётом. Именно этот
+ * набор уходит в режим «Тренировать ошибки», если история накопилась.
+ */
+export function hardWords(list: PracticeList, limit = 8): { id: string; errors: number; lastAt: number }[] {
+  const runs = list.runs ?? [];
+  const errors: Record<string, number> = {};
+  const lastAt: Record<string, number> = {};
+  for (const run of runs) {
+    for (const id of run.wrong) {
+      errors[id] = (errors[id] ?? 0) + 1;
+      lastAt[id] = Math.max(lastAt[id] ?? 0, run.at);
+    }
+  }
+  return Object.entries(errors)
+    .map(([id, n]) => ({ id, errors: n, lastAt: lastAt[id] ?? 0 }))
+    .sort((a, b) => b.errors - a.errors || b.lastAt - a.lastAt)
+    .slice(0, limit);
+}
+
+/** Сколько слов брать в тренировку: параметр профиля, 0/undefined — весь список. */
+export function drillSizeOf(profile: { listDrillSize?: number } | null | undefined): number {
+  const size = profile?.listDrillSize;
+  if (typeof size !== 'number' || !Number.isFinite(size) || size < 0) return DEFAULT_LIST_DRILL_SIZE;
+  return Math.floor(size);
+}
+
+/** Разбить тренировку на части: сколько слов реально возьмём в этот заход. */
+export function drillLimit(profile: { listDrillSize?: number } | null | undefined, listLength: number): number {
+  const size = drillSizeOf(profile);
+  if (!size) return listLength;
+  return Math.max(1, Math.min(size, listLength));
 }
 
 /** Новый список с id; название по умолчанию — дата контрольной или «Список». */
@@ -370,9 +481,42 @@ export function normalizeLists(raw: unknown): PracticeList[] {
       createdAt: typeof l.createdAt === 'number' && Number.isFinite(l.createdAt) ? l.createdAt : Date.now(),
       ...(typeof l.lastRunAt === 'number' && Number.isFinite(l.lastRunAt) ? { lastRunAt: l.lastRunAt } : {}),
       ...(normalizeLastCheck(l.lastCheck) ? { lastCheck: normalizeLastCheck(l.lastCheck) } : {}),
+      ...(() => {
+        const runs = normalizeRuns(l.runs);
+        return runs.length ? { runs } : {};
+      })(),
     });
   }
   return out;
+}
+
+/** История заходов из файла: битые записи отбрасываем, длина ограничена. */
+function normalizeRuns(raw: unknown): NonNullable<PracticeList['runs']> {
+  if (!Array.isArray(raw)) return [];
+  const out: NonNullable<PracticeList['runs']> = [];
+  for (const item of raw) {
+    const r = item as Partial<NonNullable<PracticeList['runs']>[number]> | null;
+    if (!r || typeof r !== 'object') continue;
+    const mode = r.mode === 'check' || r.mode === 'errors' || r.mode === 'train' ? r.mode : null;
+    if (!mode) continue;
+    const total = typeof r.total === 'number' && Number.isFinite(r.total) ? Math.floor(r.total) : 0;
+    if (total <= 0) continue;
+    const correct = typeof r.correct === 'number' && Number.isFinite(r.correct)
+      ? Math.max(0, Math.min(total, Math.floor(r.correct)))
+      : 0;
+    const wrong = Array.isArray(r.wrong) ? [...new Set(r.wrong.filter((x): x is string => typeof x === 'string'))] : [];
+    out.push({
+      at: typeof r.at === 'number' && Number.isFinite(r.at) ? r.at : Date.now(),
+      mode,
+      total,
+      correct,
+      wrong,
+      ...(typeof r.listSize === 'number' && Number.isFinite(r.listSize) && r.listSize > 0
+        ? { listSize: Math.floor(r.listSize) }
+        : {}),
+    });
+  }
+  return out.slice(-LIST_RUNS_LIMIT);
 }
 
 /** Итог контрольной из файла: числа и id слов, мусор отбрасываем. */

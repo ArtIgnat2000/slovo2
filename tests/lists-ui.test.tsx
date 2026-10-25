@@ -17,7 +17,13 @@ import {
   normalizeLists,
   findBankWord,
   checkLessonId,
+  DEFAULT_LIST_DRILL_SIZE,
+  drillLimit,
+  drillSizeOf,
   errorsLessonId,
+  hardWords,
+  runHistory,
+  trendOf,
   listLessonId,
   listModeOf,
   listStats,
@@ -653,8 +659,10 @@ export async function runListsChecks(): Promise<void> {
     );
     check(
       'контроль: итог сохраняется в список (lastCheck)',
-      /saveListCheck/.test(src) && /lastCheck/.test(readFileSync('src/state/store.ts', 'utf8')),
-      'итог контрольной не сохраняется',
+      /saveListRun/.test(src) &&
+        /lastCheck/.test(readFileSync('src/state/store.ts', 'utf8')) &&
+        /runs/.test(readFileSync('src/state/store.ts', 'utf8')),
+      'заход по списку не сохраняется (нет saveListRun/lastCheck/runs)',
     );
   }
 
@@ -801,6 +809,121 @@ export async function runListsChecks(): Promise<void> {
     }
   }
 
+  // ── 6f. История заходов, динамика и размер тренировки (0.63.0) ────────────
+  {
+    // Размер тренировки: отдельный параметр, по умолчанию легче урока.
+    check(
+      'тренировка: размер по умолчанию — 6 слов (легче урока)',
+      DEFAULT_LIST_DRILL_SIZE === 6 && drillSizeOf({}) === 6 && drillSizeOf(null) === 6,
+      String(drillSizeOf({})),
+    );
+    check(
+      'тренировка: 0 или undefined — весь список, мусор в профиле не ломает',
+      drillLimit({ listDrillSize: 0 }, 26) === 26 &&
+        drillLimit({ listDrillSize: 4 }, 26) === 4 &&
+        drillLimit({ listDrillSize: 99 }, 26) === 26 &&
+        drillLimit({ listDrillSize: NaN }, 26) === DEFAULT_LIST_DRILL_SIZE,
+      JSON.stringify([
+        drillLimit({ listDrillSize: 0 }, 26),
+        drillLimit({ listDrillSize: 4 }, 26),
+        drillLimit({ listDrillSize: 99 }, 26),
+        drillLimit({ listDrillSize: NaN }, 26),
+      ]),
+    );
+
+    // История: пишем заходы и проверяем динамику и трудные слова.
+    const hist = store().addList('История', 'Ученик\nПетух\nВорона\nБерёза', {});
+    const hid = hist.list!.id;
+    const wordIds = hist.list!.words;
+    store().saveListRun(hid, { mode: 'train', total: 4, correct: 2, wrong: [wordIds[1], wordIds[3]], listSize: 4 });
+    store().saveListRun(hid, { mode: 'train', total: 4, correct: 3, wrong: [wordIds[3]], listSize: 4 });
+    store().saveListRun(hid, { mode: 'check', total: 4, correct: 4, wrong: [], listSize: 4 });
+    const withHistory = active().lists!.find((l) => l.id === hid)!;
+    check(
+      'история: сохранены три захода (тренировка, тренировка, контрольная)',
+      (withHistory.runs ?? []).length === 3,
+      JSON.stringify((withHistory.runs ?? []).map((r) => [r.mode, r.correct, r.total])),
+    );
+    check(
+      'история: динамика считается по заходам («стало лучше»)',
+      trendOf(withHistory)?.better === true,
+      JSON.stringify(trendOf(withHistory)),
+    );
+    check(
+      'история: полная контрольная обновила lastCheck, тренировка — нет',
+      withHistory.lastCheck?.correct === 4 && withHistory.lastCheck?.total === 4,
+      JSON.stringify(withHistory.lastCheck),
+    );
+    check(
+      'история: «трудные слова» — те, что ошибались чаще (Берёза × 2)',
+      hardWords(withHistory, 5)[0]?.id === wordIds[3] && hardWords(withHistory, 5)[0]?.errors === 2,
+      JSON.stringify(hardWords(withHistory, 5).map((h) => [h.id, h.errors])),
+    );
+    check(
+      'история: runHistory отдаёт долю верных слов',
+      runHistory(withHistory, 10).map((r) => Math.round(r.ratio * 100)).join(',') === '50,75,100',
+      runHistory(withHistory, 10).map((r) => Math.round(r.ratio * 100)).join(','),
+    );
+
+    // История переживает выгрузку/чтение, мусор отбрасывается.
+    const roundTripRuns = normalizeLists(JSON.parse(JSON.stringify(active().lists))).find((l) => l.id === hid);
+    check(
+      'история: заходы сохраняются в профиле и восстанавливаются из файла',
+      (roundTripRuns?.runs ?? []).length === 3,
+      String((roundTripRuns?.runs ?? []).length),
+    );
+    const brokenRuns = normalizeLists([
+      { id: 'l_x', words: ['g2_ученик'], runs: [{ mode: 'нет', total: 4 }, { mode: 'train', total: 0 }, { mode: 'train', total: 3, correct: 9, wrong: ['a', 'a', 5] }] },
+    ]);
+    check(
+      'история: битые заходы отбрасываются, correct не больше total, wrong без повторов',
+      (brokenRuns[0]?.runs ?? []).length === 1 &&
+        brokenRuns[0]!.runs![0].correct === 3 &&
+        brokenRuns[0]!.runs![0].wrong.join(',') === 'a',
+      JSON.stringify(brokenRuns[0]?.runs),
+    );
+
+    // Параметр размера тренировки сохраняется в профиле.
+    store().setListDrillSize(4);
+    check('тренировка: размер сохраняется в профиле', active().listDrillSize === 4, String(active().listDrillSize));
+    store().setListDrillSize(6);
+
+    // В интерфейсе родителя: выбор размера и блок истории.
+    await openParent();
+    await openParentSection('Списки');
+    check(
+      'тренировка: в «Списках» есть выбор «слов за тренировку»',
+      !!document.querySelector('[data-list-drill]') && !!document.querySelector('[data-drill-size="12"]'),
+      body().slice(0, 160),
+    );
+    const drillBtn = document.querySelector('[data-drill-size="12"]') as HTMLButtonElement | null;
+    if (drillBtn) {
+      click(drillBtn);
+      await sleep(60);
+    }
+    check('тренировка: выбор размера меняет параметр профиля', active().listDrillSize === 12, String(active().listDrillSize));
+    check(
+      'история: в «Списках» видны результаты заходов и тренд',
+      !!document.querySelector(`[data-list-history="${hid}"]`) &&
+        document.querySelectorAll('[data-run-bar]').length >= 3 &&
+        !!document.querySelector(`[data-list-trend="${hid}"]`),
+      document.querySelector(`[data-list-history="${hid}"]`)?.textContent?.slice(0, 160) ?? 'нет блока',
+    );
+    check(
+      'история: видны трудные слова и кнопка их тренировки',
+      !!document.querySelector(`[data-list-hard="${hid}"]`) &&
+        (document.querySelector(`[data-list-hard="${hid}"]`)?.textContent ?? '').length > 5,
+      document.querySelector(`[data-list-hard="${hid}"]`)?.textContent ?? 'нет',
+    );
+    store().removeList(hid);
+    store().setListDrillSize(6);
+    // Возвращаемся на «Уроки»: следующие проверки ждут главный экран.
+    if (homeTab) {
+      click(homeTab);
+      await sleep(80);
+    }
+  }
+
   // ── 7. Удаление списка не стирает свои слова ──────────────────────────────
   const before = Object.keys(active().customWords ?? {}).length;
   const toRemove = (active().lists ?? [])[0];
@@ -822,9 +945,12 @@ export async function runListsChecks(): Promise<void> {
   check('списки: профиль очищен от тестовых списков', (active().lists ?? []).length === 0, String((active().lists ?? []).length));
 
   // Возвращаемся на «Уроки», чтобы не влиять на следующие проверки.
-  if (homeTab) {
-    click(homeTab);
-    await sleep(60);
+  // Кнопку ищем заново: после переходов по разделам ссылка на старую может
+  // остаться от размонтированного экрана.
+  for (let i = 0; i < 3 && !(has('Сегодня') || has('Начать')); i++) {
+    const tab = buttons().find((b) => (b.textContent ?? '').includes('Уроки'));
+    if (tab) click(tab);
+    await sleep(120);
   }
   check('списки: вернулись на «Уроки»', has('Сегодня') || has('Начать'), body().slice(0, 120));
 }

@@ -93,6 +93,12 @@ export function currentWord() {
   // и □, чтобы намеренная ошибка в smoke всегда была действительно ошибкой.
   const spans = Array.from(document.querySelectorAll('.word-big > span'));
   const pattern = spans.map((s) => (s.textContent ?? '').trim()).join('');
+  // Карточка «Запомни слово» (визуальный диктант) показывает слово целиком,
+  // без пропусков. Раньше helper возвращал null, и тест БУКа падал с
+  // «слово не определилось» — хотя слово на экране было. 0.63.0.
+  if (pattern && !pattern.includes('□')) {
+    return WORDS.find((w) => w.text.toLowerCase() === pattern.toLowerCase()) ?? null;
+  }
   if (!pattern.includes('□')) return null;
   return (
     WORDS.find(
