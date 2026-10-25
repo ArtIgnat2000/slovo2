@@ -522,6 +522,11 @@ interface AppState {
   setCustomWordStress: (wordId: string, index: number) => void;
   /** Отметить, что список тренировали (подпись «последний раз — вчера»). */
   touchList: (listId: string) => void;
+  /**
+   * Сохранить итог полной контрольной (0.62.0): сколько слов проверено, сколько
+   * верно и какие провалились. Из этого «Тренировать ошибки» берёт набор слов.
+   */
+  saveListCheck: (listId: string, result: { total: number; correct: number; wrong: string[] }) => void;
 
   /** Сейф прогресса: корзина профилей, журнал событий, метки копий, дата выгрузки. */
   vault: VaultState;
@@ -1590,6 +1595,24 @@ export const useApp = create<AppState>()(
         set((s) => patchActive(s, (p) => ({
           ...p,
           lists: (p.lists ?? []).map((l) => (l.id === listId ? { ...l, lastRunAt: Date.now() } : l)),
+        }))),
+      saveListCheck: (listId, result) =>
+        set((s) => patchActive(s, (p) => ({
+          ...p,
+          lists: (p.lists ?? []).map((l) =>
+            l.id === listId
+              ? {
+                  ...l,
+                  lastRunAt: Date.now(),
+                  lastCheck: {
+                    at: Date.now(),
+                    total: Math.max(0, result.total),
+                    correct: Math.max(0, Math.min(result.total, result.correct)),
+                    wrong: [...new Set(result.wrong)],
+                  },
+                }
+              : l,
+          ),
         }))),
 
       setLessonSize: (size) =>

@@ -17,8 +17,8 @@ interface Props {
   initialTab?: ParentTabId;
   /** Открыть вкладку «Слова» (из обзора — «посмотреть все слова») */
   onOpenWords: () => void;
-  /** Тренировать список к контрольной (0.58.0): уводит на экран урока. */
-  onStartList: (listId: string) => void;
+  /** Списки к контрольной (0.58.0): тренировка, контроль, ошибки. */
+  onStartList: (listId: string, mode?: 'train' | 'check' | 'errors') => void;
 }
 
 /**

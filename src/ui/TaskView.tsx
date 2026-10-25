@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import type { Task, Word } from '../types';
 import { Sentence, WordCard, WordClue, WordLetters } from './WordView';
 import { dangerSummary } from '../engine/word-facts';
@@ -14,9 +14,26 @@ interface Props {
   word: Word;
   onSolve: SolveFn;
   onAttempt?: (quality: number) => void;
+  /**
+   * Режим «без подсказок» (0.62.0): полный контроль списка к контрольной.
+   * Тогда кнопки «Подсказка» и карточки с мнемоникой не рендерятся вовсе —
+   * не просто прячутся стилями.
+   */
+  noHints?: boolean;
 }
 
-export function TaskView({ task, word, onSolve, onAttempt }: Props) {
+/** Флаг «подсказки отключены» — читают HintBtn и HintCard. */
+const NoHintsContext = createContext(false);
+
+export function TaskView({ task, word, onSolve, onAttempt, noHints }: Props) {
+  return (
+    <NoHintsContext.Provider value={!!noHints}>
+      <TaskBody task={task} word={word} onSolve={onSolve} onAttempt={onAttempt} />
+    </NoHintsContext.Provider>
+  );
+}
+
+function TaskBody({ task, word, onSolve, onAttempt }: Omit<Props, 'noHints'>) {
   switch (task.kind) {
     case 'intro':
       return <Intro word={word} reason={task.reason} onSolve={onSolve} />;
@@ -56,6 +73,8 @@ function HintBtn({
   label?: string;
   disabled?: boolean;
 }) {
+  // В полном контроле подсказок нет: проверяем, а не учим.
+  if (useContext(NoHintsContext)) return null;
   return (
     <button
       className="btn ghost sm"
@@ -75,6 +94,7 @@ function HintBtn({
 
 /** Мнемоника или объяснение опасных букв — второй слой каждой подсказки. */
 function HintCard({ word }: { word: Word }) {
+  if (useContext(NoHintsContext)) return null;
   return (
     <div className="banner">
       <Icon name="bulb" size={18} /> {word.mnemonic ?? dangerSummary(word)}

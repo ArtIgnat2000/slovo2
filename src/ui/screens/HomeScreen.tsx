@@ -13,6 +13,7 @@ import { ClassSheet } from '../ClassSheet';
 import { DailyQuests } from '../DailyQuests';
 import { DailyQuestStrip } from '../DailyQuestStrip';
 import { listStats } from '../../engine/word-lists';
+import { lessonCardLimit } from '../../engine/scheduler';
 import { Icon, Gem } from '../Icon';
 import { InviteFriend } from '../InviteFriend';
 import { WeeklyRewards } from '../WeeklyRewards';
@@ -39,8 +40,8 @@ interface Props {
   onStartReview: () => void;
   /** Меню ведёт прямо в «Мои покупки» или в «Ангар» (0.33.0) */
   onOpenShop: (view: 'vitrina' | 'wardrobe', hangar?: boolean) => void;
-  /** Тренировка списка слов к контрольной (0.58.0). */
-  onStartList: (listId: string) => void;
+  /** Списки слов к контрольной (0.58.0): тренировка, полный контроль, ошибки. */
+  onStartList: (listId: string, mode?: 'train' | 'check' | 'errors') => void;
 }
 
 /**
@@ -207,25 +208,53 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
           {(profile.lists ?? []).map((list) => {
             const stats = listStats(list, profile.customWords ?? {});
             const trained = list.words.filter((id) => (profile.words?.[id]?.ok ?? 0) > 0).length;
+            const errors = list.lastCheck?.wrong.length ?? 0;
+            // 0.62.0: два режима вместо одного. Тренировка берёт часть слов
+            // (по размеру урока) и даёт подсказки; полный контроль проходит
+            // ВСЕ слова по одному заданию без подсказок и с отчётом.
             return (
-              <button
-                key={list.id}
-                type="button"
-                className="list-card"
-                data-list-card={list.id}
-                aria-label={`Контрольная: ${list.title}, ${stats.total} слов. Начать тренировку`}
-                onClick={() => onStartList(list.id)}
-              >
-                <span className="list-card-icon" aria-hidden="true">🏫</span>
-                <span className="list-card-text">
-                  <span className="list-card-title">{list.title}</span>
-                  <span className="list-card-meta">
-                    {stats.total} слов
-                    {trained > 0 ? ` · тренировано ${trained}` : ''}
+              <div key={list.id} className="list-card-block">
+                <button
+                  type="button"
+                  className="list-card"
+                  data-list-card={list.id}
+                  aria-label={`Список «${list.title}», ${stats.total} слов. Начать тренировку`}
+                  onClick={() => onStartList(list.id, 'train')}
+                >
+                  <span className="list-card-icon" aria-hidden="true">🏫</span>
+                  <span className="list-card-text">
+                    <span className="list-card-title">{list.title}</span>
+                    <span className="list-card-meta">
+                      {stats.total} слов
+                      {trained > 0 ? ` · тренировано ${trained}` : ''}
+                      {list.lastCheck ? ` · контрольная: ${list.lastCheck.correct} из ${list.lastCheck.total}` : ''}
+                    </span>
                   </span>
-                </span>
-                <span className="list-card-go" aria-hidden="true">Тренировать</span>
-              </button>
+                  <span className="list-card-go" aria-hidden="true">
+                    Тренировка · {Math.min(stats.total, lessonCardLimit(profile.lessonSize))}
+                  </span>
+                </button>
+                <div className="list-card-modes">
+                  <button
+                    type="button"
+                    className="btn ghost sm"
+                    data-list-check={list.id}
+                    onClick={() => onStartList(list.id, 'check')}
+                  >
+                    📋 Полный контроль · все {stats.total}
+                  </button>
+                  {errors > 0 && (
+                    <button
+                      type="button"
+                      className="btn ghost sm"
+                      data-list-errors={list.id}
+                      onClick={() => onStartList(list.id, 'errors')}
+                    >
+                      🔁 Ошибки · {errors}
+                    </button>
+                  )}
+                </div>
+              </div>
             );
           })}
         </div>

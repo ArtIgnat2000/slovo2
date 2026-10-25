@@ -71,6 +71,12 @@ export default function App() {
 
   const [tab, setTab] = useState<Tab>('home');
   const [lessonId, setLessonId] = useState<string | null>(null);
+  /**
+   * Номер запуска урока (0.62.0). Нужен для «Пройти заново»: если открыть тот же
+   * id, React не пересоздаёт экран (key тот же), и ребёнок остаётся на
+   * результатах. Номер входит в key — экран начинается заново.
+   */
+  const [lessonRun, setLessonRun] = useState(0);
   // Цель дня на момент старта урока. Экран результатов сравнивает урок с ней,
   // а не с текущей настройкой: «Родители» могут поменять цель прямо во время урока.
   const [lessonGoal, setLessonGoal] = useState(settings.dailyGoal);
@@ -286,6 +292,7 @@ export default function App() {
   const startLesson = (id: string) => {
     setParentUnlocked(false);
     setLessonGoal(settings.dailyGoal);
+    setLessonRun((n) => n + 1);
     setLessonId(id);
   };
 
@@ -317,10 +324,19 @@ export default function App() {
       <div className="app">
         {/* key — чтобы состояние урока не переезжало в другой урок */}
         <LessonScreen
-          key={lessonId}
+          key={`${lessonId}#${lessonRun}`}
           lessonId={lessonId}
           goal={lessonGoal}
           onExit={() => setLessonId(null)}
+          onStartList={(listId, mode) =>
+            startLesson(
+              mode === 'check'
+                ? `check:${listId}`
+                : mode === 'errors'
+                  ? `err:${listId}`
+                  : `list:${listId}`,
+            )
+          }
         />
         <Toast />
       </div>
@@ -348,7 +364,9 @@ export default function App() {
           onOpenProfiles={() => setProfilesOpen(true)}
           onStartReview={() => startLesson('review')}
           onOpenShop={openShop}
-          onStartList={(listId) => startLesson(`list:${listId}`)}
+          onStartList={(listId, mode = 'train') =>
+            startLesson(mode === 'check' ? `check:${listId}` : mode === 'errors' ? `err:${listId}` : `list:${listId}`)
+          }
         />
       ) : tab === 'words' ? (
         <WordsScreen />
@@ -363,9 +381,9 @@ export default function App() {
         />
       ) : (
         <ParentScreen
-          onStartList={(listId) => {
+          onStartList={(listId, mode = 'train') => {
             setParentUnlocked(false);
-            startLesson(`list:${listId}`);
+            startLesson(mode === 'check' ? `check:${listId}` : mode === 'errors' ? `err:${listId}` : `list:${listId}`);
           }}
           unlocked={parentUnlocked}
           onUnlock={() => setParentUnlocked(true)}
