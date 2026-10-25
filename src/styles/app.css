@@ -219,7 +219,7 @@ button {
   flex: none;
   font-size: 12px;
   font-weight: 700;
-  color: var(--primary);
+  color: var(--primary-ink);
 }
 
 /* «Проверьте ударение» (0.60.0): автогадание не выдаём за факт. */
@@ -363,7 +363,7 @@ button {
   cursor: pointer;
 }
 .list-syl.on {
-  border-color: var(--primary);
+  border-color: var(--primary-ink);
   background: var(--primary-soft);
   font-weight: 700;
 }
@@ -388,7 +388,7 @@ button {
   padding-bottom: 0;
 }
 .list-custom-word-text b {
-  color: var(--primary);
+  color: var(--primary-ink);
 }
 
 /* ── UI-иконки (0.55.0) ─────────────────────────────────────────────────────
@@ -496,8 +496,11 @@ p {
   font-size: var(--fs-sm);
 }
 .tiny {
+  /* 0.66.0: 13 px бледным цветом не читались (контраст 2,72 : 1).
+     Теперь 14 px (--fs-xs) и второй уровень цвета — 5,29 : 1. */
   font-size: var(--fs-xs);
-  color: var(--ink-3);
+  color: var(--ink-2);
+  line-height: 1.35;
 }
 
 .row {
@@ -549,7 +552,7 @@ p {
   min-height: var(--tap);
   cursor: pointer;
   background: var(--primary-soft);
-  color: var(--primary);
+  color: var(--primary-ink);
   transition: transform 0.08s ease, filter 0.15s ease;
   display: inline-flex;
   align-items: center;
@@ -561,7 +564,7 @@ p {
 }
 .btn.primary {
   background: var(--primary);
-  color: #fff;
+  color: var(--on-primary);
   box-shadow: 0 5px 0 #5b3ede;
 }
 .btn.primary:active {
@@ -599,7 +602,8 @@ p {
   pointer-events: none;
 }
 .btn.sm {
-  min-height: 40px;
+  /* 0.66.0: маленькая кнопка всё равно должна попадаться пальцем с первого раза. */
+  min-height: 48px;
   padding: 8px 14px;
   font-size: var(--fs-sm);
 }
@@ -612,11 +616,16 @@ p {
   font-weight: 700;
   font-size: var(--fs-sm);
   cursor: pointer;
-  min-height: 42px;
+  /* 0.66.0: зона нажатия ≥ 48 px — палец ребёнка промахивался по фильтрам. */
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 .chip.on {
   background: var(--primary);
-  color: #fff;
+  color: var(--on-primary);
   border-color: var(--primary);
 }
 
@@ -759,7 +768,7 @@ p {
   cursor: pointer;
 }
 .menu-btn[aria-expanded='true'] {
-  border-color: var(--primary);
+  border-color: var(--primary-ink);
 }
 .stat-pill {
   display: inline-flex;
@@ -776,7 +785,7 @@ p {
   color: var(--orange);
 }
 .stat-pill.xp {
-  color: var(--primary);
+  color: var(--primary-ink);
 }
 
 /* ── «Мои покупки»: пустое состояние одной карточкой (0.32.1) ─────────────
@@ -973,7 +982,7 @@ p {
 }
 /* Готово что-то забрать — рамка и мягкий фон говорят об этом без анимации. */
 .quest-strip.ready {
-  border-color: var(--primary);
+  border-color: var(--primary-ink);
   background: var(--primary-soft);
 }
 .quest-strip-icon {
@@ -1027,7 +1036,7 @@ p {
   filter: grayscale(1);
 }
 .quest-strip-key.on {
-  border-color: var(--primary);
+  border-color: var(--primary-ink);
   background: var(--primary-soft);
   opacity: 1;
   filter: none;
@@ -1083,7 +1092,7 @@ p {
   border-radius: var(--r-lg);
 }
 .profile-card.on {
-  border-color: var(--primary);
+  border-color: var(--primary-ink);
   background: var(--primary-soft);
 }
 .profile-card-main {
@@ -1166,7 +1175,7 @@ p {
   touch-action: manipulation;
 }
 .class-form-btn.on {
-  border-color: var(--primary);
+  border-color: var(--primary-ink);
   background: var(--primary-soft);
 }
 .class-form-btn:focus-visible {
@@ -1196,7 +1205,7 @@ p {
   touch-action: manipulation;
 }
 .class-card.on {
-  border-color: var(--primary);
+  border-color: var(--primary-ink);
   background: var(--primary-soft);
 }
 .class-card:focus-visible {
@@ -1212,7 +1221,7 @@ p {
   font-weight: 800;
 }
 .class-card-check {
-  color: var(--primary);
+  color: var(--primary-ink);
 }
 .class-card-meta {
   display: block;
@@ -1264,7 +1273,7 @@ p {
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--primary);
+  color: var(--primary-ink);
   margin-bottom: 8px;
 }
 .home-hero-body {
@@ -1416,7 +1425,7 @@ p {
 /* Стрелка уводит вправо — так строка читается как переход, а не как подпись. */
 .invite-cta-arrow {
   margin-left: auto;
-  color: var(--primary);
+  color: var(--primary-ink);
 }
 .invite-cta:active {
   background: var(--primary-soft);
@@ -1486,7 +1495,7 @@ p {
   color: var(--ink-3);
 }
 .weekly-mark.reached {
-  color: var(--primary);
+  color: var(--primary-ink);
 }
 .weekly-mark.awarded {
   color: var(--green);
@@ -1630,7 +1639,7 @@ p {
 .quest-gem {
   font-weight: 800;
   font-size: var(--fs-sm);
-  color: var(--primary);
+  color: var(--primary-ink);
   white-space: nowrap;
 }
 .quest-gem.taken {
@@ -2608,7 +2617,7 @@ p {
 }
 
 .stat-pill.gems {
-  color: var(--primary);
+  color: var(--primary-ink);
 }
 
 /* Полоска серии дней внутри карточки «Цель дня» (пункт 5) */
@@ -2807,7 +2816,7 @@ p {
 }
 .shop-seg button.on {
   background: var(--primary);
-  color: #fff;
+  color: var(--on-primary);
 }
 /* Полки витрины: горизонтальный скролл, «скоро» — приглушено. */
 .shop-cats {
@@ -2879,12 +2888,12 @@ p {
   border-color: var(--green);
 }
 .shop-item.on {
-  border-color: var(--primary);
+  border-color: var(--primary-ink);
   background: var(--primary-soft);
 }
 /* то, что собирается прямо сейчас, — подсвечено, а не приглушено */
 .shop-item.current {
-  border-color: var(--primary);
+  border-color: var(--primary-ink);
   background: var(--primary-soft);
 }
 .shop-badge {
@@ -3033,8 +3042,8 @@ p {
   font-weight: 800;
 }
 .shop-price.afford {
-  border-color: var(--primary);
-  color: var(--primary);
+  border-color: var(--primary-ink);
+  color: var(--primary-ink);
 }
 
 /* ── Витрина-бутик (0.19.0) ────────────────────────────────────────────────
@@ -3077,7 +3086,7 @@ p {
 .shop-boutique .shop-item.owned { border-color: var(--green); }
 .shop-boutique .shop-item.on,
 .shop-boutique .shop-item.current {
-  border-color: var(--primary);
+  border-color: var(--primary-ink);
   background: var(--case-card-on);
 }
 
@@ -3743,9 +3752,9 @@ p {
   box-shadow: 0 2px 0 color-mix(in srgb, var(--tag-ink) 14%, transparent);
 }
 .shop-boutique .shop-price.afford {
-  border-color: var(--primary);
+  border-color: var(--primary-ink);
   background: var(--bg-2);
-  color: var(--primary);
+  color: var(--primary-ink);
 }
 /* Кнопка — внизу этикетки. В узкой карточке «Купить · 💎60» при 15 px
    ломалось на две строки, и кнопки в ряду становились разной высоты:
@@ -3777,7 +3786,7 @@ p {
   border: 2px solid var(--case-line);
   border-radius: var(--r-pill);
   background: var(--case-card);
-  color: var(--primary);
+  color: var(--primary-ink);
   font-size: var(--fs-sm);
 }
 /* Ближайшая покупка: мягкая подсказка на бирке, не второй герой. */
@@ -3908,8 +3917,9 @@ p {
   padding: 6px;
   border-radius: var(--r-pill);
   line-height: 1;
-  min-width: 38px;
-  min-height: 38px;
+  /* 0.66.0: 38 px — промах; сердечко в углу карточки часто не срабатывало. */
+  min-width: 48px;
+  min-height: 48px;
   display: grid;
   place-items: center;
   touch-action: manipulation;
@@ -4125,7 +4135,7 @@ p {
 }
 .shop-wear + .shop-wear { margin-top: 8px; }
 .shop-wear.on {
-  border-color: var(--primary);
+  border-color: var(--primary-ink);
   background: var(--primary-soft);
 }
 .shop-wear-icon {
@@ -4421,7 +4431,7 @@ p {
   box-shadow: 0 2px 0 var(--line);
 }
 .node-btn.current {
-  border-color: var(--primary);
+  border-color: var(--primary-ink);
   box-shadow: 0 5px 0 var(--primary);
   background: var(--primary-soft);
 }
@@ -4486,7 +4496,7 @@ p {
 }
 .word-big .stress {
   position: relative;
-  color: var(--primary);
+  color: var(--primary-ink);
   text-decoration: none;
 }
 .word-big .stress::after {
@@ -4552,7 +4562,7 @@ p {
   border-color: var(--green);
 }
 .syllable.next {
-  border-color: var(--primary);
+  border-color: var(--primary-ink);
   animation: pulse 1.4s ease-in-out infinite;
 }
 @keyframes pulse {
@@ -4585,7 +4595,7 @@ p {
 }
 .slot.filled {
   border-style: solid;
-  border-color: var(--primary);
+  border-color: var(--primary-ink);
   background: var(--primary-soft);
 }
 .slot.ok {
@@ -4997,7 +5007,7 @@ p {
   flex: 1.6;
   font-size: 22px;
   background: var(--primary-soft);
-  color: var(--primary);
+  color: var(--primary-ink);
 }
 
 /* ── Обратная связь ──────────────────────────────────────────────────────── */
@@ -5183,13 +5193,16 @@ p {
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  color: var(--ink-3);
+  /* 0.66.0: подпись вкладки — 12 px и --ink-2: 11 px бледным не читались. */
+  color: var(--ink-2);
   font-weight: 800;
-  font-size: 11px;
+  font-size: 12px;
   cursor: pointer;
 }
 .tab.on {
-  color: var(--primary);
+  /* 0.66.0: --primary на карточке даёт 4,35 : 1 — для 12 px мало.
+     --primary-ink — тот же оттенок, подобранный под 4,85. */
+  color: var(--primary-ink);
 }
 .tab span.ico {
   font-size: 22px;
@@ -5265,7 +5278,7 @@ p {
   font-weight: 700;
 }
 .buk-verdict b {
-  color: var(--primary);
+  color: var(--primary-ink);
 }
 @media (prefers-reduced-motion: reduce) {
   .buk-owl.pulse,
@@ -5389,7 +5402,7 @@ p {
 }
 .mascot-home {
   background: var(--primary-soft);
-  color: var(--primary);
+  color: var(--primary-ink);
 }
 /* Автоскрытие при прокрутке: БУК уезжает за правый край, но остаётся на экране
    краешком — чтобы было видно, что он вернётся, и его можно было вернуть тапом. */
@@ -5546,20 +5559,27 @@ p {
   font-size: var(--fs-sm);
   background: var(--card);
   cursor: pointer;
+  /* 0.66.0: слово в словарике — тоже кнопка, и палец должен в неё попадать. */
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 .word-chip.weak {
   border-color: var(--red);
-  color: var(--red);
+  /* 0.66.0: цвет остаётся подсказкой, но текст читается — --bad-ink
+     подобран под мягкую подложку (было 3,06 : 1, стало ≥ 4,8). */
+  color: var(--bad-ink);
   background: var(--red-soft);
 }
 .word-chip.mid {
   border-color: var(--orange);
-  color: var(--orange);
+  color: var(--warn-ink);
   background: var(--orange-soft);
 }
 .word-chip.good {
   border-color: var(--green);
-  color: #12a04a;
+  color: var(--good-ink);
   background: var(--green-soft);
 }
 
@@ -5633,7 +5653,7 @@ p {
 }
 .input:focus {
   outline: none;
-  border-color: var(--primary);
+  border-color: var(--primary-ink);
 }
 
 .avatars {
@@ -5654,7 +5674,7 @@ p {
   place-items: center;
 }
 .avatar-pick.on {
-  border-color: var(--primary);
+  border-color: var(--primary-ink);
   background: var(--primary-soft);
 }
 
@@ -5730,7 +5750,7 @@ p {
   text-transform: uppercase;
 }
 .vlabs-brand {
-  color: var(--primary);
+  color: var(--primary-ink);
 }
 .vlabs-tagline {
   font-size: 18px;
@@ -5970,7 +5990,7 @@ p {
 }
 /* выбранный оттенок виден и без цвета: кольцо + галочка */
 .tint-swatch.on {
-  border-color: var(--primary);
+  border-color: var(--primary-ink);
   box-shadow:
     inset 0 0 0 2px rgba(255, 255, 255, 0.45),
     0 0 0 2px var(--primary);
@@ -6087,7 +6107,7 @@ p {
   line-height: 1.25;
 }
 .weekly-reward-milestone.reached {
-  border-color: var(--primary);
+  border-color: var(--primary-ink);
   background: var(--primary-soft);
 }
 .weekly-reward-milestone.awarded {
@@ -6496,7 +6516,7 @@ p {
   }
 }
 .seg-tab.on {
-  border-color: var(--primary);
+  border-color: var(--primary-ink);
   background: var(--primary-soft);
   color: var(--ink);
 }
@@ -6559,7 +6579,7 @@ p {
   border-radius: var(--r-md);
 }
 .class-table-row.on {
-  border-color: var(--primary);
+  border-color: var(--primary-ink);
   background: var(--primary-soft);
 }
 .class-table-head {
@@ -6757,10 +6777,10 @@ p {
   font-weight: 700;
 }
 .week-col.today .week-day {
-  color: var(--primary);
+  color: var(--primary-ink);
 }
 .week-col.today .week-xp {
-  color: var(--primary);
+  color: var(--primary-ink);
 }
 
 /* Достижения: сетка карточек, у неполученных — приглушение и описание цели. */
@@ -6831,7 +6851,7 @@ p {
 .theme-help summary {
   min-height: 44px;
   padding: 11px 0;
-  color: var(--primary);
+  color: var(--primary-ink);
   font-size: var(--fs-sm);
   font-weight: 700;
   cursor: pointer;
@@ -6918,7 +6938,7 @@ p {
 .choice-item.on {
   border-color: var(--primary);
   background: var(--primary);
-  color: #fff;
+  color: var(--on-primary);
 }
 .choice-item:focus-visible {
   outline: 3px solid var(--primary);
@@ -7130,7 +7150,7 @@ p {
   cursor: pointer;
 }
 .music-choice.selected {
-  border-color: var(--primary);
+  border-color: var(--primary-ink);
   background: var(--primary-soft);
 }
 .music-choice b,
@@ -7268,7 +7288,7 @@ p {
   line-height: 1.45;
 }
 .credits a {
-  color: var(--primary);
+  color: var(--primary-ink);
   word-break: break-word;
 }
 .credits-list {
@@ -7389,7 +7409,7 @@ p {
   box-shadow: var(--shadow);
 }
 .background-theme-card.selected {
-  border-color: var(--primary);
+  border-color: var(--primary-ink);
   background: var(--primary-soft);
   box-shadow: var(--shadow), 0 0 0 2px color-mix(in srgb, var(--primary) 18%, transparent);
 }
@@ -7675,7 +7695,7 @@ p {
 .quick-sound.on {
   background: var(--primary-soft);
   border-color: color-mix(in srgb, var(--primary) 45%, var(--line));
-  color: var(--primary);
+  color: var(--primary-ink);
 }
 .quick-sound.quiet {
   background: var(--card-2, var(--card));

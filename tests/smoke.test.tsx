@@ -27,6 +27,7 @@ import { runBukLessonChecks } from './buk-lesson-ui.test';
 import { runLessonArtChecks } from './lesson-art-ui.test';
 import { runVerdictChecks } from './verdict-ui.test';
 import { runTypingChecks } from './typing-ui.test';
+import { runUiCleanupChecks } from './ui-cleanup.test';
 import { runClassChecks } from './classes.test';
 // Смена цвета купленной вещи не должна включать музыку (регрессия магазина).
 import './recolor-music.test';
@@ -1238,10 +1239,18 @@ async function main() {
     menu?.querySelector('.menu-status')?.textContent ?? '',
   );
   check(
-    'в меню есть награды, покупки, ангар, друг, класс и смена ученика',
-    ['rewards', 'purchases', 'hangar', 'invite', 'class', 'profiles'].every(
+    'в меню есть награды, покупки, ангар, класс и смена ученика',
+    ['rewards', 'purchases', 'hangar', 'class', 'profiles'].every(
       (key) => !!menu?.querySelector(`[data-menu="${key}"]`),
     ),
+    Array.from(menu?.querySelectorAll('[data-menu]') ?? []).map((n) => n.getAttribute('data-menu')).join(' | '),
+  );
+  // 0.66.0: «Позови друга» — одно место. Оно уже есть на главной в один тап
+  // (0.32.1: за кнопкой профиля ребёнок его не находил), поэтому строка в
+  // меню была дублем; теперь меню отвечает только за второстепенное.
+  check(
+    '«Позови друга» не дублируется в меню ☰',
+    !menu?.querySelector('[data-menu="invite"]'),
     Array.from(menu?.querySelectorAll('[data-menu]') ?? []).map((n) => n.getAttribute('data-menu')).join(' | '),
   );
 
@@ -1575,6 +1584,9 @@ async function main() {
   // показывает результат, награду и написание слова (замечание 2026-10-15).
   await runVerdictChecks();
   await runTypingChecks();
+
+  // Чистота интерфейса: читаемость, тап-зоны и детские слова (0.66.0).
+  runUiCleanupChecks();
 
   // «Передать приложение»: QR и ссылка для нового ученика (замечание 2026-10-14).
   await runShareAppChecks();

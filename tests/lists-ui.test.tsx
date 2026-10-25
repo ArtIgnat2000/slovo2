@@ -684,7 +684,7 @@ export async function runListsChecks(): Promise<void> {
       await sleep(60);
       // Кнопка режима на карточке списка.
       const checkBtn = document.querySelector(`[data-list-check="${tinyId}"]`) as HTMLButtonElement | null;
-      check('контроль: на карточке списка есть кнопка «Полный контроль»', !!checkBtn, body().slice(0, 160));
+      check('контроль: на карточке списка есть кнопка «Проверить все»', !!checkBtn, body().slice(0, 160));
       if (checkBtn) {
         click(checkBtn);
         await sleep(120);

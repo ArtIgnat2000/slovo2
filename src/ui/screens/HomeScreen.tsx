@@ -16,7 +16,6 @@ import { drillLimit, hardWords, listStats } from '../../engine/word-lists';
 import { Icon, Gem } from '../Icon';
 import { InviteFriend } from '../InviteFriend';
 import { WeeklyRewards } from '../WeeklyRewards';
-import { levelOf } from '../../engine/rewards';
 import { classProgress, nextClass } from '../../engine/classes';
 import { pickReviewWords } from '../../engine/srs';
 import {
@@ -108,8 +107,6 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
     if (kind === 'review') onStartReview();
     else onStartLesson(current.id);
   };
-
-  const lvl = levelOf(profile.xp);
 
   // «Пора повторить» считает слова тем же правилом, что и сам урок повторения:
   // раньше блок обещал слова, которых урок не показывал, и открывалось «Повторять нечего!».
@@ -228,7 +225,7 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
                     <span className="list-card-title">{list.title}</span>
                     <span className="list-card-meta">
                       {stats.total} слов
-                      {trained > 0 ? ` · тренировано ${trained}` : ''}
+                      {trained > 0 ? ` · ${trained} ${plural(trained, 'слово знакомо', 'слова знакомы', 'слов знакомы')}` : ''}
                       {list.lastCheck ? ` · контрольная: ${list.lastCheck.correct} из ${list.lastCheck.total}` : ''}
                     </span>
                   </span>
@@ -243,7 +240,7 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
                     data-list-check={list.id}
                     onClick={() => onStartList(list.id, 'check')}
                   >
-                    📋 Полный контроль · все {stats.total}
+                    📋 Проверить все {stats.total}
                   </button>
                   {errors > 0 && (
                     <button
@@ -305,7 +302,7 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
               <span className="home-hero-meta">
                 {reviewDue
                   ? `${reviews.length} ${plural(reviews.length, 'слово готово', 'слова готовы', 'слов готовы')} забыться`
-                  : `${currentDone} из ${current.wordIds.length} слов · ур. ${lvl}`}
+                  : `${currentDone} из ${current.wordIds.length} слов`}
               </span>
             </span>
           </div>
@@ -473,20 +470,6 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
                 <span className="grow">
                   <span className="menu-row-title">Ангар</span>
                   <span className="tiny muted">Твоя техника крупным планом</span>
-                </span>
-                <span className="menu-row-arrow" aria-hidden="true">›</span>
-              </button>
-
-              <button
-                type="button"
-                className="menu-row"
-                data-menu="invite"
-                onClick={() => openMenuSheet(() => setInviteOpen(true))}
-              >
-                <span className="menu-row-emoji" aria-hidden="true">🤝</span>
-                <span className="grow">
-                  <span className="menu-row-title">Позови друга</span>
-                  <span className="tiny muted">QR-код и ссылка на игру</span>
                 </span>
                 <span className="menu-row-arrow" aria-hidden="true">›</span>
               </button>
