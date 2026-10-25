@@ -2,7 +2,7 @@ import { nextAdaptiveState, type Outcome } from '../engine/adaptive';
 import { isThemeStyle, type ThemeStyle } from '../engine/theme-styles';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { ClassId, DailyState, DayStat, LessonSize, LessonState, PracticeList, Profile, ShopState, ShopSlot, ShopTuning, StudyAnswerMeta, StudySession, StudySessionStatus, WeeklyState, Word, WordState } from '../types';
+import type { ClassId, DailyState, DayStat, LessonSize, LessonState, ListRun, ListRunMode, PracticeList, Profile, ShopState, ShopSlot, ShopTuning, StudyAnswerMeta, StudySession, StudySessionStatus, WeeklyState, Word, WordState } from '../types';
 import { applyAnswer, initState } from '../engine/srs';
 import { idbStorage } from '../platform/storage';
 import { GEMS_PER_STREAK, levelOf } from '../engine/rewards';
@@ -39,6 +39,9 @@ import {
 import { activeChestSkin, skinById, skinState, type ChestSkinId } from '../engine/chests';
 import { DEFAULT_LESSON_SIZE } from '../engine/scheduler';
 import {
+  DEFAULT_LIST_DRILL_SIZE,
+  LIST_DRILL_SIZES,
+  LIST_RUNS_LIMIT,
   makeList,
   normalizeCustomWords,
   normalizeLists,
@@ -344,6 +347,12 @@ function normalizeProfile(raw: Partial<Profile> | null | undefined): Profile | n
         raw.lessonSize === 'short' || raw.lessonSize === 'standard' || raw.lessonSize === 'full'
           ? raw.lessonSize
           : DEFAULT_LESSON_SIZE,
+      // Размер тренировки списка (0.63.0): только из списка вариантов,
+      // иначе — умолчание (6 слов). Мусор из файла не превращается в 0.
+      listDrillSize:
+        typeof raw.listDrillSize === 'number' && LIST_DRILL_SIZES.some((o) => o.id === raw.listDrillSize)
+          ? raw.listDrillSize
+          : DEFAULT_LIST_DRILL_SIZE,
       shop: {
         owned,
         equipped: raw.shop?.equipped && typeof raw.shop.equipped === 'object' ? raw.shop.equipped : {},
@@ -527,6 +536,16 @@ interface AppState {
    * верно и какие провалились. Из этого «Тренировать ошибки» берёт набор слов.
    */
   saveListCheck: (listId: string, result: { total: number; correct: number; wrong: string[] }) => void;
+  /**
+   * Записать заход по списку (0.63.0): тренировку, контрольную или тренировку
+   * ошибок. Из истории считаются динамика и «трудные слова».
+   */
+  saveListRun: (
+    listId: string,
+    run: { mode: ListRunMode; total: number; correct: number; wrong: string[]; listSize?: number },
+  ) => void;
+  /** Сколько слов брать в одну тренировку списка: 4/6/8/12 или 0 — весь список. */
+  setListDrillSize: (size: number) => void;
 
   /** Сейф прогресса: корзина профилей, журнал событий, метки копий, дата выгрузки. */
   vault: VaultState;
@@ -1596,6 +1615,34 @@ export const useApp = create<AppState>()(
           ...p,
           lists: (p.lists ?? []).map((l) => (l.id === listId ? { ...l, lastRunAt: Date.now() } : l)),
         }))),
+      saveListRun: (listId, run) =>
+        set((s) => patchActive(s, (p) => ({
+          ...p,
+          lists: (p.lists ?? []).map((l) => {
+            if (l.id !== listId) return l;
+            const entry: ListRun = {
+              at: Date.now(),
+              mode: run.mode,
+              total: Math.max(0, Math.floor(run.total)),
+              correct: Math.max(0, Math.min(Math.floor(run.total), Math.floor(run.correct))),
+              wrong: [...new Set(run.wrong)],
+              ...(run.listSize ? { listSize: Math.floor(run.listSize) } : {}),
+            };
+            const runs = [...(l.runs ?? []), entry].slice(-LIST_RUNS_LIMIT);
+            return {
+              ...l,
+              runs,
+              lastRunAt: Date.now(),
+              // Полная контрольная обновляет «итог последней контрольной»:
+              // именно на него опирается режим «тренировать ошибки».
+              ...(run.mode === 'check'
+                ? { lastCheck: { at: entry.at, total: entry.total, correct: entry.correct, wrong: entry.wrong } }
+                : {}),
+            };
+          }),
+        }))),
+      setListDrillSize: (size) =>
+        set((s) => patchActive(s, (p) => ({ ...p, listDrillSize: Math.max(0, Math.floor(size)) }))),
       saveListCheck: (listId, result) =>
         set((s) => patchActive(s, (p) => ({
           ...p,

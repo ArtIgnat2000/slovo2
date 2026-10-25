@@ -13,9 +13,20 @@
 // же, до сохранения.
 
 import { useState } from 'react';
-import type { PracticeList, Profile } from '../../types';
+import type { PracticeList, Profile, Word } from '../../types';
 import { useApp } from '../../state/store';
-import { listStats, parseWordList, withStress, type ParsedList } from '../../engine/word-lists';
+import {
+  LIST_DRILL_SIZES,
+  drillSizeOf,
+  hardWords,
+  listStats,
+  listWords,
+  parseWordList,
+  runHistory,
+  trendOf,
+  withStress,
+  type ParsedList,
+} from '../../engine/word-lists';
 import { plural } from '../../engine/quests';
 import { GroupTitle } from './ParentBits';
 import { PRESET_LISTS, presetText } from '../../content/preset-lists';
@@ -26,8 +37,94 @@ interface Props {
   onTrain: (listId: string, mode?: 'train' | 'check' | 'errors') => void;
 }
 
+/**
+ * История заходов по списку (0.63.0): полоски результатов, динамика и
+ * «трудные слова».
+ *
+ * Зачем: ребёнок тренируется частями, и родителю нужно видеть не только
+ * последнюю контрольную, но и — становится ли лучше и что стабильно не
+ * получается. Полоска = один заход, высота = доля верных слов.
+ */
+function ListHistory({
+  list,
+  customWords,
+  onTrainErrors,
+}: {
+  list: PracticeList;
+  customWords: Record<string, Word>;
+  onTrainErrors: () => void;
+}) {
+  const runs = runHistory(list, 10);
+  if (!runs.length) {
+    return (
+      <p className="setting-hint" style={{ margin: '2px 0 0' }}>
+        Результатов пока нет: после первой тренировки здесь появится история и динамика.
+      </p>
+    );
+  }
+  const trend = trendOf(list);
+  const hard = hardWords(list, 5);
+  const byId = new Map(listWords(list, customWords).map((w) => [w.id, w]));
+  const label = (mode: string) => (mode === 'check' ? 'контрольная' : mode === 'errors' ? 'ошибки' : 'тренировка');
+
+  return (
+    <div className="list-history" data-list-history={list.id}>
+      <div className="list-history-head">
+        <span className="setting-title">Результаты заходов</span>
+        {trend && (
+          <span className={`list-trend${trend.better ? ' up' : ' down'}`} data-list-trend={list.id}>
+            {trend.better ? '↗ стало лучше' : '↘ стало хуже'}
+            {' '}
+            ({trend.delta > 0 ? '+' : ''}
+            {Math.round(trend.delta * 100)} п.п.)
+          </span>
+        )}
+      </div>
+
+      <div className="list-bars" role="img" aria-label="Результаты последних заходов по списку">
+        {runs.map((run, i) => (
+          <span
+            key={`${run.at}-${i}`}
+            className={`list-bar ${run.mode}`}
+            style={{ height: `${Math.max(8, Math.round(run.ratio * 100))}%` }}
+            title={`${label(run.mode)}: ${run.correct} из ${run.total} · ${new Date(run.at).toLocaleDateString('ru-RU')}`}
+            data-run-bar
+          />
+        ))}
+      </div>
+
+      <ul className="list-runs">
+        {[...runs].reverse().slice(0, 4).map((run, i) => (
+          <li key={`${run.at}-${i}`} data-run-row>
+            <span className="tiny muted">{new Date(run.at).toLocaleDateString('ru-RU')}</span>
+            <span className="tiny">{label(run.mode)}</span>
+            <b>
+              {run.correct} из {run.total}
+            </b>
+          </li>
+        ))}
+      </ul>
+
+      {hard.length > 0 && (
+        <div className="list-hard" data-list-hard={list.id}>
+          <span className="setting-hint">Трудные слова:</span>{' '}
+          {hard.map((h) => (
+            <span key={h.id} className="word-chip study-error">
+              {byId.get(h.id)?.text ?? h.id} · {h.errors}
+            </span>
+          ))}
+          <button type="button" className="btn ghost sm" style={{ marginTop: 6 }} onClick={onTrainErrors}>
+            🔁 Тренировать трудные · {hard.length}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ListsTab({ profile, onTrain }: Props) {
-  const { addList, removeList, renameList, setCustomWordStress } = useApp.getState();
+  const { addList, removeList, renameList, setCustomWordStress, setListDrillSize } = useApp.getState();
+  const drill = drillSizeOf(profile);
   const lists = profile.lists ?? [];
   const customWords = profile.customWords ?? {};
 
@@ -106,6 +203,31 @@ export function ListsTab({ profile, onTrain }: Props) {
           title="Списки к контрольной"
           hint="Вставьте слова, которые задали в школе, — ребёнок потренирует именно их. Списки у каждого ученика свои."
         />
+
+        {/* 0.63.0: отдельный параметр — сколько слов брать в одну тренировку.
+            Он не связан с «размером урока»: подготовка к контрольной должна
+            быть легче урока, иначе ребёнок бросает её на середине. */}
+        <div className="list-drill" data-list-drill>
+          <div className="setting-title">Слов за одну тренировку</div>
+          <div className="list-drill-options" role="group" aria-label="Сколько слов за одну тренировку">
+            {LIST_DRILL_SIZES.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                className={`list-syl${drill === option.id ? ' on' : ''}`}
+                aria-pressed={drill === option.id}
+                data-drill-size={option.id}
+                onClick={() => setListDrillSize(option.id)}
+              >
+                {option.title}
+              </button>
+            ))}
+          </div>
+          <div className="setting-hint">
+            {LIST_DRILL_SIZES.find((o) => o.id === drill)?.hint ?? 'легко начать'}.
+            {' '}Полный контроль всегда проходит все слова списка — он для проверки.
+          </div>
+        </div>
 
         {lists.length === 0 && !editing && (
           <p className="setting-hint">
@@ -201,6 +323,13 @@ export function ListsTab({ profile, onTrain }: Props) {
                       Удалить
                     </button>
                   </div>
+                  {/* 0.63.0: история заходов и динамика — прямо под списком,
+                      чтобы не уходить в другой раздел за «а как раньше было». */}
+                  <ListHistory
+                    list={list}
+                    customWords={customWords}
+                    onTrainErrors={() => onTrain(list.id, 'errors')}
+                  />
                 </>
               )}
             </div>

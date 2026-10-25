@@ -37,6 +37,85 @@ button {
   display: none !important;
 }
 
+/* ── История заходов по списку (0.63.0) ───────────────────────────────────
+   Полоски результатов: высота = доля верных слов, цвет = режим.
+   Так динамика видна с одного взгляда, без таблиц и дат. */
+.list-drill {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 10px 0 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.list-drill-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.list-history {
+  flex-basis: 100%;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+}
+.list-history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.list-trend {
+  font-size: 12px;
+  font-weight: 700;
+}
+.list-trend.up {
+  color: var(--green);
+}
+.list-trend.down {
+  color: var(--orange-ink);
+}
+.list-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 56px;
+  margin: 8px 0 6px;
+}
+.list-bar {
+  flex: 1 1 0;
+  min-width: 6px;
+  border-radius: 4px 4px 2px 2px;
+  background: var(--primary);
+  opacity: 0.85;
+}
+.list-bar.check {
+  background: var(--green);
+}
+.list-bar.errors {
+  background: var(--orange);
+}
+.list-runs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.list-runs li {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+.list-runs b {
+  margin-left: auto;
+}
+.list-hard {
+  margin-top: 8px;
+}
+
 /* Два режима списка на «Уроках» (0.62.0): карточка + кнопки под ней. */
 .list-card-block {
   display: flex;

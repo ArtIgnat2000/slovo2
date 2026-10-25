@@ -14,7 +14,7 @@ import {
 } from '../../content/words';
 import { classComplete, classProgress, nextClass } from '../../engine/classes';
 import { buildLesson, DEFAULT_LESSON_SIZE, lessonCardLimit, lookupWith, makeTask, pickDanger, repairTask, shuffle, type WordLookup } from '../../engine/scheduler';
-import { listModeOf, listWords, MAX_LIST_WORDS } from '../../engine/word-lists';
+import { drillLimit, hardWords, listModeOf, listWords, MAX_LIST_WORDS } from '../../engine/word-lists';
 import { pickReview, pickReviewWords } from '../../engine/srs';
 import { dayKey, dayPlan, masteredCount, todayStat, useActiveProfile, useApp } from '../../state/store';
 import { BONUS_CHEST_GEMS, claimableQuests, dayMetrics, plural, questId } from '../../engine/quests';
@@ -495,7 +495,17 @@ export function LessonScreen({ lessonId, onExit, goal, onStartList }: Props) {
           .filter(([, ok]) => !ok)
           .map(([id]) => id),
       };
-      if (isCheck) useApp.getState().saveListCheck(listId, result);
+      // 0.63.0: пишем заход в историю для ЛЮБОГО режима — иначе динамику
+      // частичных тренировок видеть нельзя (раньше сохранялась только
+      // полная контрольная).
+      const runResult = {
+        mode: (listMode?.mode ?? 'train') as 'train' | 'check' | 'errors',
+        total: result.total,
+        correct: result.correct,
+        wrong: result.wrong,
+        listSize: list?.words.length,
+      };
+      if (result.total > 0) useApp.getState().saveListRun(listId, runResult);
       else useApp.getState().touchList(listId);
     }
     if (lessonId !== REVIEW.id && !listId) {
@@ -601,6 +611,14 @@ export function LessonScreen({ lessonId, onExit, goal, onStartList }: Props) {
             if (!listId || !onStartList) return;
             onStartList(listId, 'train');
           }}
+          previous={(() => {
+            // 0.63.0: сравниваем с предыдущим заходом ТОГО ЖЕ режима —
+            // «было 4 из 6 → стало 6 из 6» понятнее звёзд.
+            if (!list) return undefined;
+            const sameMode = (list.runs ?? []).slice(0, -1).filter((r) => r.mode === (listMode?.mode ?? 'train'));
+            const prev = sameMode[sameMode.length - 1];
+            return prev ? { at: prev.at, total: prev.total, correct: prev.correct } : undefined;
+          })()}
           correct={stats.current.correct}
           wrong={stats.current.wrong}
           xp={xpShown}
@@ -804,6 +822,7 @@ function Results({
   onTrainErrors,
   onRestartCheck,
   onTrainList,
+  previous,
 }: {
   lessonId: string;
   correct: number;
@@ -821,6 +840,8 @@ function Results({
   checkedWords?: Word[];
   /** Сколько слов провалилось в последней контрольной (для кнопки «ошибки»). */
   errorsCount?: number;
+  /** Предыдущий заход того же режима — для «было → стало» (0.63.0). */
+  previous?: { at: number; total: number; correct: number };
   onTrainErrors?: () => void;
   onRestartCheck?: () => void;
   onTrainList?: () => void;
@@ -968,6 +989,16 @@ function Results({
                 <b>{check?.wrong.length}</b>
               </div>
             )}
+            {previous && (
+              <div className="kv" data-run-compare>
+                <span>Прошлый раз</span>
+                <b>
+                  {previous.correct} из {previous.total}
+                  {' → '}
+                  {check?.correct ?? correct} из {check?.total ?? answered}
+                </b>
+              </div>
+            )}
 
             {!!checkedWords?.length && (
               <div className="check-words" data-check-words>
@@ -1105,17 +1136,21 @@ function buildQueue(profile: Profile | null, lessonId: string): Task[] {
     }
 
     const states: Record<string, WordState> = profile?.words ?? {};
-    // Тренировка по ошибкам последней контрольной: только те слова, где
-    // ребёнок ошибся. Если ошибок нет — обычная тренировка.
+    // Тренировка «по ошибкам» (0.63.0): берём слова, которые ошибались чаще
+    // всего за ВСЮ историю заходов (а не только в последней контрольной) —
+    // так тренировка сама находит то, что не получается. Если истории нет,
+    // откатываемся к провалам последней контрольной.
     const wrong = list.lastCheck?.wrong ?? [];
+    const hard = hardWords(list, MAX_LIST_WORDS).map((h) => h.id);
+    const problemIds = hard.length ? hard : wrong;
     const pool =
-      mode.mode === 'errors' && wrong.length
-        ? all.filter((w) => wrong.includes(w.id))
+      mode.mode === 'errors' && problemIds.length
+        ? all.filter((w) => problemIds.includes(w.id))
         : all;
-    const maxCards = effectiveCards(
-      profile?.adaptiveCards,
-      lessonCardLimit(profile?.lessonSize ?? DEFAULT_LESSON_SIZE),
-    );
+    // Размер тренировки списка — ОТДЕЛЬНЫЙ параметр (0.63.0), не «размер урока»:
+    // готовиться к контрольной по 6 слов легче, чем проходить 12–20.
+    // Полный контроль сюда не доходит (выше return) и проверяет всё подряд.
+    const maxCards = drillLimit(profile, pool.length);
     // Каких слов не хватает в наборе, если список длиннее одного захода:
     // сначала те, что ребёнок ещё не видел, потом самые слабые. Так за
     // несколько заходов список проходится целиком, а не первые 12 слов.
