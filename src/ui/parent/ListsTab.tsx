@@ -22,8 +22,8 @@ import { PRESET_LISTS, presetText } from '../../content/preset-lists';
 
 interface Props {
   profile: Profile;
-  /** Открыть тренировку списка (уходит на экран урока). */
-  onTrain: (listId: string) => void;
+  /** Открыть режим списка (уходит на экран урока): тренировка, контроль, ошибки. */
+  onTrain: (listId: string, mode?: 'train' | 'check' | 'errors') => void;
 }
 
 export function ListsTab({ profile, onTrain }: Props) {
@@ -89,10 +89,15 @@ export function ListsTab({ profile, onTrain }: Props) {
   };
 
   const customCount = (list: PracticeList) => listStats(list, customWords);
-  const whenTrained = (list: PracticeList) =>
-    list.lastRunAt
+  const whenTrained = (list: PracticeList) => {
+    const trained = list.lastRunAt
       ? ` · тренировали ${new Date(list.lastRunAt).toLocaleDateString('ru-RU')}`
       : '';
+    const check = list.lastCheck
+      ? ` · контрольная ${list.lastCheck.correct} из ${list.lastCheck.total}`
+      : '';
+    return `${trained}${check}`;
+  };
 
   return (
     <div className="parent-stack">
@@ -152,10 +157,29 @@ export function ListsTab({ profile, onTrain }: Props) {
                       type="button"
                       className="btn sm primary"
                       data-train-list={list.id}
-                      onClick={() => onTrain(list.id)}
+                      onClick={() => onTrain(list.id, 'train')}
                     >
                       Тренировать
                     </button>
+                    {/* 0.62.0: полный контроль всех слов без подсказок и с отчётом. */}
+                    <button
+                      type="button"
+                      className="btn ghost sm"
+                      data-check-list={list.id}
+                      onClick={() => onTrain(list.id, 'check')}
+                    >
+                      📋 Контрольная
+                    </button>
+                    {(list.lastCheck?.wrong.length ?? 0) > 0 && (
+                      <button
+                        type="button"
+                        className="btn ghost sm"
+                        data-errors-list={list.id}
+                        onClick={() => onTrain(list.id, 'errors')}
+                      >
+                        🔁 Ошибки · {list.lastCheck?.wrong.length}
+                      </button>
+                    )}
                     <button
                       type="button"
                       className="btn ghost sm"

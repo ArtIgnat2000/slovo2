@@ -16,7 +16,10 @@ import {
   normalizeCustomWords,
   normalizeLists,
   findBankWord,
+  checkLessonId,
+  errorsLessonId,
   listLessonId,
+  listModeOf,
   listStats,
   listIdFromLesson,
   listWords,
@@ -591,6 +594,210 @@ export async function runListsChecks(): Promise<void> {
       const confirm = btnText('Выйти');
       if (confirm) click(confirm);
       await sleep(80);
+    }
+  }
+
+  // ── 6b. Режимы списка: тренировка / полный контроль / ошибки ──────────────
+  check(
+    'режимы: «list:» — тренировка, «check:» — контроль, «err:» — ошибки',
+    listModeOf('list:l_1')?.mode === 'train' &&
+      listModeOf('check:l_1')?.mode === 'check' &&
+      listModeOf('err:l_1')?.mode === 'errors' &&
+      listModeOf('g2_school') === null,
+    JSON.stringify([listModeOf('list:l_1'), listModeOf('check:l_1'), listModeOf('err:l_1'), listModeOf('g2_school')]),
+  );
+  check(
+    'режимы: id строятся и разбираются одинаково',
+    checkLessonId('l_1') === 'check:l_1' && errorsLessonId('l_1') === 'err:l_1' &&
+      listModeOf(checkLessonId('l_1'))?.listId === 'l_1' && listModeOf(errorsLessonId('l_1'))?.listId === 'l_1',
+    `${checkLessonId('l_1')} / ${errorsLessonId('l_1')}`,
+  );
+
+  // ── 6c. Белый экран на результатах контрольной (баг 2026-10-25) ───────────
+  // Раньше Results брал lesson.emoji/lesson.title из LESSON_BY_ID, а у урока
+  // списка там нет записи → TypeError → белый экран. Теперь заголовок берётся
+  // из списка, а к нему — запасное значение.
+  {
+    const src = readFileSync('src/ui/screens/LessonScreen.tsx', 'utf8');
+    check(
+      'результаты: экран не падает на уроке-списке (заголовок из списка)',
+      /const headingEmoji = isCheck \? '📋' : listTitle \? '🏫' : lesson\?\.emoji/.test(src) &&
+        /headingTitle = listTitle \?\? lesson\?\.title/.test(src),
+      'Results всё ещё берёт lesson.emoji/lesson.title напрямую',
+    );
+    check(
+      'результаты: отчёт по словам есть в разметке',
+      /data-check-report/.test(src) && /data-check-words/.test(src) && /data-check-word=/.test(src),
+      'нет отчёта по словам',
+    );
+    check(
+      'результаты: кнопки «тренировать ошибки» и «пройти заново»',
+      /data-train-errors/.test(src) && /data-restart-check/.test(src),
+      'нет кнопок режимов на результатах',
+    );
+  }
+
+  // ── 6d. Полный контроль: свои слова и подсказки отключены ──────────────────
+  {
+    const src = readFileSync('src/ui/screens/LessonScreen.tsx', 'utf8');
+    const css = readFileSync('src/styles/app.css', 'utf8');
+    check(
+      'контроль: режим помечает экран и отключает отработку ошибок',
+      /lesson-check/.test(src) && /if \(!isCheck\) \{/.test(src),
+      'нет пометки режима контроля или отработка ошибок не отключена',
+    );
+    check(
+      'контроль: подсказки и «опасные буквы» спрятаны в этом режиме',
+      /\.lesson-check \[data-hint\]/.test(css) && /\.lesson-check \.banner/.test(css),
+      'подсказки не спрятаны',
+    );
+    check(
+      'контроль: итог сохраняется в список (lastCheck)',
+      /saveListCheck/.test(src) && /lastCheck/.test(readFileSync('src/state/store.ts', 'utf8')),
+      'итог контрольной не сохраняется',
+    );
+  }
+
+  // ── 6e. Живой прогон контрольной: экран результатов не белый ──────────────
+  // Главный баг 2026-10-25: после последней карточки экран результатов падал
+  // в белый, потому что у урока-списка нет записи в LESSON_BY_ID. Здесь мы
+  // правда проходим контрольную до конца и проверяем отчёт.
+  {
+    // Маленький список из одного слова — чтобы прогон был быстрым и стабильным.
+    const tiny = store().addList('Мини-контрольная', 'Ученик', {});
+    const tinyId = tiny.list?.id;
+    if (tinyId) {
+      store().addXp(0);
+      const app = document.querySelector('#root > *') as HTMLElement | null;
+      check('контроль: мини-список создан', !!tinyId, String(tinyId));
+      // Открываем урок контроля так же, как это делает приложение.
+      window.history.replaceState(null, '', '/?keep=1');
+      click(buttons().find((b) => (b.textContent ?? '').includes('Уроки') && b.className.includes('tab')));
+      await sleep(60);
+      // Кнопка режима на карточке списка.
+      const checkBtn = document.querySelector(`[data-list-check="${tinyId}"]`) as HTMLButtonElement | null;
+      check('контроль: на карточке списка есть кнопка «Полный контроль»', !!checkBtn, body().slice(0, 160));
+      if (checkBtn) {
+        click(checkBtn);
+        await sleep(120);
+        const screen = document.querySelector('.lesson-screen') as HTMLElement | null;
+        check(
+          'контроль: открылся урок check:<id> с пометкой режима',
+          !!screen && (screen.getAttribute('data-lesson-id') ?? '').startsWith('check:') &&
+            screen.className.includes('lesson-check'),
+          `${screen?.getAttribute('data-lesson-id')} / ${screen?.className}`,
+        );
+        check(
+          'контроль: подсказка в этом режиме не показывается',
+          !document.querySelector('[data-hint]'),
+          String(document.querySelectorAll('[data-hint]').length),
+        );
+        // Отвечаем намеренно неверно: контрольная проверяет, поэтому отчёт
+        // должен появиться и с ошибкой (и предложить «тренировать ошибки»).
+        // Так тест не зависит от того, угадали ли мы правильный ввод.
+        const keys = () => buttons().filter((b) => b.className.includes('key'));
+        const anyLetter = keys().find((b) => (b.textContent ?? '').trim() !== '⌫');
+        if (anyLetter) {
+          click(anyLetter);
+          await sleep(20);
+        }
+
+        const submitBtn = btnText('Проверить');
+        if (submitBtn && !submitBtn.disabled) {
+          click(submitBtn);
+        }
+        // Вердикт появляется не мгновенно (у задания своя пауза), поэтому
+        // ждём отчёт в цикле, а не одним sleep: иначе тест ловит промежуточный кадр.
+        for (let i = 0; i < 24; i++) {
+          if (document.querySelector('[data-check-report]')) break;
+          const next = btnText('Далее');
+          if (next) {
+            click(next);
+            await sleep(150);
+          } else {
+            await sleep(120);
+          }
+        }
+        const report = document.querySelector('[data-check-report]');
+        check(
+          'контроль: после последнего слова показан отчёт, а не белый экран',
+          !!report,
+          document.body.innerHTML.slice(0, 200),
+        );
+        check(
+          'контроль: в отчёте видно слово за словом',
+          !!document.querySelector('[data-check-word]') &&
+            (document.querySelector('[data-check-words]')?.textContent ?? '').toLowerCase().includes('ученик'),
+          document.querySelector('[data-check-words]')?.textContent ?? '',
+        );
+        check(
+          'контроль: итог сохранён в список (lastCheck)',
+          !!active().lists?.find((l) => l.id === tinyId)?.lastCheck,
+          JSON.stringify(active().lists?.find((l) => l.id === tinyId)?.lastCheck),
+        );
+        check(
+          'контроль: после ошибки предлагается «Тренировать ошибки»',
+          !!document.querySelector('[data-train-errors]'),
+          body().slice(0, 200),
+        );
+        // «Пройти заново» возвращает в тот же режим.
+        const restart = document.querySelector('[data-restart-check]') as HTMLButtonElement | null;
+        check('контроль: на результатах есть «Пройти заново»', !!restart, body().slice(0, 160));
+        // Выходим к урокам, чтобы не влиять на следующие проверки.
+        const home = document.querySelector('[data-check-report]')
+          ? btnText('К урокам')
+          : null;
+        if (restart) {
+          click(restart);
+          await sleep(150);
+          const again = document.querySelector('.lesson-screen') as HTMLElement | null;
+          check(
+            'контроль: «Пройти заново» снова открывает контрольную',
+            (again?.getAttribute('data-lesson-id') ?? '').startsWith('check:'),
+            again?.getAttribute('data-lesson-id') ?? body().slice(0, 120),
+          );
+          const exit = document.querySelector('.lesson-exit') as HTMLButtonElement | null;
+          if (exit) {
+            click(exit);
+            await sleep(60);
+            const leave = btnText('Выйти');
+            if (leave) click(leave);
+            await sleep(100);
+          }
+        } else if (home) {
+          click(home);
+          await sleep(100);
+        }
+      }
+      // Тренировка только по ошибкам: отдельный режим err:<id>.
+      const errorsBtn = document.querySelector(`[data-list-errors="${tinyId}"]`) as HTMLButtonElement | null;
+      check('контроль: на «Уроках» есть кнопка «Ошибки» после провала', !!errorsBtn, body().slice(0, 160));
+      if (errorsBtn) {
+        click(errorsBtn);
+        await sleep(140);
+        const screen = document.querySelector('.lesson-screen') as HTMLElement | null;
+        check(
+          'контроль: кнопка «Ошибки» открывает тренировку только провальных слов',
+          (screen?.getAttribute('data-lesson-id') ?? '').startsWith('err:'),
+          screen?.getAttribute('data-lesson-id') ?? body().slice(0, 120),
+        );
+        check(
+          'контроль: в режиме ошибок подсказки снова доступны (это тренировка, а не проверка)',
+          !(document.querySelector('.lesson-screen')?.className ?? '').includes('lesson-check'),
+          document.querySelector('.lesson-screen')?.className ?? '',
+        );
+        const exit = document.querySelector('.lesson-exit') as HTMLButtonElement | null;
+        if (exit) {
+          click(exit);
+          await sleep(60);
+          const leave = btnText('Выйти');
+          if (leave) click(leave);
+          await sleep(120);
+        }
+      }
+
+      store().removeList(tinyId);
+      if (app) app.setAttribute('data-ok', '');
     }
   }
 

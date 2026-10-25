@@ -28,6 +28,60 @@ button {
   min-height: 100dvh;
 }
 
+/* ── Полный контроль списка (0.62.0) ───────────────────────────────────────
+   Контрольная проверяет, а не учит: в этом режиме нет кнопок «Подсказка»
+   и баннеров «опасные буквы» — иначе смысл проверки теряется.
+   Прячем их целиком, а не только блокируем: ребёнок не должен тянуться к ним. */
+.lesson-check [data-hint],
+.lesson-check .banner {
+  display: none !important;
+}
+
+/* Два режима списка на «Уроках» (0.62.0): карточка + кнопки под ней. */
+.list-card-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.list-card-modes {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding-left: 44px;
+}
+
+/* Отчёт по словам на экране результатов: слово за словом, ✓ / ✗. */
+.check-report .kv {
+  margin-bottom: 2px;
+}
+.check-words {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.check-word {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+}
+.check-word.ok {
+  color: var(--green);
+  border-color: color-mix(in srgb, var(--green) 40%, var(--line));
+  background: var(--green-soft);
+}
+.check-word.bad {
+  color: var(--red);
+  border-color: color-mix(in srgb, var(--red) 45%, var(--line));
+  background: var(--red-soft);
+}
+
 /* ── Списки слов к контрольной (0.58.0) ────────────────────────────────────
    Главная: карточка списка — как полоска заданий: иконка, название, сколько
    слов, одна кнопка. Родитель: строки списков и форма с предпросмотром

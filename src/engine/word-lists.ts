@@ -26,6 +26,18 @@ import { customWordCard } from '../content/custom-words';
 /** Префикс id урока-тренировки списка: `list:l_xxx`. */
 export const LIST_LESSON_PREFIX = 'list:';
 
+/**
+ * Полный контроль списка (0.62.0): `check:l_xxx`.
+ *
+ * Отличие от тренировки: берутся ВСЕ слова списка по одному заданию, подсказки
+ * отключены, отработка ошибок в процессе не добавляется. В конце — отчёт
+ * «сколько верно и какие слова провалились», а не общие звёзды.
+ */
+export const CHECK_LESSON_PREFIX = 'check:';
+
+/** Тренировка только по ошибкам последней контрольной: `err:l_xxx`. */
+export const ERRORS_LESSON_PREFIX = 'err:';
+
 /** Слова вне банка получают id с этим префиксом. */
 export const CUSTOM_WORD_PREFIX = 'c_';
 
@@ -40,9 +52,38 @@ const VOWELS = 'аеёиоуыэюя';
 /** id урока-тренировки для списка. */
 export const listLessonId = (listId: string) => `${LIST_LESSON_PREFIX}${listId}`;
 
+/** id урока полного контроля для списка. */
+export const checkLessonId = (listId: string) => `${CHECK_LESSON_PREFIX}${listId}`;
+
+/** id тренировки по ошибкам последней контрольной. */
+export const errorsLessonId = (listId: string) => `${ERRORS_LESSON_PREFIX}${listId}`;
+
 /** Обратное преобразование: `list:l_1` → `l_1`; для обычных уроков — null. */
 export function listIdFromLesson(lessonId: string): string | null {
   return lessonId.startsWith(LIST_LESSON_PREFIX) ? lessonId.slice(LIST_LESSON_PREFIX.length) : null;
+}
+
+/** `check:l_1` → `l_1`; иначе null. */
+export function listIdFromCheck(lessonId: string): string | null {
+  return lessonId.startsWith(CHECK_LESSON_PREFIX) ? lessonId.slice(CHECK_LESSON_PREFIX.length) : null;
+}
+
+/** `err:l_1` → `l_1`; иначе null. */
+export function listIdFromErrors(lessonId: string): string | null {
+  return lessonId.startsWith(ERRORS_LESSON_PREFIX) ? lessonId.slice(ERRORS_LESSON_PREFIX.length) : null;
+}
+
+/** Какой список и в каком режиме открывает урок. null — обычный урок программы. */
+export type ListMode = 'train' | 'check' | 'errors';
+
+export function listModeOf(lessonId: string): { listId: string; mode: ListMode } | null {
+  const check = listIdFromCheck(lessonId);
+  if (check) return { listId: check, mode: 'check' };
+  const errors = listIdFromErrors(lessonId);
+  if (errors) return { listId: errors, mode: 'errors' };
+  const train = listIdFromLesson(lessonId);
+  if (train) return { listId: train, mode: 'train' };
+  return null;
 }
 
 /**
@@ -328,9 +369,21 @@ export function normalizeLists(raw: unknown): PracticeList[] {
       words,
       createdAt: typeof l.createdAt === 'number' && Number.isFinite(l.createdAt) ? l.createdAt : Date.now(),
       ...(typeof l.lastRunAt === 'number' && Number.isFinite(l.lastRunAt) ? { lastRunAt: l.lastRunAt } : {}),
+      ...(normalizeLastCheck(l.lastCheck) ? { lastCheck: normalizeLastCheck(l.lastCheck) } : {}),
     });
   }
   return out;
+}
+
+/** Итог контрольной из файла: числа и id слов, мусор отбрасываем. */
+function normalizeLastCheck(raw: unknown): PracticeList['lastCheck'] | undefined {
+  const c = raw as Partial<NonNullable<PracticeList['lastCheck']>> | null;
+  if (!c || typeof c !== 'object') return undefined;
+  if (typeof c.total !== 'number' || !Number.isFinite(c.total) || c.total <= 0) return undefined;
+  const total = Math.floor(c.total);
+  const correct = typeof c.correct === 'number' && Number.isFinite(c.correct) ? Math.max(0, Math.min(total, Math.floor(c.correct))) : 0;
+  const wrong = Array.isArray(c.wrong) ? [...new Set(c.wrong.filter((x): x is string => typeof x === 'string'))] : [];
+  return { at: typeof c.at === 'number' && Number.isFinite(c.at) ? c.at : Date.now(), total, correct, wrong };
 }
 
 /**

@@ -2,7 +2,7 @@ import { effectiveCards, recordAttempt, type Attempts } from '../../engine/adapt
 import { scheduleWordImages } from '../../platform/word-images';
 import { createStudySessionId, StudyClock } from '../../engine/study';
 import { useEffect, useRef, useState } from 'react';
-import type { ClassId, GradeLesson, Profile, Task, WordState } from '../../types';
+import type { ClassId, GradeLesson, Profile, Task, Word, WordState } from '../../types';
 import {
   CLASS_META,
   LESSON_BY_ID,
@@ -14,7 +14,7 @@ import {
 } from '../../content/words';
 import { classComplete, classProgress, nextClass } from '../../engine/classes';
 import { buildLesson, DEFAULT_LESSON_SIZE, lessonCardLimit, lookupWith, makeTask, pickDanger, repairTask, shuffle, type WordLookup } from '../../engine/scheduler';
-import { listIdFromLesson, listWords, MAX_LIST_WORDS } from '../../engine/word-lists';
+import { listModeOf, listWords, MAX_LIST_WORDS } from '../../engine/word-lists';
 import { pickReview, pickReviewWords } from '../../engine/srs';
 import { dayKey, dayPlan, masteredCount, todayStat, useActiveProfile, useApp } from '../../state/store';
 import { BONUS_CHEST_GEMS, claimableQuests, dayMetrics, plural, questId } from '../../engine/quests';
@@ -49,6 +49,11 @@ interface Props {
    * сравнивал бы урок с новой целью. Чтобы этого не было, держим снимок.
    */
   goal: number;
+  /**
+   * Переход в другой режим того же списка к контрольной (0.62.0):
+   * «тренировать ошибки» и «пройти контрольную заново» прямо с результатов.
+   */
+  onStartList?: (listId: string, mode: 'train' | 'check' | 'errors') => void;
 }
 
 interface Verdict {
@@ -63,15 +68,26 @@ interface Stats {
   xp: number;
 }
 
-export function LessonScreen({ lessonId, onExit, goal }: Props) {
+export function LessonScreen({ lessonId, onExit, goal, onStartList }: Props) {
   const profile = useActiveProfile();
   // Тренировка списка к контрольной (0.58.0): урока в программе нет, набор
   // слов берём из списка, а «урок» собираем на месте. Всё остальное —
   // обычный экран урока: те же задания, тот же прогресс по словам.
-  const listId = listIdFromLesson(lessonId);
+  const listMode = listModeOf(lessonId);
+  const listId = listMode?.listId ?? null;
   const list = listId ? (profile?.lists ?? []).find((l) => l.id === listId) : undefined;
+  /** Полный контроль (0.62.0): все слова по одному заданию, подсказки отключены. */
+  const isCheck = listMode?.mode === 'check';
+  /** Тренировка только по ошибкам последней контрольной. */
+  const isErrors = listMode?.mode === 'errors';
   const lesson = list
-    ? { id: lessonId, title: list.title, emoji: '🏫', order: 0, wordIds: list.words }
+    ? {
+        id: lessonId,
+        title: isCheck ? `Контрольная: ${list.title}` : isErrors ? `Ошибки: ${list.title}` : list.title,
+        emoji: isCheck ? '📋' : isErrors ? '🔁' : '🏫',
+        order: 0,
+        wordIds: list.words,
+      }
     : LESSON_BY_ID[lessonId];
   // Действия стора берём без подписки на всё состояние (ссылки стабильны):
   // подписка на весь стор заставляла бы урок перерисовываться на каждый чих.
@@ -81,6 +97,14 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
   const attempts = useRef<Attempts>({ total: 0, independent: 0 });
   const observed = useRef(new Set<string>());
   const solvedTasks = useRef(new Set<string>());
+  /**
+   * Результат по каждому слову (0.62.0): первая ошибка делает слово
+   * «провальным» — именно так контрольная и оценивает. Используется в отчёте
+   * в конце и для кнопки «тренировать ошибки».
+   */
+  const wordOk = useRef<Record<string, boolean>>({});
+  /** Сколько разных слов уже спросили (для отчёта «12 из 26»). */
+  const askedWords = useRef(new Set<string>());
   const finalized = useRef(false);
   const runProfile = useRef(profile?.id).current;
   const ceiling = useRef(lessonCardLimit(profile?.lessonSize)).current;
@@ -383,6 +407,11 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
       return;
     }
     const ok = quality >= 3;
+    // Полный контроль: слово считается верным, только если НИ РАЗУ не ошибся.
+    if (listMode) {
+      askedWords.current.add(task.wordId);
+      wordOk.current[task.wordId] = (wordOk.current[task.wordId] ?? true) && ok;
+    }
     // Повторёнными считаем и слова из режима «Повторение», и вставки-повторения
     // внутри обычного урока: задание дня — «повтори N слов», где бы это ни случилось
     answer(task.wordId, quality, lessonId === REVIEW.id || task.reason === 'review', sessionId.current ? {
@@ -410,14 +439,18 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
       stats.current.wrong += 1;
       setStreak(0);
       say('sad', pick(CHEER));
-      // Ошибку обязательно отрабатываем: слово вернётся чуть позже в этом же уроке
-      setQueue((q) => {
-        // Повторную отработку добавляем один раз и не для заданий-исправлений
-        if (task.reason === 'repair') return q;
-        if (q.some((t, i) => i > index && t.wordId === task.wordId && t.reason === 'repair')) return q;
-        const at = Math.min(index + 3, q.length);
-        return [...q.slice(0, at), repairTask(task.wordId, lookupOf(profile)), ...q.slice(at)];
-      });
+      // Ошибку обязательно отрабатываем: слово вернётся чуть позже в этом же уроке.
+      // В полном контроле отработки нет — он проверяет, а не учит (0.62.0),
+      // поэтому там просто идём дальше по списку.
+      if (!isCheck) {
+        setQueue((q) => {
+          // Повторную отработку добавляем один раз и не для заданий-исправлений
+          if (task.reason === 'repair') return q;
+          if (q.some((t, i) => i > index && t.wordId === task.wordId && t.reason === 'repair')) return q;
+          const at = Math.min(index + 3, q.length);
+          return [...q.slice(0, at), repairTask(task.wordId, lookupOf(profile)), ...q.slice(at)];
+        });
+      }
     }
 
     setVerdict({ ok, wordId: task.wordId, hint: quality === 3 });
@@ -452,7 +485,19 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
     const stars = starsFor(correct, answered);
     // «Повторение» и список к контрольной — тренировки, а не уроки программы:
     // короны, пазлы и счётчик уроков дня они не наращивают.
-    if (listId) useApp.getState().touchList(listId);
+    // Список к контрольной: тренировка отмечает «когда занимались», полный
+    // контроль сохраняет ещё и итог по словам — из него берутся «ошибки».
+    if (listId) {
+      const result = {
+        total: askedWords.current.size,
+        correct: Object.values(wordOk.current).filter(Boolean).length,
+        wrong: Object.entries(wordOk.current)
+          .filter(([, ok]) => !ok)
+          .map(([id]) => id),
+      };
+      if (isCheck) useApp.getState().saveListCheck(listId, result);
+      else useApp.getState().touchList(listId);
+    }
     if (lessonId !== REVIEW.id && !listId) {
       weeklyAwardGems = finishLesson(lessonId, pct).reduce((sum, reward) => sum + reward.gems, 0);
       const pz = finishPuzzleLesson();
@@ -534,6 +579,28 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
         <Confetti show={confetti} />
         <Results
           lessonId={lessonId}
+          listTitle={list ? lesson.title : undefined}
+          isCheck={isCheck}
+          check={list?.lastCheck ?? (listId ? {
+            at: Date.now(),
+            total: askedWords.current.size,
+            correct: Object.values(wordOk.current).filter(Boolean).length,
+            wrong: Object.entries(wordOk.current).filter(([, ok]) => !ok).map(([id]) => id),
+          } : undefined)}
+          checkedWords={list ? listWords(list, profile?.customWords ?? {}) : []}
+          errorsCount={list?.lastCheck?.wrong.length ?? 0}
+          onTrainErrors={() => {
+            if (!listId || !onStartList) return;
+            onStartList(listId, 'errors');
+          }}
+          onRestartCheck={() => {
+            if (!listId || !onStartList) return;
+            onStartList(listId, 'check');
+          }}
+          onTrainList={() => {
+            if (!listId || !onStartList) return;
+            onStartList(listId, 'train');
+          }}
           correct={stats.current.correct}
           wrong={stats.current.wrong}
           xp={xpShown}
@@ -585,7 +652,9 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
   return (
     <div
       ref={screenRef}
-      className={`screen lesson-screen ${verdict ? 'has-verdict' : ''}`}
+      // Полный контроль: подсказки отключены (класс прячет кнопки «Подсказка»
+      // и баннеры «опасных букв»). См. .lesson-check в app.css.
+      className={`screen lesson-screen ${verdict ? 'has-verdict' : ''}${isCheck ? ' lesson-check' : ''}`}
       // id урока в разметке: по нему смоук проверяет, что открылся урок своего
       // класса, не разбирая карточку (тип задания зависит от случайной перестановки).
       data-lesson-id={lesson.id}
@@ -640,7 +709,7 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
           `.lesson-task.is-frozen`, состояние внутри неё не сбрасывается, так что
           ребёнок видит свой ответ и подсветку «верно/неверно». */}
       <div ref={taskRef} className={`lesson-task ${verdict ? 'is-frozen' : ''}`}>
-        <TaskView key={task.uid} task={task} word={word} onSolve={onSolve} onAttempt={(quality) => {
+        <TaskView key={task.uid} task={task} word={word} noHints={isCheck} onSolve={onSolve} onAttempt={(quality) => {
         if (!finalized.current) {
           studyClock.current?.activity();
           ensureTouchedToday();
@@ -727,6 +796,14 @@ function Results({
   classWin,
   onNextClass,
   onHome,
+  listTitle,
+  isCheck,
+  check,
+  checkedWords,
+  errorsCount,
+  onTrainErrors,
+  onRestartCheck,
+  onTrainList,
 }: {
   lessonId: string;
   correct: number;
@@ -734,6 +811,19 @@ function Results({
   xp: number;
   goal: number;
   xpBefore: number;
+  /** Заголовок списка к контрольной: у урока-списка нет карточки в программе. */
+  listTitle?: string;
+  /** Полный контроль списка (0.62.0): показываем отчёт по словам. */
+  isCheck?: boolean;
+  /** Итог контрольной: сколько слов проверено, сколько верно, какие провалились. */
+  check?: { at: number; total: number; correct: number; wrong: string[] };
+  /** Карточки всех слов списка — чтобы показать «слово за словом». */
+  checkedWords?: Word[];
+  /** Сколько слов провалилось в последней контрольной (для кнопки «ошибки»). */
+  errorsCount?: number;
+  onTrainErrors?: () => void;
+  onRestartCheck?: () => void;
+  onTrainList?: () => void;
   /** Иток костюмного пазла этого урока (engine/puzzles.ts); null — не за что (повторение). */
   puzzle?: PuzzleAward | null;
   /** Класс, закрытый именно этим уроком: карточка «класс пройден» с переходом дальше. */
@@ -745,7 +835,12 @@ function Results({
   const answered = correct + wrong;
   const stars = starsFor(correct, answered);
   const profile = useActiveProfile();
+  // Урок-список (list:/check:/err:) в программе не зарегистрирован: раньше
+  // здесь был `undefined`, и обращение к `lesson.emoji` ниже роняло экран
+  // результатов в белый (исправлено 0.62.0).
   const lesson = LESSON_BY_ID[lessonId];
+  const headingEmoji = isCheck ? '📋' : listTitle ? '🏫' : lesson?.emoji ?? '📚';
+  const headingTitle = listTitle ?? lesson?.title ?? 'Урок';
   const isReview = lessonId === REVIEW.id;
 
   // XP за сегодня берём из профиля: туда уже попали и задания, и бонус за урок.
@@ -850,6 +945,74 @@ function Results({
           </div>
         )}
 
+        {/* Отчёт по словам списка к контрольной (0.62.0): видно ИМЕННО ЧТО
+            проверяли и где ошибся — раньше были только звёзды и «12 из 26». */}
+        {listTitle && (
+          <div className="card check-report" data-check-report>
+            <h3 style={{ margin: '0 0 6px' }}>
+              {isCheck ? '📋 Результат контрольной' : '🏫 Тренировка списка'}
+            </h3>
+            <div className="kv">
+              <span>Проверено слов</span>
+              <b>{check?.total ?? answered}</b>
+            </div>
+            <div className="kv">
+              <span>Верно</span>
+              <b>
+                {check?.correct ?? correct} из {check?.total ?? answered}
+              </b>
+            </div>
+            {isCheck && (check?.wrong.length ?? 0) > 0 && (
+              <div className="kv">
+                <span>Ошибки</span>
+                <b>{check?.wrong.length}</b>
+              </div>
+            )}
+
+            {!!checkedWords?.length && (
+              <div className="check-words" data-check-words>
+                {checkedWords.map((w) => {
+                  const failed = check?.wrong.includes(w.id);
+                  const asked = !check || check.total >= checkedWords.length || check.wrong.includes(w.id) || true;
+                  return (
+                    <span
+                      key={w.id}
+                      className={`check-word${failed ? ' bad' : ' ok'}${asked ? '' : ' skipped'}`}
+                      data-check-word={w.id}
+                    >
+                      <span aria-hidden="true">{failed ? '✗' : '✓'}</span> {w.text}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="row" style={{ gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+              {isCheck && (errorsCount ?? check?.wrong.length ?? 0) > 0 && onTrainErrors && (
+                <button className="btn primary sm" data-train-errors onClick={onTrainErrors}>
+                  Тренировать ошибки · {errorsCount ?? check?.wrong.length}
+                </button>
+              )}
+              {isCheck && onRestartCheck && (
+                <button className="btn ghost sm" data-restart-check onClick={onRestartCheck}>
+                  Пройти заново
+                </button>
+              )}
+              {!isCheck && onTrainList && (
+                <button className="btn ghost sm" onClick={onTrainList}>
+                  Ещё тренировка
+                </button>
+              )}
+            </div>
+            {isCheck && (
+              <p className="tiny muted" style={{ margin: '8px 0 0' }}>
+                Контрольная проверяет, а не учит: подсказок и отработки здесь нет — ошибки
+                лучше отдельно потренировать кнопкой выше.
+              </p>
+            )}
+          </div>
+        )}
+
         <div className="card">
           <div className="row" style={{ textAlign: 'left' }}>
             <Ring value={afterPct} main={String(xpToday)} sub={`цель ${goal}`} done={goalDone} />
@@ -890,7 +1053,7 @@ function Results({
             К урокам 🗺️
           </button>
           <div className="tiny" style={{ marginTop: 8 }}>
-            {lesson.emoji} {lesson.title}
+            {headingEmoji} {headingTitle}
           </div>
         </div>
       </div>
@@ -924,16 +1087,31 @@ function claimableToday(profile: Profile | null): string[] {
 // ── Формирование очереди заданий ────────────────────────────────────────────
 
 function buildQueue(profile: Profile | null, lessonId: string): Task[] {
-  const listId = listIdFromLesson(lessonId);
-  if (listId) {
-    const list = (profile?.lists ?? []).find((l) => l.id === listId);
+  const mode = listModeOf(lessonId);
+  if (mode) {
+    const list = (profile?.lists ?? []).find((l) => l.id === mode.listId);
     if (!list) return [];
     // Источник карточек: банк + свои слова профиля. Без этого «подлежащее»
     // из списка не нашлось бы (его нет в банке 257 слов).
     const lookup = lookupWith(profile?.customWords);
-    const words = listWords(list, profile?.customWords ?? {});
-    if (!words.length) return [];
+    const all = listWords(list, profile?.customWords ?? {});
+    if (!all.length) return [];
+
+    // Полный контроль (0.62.0): ВСЕ слова списка, по одному заданию, без
+    // знакомства и без отработок. Порядок — как в списке, чтобы отчёт
+    // «слово за словом» совпадал с тем, что задали в школе.
+    if (mode.mode === 'check') {
+      return all.slice(0, MAX_LIST_WORDS).map((w) => makeTask(checkKind(w), w.id, 'review', pickDanger(w), lookup));
+    }
+
     const states: Record<string, WordState> = profile?.words ?? {};
+    // Тренировка по ошибкам последней контрольной: только те слова, где
+    // ребёнок ошибся. Если ошибок нет — обычная тренировка.
+    const wrong = list.lastCheck?.wrong ?? [];
+    const pool =
+      mode.mode === 'errors' && wrong.length
+        ? all.filter((w) => wrong.includes(w.id))
+        : all;
     const maxCards = effectiveCards(
       profile?.adaptiveCards,
       lessonCardLimit(profile?.lessonSize ?? DEFAULT_LESSON_SIZE),
@@ -941,7 +1119,7 @@ function buildQueue(profile: Profile | null, lessonId: string): Task[] {
     // Каких слов не хватает в наборе, если список длиннее одного захода:
     // сначала те, что ребёнок ещё не видел, потом самые слабые. Так за
     // несколько заходов список проходится целиком, а не первые 12 слов.
-    const order = [...words]
+    const order = [...pool]
       .sort((a, b) => needOf(states[b.id]) - needOf(states[a.id]))
       .slice(0, Math.min(maxCards, MAX_LIST_WORDS))
       .map((w) => w.id);
@@ -998,6 +1176,17 @@ function buildQueue(profile: Profile | null, lessonId: string): Task[] {
   const rest = shuffle(tasks.filter((t) => t.kind !== 'intro' && t.reason !== 'review'));
   const rev = tasks.filter((t) => t.reason === 'review');
   return [...intro, ...rest, ...rev];
+}
+
+/**
+ * Задание для полного контроля (0.62.0).
+ *
+ * Пишем слово по памяти — только так проверка честно показывает, знает ли
+ * ребёнок написание. Фразы («до свидания») собрать из букв нельзя, для них
+ * остаётся выбор буквы.
+ */
+function checkKind(word: { text: string }): Task['kind'] {
+  return word.text.includes(' ') ? 'gap' : 'write';
 }
 
 /**
