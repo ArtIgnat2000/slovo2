@@ -892,6 +892,13 @@ p {
   border-radius: 2px;
   background: var(--line);
 }
+/* Версия релиза внизу меню (0.65.0): тихая подпись, не действие.
+   Табличные цифры — чтобы номер не «прыгал» при смене версии. */
+.menu-version {
+  margin: 2px 0 0;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
 .rewards-backdrop {
   justify-content: flex-end;
   padding: 0;

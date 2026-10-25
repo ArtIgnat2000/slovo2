@@ -1245,6 +1245,16 @@ async function main() {
     Array.from(menu?.querySelectorAll('[data-menu]') ?? []).map((n) => n.getAttribute('data-menu')).join(' | '),
   );
 
+  // Версия релиза (0.65.0) — внизу меню, чтобы ребёнок мог назвать её взрослому.
+  const versionLine = menu?.querySelector('[data-menu-version]') as HTMLElement | null;
+  check(
+    'в меню ☰ видна версия приложения (ребёнок может назвать релиз)',
+    !!versionLine &&
+      /СЛОВО 2\.0 · версия \S+/.test(versionLine.textContent ?? '') &&
+      (versionLine.textContent ?? '').includes(import.meta.env.VITE_APP_VERSION),
+    versionLine?.textContent ?? 'нет строки версии',
+  );
+
   // Число на наградах — не украшение, а обещание. В начале дня заданий ещё
   // нет, поэтому числа нет — и это тоже обещание: забирать нечего.
   const rewardsBadge = menu?.querySelector('.menu-count');

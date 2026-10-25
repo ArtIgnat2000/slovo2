@@ -525,6 +525,13 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
                 <span className="menu-row-arrow" aria-hidden="true">›</span>
               </button>
             </div>
+
+            {/* Версия релиза (0.65.0): ребёнок может назвать её взрослому —
+                «у меня 0.65.0», и по номеру сразу понятно, что проверять.
+                Номер подставляется сборкой из package.json, руками не правим. */}
+            <p className="menu-version tiny muted" data-menu-version>
+              СЛОВО 2.0 · версия {import.meta.env.VITE_APP_VERSION}
+            </p>
           </div>
         </div>
       )}
