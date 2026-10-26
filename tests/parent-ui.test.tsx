@@ -9,7 +9,7 @@
 //  • ошибка в примере-замке показывается на месте, а не модальным окном.
 import { body, btnText, buttons, check, click, has, openParentSection, sleep } from './ui-helpers';
 import { dayKey, useApp } from '../src/state/store';
-import { CLASS_META, WORDS } from '../src/content/words';
+import { CLASS_META, WORDS, WORDS_BY_GRADE } from '../src/content/words';
 
 const store = () => useApp.getState();
 
@@ -55,14 +55,33 @@ export async function runParentUiChecks(): Promise<void> {
   // 2. Верный ответ открывает раздел — и сразу на «Обзор», а не на настройки.
   const opened = await unlockWith((a, b) => a * b);
   check('верный ответ открывает раздел родителей', opened, body().slice(0, 120));
-  check('раздел открывается обзором: главное — как дела у ребёнка', has('Сегодня') && has('Что подтянуть'), body().slice(0, 160));
+  check('раздел открывается кратким анализом обучения', has('Как идёт обучение') && has('освоено уверенно'), body().slice(0, 160));
+  check('подробный отчёт закрыт по умолчанию', document.querySelector('.parent-learning-summary button')?.textContent === 'Подробный отчёт');
+  check('срок освоения не прогнозируется без подходящей истории', has('пока не прогнозируем'));
+  const gradeSelect = document.querySelector('#parent-learning-grade') as HTMLSelectElement | null;
+  const originalGrade = store().profiles.find((p) => p.id === store().activeId)?.activeClass ?? 2;
+  if (gradeSelect) {
+    gradeSelect.value = '1';
+    gradeSelect.dispatchEvent(new window.Event('change', { bubbles: true }));
+    await sleep(20);
+  }
+  check('классный фильтр переключает словарь для анализа', has(`из ${WORDS_BY_GRADE[1].length}`), body().slice(0, 180));
+  check('фильтр анализа не меняет класс программы ребёнка',
+    (store().profiles.find((p) => p.id === store().activeId)?.activeClass ?? 2) === originalGrade);
+  if (gradeSelect) {
+    gradeSelect.value = String(originalGrade);
+    gradeSelect.dispatchEvent(new window.Event('change', { bubbles: true }));
+    await sleep(20);
+  }
+  click(btnText('Подробный отчёт'));
+  await sleep(30);
 
   // 3. Четыре раздела-вкладки с корректной семантикой (aria) — и ровно один на экране.
   const tabs = tabButtons();
   check(
     'в разделе пять разделов-вкладок: обзор, списки, прогресс, настройки, приложение',
     tabs.length === 5 &&
-      ['Обзор', 'Списки', 'Прогресс', 'Настройки', 'Приложение'].every((title) =>
+      ['Обучение', 'Списки', 'Данные', 'Настройки программы', 'Приложение'].every((title) =>
         tabs.some((t) => (t.textContent ?? '').includes(title)),
       ),
     tabs.map((t) => t.textContent).join(' | '),
@@ -107,6 +126,10 @@ export async function runParentUiChecks(): Promise<void> {
 
   // 5. Настройки: группы по вопросам, объяснения и рабочие элементы управления.
   await openParentSection('Настройки');
+  check('расширенные настройки свернуты по умолчанию', !document.querySelector('.parent-advanced-settings')?.hasAttribute('open'));
+  check('родитель не управляет музыкой за ребёнка', !Array.from(document.querySelectorAll('[role="switch"]')).some((el) => el.getAttribute('aria-label') === 'Музыка'));
+  click(document.querySelector('.parent-advanced-settings summary'));
+  await sleep(20);
   check(
     'настройки собраны в три понятные группы',
     has('Занятия') && has('Звук и отклик') && has('Вид'),
@@ -179,7 +202,7 @@ export async function runParentUiChecks(): Promise<void> {
 
   // 6. Разрушительное действие — отдельно, в разделе «Прогресс», под предупреждением.
   check('в настройках нет кнопки сброса прогресса', !btnText('Сбросить прогресс'), body().slice(0, 160));
-  await openParentSection('Прогресс');
+  await openParentSection('Данные');
   check(
     'сброс прогресса живёт в «Прогрессе» и отделён предупреждением',
     !!btnText('Сбросить прогресс') &&
@@ -207,7 +230,9 @@ export async function runParentUiChecks(): Promise<void> {
   await sleep(60);
   check('после проверки вкладка «Приложение» остаётся открытой',
     document.querySelector('[role="tab"][aria-selected="true"]')?.textContent?.includes('Приложение') === true);
-  await openParentSection('Обзор');
+  await openParentSection('Обучение');
+  click(btnText('Подробный отчёт'));
+  await sleep(30);
   check(
     'обзор не показывает рекламу школы — она не отвлекает от отчёта',
     has('XP за сегодня') && !has('Слово2 сделали в V-labs'),
