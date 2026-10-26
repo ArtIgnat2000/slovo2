@@ -72,6 +72,12 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
   const [menuOpen, setMenuOpen] = useState(false);
   /** Лист класса (0.33.0): вход — строкой в меню, а не пилюлей над героем. */
   const [classOpen, setClassOpen] = useState(false);
+  /**
+   * Путь (0.67.0): по умолчанию видно «Дальше» — три ближайших урока, а весь
+   * путь раскрывается по кнопке. Раньше на телефоне под героем лежали все
+   * 13–16 уроков (два с лишним экрана прокрутки), и «сегодня» терялось.
+   */
+  const [pathOpen, setPathOpen] = useState(false);
   // Программа активного класса: «Мой путь» и герой показывают только её.
   // Класс — свойство профиля, поэтому у каждого ученика свой путь.
   const grade = availableClass(profile?.activeClass ?? 2);
@@ -107,6 +113,16 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
     if (kind === 'review') onStartReview();
     else onStartLesson(current.id);
   };
+
+  /**
+   * Ближайшие уроки для свёрнутого пути: текущий и два следующих. Если
+   * ребёнок уже в конце программы, показываем последние три — «дальше» не
+   * должно оказаться пустым.
+   */
+  const currentIndex = Math.max(0, classLessons.findIndex((l) => l.id === current.id));
+  const previewFrom = Math.min(currentIndex, Math.max(0, classLessons.length - 3));
+  const previewLessons = classLessons.slice(previewFrom, previewFrom + 3);
+  const visibleLessons = pathOpen ? classLessons : previewLessons;
 
   // «Пора повторить» считает слова тем же правилом, что и сам урок повторения:
   // раньше блок обещал слова, которых урок не показывал, и открывалось «Повторять нечего!».
@@ -310,23 +326,6 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
         </button>
       )}
 
-      {/* Ссылка на приложение — в один тап с главной (0.32.1). Раньше 🤝
-          прятался за кнопкой профиля: ребёнок его не находил. Здесь это
-          тихая текстовая ссылка, а не третья рамка в шапке: «Начать ▶»
-          остаётся единственным крупным действием. */}
-      <button
-        type="button"
-        className="invite-cta"
-        aria-label="Позвать друга: показать QR-код или отправить ссылку"
-        onClick={() => setInviteOpen(true)}
-      >
-        <span aria-hidden="true">🤝</span>
-        <span className="invite-cta-text">Позови друга</span>
-        <span className="invite-cta-arrow" aria-hidden="true">
-          ➜
-        </span>
-      </button>
-
       {/* Класс живёт здесь, а не пилюлей над героем (0.33.0): заголовок уже
           есть, а подпись «· 2 класс» даёт ту же ориентацию за 0 px высоты. */}
       <h2 className="home-path-title">
@@ -335,8 +334,12 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
           <span className="home-path-class"> · {CLASS_META[grade].title}</span>
         )}
       </h2>
-      <div className="path">
-        {classLessons.map((l) => {
+      <div
+        id="home-path"
+        className={`path${pathOpen ? ' path-all' : ''}`}
+        data-path={pathOpen ? 'all' : 'preview'}
+      >
+        {visibleLessons.map((l) => {
           const st = profile.lessons[l.id];
           const level = st?.level ?? 0;
           const doneWords = l.wordIds.filter((id) => (profile.words[id]?.s ?? 0) > 0).length;
@@ -361,6 +364,47 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
           );
         })}
       </div>
+
+      {/* Переключатель пути (0.67.0). Свёрнуто — «Весь путь · 16 уроков»:
+          ребёнок видит, что программа не кончилась, но не листает её всю.
+          Раскрыто — «Свернуть»; состояние не запоминаем: новый день — снова
+          «Дальше», чтобы главная каждый раз была короткой. */}
+      <button
+        type="button"
+        className="path-toggle"
+        data-path-toggle
+        aria-expanded={pathOpen}
+        aria-controls="home-path"
+        onClick={() => setPathOpen((v) => !v)}
+      >
+        {pathOpen ? (
+          <>
+            Свернуть путь <span aria-hidden="true">⌃</span>
+          </>
+        ) : (
+          <>
+            Весь путь · {classLessons.length}{' '}
+            {plural(classLessons.length, 'урок', 'урока', 'уроков')}{' '}
+            <span aria-hidden="true">⌄</span>
+          </>
+        )}
+      </button>
+
+      {/* Ссылка на приложение — в один тап с главной (0.32.1), но ниже пути
+          (0.67.0): приглашение — не ежедневное действие, и рядом с «Начать ▶»
+          оно спорило за внимание. Осталось тихой текстовой ссылкой. */}
+      <button
+        type="button"
+        className="invite-cta"
+        aria-label="Позвать друга: показать QR-код или отправить ссылку"
+        onClick={() => setInviteOpen(true)}
+      >
+        <span aria-hidden="true">🤝</span>
+        <span className="invite-cta-text">Позови друга</span>
+        <span className="invite-cta-arrow" aria-hidden="true">
+          ➜
+        </span>
+      </button>
 
       {inviteOpen && <InviteFriend onClose={() => setInviteOpen(false)} />}
       {classOpen && <ClassSheet profile={profile} onClose={() => setClassOpen(false)} />}

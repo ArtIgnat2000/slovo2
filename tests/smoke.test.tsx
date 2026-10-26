@@ -28,6 +28,7 @@ import { runLessonArtChecks } from './lesson-art-ui.test';
 import { runVerdictChecks } from './verdict-ui.test';
 import { runTypingChecks } from './typing-ui.test';
 import { runUiCleanupChecks } from './ui-cleanup.test';
+import { runHomePathChecks } from './home-path.test';
 import { runClassChecks } from './classes.test';
 // Смена цвета купленной вещи не должна включать музыку (регрессия магазина).
 import './recolor-music.test';
@@ -1587,6 +1588,9 @@ async function main() {
 
   // Чистота интерфейса: читаемость, тап-зоны и детские слова (0.66.0).
   runUiCleanupChecks();
+
+  // Главная в один экран: «Дальше» и раскрывающийся путь (0.67.0).
+  await runHomePathChecks();
 
   // «Передать приложение»: QR и ссылка для нового ученика (замечание 2026-10-14).
   await runShareAppChecks();

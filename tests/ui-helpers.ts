@@ -15,6 +15,22 @@ export const btn = (pred: (b: HTMLButtonElement) => boolean) => buttons().find(p
 export const btnText = (t: string) => btn((b) => (b.textContent ?? '').includes(t));
 export const has = (t: string) => body().includes(t);
 
+/**
+ * Раскрыть «весь путь» на главной (0.67.0).
+ *
+ * С 0.67.0 главная показывает только «Дальше» — три ближайших урока, а весь
+ * путь раскрывается кнопкой. Тестам, которые считают уроки класса или ищут
+ * урок по счёту, нужно сначала раскрыть путь. Идемпотентно: если путь уже
+ * раскрыт (`aria-expanded="true"`), ничего не делает.
+ */
+export async function expandPath(): Promise<void> {
+  const toggle = document.querySelector('[data-path-toggle]') as HTMLButtonElement | null;
+  if (toggle && toggle.getAttribute('aria-expanded') !== 'true') {
+    click(toggle);
+    await sleep(60);
+  }
+}
+
 /** Меню ☰ на главной (0.33.0). Идемпотентно, если уже открыто. */
 export async function openHomeMenu(): Promise<void> {
   if (document.querySelector('.home-menu')) return;

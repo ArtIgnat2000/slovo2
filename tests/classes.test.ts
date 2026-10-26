@@ -8,7 +8,7 @@ import { useApp } from '../src/state/store';
 import App from '../src/App';
 import { AVAILABLE_CLASSES, CLASS_META, LESSONS_BY_GRADE, WORDS_BY_GRADE, WORD_BY_ID } from '../src/content/words';
 import { classComplete, classProgress, classTable, nextClass } from '../src/engine/classes';
-import { body, btn, btnText, buttons, check, click, currentWord, has, sleep } from './ui-helpers';
+import { body, btn, btnText, buttons, check, click, currentWord, expandPath, has, sleep } from './ui-helpers';
 
 const store = () => useApp.getState();
 
@@ -374,6 +374,7 @@ export async function runClassChecks() {
     const classRow = host.querySelector<HTMLButtonElement>('[data-menu="class"]');
     check('класс доступен из меню ☰', !!classRow, body().slice(0, 200));
     check('в строке меню написан класс', !!classRow && (classRow.textContent ?? '').includes('2 класс'), classRow?.textContent ?? '');
+    await expandPath();
     const nodes2 = host.querySelectorAll('.node-btn').length;
     check('путь 2 класса — 16 уроков', nodes2 === LESSONS_BY_GRADE[2].length, `узлов: ${nodes2}`);
 
@@ -391,6 +392,7 @@ export async function runClassChecks() {
     check('кристаллы не изменились', active().gems === 87, `gems: ${active().gems}`);
     check('покупка на месте', (active().shop?.owned ?? []).includes('phone-retro'));
 
+    await expandPath();
     const nodes1 = host.querySelectorAll('.node-btn').length;
     check('путь 1 класса — 5 уроков', nodes1 === LESSONS_BY_GRADE[1].length, `узлов: ${nodes1}`);
     check('на главной виден 1 класс', has('1 класс'));
@@ -445,6 +447,7 @@ export async function runClassChecks() {
     await sleep(120);
 
     // ── 3 класс: программа и урок берутся из своего класса ──────────────────
+    await expandPath();
     const nodes3 = host3.querySelectorAll('.node-btn').length;
     check('путь 3 класса — 13 уроков', nodes3 === LESSONS_BY_GRADE[3].length, `узлов: ${nodes3}`);
     check('на главной виден 3 класс', (host3.textContent ?? '').includes('3 класс'));
@@ -472,6 +475,7 @@ export async function runClassChecks() {
     const ui4: Root = createRoot(host4);
     ui4.render(createElement(App));
     await sleep(120);
+    await expandPath();
     const nodes4 = host4.querySelectorAll('.node-btn').length;
     check('путь 4 класса — 15 уроков', nodes4 === LESSONS_BY_GRADE[4].length, `узлов: ${nodes4}`);
     check('на главной виден 4 класс', (host4.textContent ?? '').includes('4 класс'));

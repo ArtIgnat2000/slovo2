@@ -4407,6 +4407,38 @@ p {
   align-items: center;
   padding: 6px 0 10px;
 }
+/* Переключатель пути (0.67.0): «Весь путь · 16 уроков» / «Свернуть путь».
+   Спокойная рамка, не спорит с «Начать ▶» на герое; зона 48 px. */
+.path-toggle {
+  width: 100%;
+  min-height: 48px;
+  margin: 14px 0 4px;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 2px dashed var(--line);
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--primary-ink);
+  font-weight: 800;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+.path-toggle:active {
+  transform: scale(0.99);
+  background: var(--primary-soft);
+}
+.path-toggle:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 3px;
+}
+/* Раскрытый путь: чуть плотнее, чтобы 16 строк читались списком, а не лентой. */
+.path-all {
+  gap: 12px;
+}
+
 .node {
   width: 100%;
   max-width: 340px;
