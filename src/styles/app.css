@@ -408,6 +408,29 @@ button {
   vertical-align: -0.2em;
 }
 
+/* Мерцание искры кристалла (0.68.0). Искра — часть иконки, поэтому анимация
+   живёт здесь, а не в компоненте; «меньше движения» её полностью выключает. */
+.ico .ic-spark {
+  animation: icSpark 2.8s ease-in-out infinite;
+}
+.ico .ic-spark-2 {
+  animation-delay: 1.4s;
+}
+@keyframes icSpark {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ico .ic-spark {
+    animation: none;
+  }
+}
+
 /* Кристалл и число одной группой: заменяет текстовое «💎 128». */
 .gem-amount {
   display: inline-flex;

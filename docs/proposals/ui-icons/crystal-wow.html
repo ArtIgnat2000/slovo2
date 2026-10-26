@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Алмаз «вау» — варианты</title>
+<style>
+  :root {
+    --bg: #fff8ec;
+    --card: #fff;
+    --ink: #241f36;
+    --ink-2: #6b6480;
+    --line: #efe9dd;
+    --primary: #7757fb;
+    --primary-ink: #6a4fda;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 20px 16px 60px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+  }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .lead { color: var(--ink-2); font-size: 14px; line-height: 1.45; margin: 0 0 18px; max-width: 720px; }
+  .grid { display: grid; gap: 14px; max-width: 860px; }
+  @media (min-width: 760px) { .grid { grid-template-columns: 1fr 1fr; } }
+  .card {
+    background: var(--card);
+    border: 2px solid var(--line);
+    border-radius: 22px;
+    padding: 14px;
+  }
+  .card.now { opacity: .82; }
+  .card h2 { font-size: 16px; margin: 0 0 2px; }
+  .card .tag {
+    display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: .04em;
+    text-transform: uppercase; color: var(--primary-ink); background: #ece7ff;
+    border-radius: 999px; padding: 3px 9px; margin-bottom: 8px;
+  }
+  .card .tag.old { color: #8a4b0b; background: #fff1d9; }
+  .stage {
+    display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+    background: linear-gradient(180deg, #fff8ec 0%, #fdf3e2 100%);
+    border-radius: 16px; padding: 14px; margin: 8px 0 10px;
+  }
+  .stage.dark {
+    background: linear-gradient(180deg, #241f3a 0%, #171426 100%);
+  }
+  .item { display: grid; justify-items: center; gap: 4px; }
+  .item span { font-size: 10px; color: var(--ink-2); }
+  .stage.dark .item span { color: #b7b0cd; }
+  .counter {
+    display: inline-flex; align-items: center; gap: .24em;
+    font-weight: 800; font-variant-numeric: tabular-nums;
+  }
+  .counter .num { font-size: 17px; }
+  .pros { font-size: 13px; line-height: 1.5; margin: 0; padding-left: 18px; color: var(--ink-2); }
+  .pros b { color: var(--ink); }
+  .hint {
+    font-size: 12px; color: var(--ink-2); margin-top: 10px;
+    border-top: 1px dashed var(--line); padding-top: 8px;
+  }
+  .twinkle { animation: tw 1.6s ease-in-out infinite; transform-origin: center; }
+  @keyframes tw {
+    0%, 100% { opacity: .45; transform: scale(.86); }
+    50% { opacity: 1; transform: scale(1.08); }
+  }
+  .footer { max-width: 860px; margin-top: 18px; font-size: 13px; color: var(--ink-2); line-height: 1.5; }
+  .footer b { color: var(--ink); }
+  .swatch { display: flex; gap: 6px; margin-top: 8px; }
+  .swatch i { width: 18px; height: 18px; border-radius: 6px; border: 1px solid rgba(0,0,0,.08); }
+</style>
+</head>
+<body>
+
+<h1>Алмаз «вау» — варианты</h1>
+<p class="lead">
+  Дети сказали, что нынешний кристалл не впечатляет. Здесь четыре картинки
+  в реальных размерах приложения (18, 22, 26, 40 px) и на двух фонах —
+  светлом (главная, магазин) и тёмном (тёмная тема). Смотрите <b>с телефона</b>:
+  разница между вариантами видна именно на 18–26 px.
+</p>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="gTopA" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f2fdff" /><stop offset="1" stop-color="#b3ecff" />
+    </linearGradient>
+    <linearGradient id="gDeepA" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3fb0ec" /><stop offset="1" stop-color="#0d6aa8" />
+    </linearGradient>
+    <linearGradient id="gMidA" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9fe6ff" /><stop offset="1" stop-color="#2f92d4" />
+    </linearGradient>
+
+    <radialGradient id="gGlowB" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0.45" stop-color="#8fe3ff" stop-opacity=".55" />
+      <stop offset="1" stop-color="#8fe3ff" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="gBodyB" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="#f6feff" /><stop offset="0.42" stop-color="#8fe0fb" />
+      <stop offset="1" stop-color="#1167a6" />
+    </linearGradient>
+
+    <linearGradient id="gBodyC" x1="0" y1="0" x2="0.2" y2="1">
+      <stop offset="0" stop-color="#c9f3ff" /><stop offset="0.55" stop-color="#4fb4e8" />
+      <stop offset="1" stop-color="#15608f" />
+    </linearGradient>
+  </defs>
+
+  <!-- ── A. Гранёный бриллиант с бликом и звездой ───────────────────────── -->
+  <symbol id="vA" viewBox="0 0 24 24">
+    <!-- корона: стол и два ската -->
+    <path d="M6.6 2.6h10.8L22 8.9H2L6.6 2.6Z" fill="url(#gTopA)" stroke="#0b4f80" stroke-width="1.1" stroke-linejoin="round"/>
+    <path d="M8.2 2.6h7.6l2.4 6.3H5.8L8.2 2.6Z" fill="#ffffff" fill-opacity=".72"/>
+    <path d="M2 8.9h20" stroke="#0b4f80" stroke-width="1.1"/>
+    <!-- павильон: пять граней -->
+    <path d="M2 8.9h4.6L12 21.6 2 8.9Z" fill="url(#gMidA)" stroke="#0b4f80" stroke-width="1.1" stroke-linejoin="round"/>
+    <path d="M6.6 8.9h2.8L12 21.6 6.6 8.9Z" fill="#0f6db0" stroke="#0b4f80" stroke-width="1.1" stroke-linejoin="round"/>
+    <path d="M9.4 8.9h5.2L12 21.6 9.4 8.9Z" fill="url(#gDeepA)" stroke="#0b4f80" stroke-width="1.1" stroke-linejoin="round"/>
+    <path d="M14.6 8.9h2.8L12 21.6 14.6 8.9Z" fill="#0f6db0" stroke="#0b4f80" stroke-width="1.1" stroke-linejoin="round"/>
+    <path d="M17.4 8.9H22L12 21.6 17.4 8.9Z" fill="url(#gMidA)" stroke="#0b4f80" stroke-width="1.1" stroke-linejoin="round"/>
+    <!-- зеркальный блик по левому скату -->
+    <path d="M6.9 4.1h2.6L4.2 8.3H2.6L6.9 4.1Z" fill="#fff" fill-opacity=".95"/>
+    <!-- звезда-искра -->
+    <path d="M19.4 1.2c.3 1.9 1 2.6 2.9 2.9-1.9.3-2.6 1-2.9 2.9-.3-1.9-1-2.6-2.9-2.9 1.9-.3 2.6-1 2.9-2.9Z" fill="#ffe066" stroke="#e0a800" stroke-width=".7" stroke-linejoin="round"/>
+  </symbol>
+
+  <!-- ── B. Сияние: ореол + две искры + свет по кромке ──────────────────── -->
+  <symbol id="vB" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="11.4" fill="url(#gGlowB)"/>
+    <path d="M6.4 3.4h11.2l4.6 5.6H1.8l4.6-5.6Z" fill="url(#gBodyB)" stroke="#0b4f80" stroke-width="1.05" stroke-linejoin="round"/>
+    <path d="M1.8 9h20.4L12 21.9 1.8 9Z" fill="url(#gBodyB)" stroke="#0b4f80" stroke-width="1.05" stroke-linejoin="round"/>
+    <path d="M1.8 9h20.4M8 3.4 5.6 9M16 3.4 18.4 9M12 9v12.9" stroke="#0b4f80" stroke-width="1.05" stroke-linejoin="round" fill="none"/>
+    <path d="M1.8 9h20.4L12 21.9 1.8 9Z" fill="#ffffff" fill-opacity=".1"/>
+    <!-- блик по левой грани -->
+    <path d="M4.9 4.6h3.4L3.5 8.4H1.9l3-3.8Z" fill="#fff" fill-opacity=".95"/>
+    <path d="M2.6 9.9c.5 3 2 5.9 4.4 8" stroke="#d9f7ff" stroke-width="1.3" stroke-linecap="round" fill="none" opacity=".85"/>
+    <!-- большая искра -->
+    <path class="twinkle" d="M19.6.9c.35 2.2 1.15 3 3.35 3.35-2.2.35-3 1.15-3.35 3.35-.35-2.2-1.15-3-3.35-3.35 2.2-.35 3-1.15 3.35-3.35Z" fill="#fff8cc" stroke="#e8b400" stroke-width=".7" stroke-linejoin="round"/>
+    <!-- маленькая искра -->
+    <path d="M20.4 16.4c.2 1.25.65 1.7 1.9 1.9-1.25.2-1.7.65-1.9 1.9-.2-1.25-.65-1.7-1.9-1.9 1.25-.2 1.7-.65 1.9-1.9Z" fill="#fff" stroke="#8fd2f2" stroke-width=".6" stroke-linejoin="round"/>
+  </symbol>
+
+  <!-- ── C. Мультяшный ледяной: толстенький, крупный блик ────────────────── -->
+  <symbol id="vC" viewBox="0 0 24 24">
+    <path d="M7 3.1h10l4.5 5.6H2.5L7 3.1Z" fill="url(#gBodyC)" stroke="#0d4d78" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M2.5 8.7h19c-1 4.6-5.5 12.5-9.5 12.5S3.5 13.3 2.5 8.7Z" fill="url(#gBodyC)" stroke="#0d4d78" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M2.5 8.7h19M9.6 3.1 8.1 8.7M14.4 3.1l1.5 5.6" stroke="#0d4d78" stroke-width="1.2" fill="none"/>
+    <path d="M12 8.7v12.5" stroke="#0d4d78" stroke-width="1.1" fill="none" opacity=".55"/>
+    <!-- мультяшный блик: белая «запятая» -->
+    <path d="M6.4 5.1c1.5-1.2 4.1-1.5 5.3-.5-1.9-.1-3.7.7-5.3 2.1-.5.4-1.1-.9 0-1.6Z" fill="#fff" fill-opacity=".97"/>
+    <ellipse cx="6.2" cy="12.6" rx="1.5" ry="2.2" transform="rotate(20 6.2 12.6)" fill="#fff" fill-opacity=".8"/>
+    <!-- две искры -->
+    <path class="twinkle" d="M19.9 1.1c.3 1.9.95 2.6 2.85 2.9-1.9.3-2.55.95-2.85 2.85-.3-1.9-.95-2.55-2.85-2.85 1.9-.3 2.55-.95 2.85-2.9Z" fill="#ffe066" stroke="#dfa400" stroke-width=".7" stroke-linejoin="round"/>
+    <path d="M2.4 15.2c.18 1.1.58 1.5 1.68 1.68-1.1.18-1.5.58-1.68 1.68-.18-1.1-.58-1.5-1.68-1.68 1.1-.18 1.5-.58 1.68-1.68Z" fill="#fff" stroke="#7cc7ee" stroke-width=".55" stroke-linejoin="round"/>
+  </symbol>
+
+  <!-- ── Сейчас (0.56.0) ─────────────────────────────────────────────────── -->
+  <symbol id="vNow" viewBox="0 0 24 24">
+    <path d="M6.6 3.2h10.8l5 6.2H1.6l5-6.2Z" fill="#dff4ff" stroke="#0f5f92" stroke-width="1.1"/>
+    <path d="M1.6 9.4h5.2L12 22.4 1.6 9.4Z" fill="#a9e6ff" stroke="#0f5f92" stroke-width="1.1"/>
+    <path d="M6.8 9.4h3.4L12 22.4 6.8 9.4Z" fill="#1f7fc4" stroke="#0f5f92" stroke-width="1.1"/>
+    <path d="M10.2 9.4h3.6L12 22.4 10.2 9.4Z" fill="#63cdf2" stroke="#0f5f92" stroke-width="1.1"/>
+    <path d="M13.8 9.4h3.4L12 22.4 13.8 9.4Z" fill="#1f7fc4" stroke="#0f5f92" stroke-width="1.1"/>
+    <path d="M17.2 9.4h5.2L12 22.4 17.2 9.4Z" fill="#a9e6ff" stroke="#0f5f92" stroke-width="1.1"/>
+    <path d="M6.6 3.2h10.8l5 6.2H1.6l5-6.2ZM1.6 9.4h20.8M12 9.4v13" fill="none" stroke="#0f5f92" stroke-width="1.1"/>
+    <path d="M8.6 5.4h4.6" fill="none" stroke="#ffffff" stroke-width="1.6"/>
+  </symbol>
+</svg>
+
+<div class="grid">
+
+  <!-- A -->
+  <div class="card">
+    <span class="tag">Вариант A</span>
+    <h2>Гранёный с бликом и звездой</h2>
+    <div class="stage">
+      <div class="item"><svg width="18" height="18"><use href="#vA"/></svg><span>18</span></div>
+      <div class="item"><svg width="22" height="22"><use href="#vA"/></svg><span>22</span></div>
+      <div class="item"><svg width="26" height="26"><use href="#vA"/></svg><span>26</span></div>
+      <div class="item"><svg width="40" height="40"><use href="#vA"/></svg><span>40</span></div>
+      <div class="counter"><svg width="26" height="26"><use href="#vA"/></svg><span class="num">64</span></div>
+    </div>
+    <div class="stage dark">
+      <svg width="26" height="26"><use href="#vA"/></svg>
+      <span style="color:#f4f1ff;font-weight:800">64</span>
+      <svg width="40" height="40"><use href="#vA"/></svg>
+    </div>
+    <ul class="pros">
+      <li><b>Глубина:</b> градиенты, пять граней с разным тоном — камень «объёмный».</li>
+      <li><b>Читается мелко:</b> держится на силуэте и контрасте кромок.</li>
+      <li>Спокойнее остальных: звезда одна, без свечения — не спорит с числом.</li>
+      <li><b>Минус:</b> звезда в углу может «липнуть» к соседнему тексту.</li>
+    </ul>
+  </div>
+
+  <!-- B -->
+  <div class="card">
+    <span class="tag">Вариант B</span>
+    <h2>Сияние: ореол и две искры</h2>
+    <div class="stage">
+      <div class="item"><svg width="18" height="18"><use href="#vB"/></svg><span>18</span></div>
+      <div class="item"><svg width="22" height="22"><use href="#vB"/></svg><span>22</span></div>
+      <div class="item"><svg width="26" height="26"><use href="#vB"/></svg><span>26</span></div>
+      <div class="item"><svg width="40" height="40"><use href="#vB"/></svg><span>40</span></div>
+      <div class="counter"><svg width="26" height="26"><use href="#vB"/></svg><span class="num">64</span></div>
+    </div>
+    <div class="stage dark">
+      <svg width="26" height="26"><use href="#vB"/></svg>
+      <span style="color:#f4f1ff;font-weight:800">64</span>
+      <svg width="40" height="40"><use href="#vB"/></svg>
+    </div>
+    <ul class="pros">
+      <li><b>Максимум «вау»:</b> мягкое свечение вокруг + мерцающая искра.</li>
+      <li>На тёмной теме выглядит лучше всех — камень будто светится.</li>
+      <li><b>Минус:</b> ореол занимает площадь и на светлом фоне может выглядеть «пятном»;</li>
+      <li><b>Минус:</b> анимация — нужно уважать «меньше движения».</li>
+    </ul>
+  </div>
+
+  <!-- C -->
+  <div class="card">
+    <span class="tag">Вариант C</span>
+    <h2>Мультяшный ледяной</h2>
+    <div class="stage">
+      <div class="item"><svg width="18" height="18"><use href="#vC"/></svg><span>18</span></div>
+      <div class="item"><svg width="22" height="22"><use href="#vC"/></svg><span>22</span></div>
+      <div class="item"><svg width="26" height="26"><use href="#vC"/></svg><span>26</span></div>
+      <div class="item"><svg width="40" height="40"><use href="#vC"/></svg><span>40</span></div>
+      <div class="counter"><svg width="26" height="26"><use href="#vC"/></svg><span class="num">64</span></div>
+    </div>
+    <div class="stage dark">
+      <svg width="26" height="26"><use href="#vC"/></svg>
+      <span style="color:#f4f1ff;font-weight:800">64</span>
+      <svg width="40" height="40"><use href="#vC"/></svg>
+    </div>
+    <ul class="pros">
+      <li><b>Как в мультиках:</b> толстый контур, скруглённый низ, крупная белая «запятая».</li>
+      <li>Самый «детский» и самый заметный на 18 px.</li>
+      <li><b>Минус:</b> толстый контур — ровно то, из-за чего в 0.54.0 камень стал «тёмной стрелкой» (здесь контур синий, не чёрный, но риск есть).</li>
+      <li><b>Минус:</b> меньше похож на настоящий бриллиант, больше на «лёд».</li>
+    </ul>
+  </div>
+
+  <!-- Сейчас -->
+  <div class="card now">
+    <span class="tag old">Сейчас, 0.56.0</span>
+    <h2>Для сравнения</h2>
+    <div class="stage">
+      <div class="item"><svg width="18" height="18"><use href="#vNow"/></svg><span>18</span></div>
+      <div class="item"><svg width="22" height="22"><use href="#vNow"/></svg><span>22</span></div>
+      <div class="item"><svg width="26" height="26"><use href="#vNow"/></svg><span>26</span></div>
+      <div class="item"><svg width="40" height="40"><use href="#vNow"/></svg><span>40</span></div>
+      <div class="counter"><svg width="26" height="26"><use href="#vNow"/></svg><span class="num">64</span></div>
+    </div>
+    <div class="stage dark">
+      <svg width="26" height="26"><use href="#vNow"/></svg>
+      <span style="color:#f4f1ff;font-weight:800">64</span>
+      <svg width="40" height="40"><use href="#vNow"/></svg>
+    </div>
+    <ul class="pros">
+      <li>Плоские грани без градиента — на 18–26 px камень «стеклянный».</li>
+      <li>Нет искры и блика — нечем «зацепиться» взгляду.</li>
+    </ul>
+  </div>
+
+</div>
+
+<div class="footer">
+  <p>
+    <b>Можно смешивать.</b> Например: <b>A</b> как основа + мерцающая искра из <b>B</b>,
+    или <b>C</b> с контуром потоньше. Скажите номер (или «A + искра из B»),
+    и я соберу финальный вариант, обновлю набор иконок и прогоню проверки.
+  </p>
+  <p>
+    Технические рамки (их проверяет <code>npm run test:icons</code>): один предмет,
+    ни букв, ни цифр; контур своего тёмного оттенка, не чёрный, не толще 1,6;
+    палитра набора ≤ 48 цветов; источник набора ≤ 32 КБ.
+  </p>
+</div>
+
+</body>
+</html>

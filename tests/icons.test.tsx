@@ -231,9 +231,67 @@ export async function runIconChecks(): Promise<void> {
   );
   check(
     'иконки: превью набора обновлено под текущий набор',
-    read('docs/proposals/ui-icons/preview.html').includes('0.56.0'),
+    read('docs/proposals/ui-icons/preview.html').includes('0.68.0'),
     'превью не обновлено',
   );
+
+  // ── 7. «Вау-алмаз» (0.68.0) ───────────────────────────────────────────────
+  // Отклик детей: «не впечатлил, в мультиках лучше». Секрет «вау» — свечение,
+  // объём и мерцающая искра. Это легко потерять при следующей правке:
+  // градиенты выпадут, мерцание отключат, id начнут совпадать между
+  // экземплярами — и камень снова станет плоским.
+  const crystalSvg = (await render(createElement(Icon, { name: 'crystal', size: 26 }))).querySelector('svg')!;
+  check(
+    'алмаз: есть свечение (radial-градиент) и объём (linear-градиент)',
+    !!crystalSvg.querySelector('radialGradient') && !!crystalSvg.querySelector('linearGradient'),
+    `radial: ${!!crystalSvg.querySelector('radialGradient')}, linear: ${!!crystalSvg.querySelector('linearGradient')}`,
+  );
+  check(
+    'алмаз: камень залит градиентом, а не плоским цветом',
+    Array.from(crystalSvg.querySelectorAll('path')).some((p) => (p.getAttribute('fill') ?? '').includes('-body)')),
+    'нет ссылки на градиент камня',
+  );
+  check(
+    'алмаз: две искры мерцают (класс ic-spark)',
+    crystalSvg.querySelectorAll('.ic-spark').length === 2,
+    `искр: ${crystalSvg.querySelectorAll('.ic-spark').length}`,
+  );
+  check(
+    'алмаз: блик на скате — полупрозрачная белая грань',
+    Array.from(crystalSvg.querySelectorAll('path')).some(
+      (p) => p.getAttribute('fill') === '#ffffff' && Number(p.getAttribute('fill-opacity') ?? 1) > 0.5,
+    ),
+    'нет белого блика',
+  );
+
+  // Уникальные id: на главной одновременно живут несколько кристаллов.
+  const twins = await render(
+    createElement('div', null, ...[1, 2, 3].map((i) => createElement(Icon, { key: i, name: 'crystal', size: 24 }))),
+  );
+  const gradientIds = Array.from(twins.querySelectorAll('defs [id]')).map((el) => el.id);
+  check(
+    'алмаз: у каждого экземпляра свои id градиентов (иначе ссылки бьются)',
+    gradientIds.length === 6 && new Set(gradientIds).size === gradientIds.length,
+    `id: ${gradientIds.join(', ')}`,
+  );
+  const brokenRefs = Array.from(twins.querySelectorAll('path[fill^="url("]')).filter((p) => {
+    const ref = (p.getAttribute('fill') ?? '').replace(/^url\(#|\)$/g, '');
+    return !gradientIds.includes(ref);
+  });
+  check(
+    'алмаз: все ссылки на градиенты ведут в свой svg',
+    brokenRefs.length === 0,
+    `битых ссылок: ${brokenRefs.length}`,
+  );
+
+  // Мерцание — в CSS и с уважением к «меньше движения».
+  check(
+    'алмаз: мерцание задано в app.css и отключается при prefers-reduced-motion',
+    /\.ico \.ic-spark\s*\{[^}]*animation:\s*icSpark/.test(app) &&
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]{0,200}\.ico \.ic-spark\s*\{[^}]*animation:\s*none/.test(app),
+    'нет правила мерцания или выключателя для reduced-motion',
+  );
+  twins.remove();
 
   host.remove();
   titled.remove();
