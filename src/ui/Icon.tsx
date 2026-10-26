@@ -18,6 +18,9 @@
 //
 // Эмодзи в контенте (слова, темы уроков, интонация тостов) не трогаем.
 
+import { useId } from 'react';
+import type { ReactNode } from 'react';
+
 export type IconName =
   | 'crystal'
   | 'chest'
@@ -48,25 +51,65 @@ interface Part {
   stroke: string;
   /** 0 — контура нет. */
   w: number;
+  /** Прозрачность заливки (блики и тени поверх градиента), по умолчанию 1. */
+  o?: number;
+  /** Класс на путь: так мерцает искра кристалла (`ic-spark` в app.css). */
+  c?: string;
 }
 
-const p = (d: string, fill: string, stroke: string, w: number): Part => ({ d, fill, stroke, w });
+const p = (d: string, fill: string, stroke: string, w: number, o = 1, c?: string): Part => ({
+  d,
+  fill,
+  stroke,
+  w,
+  o,
+  c,
+});
 
 const ICONS: Record<IconName, Part[]> = {
-  // 0.56.0: кристалл перерисован третий раз. Отклик детей — «слишком
-  // маленький, плохо видно, выглядит неубедительно». Причины: камень занимал
-  // ~18 из 24 клеток (поля по краям) и грани были одного тона. Теперь это
-  // классический бриллиант на всю сетку (от 1,6 до 22,4 — 87 % высоты),
-  // с чередованием светлых и тёмных граней, как у эмодзи 💎.
+  // 0.68.0: кристалл перерисован в четвёртый раз — «вау-версия».
+  //
+  // История: 0.54.0 (линейный) дети не приняли, 0.55.0 (плоская заливка) —
+  // «маленький», 0.56.0 (крупный плоский) — «не впечатлил, в мультиках лучше».
+  // Отклик 2026-10-26: «требуется вау-алмаз». Из четырёх вариантов (см.
+  // docs/proposals/ui-icons/crystal-wow.html) выбран **B — «сияние»**:
+  //  • мягкий ореол вокруг камня (radial-градиент), поэтому он «светится»,
+  //    особенно в тёмной теме;
+  //  • объём: вертикальный градиент по камню + светлая площадка и зеркальный
+  //    блик на левом скате;
+  //  • две искры — большая мерцает (CSS `ic-spark`), маленькая держит баланс.
+  // Градиенты заданы в DEFS ниже и берут уникальный id от useId: на экране
+  // одновременно бывает пять-шесть кристаллов, и общий id дал бы конфликт.
   'crystal': [
-    p('M6.6 3.2h10.8l5 6.2H1.6l5-6.2Z', '#dff4ff', '#0f5f92', 1.1),
-    p('M1.6 9.4h5.2L12 22.4 1.6 9.4Z', '#a9e6ff', '#0f5f92', 1.1),
-    p('M6.8 9.4h3.4L12 22.4 6.8 9.4Z', '#1f7fc4', '#0f5f92', 1.1),
-    p('M10.2 9.4h3.6L12 22.4 10.2 9.4Z', '#63cdf2', '#0f5f92', 1.1),
-    p('M13.8 9.4h3.4L12 22.4 13.8 9.4Z', '#1f7fc4', '#0f5f92', 1.1),
-    p('M17.2 9.4h5.2L12 22.4 17.2 9.4Z', '#a9e6ff', '#0f5f92', 1.1),
-    p('M6.6 3.2h10.8l5 6.2H1.6l5-6.2ZM1.6 9.4h20.8M12 9.4v13', 'none', '#0f5f92', 1.1),
-    p('M8.6 5.4h4.6', 'none', '#ffffff', 1.6),
+    p(
+      'M12 0.4a11.6 11.6 0 1 1 0 23.2 11.6 11.6 0 0 1 0-23.2Z',
+      'url(#{uid}-glow)',
+      'none',
+      0,
+    ),
+    p('M6.5 2.5h11L22.2 8.4H1.8L6.5 2.5Z', 'url(#{uid}-body)', '#0b4f80', 1.05),
+    p('M1.8 8.4h20.4L12 22.2 1.8 8.4Z', 'url(#{uid}-body)', '#0b4f80', 1.05),
+    p('M1.8 8.4h20.4M7.9 2.5 5.4 8.4M16.1 2.5 18.6 8.4M12 8.4v13.8', 'none', '#0b4f80', 1.05),
+    p('M9.1 8.4h5.8L12 22.2 9.1 8.4Z', '#0b4f80', 'none', 0, 0.22),
+    p('M6.9 3.4h9.2l2.1 4.2H4.8l2.1-4.2Z', '#ffffff', 'none', 0, 0.5),
+    p('M4.8 3.7h3.4L3.1 7.9H1.5l3.3-4.2Z', '#ffffff', 'none', 0, 0.95),
+    p('M2.6 9.4c.5 3.1 2.1 6 4.5 8.2', 'none', '#d9f7ff', 1.3),
+    p(
+      'M19.7.8c.35 2.3 1.2 3.15 3.5 3.5-2.3.35-3.15 1.2-3.5 3.5-.35-2.3-1.2-3.15-3.5-3.5 2.3-.35 3.15-1.2 3.5-3.5Z',
+      '#fff8cc',
+      '#e8b400',
+      0.7,
+      1,
+      'ic-spark',
+    ),
+    p(
+      'M20.3 16.2c.2 1.3.7 1.8 2 2-1.3.2-1.8.7-2 2-.2-1.3-.7-1.8-2-2 1.3-.2 1.8-.7 2-2Z',
+      '#ffffff',
+      '#8fd2f2',
+      0.6,
+      1,
+      'ic-spark ic-spark-2',
+    ),
   ],
   'chest': [
     p('M4 11h16v8.4a1.2 1.2 0 0 1-1.2 1.2H5.2A1.2 1.2 0 0 1 4 19.4V11Z', '#c58c4f', '#7a4a1f', 1.2),
@@ -158,6 +201,33 @@ const ICONS: Record<IconName, Part[]> = {
   ],
 };
 
+/**
+ * Градиенты иконок (0.68.0). Отдельно от путей, потому что `<defs>` — это не
+ * «краска», а описание: пути ссылаются на них как `url(#{uid}-body)`.
+ *
+ * `{uid}` подставляется на каждый экземпляр свой (см. `Icon`): на одной
+ * главной одновременно живут 4–6 кристаллов, и общий id заставил бы браузер
+ * искать «первый подходящий» градиент — а после удаления любого из них
+ * ссылки стали бы битыми.
+ */
+const DEFS: Partial<Record<IconName, (uid: string) => ReactNode>> = {
+  crystal: (uid) => (
+    <defs>
+      {/* Ореол: тот самый «светится» — мягко, без резкой границы. */}
+      <radialGradient id={`${uid}-glow`} gradientUnits="userSpaceOnUse" cx="12" cy="12" r="11.6">
+        <stop offset="0.42" stopColor="#8fe0fb" stopOpacity="0.55" />
+        <stop offset="1" stopColor="#8fe0fb" stopOpacity="0" />
+      </radialGradient>
+      {/* Камень: сверху почти белый, снизу глубокий синий — объём. */}
+      <linearGradient id={`${uid}-body`} gradientUnits="userSpaceOnUse" x1="2" y1="2.5" x2="18" y2="23">
+        <stop offset="0" stopColor="#f6feff" />
+        <stop offset="0.42" stopColor="#8fe0fb" />
+        <stop offset="1" stopColor="#1167a6" />
+      </linearGradient>
+    </defs>
+  ),
+};
+
 /** Все имена — для теста: набор должен совпадать с разбором. */
 export const ICON_NAMES = Object.keys(ICONS) as IconName[];
 
@@ -176,6 +246,11 @@ interface IconProps {
  */
 export function Icon({ name, size = '1em', className, title }: IconProps) {
   const parts = ICONS[name];
+  // useId даёт строку вида «:r3:» — двоеточия в id допустимы, но неудобны в
+  // url(#…) и в отладке, поэтому убираем их.
+  const uid = `ico${useId().replace(/:/g, '')}`;
+  const withUid = (value: string) => value.replace(/\{uid\}/g, uid);
+  const defs = DEFS[name];
   return (
     <svg
       className={className ? `ico ${className}` : 'ico'}
@@ -190,12 +265,15 @@ export function Icon({ name, size = '1em', className, title }: IconProps) {
       aria-label={title}
       data-icon={name}
     >
+      {defs?.(uid)}
       {parts.map((part) => (
         <path
           key={part.d}
+          className={part.c}
           d={part.d}
-          fill={part.fill}
-          stroke={part.stroke}
+          fill={withUid(part.fill)}
+          fillOpacity={part.o !== undefined && part.o < 1 ? part.o : undefined}
+          stroke={withUid(part.stroke)}
           strokeWidth={part.w || undefined}
         />
       ))}
