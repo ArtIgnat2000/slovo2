@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Витрина для учениц — варианты товаров</title>
+<style>
+  :root{
+    --bg:#f6f2ea; --card:#fffdf9; --ink:#2b2530; --muted:#7a7284;
+    --line:#e8e0d4; --accent:#7c5cff; --accent-2:#12b886; --pink:#ff7aa8;
+    --gold:#f2a93b; --shadow:0 6px 20px rgba(60,40,90,.10);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#17141c; --card:#221d2a; --ink:#f2eef7; --muted:#a79fb3;
+      --line:#332b3f; --shadow:0 6px 20px rgba(0,0,0,.35); }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    padding:24px 16px 72px;}
+  .wrap{max-width:1080px;margin:0 auto}
+  h1{font-size:clamp(22px,4vw,34px);line-height:1.15;margin:0 0 8px}
+  h2{font-size:clamp(18px,2.4vw,24px);margin:40px 0 6px}
+  h3{font-size:15px;letter-spacing:.02em;text-transform:uppercase;color:var(--muted);
+    margin:22px 0 10px}
+  p.lead{color:var(--muted);margin:0 0 20px;max-width:70ch}
+  .stats{display:flex;flex-wrap:wrap;gap:12px;margin:20px 0 8px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:16px;
+    padding:14px 18px;box-shadow:var(--shadow);min-width:180px;flex:1}
+  .stat b{display:block;font-size:26px;line-height:1.1}
+  .stat span{color:var(--muted);font-size:13px}
+  .bad{color:#e03131}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 4px;position:sticky;top:0;
+    padding:10px 0;background:linear-gradient(var(--bg) 70%,transparent);z-index:5}
+  .tab{border:1px solid var(--line);background:var(--card);color:var(--ink);
+    border-radius:999px;padding:9px 16px;font-size:14px;font-weight:600;cursor:pointer}
+  .tab[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+  .shelf{background:var(--card);border:1px solid var(--line);border-radius:20px;
+    padding:18px 18px 8px;margin:16px 0;box-shadow:var(--shadow)}
+  .shelf-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px}
+  .shelf-head h2{margin:0}
+  .shelf-note{font-size:13px;color:var(--muted);margin:0 0 14px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:12px}
+  .card{border:1px solid var(--line);border-radius:16px;padding:10px;background:linear-gradient(180deg,#fff, #fbf7ff)}
+  @media (prefers-color-scheme: dark){ .card{background:linear-gradient(180deg,#2a2333,#241e2c)} }
+  .plate{height:76px;border-radius:12px;display:grid;place-items:center;font-size:38px;
+    background:radial-gradient(circle at 30% 25%, #fff8, transparent 60%),
+      linear-gradient(135deg,#ffe9f3,#e9e6ff)}
+  @media (prefers-color-scheme: dark){ .plate{background:radial-gradient(circle at 30% 25%,#fff2,transparent 60%),linear-gradient(135deg,#3a2c3d,#2b2545)} }
+  .name{font-weight:700;font-size:14px;margin:8px 0 2px;line-height:1.25}
+  .why{font-size:12px;color:var(--muted);min-height:32px}
+  .meta{display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:6px}
+  .price{font-weight:800;font-size:13px;background:#efe9ff;color:#5b3fd6;
+    border-radius:999px;padding:3px 9px;white-space:nowrap}
+  @media (prefers-color-scheme: dark){ .price{background:#372b5c;color:#cbbcff} }
+  .tag{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:999px;
+    padding:2px 8px;white-space:nowrap}
+  .free{background:#e6fcf5;color:#087f5b}
+  @media (prefers-color-scheme: dark){ .free{background:#0f3a2c;color:#8ce9c4} }
+  .hidden{display:none!important}
+  .callout{border-left:4px solid var(--accent);background:var(--card);border:1px solid var(--line);
+    border-radius:14px;padding:14px 16px;margin:18px 0;box-shadow:var(--shadow)}
+  .callout b{color:var(--accent)}
+  footer{margin-top:44px;color:var(--muted);font-size:13px;line-height:1.6}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:10px}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px}
+  .a{background:#7c5cff}.b{background:#12b886}.c{background:#f2a93b}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Витрина для учениц: что добавить в магазин</h1>
+  <p class="lead">Борд к предложению <code>docs/proposals/shop-girls-catalog.md</code>. Все цены — в кристаллах 💎,
+     доход ребёнка ≈ 24 💎 в день. Переключайте пакеты, чтобы увидеть этапы.</p>
+
+  <div class="stats">
+    <div class="stat"><b class="bad">21 из 27</b><span>товаров — техника (78 % витрины)</span></div>
+    <div class="stat"><b>0</b><span>питомцев, дома, наклеек, «творчества»</span></div>
+    <div class="stat"><b>10 из 10</b><span>костюмов — «боевая сага»: шлемы и посохи</span></div>
+    <div class="stat"><b>1 из 6</b><span>нарядов явно «девчачий» (бантик)</span></div>
+  </div>
+
+  <div class="callout">
+    <b>Данные.</b> Девочки 1–4 класса: симуляторы питомцев — 30 % против 12 % у мальчиков,
+    раскраски — 27 % против 8 %, головоломки — 26 % против 16 % (Учи.ру, 2026).
+    Игры-симуляторы — 45 % против 15 %, игры-рисование — 16 % против 5 %
+    (Плотникова и др., 2023). Тема «животные» — №1 во всех классах; волшебство до +14 п. п.
+    Соревнования — наоборот, мальчиковая зона: 32 % против 13 %.
+  </div>
+
+  <div class="tabs" role="group" aria-label="Пакеты">
+    <button class="tab" id="tab-all" aria-pressed="true" data-pkg="all">Все варианты</button>
+    <button class="tab" id="tab-a" aria-pressed="false" data-pkg="a">A · Быстрый баланс (3–5 дней)</button>
+    <button class="tab" id="tab-b" aria-pressed="false" data-pkg="b">B · Питомцы и дом (2–4 недели)</button>
+    <button class="tab" id="tab-c" aria-pressed="false" data-pkg="c">C · Творчество (3–6 недель)</button>
+  </div>
+  <div class="legend">
+    <span><i class="a"></i>пакет A</span><span><i class="b"></i>пакет B</span><span><i class="c"></i>пакет C</span>
+    <span>Крылья — единственный новый слот <code>back</code></span>
+  </div>
+
+  <!-- НАРЯДЫ -->
+  <section class="shelf" data-pkg="a">
+    <div class="shelf-head"><h2>🎩 Наряды · +13</h2><span class="tag">пакет A</span></div>
+    <p class="shelf-note">Украшение себя — существующие слоты + новый <code>back</code> для крыльев. Ничего не покупается за реальные деньги, подтверждение покупки сохраняется.</p>
+    <div class="grid" id="outfits"></div>
+  </section>
+
+  <!-- КОСТЮМЫ -->
+  <section class="shelf" data-pkg="a">
+    <div class="shelf-head"><h2>🧩 Костюмы · +4</h2><span class="tag">пакет A</span></div>
+    <p class="shelf-note">Костюмы зарабатываются уроками (9 фрагментов = 9 уроков), не покупаются — это догмат. Сейчас в пуле нет ни одного «волшебного» образа.</p>
+    <div class="grid" id="costumes"></div>
+  </section>
+
+  <!-- ПИТОМЦЫ -->
+  <section class="shelf" data-pkg="b">
+    <div class="shelf-head"><h2>🐾 Питомцы · 7</h2><span class="tag">пакет B</span></div>
+    <p class="shelf-note">Самый большой измеренный драйвер. Питомец живёт в «Доме БУКа», радуется после урока, не голодает и ничего не теряет за пропуск дня. Имя — из готового списка (свободный ввод — на согласование).</p>
+    <div class="grid" id="pets"></div>
+  </section>
+
+  <!-- ДОМ -->
+  <section class="shelf" data-pkg="b">
+    <div class="shelf-head"><h2>🏠 Дом БУКа · 16</h2><span class="tag">пакет B</span></div>
+    <p class="shelf-note">Комната с четырьмя слотами: стена, пол, мебель, мелочи. Сцена переиспользует «Ангар» (подиумы, бирки, панели), поэтому новый визуальный язык не нужен.</p>
+    <div class="grid" id="home"></div>
+  </section>
+
+  <!-- ТВОРЧЕСТВО -->
+  <section class="shelf" data-pkg="c">
+    <div class="shelf-head"><h2>🎨 Творчество · пакет C</h2><span class="tag">пакет C</span></div>
+    <p class="shelf-note">Раскраски — 27 % против 8 %; коллекционирование (наклейки, альбомы) — массовая категория. Всё это зарабатывается, а не покупается.</p>
+    <div class="grid" id="creative"></div>
+  </section>
+
+  <!-- ОФОРМЛЕНИЕ -->
+  <section class="shelf" data-pkg="a">
+    <div class="shelf-head"><h2>🖼 Оформление · +3 фона, +2 облика сундука</h2><span class="tag">пакет A</span></div>
+    <p class="shelf-note">Бесплатные настройки, но их видно всегда — самый дешёвый способ дать «своё». Плюс музыка: она уже работает и остаётся.</p>
+    <div class="grid" id="decor"></div>
+  </section>
+
+  <div class="callout">
+    <b>Экономика.</b> В каждой новой полке есть вещь за 15–25 💎 — покупка «сегодня же».
+    Цены 15–110 💎 при доходе ≈24 💎 в день; сдача вещей сохраняется
+    (наряды 50 %, техника 30 % — для дома и питомцев ставка 30 %).
+  </div>
+
+  <footer>
+    Заголовки и описания — черновые, для проверки вкуса; все id и цены — предложение, а не решение.
+    Источники и открытые вопросы — в <code>docs/proposals/shop-girls-catalog.md</code>.
+    Полок «для девочек» и «для мальчиков» не появляется: только интересы и интерес-пикер без вопроса о поле.
+  </footer>
+</div>
+
+<script>
+const outfits = [
+  ['🎀','Заколки-звёздочки','head',15,'Две звёздочки в перьях'],
+  ['🌼','Венок из ромашек','head',25,'Пахнет летом'],
+  ['👒','Шляпка с лентой','head',35,'Солома и атлас'],
+  ['👑','Корона','head',70,'С блестящими камешками'],
+  ['💖','Очки-сердечки','face',30,'Всё выглядит милым'],
+  ['👓','Круглые очки','face',35,'Как у библиотекаря'],
+  ['🎗️','Лента на шею','neck',20,'Бархат с бантом'],
+  ['📿','Бусы','neck',45,'Крупные, как у бабушки'],
+  ['👜','Сумочка','neck',40,'Застёжка-сердечко'],
+  ['🌸','Брошь-цветок','badge',30,'Расцветает, когда БУК рад'],
+  ['🐱','Значок с котиком','badge',20,'Котик машет лапой'],
+  ['🦋','Крылья бабочки','back',60,'Можно махать'],
+  ['🐉','Крылья дракона','back',75,'С шипами (и для мальчиков)'],
+];
+const costumes = [
+  ['🧚','Фея','9 уроков','Пыльца, пучки, свечение'],
+  ['🔮','Волшебница','9 уроков','Звёздный колпак и мантия'],
+  ['🧜','Русалка','9 уроков','Ракушка-диадема, хвост'],
+  ['🐈','Кошка','9 уроков','Ушки, хвост, лапки'],
+];
+const pets = [
+  ['🐱','Котёнок Луна',25,'Мурчит и сворачивается клубком'],
+  ['🐰','Кролик Прыг',30,'Прыгает и шевелит ушами'],
+  ['🐶','Корги Бублик',40,'Виляет хвостом, носит палочку'],
+  ['🦊','Лисёнок Рыжик',50,'Прячется за хвостом'],
+  ['🦉','Совёнок',60,'Повторяет за БУКом'],
+  ['🦄','Единорог Радуга',85,'Грива переливается искрами'],
+  ['🐲','Дракончик Уголёк',95,'Чихает искрами, греет лапы'],
+];
+const home = [
+  ['✨','Гирлянда','стена',20,'Тёплые лампочки'],
+  ['🌌','Звёздное небо','стена',40,'Светится в темноте'],
+  ['🌸','Цветочные обои','стена',30,'Мелкий узор'],
+  ['🖼️','Полка с постерами','стена',35,'Ракета, кот, радуга'],
+  ['🧶','Пушистый коврик','пол',20,'Мягкий и тёплый'],
+  ['🌈','Ковёр-радуга','пол',35,'Полосатый'],
+  ['🛏️','Кровать-облако','мебель',70,'Белая и мягкая'],
+  ['🪑','Кресло-качалка','мебель',55,'Скрипит по-доброму'],
+  ['🪴','Столик с лампой','мебель',45,'Уютный уголок'],
+  ['📚','Книжный шкаф','мебель',65,'Много цветных корешков'],
+  ['🌙','Ночник-звёздочка','мелочи',25,'Проецирует звёзды'],
+  ['🌿','Фикус','мелочи',20,'Большие листья'],
+  ['🌵','Кактус в горшке','мелочи',15,'Цветёт раз в неделю'],
+  ['🐠','Аквариум','мелочи',65,'Рыбки плавают'],
+  ['🐱','Подушка-кошка','мелочи',30,'С хвостом'],
+  ['🪟','Окно с видом на море','мелочи',60,'Волны за стеклом'],
+];
+const creative = [
+  ['📔','Альбом наклеек','за уроки','4 страницы × 9 наклеек'],
+  ['🎨','8 оттенков на вещь','1 💎 за новый','Раскраски: 27 % против 8 %'],
+  ['⭐','Раскраска дня','бесплатно','1 оттенок в день'],
+  ['🧷','Наклейки на стену','за уроки','1 слот в Доме'],
+];
+const decor = [
+  ['🛏️','Фон «Спальня с гирляндой»','бесплатно','Тёплый свет и плед'],
+  ['🧚','Фон «Сад фей»','бесплатно','Зелень и светлячки'],
+  ['🌅','Фон «Радужный закат»','бесплатно','Пастель и облака'],
+  ['🌷','Сундук «Цветочный»','30 слов','Палитра, без нового арта'],
+  ['🌈','Сундук «Радужный»','7 дней серии','Палитра, без нового арта'],
+  ['🎵','4 танцевальных трека','20–45','Музыка — 21 % детских запросов'],
+];
+
+function card([emoji, name, slot, price, why], kind){
+  const isFree = typeof price === 'string';
+  const priceLabel = isFree ? price : `${price} 💎`;
+  const tag = kind === 'costume' ? 'костюм' : (kind === 'pet' ? 'питомец' : (slot === 'back' ? 'слот back' : slot));
+  return `<div class="card">
+    <div class="plate" aria-hidden="true">${emoji}</div>
+    <div class="name">${name}</div>
+    <div class="why">${why}</div>
+    <div class="meta">
+      <span class="price ${isFree ? 'free' : ''}">${priceLabel}</span>
+      <span class="tag">${tag}</span>
+    </div>
+  </div>`;
+}
+const fill = (id, list, kind) => {
+  document.getElementById(id).innerHTML = list.map((row) => card(row, kind)).join('');
+};
+fill('outfits', outfits);
+fill('costumes', costumes, 'costume');
+fill('pets', pets, 'pet');
+fill('home', home, 'home');
+fill('creative', creative, 'creative');
+fill('decor', decor, 'decor');
+
+const shelves = Array.from(document.querySelectorAll('.shelf'));
+const tabs = Array.from(document.querySelectorAll('.tab'));
+function pick(pkg){
+  tabs.forEach((t) => t.setAttribute('aria-pressed', String(t.dataset.pkg === pkg)));
+  shelves.forEach((s) => s.classList.toggle('hidden', !(pkg === 'all' || s.dataset.pkg === pkg)));
+}
+tabs.forEach((t) => t.addEventListener('click', () => pick(t.dataset.pkg)));
+pick('all');
+</script>
+</body>
+</html>
