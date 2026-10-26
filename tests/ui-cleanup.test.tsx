@@ -85,7 +85,16 @@ export function runUiCleanupChecks(): void {
 
   // ── 3. Тап-зоны ───────────────────────────────────────────────────────────
   // 48 px — нижняя граница «палец ребёнка попадает с первого раза».
-  for (const selector of ['.chip', '.word-chip', '.btn.sm', '.shop-heart']) {
+  for (const selector of [
+    '.chip',
+    '.word-chip',
+    '.btn.sm',
+    '.shop-heart',
+    '.dict-legend-item',
+    '.dict-search-input',
+    '.dict-search-clear',
+    '.dict-more-btn',
+  ]) {
     const h = minHeight(rule(app, selector));
     check(
       `тап-зона: ${selector} — не меньше 48 px`,
