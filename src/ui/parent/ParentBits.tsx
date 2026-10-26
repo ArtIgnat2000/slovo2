@@ -28,10 +28,10 @@ export interface ParentTabItem {
  * ребёнок тренирует (docs/proposals/word-lists.md).
  */
 export const PARENT_TABS: ParentTabItem[] = [
-  { id: 'overview', emoji: '📊', title: 'Обзор' },
+  { id: 'overview', emoji: '📊', title: 'Обучение' },
   { id: 'lists', emoji: '🏫', title: 'Списки' },
-  { id: 'progress', emoji: '💾', title: 'Прогресс' },
-  { id: 'settings', emoji: '⚙️', title: 'Настройки' },
+  { id: 'progress', emoji: '💾', title: 'Данные' },
+  { id: 'settings', emoji: '⚙️', title: 'Настройки программы' },
   { id: 'app', emoji: '📲', title: 'Приложение' },
 ];
 

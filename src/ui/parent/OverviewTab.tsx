@@ -4,6 +4,7 @@
 // три вопроса родителя — «занимается ли», «что получается», «что подтянуть».
 // Никаких настроек здесь нет: настройки — это решения, а не отчёт.
 
+import { useState } from 'react';
 import { ACHIEVEMENTS } from '../../engine/rewards';
 import { CLASS_META, LESSON_BY_ID, WORDS, WORDS_BY_GRADE, WORD_BY_ID, availableClass } from '../../content/words';
 import { lastDays } from '../../engine/day';
@@ -14,7 +15,7 @@ import { plural } from '../../engine/quests';
 import { Bar } from '../Bits';
 import { GroupTitle, StatTile } from './ParentBits';
 import { PRESET_LISTS, presetText } from '../../content/preset-lists';
-import type { Profile, StudySession, TaskKind, Word } from '../../types';
+import type { ClassId, Profile, StudySession, TaskKind, Word } from '../../types';
 
 interface Props {
   profile: Profile;
@@ -100,7 +101,8 @@ export function OverviewTab({ profile, onOpenWords, onOpenSection }: Props) {
   const todayErrorWords = Object.entries(today.errorWords ?? {}).sort((a, b) => b[1] - a[1]);
   const todayAnswered = today.correct + today.wrong;
   const todayAccuracy = todayAnswered >= 5 ? Math.round((today.correct / todayAnswered) * 100) : null;
-  const grade = availableClass(profile.activeClass ?? 2);
+  const [grade, setGrade] = useState(availableClass(profile.activeClass ?? 2));
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const gradeWords = WORDS_BY_GRADE[grade];
   // Прогресс по всем классам: таблица ниже и подпись «что дальше».
   const table = classTable(profile);
@@ -127,13 +129,43 @@ export function OverviewTab({ profile, onOpenWords, onOpenSection }: Props) {
   const weakTotal = Object.keys(profile.errors).length;
 
   const trained = Object.values(profile.words).filter((w) => w.s > 0).length;
-  const trainedInGrade = gradeWords.filter((w) => (profile.words[w.id]?.s ?? 0) > 0).length;
+  const trainedInGrade = gradeWords.filter((word) => {
+    const state = profile.words[word.id];
+    return !!state && (state.s > 0 || state.seen > 0 || state.ok > 0 || state.wrong > 0);
+  }).length;
   const earned = profile.achievements.length;
 
   const lists = profile.lists ?? [];
 
+  const inProgressInGrade = Math.max(0, trainedInGrade - masteredInGrade);
+  const notStartedInGrade = Math.max(0, gradeWords.length - trainedInGrade);
+  const gradeErrors = Object.entries(profile.errors)
+    .filter(([id, count]) => count >= 2 && gradeWords.some((word) => word.id === id))
+    .sort((a, b) => b[1] - a[1]);
+
   return (
     <div className="parent-stack">
+      <div className="card parent-learning-summary">
+        <GroupTitle title="Как идёт обучение" hint="Словарь каждого класса · общие слова учитываются как освоенные" />
+        <label className="setting-row" htmlFor="parent-learning-grade">
+          <span className="setting-title">Класс для отчёта</span>
+          <select id="parent-learning-grade" className="input" value={grade} onChange={(event) => setGrade(availableClass(Number(event.target.value) as ClassId))}>
+            {[1, 2, 3, 4].map((value) => <option key={value} value={value}>{CLASS_META[value as keyof typeof CLASS_META].title}</option>)}
+          </select>
+        </label>
+        <div className="stat-grid">
+          <StatTile value={`${masteredInGrade} из ${gradeWords.length}`} label="освоено уверенно" hint="оценка приложения — 90 из 100 и выше" tone={masteredInGrade > 0 ? 'good' : 'plain'} />
+          <StatTile value={String(inProgressInGrade)} label="в работе" hint="слова уже встречались, но ещё не освоены" />
+          <StatTile value={String(notStartedInGrade)} label="ещё не начинали" hint="слова из словаря этого класса" />
+        </div>
+        <div className="mt"><Bar value={masteredInGrade / Math.max(1, gradeWords.length) * 100} tone="green" /></div>
+        <p className="setting-hint">Это текущая оценка приложения, а не гарантия, что слово больше не забудется. Общие для классов слова используют один общий результат.</p>
+        <p className="setting-hint">Срок освоения пока не прогнозируем: для надёжной оценки недостаточно истории по каждому слову.</p>
+        <div className="kv"><span>Слова с повторяющимися ошибками в этом классе</span><b>{gradeErrors.length}</b></div>
+        {gradeErrors.length > 0 && <div className="wordlist">{gradeErrors.slice(0, 4).map(([id, count]) => <span className="word-chip weak" key={id}>{wordText(id)} · {count}</span>)}</div>}
+        <button className="btn ghost sm mt" aria-expanded={detailsOpen} onClick={() => setDetailsOpen((open) => !open)}>{detailsOpen ? 'Скрыть подробный отчёт' : 'Подробный отчёт'}</button>
+      </div>
+      {detailsOpen && <>
       {/* Списки к контрольной (0.58.1): вход в них должен быть виден из обзора,
           иначе родитель ищет «Контрольную» в уроках и не находит — карточка
           на «Уроках» появляется только после создания списка. */}
@@ -415,6 +447,7 @@ export function OverviewTab({ profile, onOpenWords, onOpenSection }: Props) {
           📲 Передать ссылку
         </button>
       </div>
+      </>}
     </div>
   );
 }
