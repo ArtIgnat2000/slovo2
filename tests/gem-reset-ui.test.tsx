@@ -14,7 +14,7 @@ async function savedProfile(id: string) {
   return record.state?.profiles?.find((p) => p.id === id);
 }
 
-/** Вызывается, когда уже открыта вкладка «Родителям → Данные». */
+/** Вызывается, когда уже открыт раздел «Родителям → Ещё → Данные». */
 export async function runGemResetUiChecks(reopenParentData: () => Promise<void>): Promise<void> {
   const saved = { profiles: state().profiles, activeId: state().activeId, vault: state().vault };
   const id = saved.activeId;
