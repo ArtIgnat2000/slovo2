@@ -7604,6 +7604,18 @@ p {
   border-color: var(--red);
 }
 
+/* На узких телефонах (включая компактные Samsung) три учебные метрики
+   в ряд превращают подписи в узкие столбики. Две колонки дают цифрам и
+   пояснениям место; третья метрика занимает всю строку. */
+@media (max-width: 380px) {
+  .parent-learning-summary .stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .parent-learning-summary .stat-grid > :last-child {
+    grid-column: 1 / -1;
+  }
+}
+
 @media (max-width: 480px) {
   .parent-head {
     align-items: center;
