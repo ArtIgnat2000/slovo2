@@ -29,7 +29,8 @@ import { migrateMusicShop, MUSIC_BY_ID } from '../engine/music';
 import { canBuySoundPack, DEFAULT_SOUND_PACK, hasSoundPack, normalizeSoundShop, SOUND_PACK_BY_ID } from '../engine/sounds';
 import { normalizeTuning, recolor, type RecolorOutcome } from '../engine/tints';
 import {
-  COSTUMES,
+  ALL_COSTUMES,
+  CRYSTAL_COSTUMES,
   awardLessonPiece,
   chooseCollecting,
   normalizePuzzle,
@@ -37,6 +38,9 @@ import {
   type PuzzleAward,
 } from '../engine/puzzles';
 import { activeChestSkin, skinById, skinState, type ChestSkinId } from '../engine/chests';
+import { BUILDING_BY_ID, isBuildingOwned, normalizeActiveBuilding, normalizeBuildingsOwned, normalizeWorldBase } from '../engine/buildings';
+import { BASE_SETS, baseSetPrice } from '../engine/base-sets';
+import { normalizeWorld, toggleWorldPick, type WorldToggle } from '../engine/world';
 import { DEFAULT_LESSON_SIZE } from '../engine/scheduler';
 import {
   DEFAULT_LIST_DRILL_SIZE,
@@ -230,18 +234,26 @@ export function repairMusicShop<T extends { musicOwned?: unknown; musicTrack?: u
 function readShop(p: Profile): ShopState {
   const owned = p.shop?.owned ?? [];
   const assembled = p.puzzle?.assembled ?? [];
+  const crystalCostumesOwned = [...new Set((p.shop?.crystalCostumesOwned ?? []).filter((id) => CRYSTAL_COSTUMES.some((c) => c.id === id)))];
+  const ownedCostumes = [...assembled, ...crystalCostumesOwned];
+  const buildingsOwned = normalizeBuildingsOwned(p.shop?.buildingsOwned);
   // Музыкальная часть — через миграцию: покупки старого каталога не теряются.
   const music = migrateMusicShop(repairMusicShop(p.shop));
   return {
     owned,
     equipped: p.shop?.equipped ?? {},
+    crystalCostumesOwned,
     musicOwned: music.musicOwned,
     musicTrack: music.musicTrack,
     // «Звуки»: старые профили получают стартовые наборы и классику
     ...normalizeSoundShop(p.shop),
     // краски некупленных вещей, чужие id и акценты несобранных костюмов отбрасываем
-    tuning: normalizeTuning(p.shop?.tuning, [...owned, ...assembled]),
-    wishlist: normalizeWishlist(p.shop?.wishlist, owned, assembled, music.musicOwned),
+    tuning: normalizeTuning(p.shop?.tuning, [...owned, ...ownedCostumes]),
+    wishlist: normalizeWishlist(p.shop?.wishlist, owned, ownedCostumes, music.musicOwned),
+    world: normalizeWorld(p.shop?.world, owned, ownedCostumes),
+    buildingsOwned,
+    worldBase: normalizeWorldBase(p.shop?.worldBase, buildingsOwned),
+    activeBuilding: normalizeActiveBuilding(p.shop?.activeBuilding, buildingsOwned),
   };
 }
 
@@ -276,6 +288,11 @@ function newProfile(name: string, avatar: string, activeClass: ClassId = 2): Pro
       soundOwned: [],
       soundPack: DEFAULT_SOUND_PACK,
       wishlist: [],
+      crystalCostumesOwned: [],
+      world: [],
+      buildingsOwned: [],
+      worldBase: null,
+      activeBuilding: null,
     },
     puzzle: { pieces: {}, collecting: null, assembled: [], worn: null },
   };
@@ -362,8 +379,13 @@ function normalizeProfile(raw: Partial<Profile> | null | undefined): Profile | n
         // ребёнка (включая «Тишина») сохраняется — см. engine/music.ts.
         ...music,
         ...normalizeSoundShop(raw.shop),
-        tuning: normalizeTuning(raw.shop?.tuning, [...owned, ...puzzle.assembled]),
-        wishlist: normalizeWishlist(raw.shop?.wishlist, owned, puzzle.assembled, music.musicOwned),
+        tuning: normalizeTuning(raw.shop?.tuning, [...owned, ...puzzle.assembled, ...((raw.shop?.crystalCostumesOwned ?? []).filter((id: unknown): id is string => typeof id === 'string'))]),
+        wishlist: normalizeWishlist(raw.shop?.wishlist, owned, [...puzzle.assembled, ...((raw.shop?.crystalCostumesOwned ?? []).filter((id: unknown): id is string => typeof id === 'string'))], music.musicOwned),
+        crystalCostumesOwned: [...new Set((raw.shop?.crystalCostumesOwned ?? []).filter((id): id is string => typeof id === 'string' && CRYSTAL_COSTUMES.some((c) => c.id === id)))],
+        world: normalizeWorld(raw.shop?.world, owned, [...puzzle.assembled, ...((raw.shop?.crystalCostumesOwned ?? []).filter((id: unknown): id is string => typeof id === 'string'))]),
+        buildingsOwned: normalizeBuildingsOwned(raw.shop?.buildingsOwned),
+        worldBase: normalizeWorldBase(raw.shop?.worldBase, normalizeBuildingsOwned(raw.shop?.buildingsOwned)),
+        activeBuilding: normalizeActiveBuilding(raw.shop?.activeBuilding, normalizeBuildingsOwned(raw.shop?.buildingsOwned)),
       },
       puzzle,
     };
@@ -448,6 +470,18 @@ interface AppState {
 
   /** Купить аксессуар у БУКа. Возвращает false, если кристаллов не хватает. */
   buyItem: (id: string) => boolean;
+  /** Купить научную базу (здание). Сразу ставится на участок. */
+  buyBuilding: (id: string) => boolean;
+  /** Купить кристальный костюм базы. Сразу надевается на БУКа. */
+  buyCrystalCostume: (id: string) => boolean;
+  /** Купить набор базы целиком: база + машина + самолёт + костюм (цена — за недостающие части ×3). */
+  buyBaseSet: (id: string) => boolean;
+  /** Поставить купленную базу на участок в магазине. */
+  chooseBuilding: (id: string) => boolean;
+  /** Поставить купленную базу фоном «Моего мира» (null — убрать фон). */
+  chooseWorldBase: (id: string | null) => boolean;
+  /** «Мой мир»: поставить/убрать купленную вещь или костюм (до трёх мест). */
+  toggleWorld: (id: string) => WorldToggle;
   /**
    * Сдать купленную вещь обратно («трейд-ин», docs/proposals/trade-in.md):
    * вещь уходит из гардероба навсегда, часть цены возвращается
@@ -1289,6 +1323,125 @@ export const useApp = create<AppState>()(
         return true;
       },
 
+      buyBuilding: (id) => {
+        const building = BUILDING_BY_ID[id];
+        const p = getActive(get());
+        if (!building || !p) return false;
+        if (isBuildingOwned(readShop(p).buildingsOwned, id) || p.gems < building.price) return false;
+        const spend = beginSpend({ kind: 'buy', label: building.title, price: building.price, profile: p, gemsAfter: p.gems - building.price });
+        const meta = spendMeta(spend, p.name);
+        set((s) => ({
+          ...patchActive(s, (prof) => {
+            const shop = readShop(prof);
+            if (isBuildingOwned(shop.buildingsOwned, id) || prof.gems < building.price) return prof;
+            return {
+              ...prof,
+              gems: prof.gems - building.price,
+              shop: { ...shop, buildingsOwned: [...(shop.buildingsOwned ?? []), id], activeBuilding: id },
+            };
+          }),
+          vault: { ...pushLog(s.vault, 'purchase', `${building.title} · ${building.price} 💎`), purchase: meta },
+        }));
+        confirmSpend(spend, (prof) => isBuildingOwned(readShop(prof).buildingsOwned, id));
+        return true;
+      },
+
+      buyCrystalCostume: (id) => {
+        const costume = CRYSTAL_COSTUMES.find((c) => c.id === id);
+        const p = getActive(get());
+        if (!costume || !p) return false;
+        const price = costume.price ?? 0;
+        if ((readShop(p).crystalCostumesOwned ?? []).includes(id) || p.gems < price) return false;
+        const spend = beginSpend({ kind: 'buy', label: costume.title, price, profile: p, gemsAfter: p.gems - price });
+        const meta = spendMeta(spend, p.name);
+        set((s) => ({
+          ...patchActive(s, (prof) => {
+            const shop = readShop(prof);
+            if ((shop.crystalCostumesOwned ?? []).includes(id) || prof.gems < price) return prof;
+            return {
+              ...prof,
+              gems: prof.gems - price,
+              puzzle: { ...normalizePuzzle(prof.puzzle), worn: id },
+              shop: { ...shop, crystalCostumesOwned: [...(shop.crystalCostumesOwned ?? []), id], wishlist: shop.wishlist?.filter((x) => x !== id) },
+            };
+          }),
+          vault: { ...pushLog(s.vault, 'purchase', `${costume.title} · ${price} 💎`), purchase: meta },
+        }));
+        confirmSpend(spend, (prof) => (readShop(prof).crystalCostumesOwned ?? []).includes(id));
+        return true;
+      },
+
+      buyBaseSet: (id) => {
+        const setInfo = BASE_SETS.find((s2) => s2.id === id);
+        const p = getActive(get());
+        if (!setInfo || !p) return false;
+        const shop0 = readShop(p);
+        const pz0 = normalizePuzzle(p.puzzle);
+        const price = baseSetPrice(setInfo, shop0.owned, shop0.buildingsOwned ?? [], [...pz0.assembled, ...(shop0.crystalCostumesOwned ?? [])]);
+        if (price <= 0 || p.gems < price) return false;
+        const spend = beginSpend({ kind: 'buy', label: setInfo.title, price, profile: p, gemsAfter: p.gems - price });
+        const meta = spendMeta(spend, p.name);
+        set((s) => ({
+          ...patchActive(s, (prof) => {
+            const shop = readShop(prof);
+            const pz = normalizePuzzle(prof.puzzle);
+            const curPrice = baseSetPrice(setInfo, shop.owned, shop.buildingsOwned ?? [], [...pz.assembled, ...(shop.crystalCostumesOwned ?? [])]);
+            if (curPrice <= 0 || prof.gems < curPrice) return prof;
+            return {
+              ...prof,
+              gems: prof.gems - curPrice,
+              puzzle: { ...pz, worn: setInfo.costumeId },
+              shop: {
+                ...shop,
+                owned: [...new Set([...shop.owned, setInfo.carId, setInfo.planeId])],
+                equipped: { ...shop.equipped, toy: setInfo.planeId },
+                buildingsOwned: (shop.buildingsOwned ?? []).includes(setInfo.baseId) ? shop.buildingsOwned : [...(shop.buildingsOwned ?? []), setInfo.baseId],
+                activeBuilding: setInfo.baseId,
+                worldBase: setInfo.baseId,
+                crystalCostumesOwned: (shop.crystalCostumesOwned ?? []).includes(setInfo.costumeId) ? shop.crystalCostumesOwned : [...(shop.crystalCostumesOwned ?? []), setInfo.costumeId],
+                wishlist: shop.wishlist?.filter((x) => x !== setInfo.costumeId && x !== setInfo.carId && x !== setInfo.planeId),
+              },
+            };
+          }),
+          vault: { ...pushLog(s.vault, 'purchase', `${setInfo.title} · ${price} 💎`), purchase: meta },
+        }));
+        confirmSpend(spend, (prof) => {
+          const sh = readShop(prof);
+          return isBuildingOwned(sh.buildingsOwned, setInfo.baseId) && isOwned(sh.owned, setInfo.carId) && isOwned(sh.owned, setInfo.planeId) && (sh.crystalCostumesOwned ?? []).includes(setInfo.costumeId);
+        });
+        return true;
+      },
+
+      chooseBuilding: (id) => {
+        if (!BUILDING_BY_ID[id]) return false;
+        const p = getActive(get());
+        if (!p || !isBuildingOwned(readShop(p).buildingsOwned, id)) return false;
+        set((s) => patchActive(s, (prof) => ({ ...prof, shop: { ...readShop(prof), activeBuilding: id } })));
+        return true;
+      },
+
+      chooseWorldBase: (id) => {
+        const p = getActive(get());
+        if (!p) return false;
+        const shop = readShop(p);
+        const next = id === null ? null : normalizeWorldBase(id, shop.buildingsOwned ?? []);
+        if (id !== null && !next) return false;
+        set((s) => patchActive(s, (prof) => ({ ...prof, shop: { ...readShop(prof), worldBase: next } })));
+        return true;
+      },
+
+      toggleWorld: (id) => {
+        const p = getActive(get());
+        if (!p) return 'locked';
+        const shop = readShop(p);
+        const pz = normalizePuzzle(p.puzzle);
+        const next = toggleWorldPick(shop.world, id, shop.owned, [...pz.assembled, ...(shop.crystalCostumesOwned ?? [])]);
+        if (next.result === 'added' || next.result === 'removed') {
+          set((s) => patchActive(s, (prof) => ({ ...prof, shop: { ...readShop(prof), world: next.world } })));
+        }
+        return next.result;
+      },
+
       sellItem: (id) => {
         const item = ITEM_BY_ID[id];
         const p = getActive(get());
@@ -1329,6 +1482,7 @@ export const useApp = create<AppState>()(
                 ...shop,
                 owned: shop.owned.filter((x) => x !== id),
                 equipped,
+                world: (shop.world ?? []).filter((x) => x !== id),
                 tuning: nextTuning,
                 wishlist: shop.wishlist?.filter((x) => x !== id),
               },
@@ -1349,9 +1503,9 @@ export const useApp = create<AppState>()(
         const shop = readShop(p);
         const pz = normalizePuzzle(p.puzzle);
         const music = migrateMusicShop(repairMusicShop(p.shop));
-        const ownedSet = new Set([...shop.owned, ...pz.assembled, ...music.musicOwned]);
+        const ownedSet = new Set([...shop.owned, ...pz.assembled, ...(shop.crystalCostumesOwned ?? []), ...music.musicOwned]);
         if (ownedSet.has(id)) return false;
-        const isValid = Boolean(ITEM_BY_ID[id] || COSTUMES.find((c) => c.id === id) || MUSIC_BY_ID[id]);
+        const isValid = Boolean(ITEM_BY_ID[id] || ALL_COSTUMES.find((c) => c.id === id) || MUSIC_BY_ID[id]);
         if (!isValid) return false;
 
         const currentWishlist = shop.wishlist ?? [];
@@ -1535,7 +1689,12 @@ export const useApp = create<AppState>()(
         ),
 
       toggleCostume: (id) =>
-        set((s) => patchActive(s, (p) => ({ ...p, puzzle: toggleWorn(p.puzzle, id) }))),
+        set((s) =>
+          patchActive(s, (p) => {
+            const shop = readShop(p);
+            return { ...p, puzzle: toggleWorn(p.puzzle, id, shop.crystalCostumesOwned ?? []) };
+          }),
+        ),
 
       chooseChestSkin: (id) =>
         set((s) =>

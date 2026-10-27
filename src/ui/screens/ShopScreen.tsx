@@ -20,8 +20,15 @@ import {
   sellPrice,
   toysByShelf,
   wardrobeValue,
+  compareByRarity,
+  rarityOf,
+  RARITY_ORDER,
   type ToyKind,
 } from '../../engine/shop';
+import { BUILDINGS, BUILDING_BY_ID, isBuildingOwned, type BuildingItem } from '../../engine/buildings';
+import { BASE_SETS, baseSetPrice, type BaseSet } from '../../engine/base-sets';
+import { BuildingArt } from '../BuildingArt';
+import { RarityChip, RarityLabel } from '../RarityChip';
 import { Mascot } from '../Mascot';
 import { ToyArt } from '../ToyArt';
 import { isRotatingPhone } from '../ElectronicsArt';
@@ -29,6 +36,8 @@ import { carAlt, carKind, carNote, hasCarArt } from '../CarArt';
 import { hasShipArt, shipAlt, shipKind, shipNote } from '../ShipArt';
 import { HangarScene } from '../HangarScene';
 import {
+  ALL_COSTUMES,
+  CRYSTAL_COSTUMES,
   COSTUMES,
   OVERFLOW_GEMS,
   PUZZLE_SIZE,
@@ -92,7 +101,7 @@ const MUSIC_SHELVES: { shelf: MusicShelf; title: string }[] = [
 type View = 'vitrina' | 'wardrobe';
 
 /** Полки витрины — по типу товара, не по слоту совы. */
-type Cat = 'outfits' | 'toys' | 'costumes' | 'music' | 'sounds' | 'backgrounds';
+type Cat = 'outfits' | 'toys' | 'buildings' | 'costumes' | 'sets' | 'music' | 'sounds' | 'backgrounds';
 
 // 0.54.0: у полок магазина — те же иконки набора, что в остальном интерфейсе.
 // У «Техники», «Музыки» и «Фонов» своей иконки в наборе 20 пока нет — остаются
@@ -100,7 +109,9 @@ type Cat = 'outfits' | 'toys' | 'costumes' | 'music' | 'sounds' | 'backgrounds';
 const CATS: { id: Cat; title: string; emoji: string; icon?: 'hat' | 'puzzle' | 'speaker' }[] = [
   { id: 'outfits', title: 'Наряды', emoji: '🎩', icon: 'hat' },
   { id: 'toys', title: 'Техника', emoji: '🚗' },
+  { id: 'buildings', title: 'Базы', emoji: '🏙️' },
   { id: 'costumes', title: 'Костюмы', emoji: '🧩', icon: 'puzzle' },
+  { id: 'sets', title: 'Наборы', emoji: '🎁' },
   { id: 'music', title: 'Музыка', emoji: '🎵' },
   { id: 'sounds', title: 'Звуки', emoji: '🔊', icon: 'speaker' },
   { id: 'backgrounds', title: 'Фоны', emoji: '🖼️' },
@@ -109,6 +120,8 @@ const CATS: { id: Cat; title: string; emoji: string; icon?: 'hat' | 'puzzle' | '
 /** Что открылось в подробной карточке (sheet снизу). */
 type Detail =
   | { kind: 'item'; item: ShopItem }
+  | { kind: 'building'; building: BuildingItem }
+  | { kind: 'baseSet'; set: BaseSet }
   | { kind: 'costume'; costume: Costume }
   | { kind: 'track'; track: MusicTrack }
   | { kind: 'sound'; pack: SoundPack };
@@ -138,6 +151,7 @@ function ShopCard(props: {
   desc?: string;
   /** Дополнительный класс карточки: on (надето), owned (куплено), current (собираем) */
   cardCls?: string;
+  rarity?: import('../../engine/shop').ItemRarity;
   /** Между подписью и ценой — например, точки прогресса пазла */
   extra?: ReactNode;
   priceLabel?: ReactNode;
@@ -152,7 +166,7 @@ function ShopCard(props: {
 }) {
   return (
     <article
-      className={`shop-item${props.cardCls ? ` ${props.cardCls}` : ''}`}
+      className={`shop-item${props.cardCls ? ` ${props.cardCls}` : ''}${props.rarity ? ` tier-${props.rarity}` : ''}`}
       role="button"
       tabIndex={0}
       aria-label={props.title}
@@ -169,6 +183,7 @@ function ShopCard(props: {
         <span className="shop-case-podium" aria-hidden="true" />
       </div>
       <div className="shop-title">{props.title}</div>
+      {props.rarity && <RarityLabel rarity={props.rarity} className="shop-rarity" />}
       {props.desc && <div className="tiny shop-desc">{props.desc}</div>}
       {props.extra}
       {props.priceLabel && (
@@ -268,6 +283,10 @@ export function ShopScreen({
   const setSoundPack = useApp((s) => s.setSoundPack);
   const setMusicTrack = useApp((s) => s.setMusicTrack);
   const toggleWishlist = useApp((s) => s.toggleWishlist);
+  const buyBuilding = useApp((s) => s.buyBuilding);
+  const buyCrystalCostume = useApp((s) => s.buyCrystalCostume);
+  const buyBaseSet = useApp((s) => s.buyBaseSet);
+  const chooseBuilding = useApp((s) => s.chooseBuilding);
   const themeStyle = useApp((s) => s.settings.themeStyle);
   const setSettings = useApp((s) => s.setSettings);
   const [view, setView] = useState<View>(initialView);
@@ -279,6 +298,9 @@ export function ShopScreen({
   const [ask, setAsk] = useState<ShopItem | null>(null);
   const [askSell, setAskSell] = useState<ShopItem | null>(null);
   const [askMusic, setAskMusic] = useState<MusicTrack | null>(null);
+  const [askBuilding, setAskBuilding] = useState<BuildingItem | null>(null);
+  const [askCrystalCostume, setAskCrystalCostume] = useState<Costume | null>(null);
+  const [askBaseSet, setAskBaseSet] = useState<BaseSet | null>(null);
   const [askSound, setAskSound] = useState<SoundPack | null>(null);
   const [askTint, setAskTint] = useState<{ target: TintTarget; tint: TintOption } | null>(null);
   const [previewTrack, setPreviewTrack] = useState<string | null>(null);
@@ -328,6 +350,12 @@ export function ShopScreen({
   const soundOwned = profile.shop?.soundOwned ?? [];
   const selectedSound = profile.shop?.soundPack ?? 'classic';
   const wishlist = profile.shop?.wishlist ?? [];
+  const buildingsOwned = profile.shop?.buildingsOwned ?? [];
+  const activeBuilding = profile.shop?.activeBuilding ?? null;
+  const selectedBuilding = activeBuilding ? BUILDING_BY_ID[activeBuilding] ?? null : null;
+  const crystalOwned = profile.shop?.crystalCostumesOwned ?? [];
+  const allOwnedCostumes = [...pz.assembled, ...crystalOwned];
+  const priceForSet = (setInfo: BaseSet) => baseSetPrice(setInfo, owned, buildingsOwned, allOwnedCostumes);
   const hero = resolveHero(owned, profile.puzzle, musicOwned);
   // Ближайшая техника — отдельная подсказка на полке «Техника»: герой нарядов
   // намеренно не уводит ребёнка на другую полку (см. engine/shop.ts).
@@ -343,7 +371,7 @@ export function ShopScreen({
    * Теперь пустые секции не рисуются, а вместо них — одна строка-приглашение.
    */
   const noPurchases =
-    ownedOutfits.length === 0 && ownedToys.length === 0 && pz.assembled.length === 0 && musicOwned.length === 0;
+    ownedOutfits.length === 0 && ownedToys.length === 0 && pz.assembled.length === 0 && musicOwned.length === 0 && buildingsOwned.length === 0 && crystalOwned.length === 0;
 
   const tapWish = (id: string, title: string) => {
     sfx.tap();
@@ -573,6 +601,59 @@ export function ShopScreen({
     }
   };
 
+  const selectBuilding = (building: BuildingItem) => {
+    if (building.id === activeBuilding) return;
+    if (!chooseBuilding(building.id)) return;
+    sfx.tap();
+    haptic.tap();
+    showToast({ emoji: building.emoji, title: `«${building.title}» теперь на участке!`, text: 'Поставить другую базу можно в любой момент' });
+  };
+
+  const confirmBuildingBuy = () => {
+    if (!askBuilding) return;
+    const building = askBuilding;
+    const ok = buyBuilding(building.id);
+    setAskBuilding(null);
+    if (ok) {
+      sfx.reward();
+      haptic.correct();
+      showToast({ emoji: building.emoji, title: `«${building.title}» построено!`, text: 'База стоит на участке и готова стать фоном «Моего мира»' });
+    } else {
+      showToast({ emoji: '💎', title: 'Не хватает кристаллов', text: `Нужно ещё ${Math.max(0, building.price - gems)} 💎` });
+    }
+  };
+
+  const confirmCrystalCostumeBuy = () => {
+    if (!askCrystalCostume) return;
+    const costume = askCrystalCostume;
+    const ok = buyCrystalCostume(costume.id);
+    setAskCrystalCostume(null);
+    if (ok) {
+      sfx.reward();
+      haptic.correct();
+      setMood('dance');
+      setTimeout(() => setMood('idle'), 1800);
+      showToast({ emoji: '✨', title: `«${costume.title}» — твой!`, text: 'БУК уже надел костюм своей базы' });
+    } else {
+      showToast({ emoji: '💎', title: 'Не хватает кристаллов', text: `Нужно ещё ${Math.max(0, (costume.price ?? 0) - gems)} 💎` });
+    }
+  };
+
+  const confirmBaseSetBuy = () => {
+    if (!askBaseSet) return;
+    const setInfo = askBaseSet;
+    const price = priceForSet(setInfo);
+    const ok = buyBaseSet(setInfo.id);
+    setAskBaseSet(null);
+    if (ok) {
+      sfx.reward();
+      haptic.correct();
+      showToast({ emoji: setInfo.emoji, title: `${setInfo.title} — собран!`, text: 'База — фоном «Моего мира», самолёт — в ангаре, костюм — на БУКе' });
+    } else {
+      showToast({ emoji: '💎', title: 'Не хватает кристаллов', text: `Нужно ещё ${Math.max(0, price - gems)} 💎` });
+    }
+  };
+
   // ── Карточки витрины ────────────────────────────────────────────────
 
   const itemCard = (item: ShopItem) => {
@@ -596,6 +677,7 @@ export function ShopScreen({
           )
         }
         title={item.title}
+        rarity={rarityOf(item)}
         desc={item.desc}
         // Арт техники рисуется целиком, без совы: на полке это товар,
         // а не ещё один наряд на БУКе.
@@ -686,6 +768,89 @@ export function ShopScreen({
           if (done) tapCostume(c.id);
           else tapPickCostume(c.id);
         }}
+      />
+    );
+  };
+
+  const crystalCostumeCard = (c: Costume) => {
+    const owned_ = crystalOwned.includes(c.id);
+    const wearing = pz.worn === c.id;
+    const price = c.price ?? 0;
+    const affordable = gems >= price;
+    const wished = isWished(wishlist, c.id);
+    return (
+      <ShopCard
+        key={c.id}
+        rarity={c.rarity}
+        cardCls={`crystal-costume-card${wearing ? ' on' : owned_ ? ' owned' : ''}`}
+        wished={wished}
+        onWish={!owned_ ? () => tapWish(c.id, c.title) : undefined}
+        art={<Mascot mood={wearing ? 'happy' : 'idle'} costumeId={c.id} size={64} stage={growth.index} />}
+        title={c.title}
+        desc={c.desc}
+        priceLabel={owned_ ? 'Твой ✓' : <Gem value={price} size={18} />}
+        afford={affordable}
+        actionLabel={owned_ ? (wearing ? 'Надето ✓' : 'Надеть') : affordable ? `Купить · 💎${price}` : `Ещё ${Math.max(0, price - gems)} 💎`}
+        actionTone={owned_ ? (wearing ? 'green' : 'ghost') : affordable ? 'primary' : 'ghost'}
+        actionDisabled={!owned_ && !affordable}
+        onOpen={() => openSheet({ kind: 'costume', costume: c })}
+        onAction={() => {
+          if (owned_) tapCostume(c.id);
+          else if (affordable) { sfx.tap(); setAskCrystalCostume(c); }
+          else showToast({ emoji: '💎', title: `До «${c.title}» ещё ${Math.max(0, price - gems)} 💎`, text: 'Кристаллы дают за задания дня и сундук' });
+        }}
+      />
+    );
+  };
+
+  const buildingCard = (building: BuildingItem) => {
+    const owned_ = isBuildingOwned(buildingsOwned, building.id);
+    const selected = activeBuilding === building.id;
+    const affordable = gems >= building.price;
+    const missing = Math.max(0, building.price - gems);
+    return (
+      <ShopCard
+        key={building.id}
+        rarity={building.rarity}
+        cardCls={`building-item${selected ? ' on' : owned_ ? ' owned' : ''}`}
+        art={<BuildingArt id={building.id} className="building-card-art" />}
+        title={building.title}
+        desc={building.desc}
+        priceLabel={selected ? 'На участке ✓' : owned_ ? 'В коллекции ✓' : <Gem value={building.price} size={18} />}
+        afford={affordable}
+        actionLabel={selected ? 'На участке ✓' : owned_ ? 'Поставить' : affordable ? `Построить · 💎${building.price}` : `Ещё ${missing} 💎`}
+        actionTone={selected ? 'green' : owned_ ? 'ghost' : affordable ? 'primary' : 'ghost'}
+        actionDisabled={!owned_ && !affordable}
+        onOpen={() => openSheet({ kind: 'building', building })}
+        onAction={() => {
+          if (owned_) selectBuilding(building);
+          else if (affordable) { sfx.tap(); setAskBuilding(building); }
+          else showToast({ emoji: '💎', title: `До «${building.title}» ещё ${missing} 💎`, text: 'Кристаллы дают за задания дня и сундук' });
+        }}
+      />
+    );
+  };
+
+  const baseSetCard = (setInfo: BaseSet) => {
+    const price = priceForSet(setInfo);
+    const complete = isBuildingOwned(buildingsOwned, setInfo.baseId) && isOwned(owned, setInfo.carId) && isOwned(owned, setInfo.planeId) && allOwnedCostumes.includes(setInfo.costumeId);
+    const costume = CRYSTAL_COSTUMES.find((c) => c.id === setInfo.costumeId);
+    const affordable = !complete && gems >= price;
+    return (
+      <ShopCard
+        key={setInfo.id}
+        rarity={setInfo.rarity}
+        cardCls={`base-set-card${complete ? ' owned' : ''}`}
+        art={<div className="base-set-icons"><BuildingArt id={setInfo.baseId} className="building-card-art" />{costume && <Mascot mood="idle" costumeId={costume.id} size={42} stage={growth.index} />}</div>}
+        title={setInfo.title}
+        desc={setInfo.desc}
+        priceLabel={complete ? 'Набор собран ✓' : `💎 ${price} · премиум`}
+        afford={affordable}
+        actionLabel={complete ? 'Собран ✓' : affordable ? `Купить · 💎${price}` : `Ещё ${Math.max(0, price - gems)} 💎`}
+        actionTone={complete ? 'green' : affordable ? 'primary' : 'ghost'}
+        actionDisabled={complete || !affordable}
+        onOpen={() => openSheet({ kind: 'baseSet', set: setInfo })}
+        onAction={() => { if (!complete && affordable) { sfx.tap(); setAskBaseSet(setInfo); } }}
       />
     );
   };
@@ -864,6 +1029,7 @@ export function ShopScreen({
           </div>
           {isRotatingPhone(item.id) && <p className="tiny muted phone-rotate-hint">↻ Нажми на телефон — он повернётся</p>}
           <h2 style={{ margin: '0 0 2px' }}>{item.title}</h2>
+          <RarityChip item={item} className="rarity-chip-detail" />
           <p className="tiny muted" style={{ marginTop: 0 }}>{item.desc}</p>
           {(carKind(item.id) || shipKind(item.id)) && (
             <p className="tiny muted">
@@ -964,6 +1130,33 @@ export function ShopScreen({
     }
     if (sheet.kind === 'costume') {
       const c = sheet.costume;
+      const isCrystal = CRYSTAL_COSTUMES.some((x) => x.id === c.id);
+      if (isCrystal) {
+        const ownedC = crystalOwned.includes(c.id);
+        const wearingC = pz.worn === c.id;
+        const priceC = c.price ?? 0;
+        const affordableC = gems >= priceC;
+        return (
+          <>
+            <div className="shop-bigart"><Mascot mood="happy" costumeId={c.id} size={150} stage={growth.index} /></div>
+            <h2 style={{ margin: '0 0 2px' }}>{c.title}</h2>
+            {c.rarity && <RarityLabel rarity={c.rarity} className="rarity-chip-detail" />}
+            <p className="tiny muted" style={{ marginTop: 0 }}>{c.desc}</p>
+            <p className="tiny muted">Костюм своей научной базы: покупается за кристаллы, а не собирается из фрагментов.</p>
+            <div className="row mb">
+              <span className={`shop-price${affordableC ? ' afford' : ''}`}>💎 {priceC}</span>
+              <span className="tiny muted grow" style={{ alignSelf: 'center' }}>{ownedC ? 'Уже в гардеробе' : `У тебя ${gems} 💎`}</span>
+            </div>
+            <div className="row mb">
+              {ownedC ? (
+                <button className={`btn lg grow ${wearingC ? 'green' : 'primary'}`} onClick={() => { tapCostume(c.id); closeSheet(); }}>{wearingC ? 'Снять' : 'Надеть'}</button>
+              ) : (
+                <button className="btn lg grow primary" disabled={!affordableC} onClick={() => { closeSheet(); sfx.tap(); setAskCrystalCostume(c); }}>{affordableC ? `Купить за 💎${priceC}` : `Ещё ${Math.max(0, priceC - gems)} 💎`}</button>
+              )}
+            </div>
+          </>
+        );
+      }
       const done = pz.assembled.includes(c.id);
       const prog = costumeProgress(pz, c.id);
       const wearing = pz.worn === c.id;
@@ -1043,6 +1236,71 @@ export function ShopScreen({
                 />
               )}
             </>
+          )}
+        </>
+      );
+    }
+    if (sheet.kind === 'building') {
+      const building = sheet.building;
+      const owned_ = isBuildingOwned(buildingsOwned, building.id);
+      const selected = activeBuilding === building.id;
+      const affordable = gems >= building.price;
+      const missing = Math.max(0, building.price - gems);
+      return (
+        <>
+          <div className="shop-bigart building-detail-art"><BuildingArt id={building.id} loading="eager" /></div>
+          <h2 style={{ margin: '0 0 2px' }}>{building.title}</h2>
+          <RarityLabel rarity={building.rarity} className="rarity-chip-detail" />
+          <p className="tiny muted" style={{ marginTop: 0 }}>{building.desc}</p>
+          <p className="tiny muted">База стоит на участке и может стать фоном вкладки «Мой мир».</p>
+          <div className="row mb">
+            <span className={`shop-price${affordable ? ' afford' : ''}`}>💎 {building.price}</span>
+            <span className="tiny muted grow" style={{ alignSelf: 'center' }}>{owned_ ? 'Уже в коллекции' : `У тебя ${gems} 💎`}</span>
+          </div>
+          <div className="row mb">
+            {owned_ ? (
+              <button className={`btn lg grow ${selected ? 'green' : 'primary'}`} onClick={() => { selectBuilding(building); closeSheet(); }}>{selected ? 'На участке ✓' : 'Поставить на участок'}</button>
+            ) : (
+              <button className="btn lg grow primary" disabled={!affordable} onClick={() => { closeSheet(); sfx.tap(); setAskBuilding(building); }}>{affordable ? `Построить · 💎${building.price}` : `Ещё ${missing} 💎`}</button>
+            )}
+          </div>
+        </>
+      );
+    }
+    if (sheet.kind === 'baseSet') {
+      const setInfo = sheet.set;
+      const price = priceForSet(setInfo);
+      const base = BUILDING_BY_ID[setInfo.baseId];
+      const car = ITEM_BY_ID[setInfo.carId];
+      const plane = ITEM_BY_ID[setInfo.planeId];
+      const costume = CRYSTAL_COSTUMES.find((c) => c.id === setInfo.costumeId);
+      const parts = [
+        { title: base?.title ?? setInfo.baseId, emoji: base?.emoji ?? '🏙️', owned: isBuildingOwned(buildingsOwned, setInfo.baseId) },
+        { title: car?.title ?? setInfo.carId, emoji: '🚗', owned: isOwned(owned, setInfo.carId) },
+        { title: plane?.title ?? setInfo.planeId, emoji: '✈️', owned: isOwned(owned, setInfo.planeId) },
+        { title: costume?.title ?? setInfo.costumeId, emoji: '✨', owned: allOwnedCostumes.includes(setInfo.costumeId) },
+      ];
+      const complete = parts.every((part) => part.owned);
+      const affordable = !complete && gems >= price;
+      return (
+        <>
+          <div className="shop-bigart base-set-detail-art">
+            <div className="base-set-icons"><BuildingArt id={setInfo.baseId} className="building-card-art" loading="eager" /><ToyArt id={setInfo.carId} size={56} tuning={profile.shop?.tuning} /><ToyArt id={setInfo.planeId} size={56} tuning={profile.shop?.tuning} />{costume && <Mascot mood="idle" costumeId={costume.id} size={56} stage={growth.index} />}</div>
+          </div>
+          <h2 style={{ margin: '0 0 2px' }}>{setInfo.title}</h2>
+          <RarityLabel rarity={setInfo.rarity} className="rarity-chip-detail" />
+          <p className="tiny muted" style={{ marginTop: 0 }}>{setInfo.desc}</p>
+          <div className="col mb">
+            {parts.map((part) => (<div key={part.title} className="tiny">{part.owned ? '✓' : '○'} {part.emoji} {part.title}</div>))}
+          </div>
+          <div className="row mb">
+            <span className={`shop-price${affordable ? ' afford' : ''}`}>{complete ? 'Набор собран ✓' : `💎 ${price}`}</span>
+            <span className="tiny muted grow" style={{ alignSelf: 'center' }}>{complete ? 'Всё уже у тебя' : `У тебя ${gems} 💎 · цена — за недостающие части ×3`}</span>
+          </div>
+          {!complete && (
+            <div className="row mb">
+              <button className="btn lg grow primary" disabled={!affordable} onClick={() => { closeSheet(); sfx.tap(); setAskBaseSet(setInfo); }}>{affordable ? `Купить набор · 💎${price}` : `Ещё ${Math.max(0, price - gems)} 💎`}</button>
+            </div>
           )}
         </>
       );
@@ -1442,7 +1700,7 @@ export function ShopScreen({
         <section className="mt" aria-label="Техника">
           <div className="mb">
             <h2 className="mb">Техника БУКа</h2>
-            <div className="tiny muted">Авто, корабли и телефоны — каждый раздел отдельно. Купленное ждёт тебя в ангаре.</div>
+            <div className="tiny muted">Авто, самолёты, корабли и телефоны — каждый раздел отдельно. Купленное ждёт тебя в ангаре.</div>
           </div>
           <div className="shop-cats shop-toy-cats" role="tablist" aria-label="Разделы техники">
             {TOY_SHELVES.map(({ id, title, emoji }) => (
@@ -1497,11 +1755,44 @@ export function ShopScreen({
               <h3 className="shop-case-group-title">
                 <span aria-hidden="true">{emoji}</span> {title}
               </h3>
-              <ShowcaseGrid tone={id === 'car' ? 'mint' : id === 'ship' ? 'sky' : undefined}>
-                {toysByShelf(id).map(itemCard)}
+              <ShowcaseGrid tone={id === 'car' ? 'mint' : id === 'ship' || id === 'plane' ? 'sky' : undefined}>
+                {toysByShelf(id).slice().sort(compareByRarity).map(itemCard)}
               </ShowcaseGrid>
             </div>
           ))}
+        </section>
+      )}
+
+      {view === 'vitrina' && cat === 'buildings' && (
+        <section className="mt building-section" aria-label="Базы">
+          <div className="mb">
+            <h2 className="mb">Научные базы для твоего мира</h2>
+            <div className="tiny muted">База стоит на участке и задаёт фон вкладки «Мой мир».</div>
+          </div>
+          <div className={`building-plot${selectedBuilding ? ' has-building' : ''}`}>
+            {selectedBuilding ? (
+              <BuildingArt id={selectedBuilding.id} className="building-plot-art" loading="eager" />
+            ) : (
+              <div className="building-plot-empty" role="img" aria-label="Свободный участок"><span aria-hidden="true">🏗️</span></div>
+            )}
+            <div className="building-plot-caption">
+              <span className="building-plot-kicker">🏡 ТВОЙ УЧАСТОК</span>
+              <b>{selectedBuilding?.title ?? 'Место для первой базы'}</b>
+              <span>{selectedBuilding?.desc ?? 'Купи или выбери базу, чтобы украсить свой мир'}</span>
+            </div>
+            <div className="building-plot-count">В коллекции: {buildingsOwned.length} из {BUILDINGS.length}</div>
+          </div>
+          <ShowcaseGrid tone="sky">{BUILDINGS.slice().sort((a, b) => RARITY_ORDER.indexOf(a.rarity) - RARITY_ORDER.indexOf(b.rarity) || a.price - b.price).map(buildingCard)}</ShowcaseGrid>
+        </section>
+      )}
+
+      {view === 'vitrina' && cat === 'sets' && (
+        <section className="mt" aria-label="Наборы баз">
+          <div className="mb">
+            <h2 className="mb">Наборы научных баз 🎁</h2>
+            <div className="tiny muted">База, её машина, её самолёт и её костюм — одним набором. Цена — за недостающие части ×3.</div>
+          </div>
+          <ShowcaseGrid tone="sky">{BASE_SETS.slice().sort((a, b) => RARITY_ORDER.indexOf(a.rarity) - RARITY_ORDER.indexOf(b.rarity) || priceForSet(a) - priceForSet(b)).map(baseSetCard)}</ShowcaseGrid>
         </section>
       )}
 
@@ -1538,6 +1829,9 @@ export function ShopScreen({
             );
           })()}
           <ShowcaseGrid>{COSTUMES.map(costumeCard)}</ShowcaseGrid>
+          <h3 className="music-shelf-title" style={{ marginTop: 18 }}>✨ Костюмы научных баз · за кристаллы</h3>
+          <div className="tiny muted mb">Каждый костюм — в цвет своей базы. Покупается сразу, собирать фрагменты не нужно.</div>
+          <ShowcaseGrid>{CRYSTAL_COSTUMES.slice().sort((a, b) => RARITY_ORDER.indexOf(a.rarity ?? 'common') - RARITY_ORDER.indexOf(b.rarity ?? 'common') || (a.price ?? 0) - (b.price ?? 0)).map(crystalCostumeCard)}</ShowcaseGrid>
         </section>
       )}
 
@@ -1703,11 +1997,31 @@ export function ShopScreen({
             )}
           </section>
 
-          {pz.assembled.length > 0 && (
+          {buildingsOwned.length > 0 && (
+          <section className="mb" aria-label="Базы">
+            <h2 className="mb">Базы</h2>
+            <div className="col">
+              {BUILDINGS.filter((b) => buildingsOwned.includes(b.id)).map((building) =>
+                wardrobeRow(
+                  building.id,
+                  { kind: 'building', building },
+                  <BuildingArt id={building.id} className="building-wardrobe-art" />,
+                  building.title,
+                  activeBuilding === building.id ? 'Стоит на участке · фон «Моего мира» выбирается на вкладке «Мой мир»' : building.desc,
+                  activeBuilding === building.id,
+                  activeBuilding === building.id ? 'На участке ✓' : 'Поставить',
+                  () => selectBuilding(building),
+                ),
+              )}
+            </div>
+          </section>
+          )}
+
+          {allOwnedCostumes.length > 0 && (
           <section className="mb" aria-label="Костюмы">
             <h2 className="mb">Костюмы</h2>
             <div className="col">
-              {COSTUMES.filter((c) => pz.assembled.includes(c.id)).map((c) =>
+              {ALL_COSTUMES.filter((c) => allOwnedCostumes.includes(c.id)).map((c) =>
                 wardrobeRow(
                   c.id,
                   { kind: 'costume', costume: c },
@@ -2031,6 +2345,42 @@ export function ShopScreen({
           leaveLabel="Оставить"
           onStay={confirmSell}
           onLeave={() => setAskSell(null)}
+        />
+      )}
+
+      {askBuilding && (
+        <ConfirmDialog
+          emoji={askBuilding.emoji}
+          title={`Построить «${askBuilding.title}»?`}
+          text={`Отдашь ${askBuilding.price} 💎 из ${gems}. База сразу встанет на твой участок и сможет стать фоном «Моего мира».`}
+          stayLabel={`Построить · 💎${askBuilding.price}`}
+          leaveLabel="Не сейчас"
+          onStay={confirmBuildingBuy}
+          onLeave={() => setAskBuilding(null)}
+        />
+      )}
+
+      {askCrystalCostume && (
+        <ConfirmDialog
+          emoji="✨"
+          title={`Купить костюм «${askCrystalCostume.title}»?`}
+          text={`Отдашь ${askCrystalCostume.price ?? 0} 💎 из ${gems}. Костюм сразу появится в гардеробе и будет надет на БУКа.`}
+          stayLabel={`Купить за 💎${askCrystalCostume.price ?? 0}`}
+          leaveLabel="Не сейчас"
+          onStay={confirmCrystalCostumeBuy}
+          onLeave={() => setAskCrystalCostume(null)}
+        />
+      )}
+
+      {askBaseSet && (
+        <ConfirmDialog
+          emoji={askBaseSet.emoji}
+          title={`Купить ${askBaseSet.title}?`}
+          text={`Набор включает базу, машину, самолёт и костюм. Цена — ${priceForSet(askBaseSet)} 💎 за недостающие части.`}
+          stayLabel={`Купить · 💎${priceForSet(askBaseSet)}`}
+          leaveLabel="Не сейчас"
+          onStay={confirmBaseSetBuy}
+          onLeave={() => setAskBaseSet(null)}
         />
       )}
 

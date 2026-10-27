@@ -80,6 +80,15 @@ const EXPECTED_TOY_BASE: Record<string, [string, string, string]> = {
   'car-rolls': ['#0f3d33', '#08120f', '#d4af37'],
   'car-lambo': ['#3fae2a', '#111827', '#e2e8f0'],
   'car-bugatti': ['#2563eb', '#0a1226', '#cbd5e1'],
+  'car-atomic-base': ['#e8e2d5', '#263348', '#28b8d6'],
+  'car-electron-base': ['#eef5f4', '#204956', '#2dced1'],
+  'car-arctic-base': ['#b6d2e0', '#2f5063', '#e98a3a'],
+  'car-moon-base': ['#dce0e3', '#374151', '#c9a44f'],
+  'plane-swift': ['#e4573d', '#273750', '#ffc857'],
+  'plane-electron-base': ['#4d75df', '#26346f', '#4df0db'],
+  'plane-arctic-base': ['#a8d9e9', '#426a88', '#53b9f0'],
+  'plane-moon-base': ['#777b91', '#34394e', '#ffd166'],
+  'plane-atomic-base': ['#2ca7ad', '#17475d', '#9aefb3'],
   'ship-paper': ['#f8fafc', '#172033', '#c5a45b'],
   'ship-sail': ['#183b63', '#202b3b', '#ef673c'],
   'ship-steam': ['#164b4c', '#203b3b', '#c6813d'],
@@ -99,13 +108,13 @@ assert.ok(TOY_ITEMS.every((item) => !showsOnBuk(item)), 'техника не д�
 assert.ok(OUTFIT_ITEMS.every((item) => showsOnBuk(item)), 'наряды должны рисоваться на БУКе');
 assert.deepEqual(
   [...new Set(TOY_ITEMS.map((item) => item.toy))].sort(),
-  ['car', 'phone', 'ship'],
-  'техника должна быть трёх видов: авто, телефоны, корабли',
+  ['car', 'phone', 'plane', 'ship'],
+  'техника должна быть четырёх видов: авто, самолёты, телефоны, корабли',
 );
 // Авто и корабли идут рядом и доступны как отдельные полки.
-assert.deepEqual(TOY_SHELVES.map((shelf) => shelf.id), ['car', 'ship', 'phone'], 'полки техники поехали');
+assert.deepEqual(TOY_SHELVES.map((shelf) => shelf.id), ['car', 'plane', 'ship', 'phone'], 'полки техники поехали');
 assert.equal(TOY_SHELVES[0].title, 'Авто', 'первая полка называется «Авто»');
-assert.equal(TOY_SHELVES[1].title, 'Корабли', 'корабли идут отдельной полкой рядом с авто');
+assert.equal(TOY_SHELVES[1].title, 'Самолёты', 'самолёты идут отдельной полкой рядом с авто');
 const carIds = toysByShelf('car').map((item) => item.id);
 for (const id of ['car-bmw', 'car-brabus', 'car-mercedes', 'car-lambo', 'car-rolls', 'car-maybach', 'car-bugatti']) {
   assert.ok(carIds.includes(id), `в разделе авто нет ${id}`);
@@ -115,7 +124,7 @@ for (const id of ['car-bmw', 'car-brabus', 'car-mercedes', 'car-lambo', 'car-rol
 // видит ребёнок, не должно называть марку или модель.
 assert.deepEqual(
   toysByShelf('car').map((item) => item.title),
-  ['Болид', 'Скалолаз', 'Жёлтый кэб', 'Звезда', 'Стрела', 'Кубик', 'Адмирал', 'Лорд', 'Бык', 'Молния'],
+  ['Болид', 'Скалолаз', 'Жёлтый кэб', 'Звезда', 'Стрела', 'Кубик', 'Адмирал', 'Лорд', 'Бык', 'Молния', 'Квант', 'Импульс', 'Полярник', 'Луноход'],
   'названия машин должны отражать характер, а не бренд',
 );
 assert.deepEqual(
@@ -124,6 +133,12 @@ assert.deepEqual(
   'корабельная полка должна содержать взрослые типы морских судов',
 );
 assert.ok(toysByShelf('ship').every((item) => item.id in TINT_PALETTES), 'у каждого судна есть тюнинг');
+assert.deepEqual(
+  toysByShelf('plane').map((item) => item.title),
+  ['Стриж', 'Схемолёт', 'Северный ветер', 'Лунный орёл', 'Атомный дозор'],
+  'самолётная полка (0.70.0): Стриж и четыре самолёта научных баз',
+);
+assert.ok(toysByShelf('plane').every((item) => item.id in TINT_PALETTES), 'у каждого самолёта есть тюнинг');
 const BRAND_WORDS =
   /мерседес|майбах|брабус|роллс|ройс|ламборджини|бугати|бмв|mercedes|maybach|brabus|rolls|royce|lamborghini|bugatti|jeep|джип|ford|форд|crown victoria|phantom|chiron|aventador|wrangler|rubicon|s-класс|\bm5\b/i;
 for (const item of toysByShelf('car')) {

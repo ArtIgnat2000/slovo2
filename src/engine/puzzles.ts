@@ -35,6 +35,12 @@ export interface Costume {
   prop: 'saber-red' | 'saber-blue' | 'saber-green' | 'cane' | null;
   /** Цвет плаща, если есть */
   cape?: string;
+  /** Кристальный костюм в стиле научной базы (engine/buildings.ts); у пазловых костюмов поля нет. */
+  baseStyle?: string;
+  /** Цена в кристаллах — только у кристальных костюмов баз. */
+  price?: number;
+  /** Редкость — только у кристальных костюмов баз. */
+  rarity?: 'common' | 'cool' | 'legendary' | 'top';
 }
 
 export const COSTUMES: Costume[] = [
@@ -217,8 +223,30 @@ export const COSTUMES: Costume[] = [
   },
 ];
 
+/** Пазловые костюмы: собираются по фрагментам за уроки (исходный COSTUMES). */
+export const PUZZLE_COSTUMES = COSTUMES;
+
+/**
+ * Кристальные костюмы научных баз (0.70.0, перенос из Slovo_Developer):
+ * каждый привязан к своей базе (`baseStyle`) и покупается за кристаллы
+ * отдельно или в составе набора базы (engine/base-sets.ts). В пазловый
+ * прогресс уроков они НЕ попадают — иначе платный костюм можно было бы
+ * «собрать» бесплатно фрагментами.
+ */
+export const BASE_COSTUMES: Costume[] = [
+  { id: 'atomic-suit', title: 'Хранитель атома', desc: 'Защитный скафандр с голубым энергосердцем — в цвет ядерной базы', body: '#4778a8', belly: '#b5e4ff', wing: '#28527e', trim: '#d9f3ff', glow: '#4ddcff', helmet: 'dome', prop: null, baseStyle: 'atomic-base', price: 90, rarity: 'top' },
+  { id: 'electron-suit', title: 'Повелитель импульса', desc: 'Солнечный костюм с сияющими линиями электронных схем', body: '#4d9d82', belly: '#c4f4d8', wing: '#34745f', trim: '#d9fff0', glow: '#72ffbd', helmet: 'plate', prop: null, baseStyle: 'electron-base', price: 85, rarity: 'legendary' },
+  { id: 'arctic-suit', title: 'Полярный исследователь', desc: 'Тёплый костюм для экспедиций среди льдов и северного сияния', body: '#86b7d4', belly: '#e6f8ff', wing: '#5c8eae', trim: '#f1fbff', glow: '#70eaff', helmet: 'bubble', prop: null, baseStyle: 'arctic-base', price: 95, rarity: 'legendary' },
+  { id: 'moon-suit', title: 'Лунный первооткрыватель', desc: 'Серебристый скафандр с золотым светом далёких звёзд', body: '#aaa4c8', belly: '#f1edff', wing: '#817b9f', trim: '#fff5d6', glow: '#ffd166', helmet: 'dome', prop: null, baseStyle: 'moon-base', price: 100, rarity: 'top' },
+];
+
+/** Все костюмы БУКа: пазловые + кристальные баз. */
+export const ALL_COSTUMES: Costume[] = [...COSTUMES, ...BASE_COSTUMES];
+/** Синоним для витрины: костюмы, которые продаются за кристаллы. */
+export const CRYSTAL_COSTUMES = BASE_COSTUMES;
+
 export const COSTUME_BY_ID: Record<string, Costume> = Object.fromEntries(
-  COSTUMES.map((c) => [c.id, c]),
+  ALL_COSTUMES.map((c) => [c.id, c]),
 );
 
 /** Иток одного завершённого урока для пазлов (сначала «piece», потом «assembled», потом «gems»). */
@@ -245,18 +273,23 @@ export function normalizePuzzle(raw: unknown): PuzzleState {
   const pieces: Record<string, number> = {};
   if (r.pieces && typeof r.pieces === 'object') {
     for (const [id, n] of Object.entries(r.pieces)) {
-      if (COSTUME_BY_ID[id] && typeof n === 'number' && Number.isFinite(n) && n > 0) {
+      if (PUZZLE_COSTUMES.some((c) => c.id === id) && typeof n === 'number' && Number.isFinite(n) && n > 0) {
         pieces[id] = Math.min(PUZZLE_SIZE, Math.floor(n));
       }
     }
   }
   const assembled = Array.isArray(r.assembled)
-    ? [...new Set(r.assembled.filter((id): id is string => typeof id === 'string' && !!COSTUME_BY_ID[id]))]
+    ? [...new Set(r.assembled.filter((id): id is string => typeof id === 'string' && PUZZLE_COSTUMES.some((c) => c.id === id)))]
     : [];
   for (const id of assembled) pieces[id] = PUZZLE_SIZE;
-  const worn = typeof r.worn === 'string' && assembled.includes(r.worn) ? r.worn : null;
+  // Надетым может быть и кристальный костюм базы: принадлежность проверяет
+  // стор при надевании (shop.crystalCostumesOwned), здесь — только известный id.
+  const worn =
+    typeof r.worn === 'string' && !!COSTUME_BY_ID[r.worn] && (assembled.includes(r.worn) || BASE_COSTUMES.some((c) => c.id === r.worn))
+      ? r.worn
+      : null;
   const collecting =
-    typeof r.collecting === 'string' && COSTUME_BY_ID[r.collecting] && !assembled.includes(r.collecting)
+    typeof r.collecting === 'string' && PUZZLE_COSTUMES.some((c) => c.id === r.collecting) && !assembled.includes(r.collecting)
       ? r.collecting
       : null;
   return { pieces, collecting, assembled, worn };
@@ -271,7 +304,7 @@ export function costumeProgress(p: PuzzleState | undefined, id: string): number 
 
 /** Костюмы, которые ещё не собраны. */
 export function collectableCostumes(p: PuzzleState): Costume[] {
-  return COSTUMES.filter((c) => !p.assembled.includes(c.id));
+  return PUZZLE_COSTUMES.filter((c) => !p.assembled.includes(c.id));
 }
 
 /** Текущая цель сборки: выбранный и ещё не собранный костюм, иначе первый свободный. */
@@ -303,7 +336,7 @@ export function awardLessonPiece(prev: PuzzleState | undefined): { puzzle: Puzzl
     };
   }
   const assembled = [...p.assembled, current];
-  const rest = COSTUMES.filter((c) => !assembled.includes(c.id));
+  const rest = PUZZLE_COSTUMES.filter((c) => !assembled.includes(c.id));
   return {
     puzzle: {
       ...p,
@@ -319,13 +352,14 @@ export function awardLessonPiece(prev: PuzzleState | undefined): { puzzle: Puzzl
 /** Сменить цель сборки (только на ещё не собранный костюм). */
 export function chooseCollecting(prev: PuzzleState | undefined, id: string): PuzzleState {
   const p = normalizePuzzle(prev);
-  if (!COSTUME_BY_ID[id] || p.assembled.includes(id)) return p;
+  if (!PUZZLE_COSTUMES.some((c) => c.id === id) || p.assembled.includes(id)) return p;
   return { ...p, collecting: id };
 }
 
 /** Надеть/снять собранный костюм; чужой или несобранный — без изменений. */
-export function toggleWorn(prev: PuzzleState | undefined, id: string): PuzzleState {
+/** Надеть/снять костюм; кристальный — только если он куплен (`crystalOwned`). */
+export function toggleWorn(prev: PuzzleState | undefined, id: string, crystalOwned: string[] = []): PuzzleState {
   const p = normalizePuzzle(prev);
-  if (!p.assembled.includes(id)) return p;
+  if (!p.assembled.includes(id) && !crystalOwned.includes(id)) return p;
   return { ...p, worn: p.worn === id ? null : id };
 }

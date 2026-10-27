@@ -591,20 +591,20 @@ async function main() {
   if (toyShelf) click(toyShelf);
   await sleep(30);
   const toyTabs = () => Array.from(document.querySelectorAll('.shop-toy-cats [role="tab"]'));
-  check('разделы авто, кораблей и телефонов доступны отдельными вкладками', ['Авто', 'Корабли', 'Телефоны'].every((title) => toyTabs().some((tab) => (tab.textContent ?? '').includes(title))), '');
-  check('«Авто» открывается первым и не смешивается с другими товарами', document.querySelectorAll('.shop-item.toy-item').length === 10 && has('Болид') && !has('Морская яхта') && !has('iPhone Air'), '');
+  check('разделы авто, кораблей и телефонов доступны отдельными вкладками', ['Авто', 'Самолёты', 'Корабли', 'Телефоны'].every((title) => toyTabs().some((tab) => (tab.textContent ?? '').includes(title))), '');
+  check('«Авто» открывается первым и не смешивается с другими товарами', document.querySelectorAll('.shop-item.toy-item').length === 14 && has('Болид') && !has('Морская яхта') && !has('iPhone Air'), '');
   check(
-    '«Авто»: десять машин с именами-характерами стоят на отдельной полке',
-    ['Звезда', 'Стрела', 'Кубик', 'Адмирал', 'Лорд', 'Бык', 'Молния', 'Болид', 'Скалолаз', 'Жёлтый кэб'].every((title) => has(title)),
+    '«Авто»: четырнадцать машин с именами-характерами стоят на отдельной полке',
+    ['Звезда', 'Стрела', 'Кубик', 'Адмирал', 'Лорд', 'Бык', 'Молния', 'Болид', 'Скалолаз', 'Жёлтый кэб', 'Квант', 'Импульс', 'Полярник', 'Луноход'].every((title) => has(title)),
     '',
   );
   // Каждая машина — отдельный цветной карандашный рисунок (public/cars/*.webp).
   {
-    const carTitles = /Звезда|Стрела|Кубик|Адмирал|Лорд|Бык|Молния|Болид|Скалолаз|Жёлтый кэб/;
+    const carTitles = /Звезда|Стрела|Кубик|Адмирал|Лорд|Бык|Молния|Болид|Скалолаз|Жёлтый кэб|Квант|Импульс|Полярник|Луноход/;
     const carArt = Array.from(document.querySelectorAll('.shop-item.toy-item'))
       .filter((el) => carTitles.test(el.textContent ?? ''))
       .map((el) => el.querySelector('img')?.getAttribute('src') ?? '');
-    check('«Авто»: у каждой машины свой карандашный рисунок', carArt.length === 10 && new Set(carArt).size === carArt.length && carArt.every((src) => /\/cars\/car-[a-z]+\.webp$/.test(src)), `уникальных рисунков: ${new Set(carArt).size}/${carArt.length}`);
+    check('«Авто»: у каждой машины свой карандашный рисунок', carArt.length === 14 && new Set(carArt).size === carArt.length && carArt.every((src) => /\/cars\/car-[a-z-]+\.webp$/.test(src)), `уникальных рисунков: ${new Set(carArt).size}/${carArt.length}`);
   }
   check('«Авто»: витрина-бутик показывает отдельные карточки машин', document.querySelectorAll('.shop-boutique').length === 1 && !!document.querySelector('.shop-boutique-mint'), '');
 

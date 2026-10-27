@@ -4,9 +4,10 @@ import type { ShopTuning } from '../types';
 import { CarArt, hasCarArt } from './CarArt';
 import { ShipArt, hasShipArt } from './ShipArt';
 import { ElectronicsArt, hasElectronicsArt } from './ElectronicsArt';
+import { AirplaneArt, hasAirplaneArt } from './AirplaneArt';
 
 /**
- * Техника БУКа: авто, морские суда и телефоны. Машины и корабли — цветные
+ * Техника БУКа: авто, самолёты, морские суда и телефоны. Машины и корабли — цветные
  * карандашные рисунки на прозрачном фоне (`public/cars/*.webp`,
  * `public/ships/*.webp`), чтобы крупные детали оставались выразительными
  * и на полке, и в ангаре. Новая электроника — детальные WebP-иллюстрации,
@@ -139,6 +140,9 @@ export function ToyArt({
    */
   alt?: string;
 }) {
+  if (hasAirplaneArt(id)) {
+    return <AirplaneArt key={id} id={id} size={size} className={className} alt={alt} colors={accessoryColors(id, tuning)} />;
+  }
   if (hasElectronicsArt(id)) {
     return <ElectronicsArt key={id} id={id} className={className} alt={alt} interactive={interactive} tint={artPencilTint(id, tuning)} />;
   }
