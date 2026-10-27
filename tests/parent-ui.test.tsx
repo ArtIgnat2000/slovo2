@@ -11,6 +11,7 @@ import { readFileSync } from 'node:fs';
 import { body, btnText, buttons, check, click, has, openParentSection, sleep } from './ui-helpers';
 import { dayKey, useApp } from '../src/state/store';
 import { CLASS_META, WORDS, WORDS_BY_GRADE } from '../src/content/words';
+import { runGemResetUiChecks } from './gem-reset-ui.test';
 
 const store = () => useApp.getState();
 
@@ -231,6 +232,13 @@ export async function runParentUiChecks(): Promise<void> {
     has('Копия прогресса') && has('Сохранность') && has('Сохранить файл'),
     body().slice(0, 200),
   );
+  await runGemResetUiChecks(async () => {
+    const parent = buttons().find((b) => (b.textContent ?? '').includes('Родителям') && b.className.includes('tab'));
+    click(parent);
+    await sleep(60);
+    await unlockWith((a, b) => a * b);
+    await openParentSection('Данные');
+  });
 
   // 7. «Приложение» — про приложение, а не про ребёнка: ссылка, версия, V-labs.
   await openParentSection('Приложение');

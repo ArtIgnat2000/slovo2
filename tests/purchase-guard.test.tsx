@@ -16,6 +16,7 @@ import { useApp } from '../src/state/store';
 import { idbStorage } from '../src/platform/storage';
 import { MAIN_KEY, PURCHASE_KEY, readPurchaseArchive } from '../src/platform/vault';
 import { btn, check, click, failureCount, has, sleep } from './ui-helpers';
+import { runGemResetGuardChecks } from './gem-reset-guard.test';
 
 const store = () => useApp.getState();
 const active = () => {
@@ -177,6 +178,7 @@ export async function runPurchaseGuardChecks(): Promise<void> {
     document.querySelector('.hangar')?.textContent?.slice(0, 160) ?? '',
   );
   root.unmount();
+  await runGemResetGuardChecks();
 
   const failures = failureCount();
   console.log(failures ? `\n✗ ошибок: ${failures}` : '\n✓ защита покупок: все проверки пройдены');

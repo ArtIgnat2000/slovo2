@@ -19,6 +19,7 @@ export function ProgressTab({ profile }: { profile: Profile }) {
   const vault = useApp((s) => s.vault);
   const {
     replaceAll,
+    resetGems,
     resetProfile,
     noteExport,
     restoreSnapshot,
@@ -228,7 +229,7 @@ export function ProgressTab({ profile }: { profile: Profile }) {
 
       {trash.length > 0 && (
         <div className="card">
-          <GroupTitle title="Удалённые профили" hint="30 дней их можно вернуть целиком — со словами, кристаллами и серией." />
+          <GroupTitle title="Удалённые профили и копии" hint="До 30 дней здесь хранятся последние пять копий. Возвращается профиль целиком — со словами, кристаллами и серией." />
           {/* Ключ с индексом: два профиля могут попасть в корзину в одну миллисекунду,
               и тогда одинаковые ключи в списке ломали бы перерисовку. */}
           {trash.map((t, index) => (
@@ -237,18 +238,27 @@ export function ProgressTab({ profile }: { profile: Profile }) {
                 {t.profile.avatar} {t.profile.name}
                 <span className="setting-hint">
                   {' · '}
-                  {agoLabel(t.at)} · ⚡ {t.profile.xp}
+                  {agoLabel(t.at)}{t.reason === 'gems-reset' ? ' · до обнуления кристаллов' : ''} · ⚡ {t.profile.xp} · 💎 {t.profile.gems}
                 </span>
               </span>
               <span className="row">
-                <button className="btn ghost sm" onClick={() => restoreTrashed(t.at)}>
+                <button
+                  className="btn ghost sm"
+                  onClick={() => {
+                    if (
+                      t.reason === 'gems-reset' &&
+                      !confirm(`Вернуть профиль «${t.profile.name}» целиком к состоянию до обнуления кристаллов? Текущий прогресс этого профиля будет заменён.`)
+                    ) return;
+                    restoreTrashed(t.at);
+                  }}
+                >
                   Вернуть
                 </button>
                 <button
                   className="chip"
-                  aria-label={`Удалить профиль ${t.profile.name} окончательно`}
+                  aria-label={`Удалить копию профиля ${t.profile.name} окончательно`}
                   onClick={() => {
-                    if (confirm(`Удалить профиль «${t.profile.name}» окончательно?`)) dropTrashed(t.at);
+                    if (confirm(`Удалить копию профиля «${t.profile.name}» окончательно?`)) dropTrashed(t.at);
                   }}
                 >
                   🗑
@@ -280,13 +290,36 @@ export function ProgressTab({ profile }: { profile: Profile }) {
 
       <div className="card danger-zone">
         <GroupTitle
+          title="Кристаллы"
+          hint={`Баланс профиля «${profile.name}»: ${profile.gems} 💎. Обнулится только баланс; слова, XP, серия и покупки сохранятся. Копию профиля можно вернуть из корзины выше.`}
+        />
+        <button
+          className="btn danger wide"
+          disabled={profile.gems === 0}
+          onClick={() => {
+            if (
+              confirm(
+                `Обнулить кристаллы профиля «${profile.name}» (${profile.gems} 💎)? ` +
+                  `Слова, XP, серия и покупки сохранятся. Копию профиля можно вернуть из корзины.`,
+              )
+            ) {
+              resetGems(profile.id);
+            }
+          }}
+        >
+          Обнулить кристаллы
+        </button>
+      </div>
+
+      <div className="card danger-zone">
+        <GroupTitle
           title="Начать заново"
-          hint={`Сброс прогресса ${profile.name}: слова, XP, кристаллы и серия обнулятся. Профиль останется в корзине 30 дней — его можно вернуть в разделе выше.`}
+          hint={`Сброс прогресса ${profile.name}: слова, XP, кристаллы, серия и покупки обнулятся. Профиль останется в корзине 30 дней — его можно вернуть в разделе выше.`}
         />
         <button
           className="btn danger wide"
           onClick={() => {
-            if (confirm(`Сбросить весь прогресс ${profile.name}? Прежний профиль останется в корзине на 30 дней.`)) {
+            if (confirm(`Сбросить весь прогресс ${profile.name}, включая кристаллы и покупки? Прежний профиль останется в корзине на 30 дней.`)) {
               resetProfile(profile.id);
             }
           }}
