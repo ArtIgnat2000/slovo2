@@ -19,7 +19,7 @@ import { MUSIC_TRACKS, type MusicTrack } from './music';
 export type ShopItemKind = 'outfit' | 'toy';
 
 /** Разделы техники в магазине и ангаре: авто, самолёты, корабли и электроника. */
-export type ToyKind = 'car' | 'plane' | 'ship' | 'phone';
+export type ToyKind = 'car' | 'plane' | 'ship' | 'phone' | 'pet' | 'sport' | 'food';
 
 export interface ShopItem {
   id: string;
@@ -77,6 +77,8 @@ export const SLOT_TITLE: Record<ShopSlot, string> = {
   neck: 'На шею',
   badge: 'Значки',
   back: 'Крылья',
+  body: 'Платья и наряды',
+  feet: 'Обувь',
   toy: 'Техника',
 };
 
@@ -86,6 +88,9 @@ export const TOY_SHELVES: { id: ToyKind; title: string; emoji: string }[] = [
   { id: 'plane', title: 'Самолёты', emoji: '✈️' },
   { id: 'ship', title: 'Корабли', emoji: '🚢' },
   { id: 'phone', title: 'Телефоны', emoji: '📱' },
+  { id: 'pet', title: 'Питомцы', emoji: '🐾' },
+  { id: 'sport', title: 'Спорт', emoji: '⚽' },
+  { id: 'food', title: 'Вкусняшки', emoji: '🧁' },
 ];
 
 export const SHOP_ITEMS: ShopItem[] = [
@@ -117,12 +122,33 @@ export const SHOP_ITEMS: ShopItem[] = [
   // мальчиками (крылья дракона берут не только девочки).
   { id: 'wings-butterfly', slot: 'back', kind: 'outfit', title: 'Крылья бабочки', desc: 'Крылья за спиной, ими можно махать', price: 60 },
   { id: 'wings-dragon', slot: 'back', kind: 'outfit', title: 'Крылья дракона', desc: 'Кожаные крылья с шипами по краю', price: 75 },
+  // ── 0.72.0: платья, причёски, кулоны, браслеты, сумочки, туфли и коньки ───
+  { id: 'hair-buns', slot: 'head', kind: 'outfit', title: 'Пучки с бантами', desc: 'Два весёлых пучка, как у героини мультика', price: 30 },
+  { id: 'hair-ponytail', slot: 'head', kind: 'outfit', title: 'Хвостик', desc: 'Высокий хвостик с розовой резинкой', price: 25 },
+  { id: 'hair-curls', slot: 'head', kind: 'outfit', title: 'Весёлые кудри', desc: 'Пружинки-кудри на всю голову', price: 35 },
+  { id: 'glasses-sigma', slot: 'face', kind: 'outfit', title: 'Очки «Сигма»', desc: 'Чёрные угловатые очки самого уверенного вида', price: 45 },
+  { id: 'pendant-heart', slot: 'neck', kind: 'outfit', title: 'Кулон-сердечко', desc: 'Сердечко на тонкой цепочке', price: 30 },
+  { id: 'pendant-star', slot: 'neck', kind: 'outfit', title: 'Кулон-звёздочка', desc: 'Звёздочка, которая светится в темноте', price: 35 },
+  { id: 'bag-pink', slot: 'neck', kind: 'outfit', title: 'Розовая сумочка', desc: 'Больше прежней и с бантом', price: 45 },
+  { id: 'bracelet-beads', slot: 'badge', kind: 'outfit', title: 'Браслет с бусинами', desc: 'Разноцветные бусины на крыло', price: 25 },
+  { id: 'bracelet-heart', slot: 'badge', kind: 'outfit', title: 'Браслет с сердечком', desc: 'Сердечко качается при ходьбе', price: 30 },
+  { id: 'dress-pink', slot: 'body', kind: 'outfit', title: 'Розовое платье', desc: 'Пышное, с белым воротничком', price: 55 },
+  { id: 'dress-star', slot: 'body', kind: 'outfit', title: 'Платье со звёздами', desc: 'Синее, а звёзды на нём настоящие', price: 65 },
+  { id: 'dress-rainbow', slot: 'body', kind: 'outfit', title: 'Радужное платье', desc: 'Все цвета сразу — и все к лицу', price: 50 },
+  { id: 'shoes-pink', slot: 'feet', kind: 'outfit', title: 'Розовые туфельки', desc: 'С бантиками и маленьким каблучком', price: 35 },
+  { id: 'shoes-sparkle', slot: 'feet', kind: 'outfit', title: 'Блестящие туфли', desc: 'Сверкают, как у принцессы на балу', price: 45 },
+  { id: 'skates-ice', slot: 'feet', kind: 'outfit', title: 'Коньки', desc: 'Белые ботинки и острые лезвия для льда', price: 40 },
   // ── Техника (полка «Техника»): телефоны ─────────────────────────────────
   { id: 'phone-smart', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone Air', desc: 'Тонкий серебристый корпус и одна камера. Нажми на телефон, чтобы увидеть экран', price: 25 },
   { id: 'phone-flip', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone 17', desc: 'Лавандовое стекло и две камеры. Нажми на телефон, чтобы повернуть', price: 30 },
   { id: 'phone-retro', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone 17 Pro Max', desc: 'Оранжевый корпус и три объектива. Поверни и рассмотри с другой стороны', price: 55 },
   // Современная электроника остаётся на полке «Телефоны».
   { id: 'phone-pro', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone 17 Pro', desc: 'Глубокий синий металл и три камеры. Нажми на телефон, чтобы повернуть', price: 75 },
+  // ── 0.72.0: линейка iPhone 18 ────────────────────────────────────────────
+  { id: 'phone-18', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone 18', desc: 'Новая линейка: яркий экран и две камеры. Нажми, чтобы повернуть', price: 85 },
+  { id: 'phone-18-air', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone 18 Air', desc: 'Самый тонкий в линейке: невесомый корпус и одна камера', price: 95 },
+  { id: 'phone-18-pro', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone 18 Pro', desc: 'Титановый корпус и три камеры. Нажми, чтобы повернуть', price: 120 },
+  { id: 'phone-18-max', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone 18 Pro Max', desc: 'Самый большой экран линейки и лучшая камера', price: 140 },
   { id: 'laptop-air', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '💻', title: 'Невесомый Air', desc: 'Тонкий серебристый ноутбук: настоящие клавиши, большой трекпад и яркий экран', price: 110 },
   { id: 'tv-cinema', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📺', title: 'Домашний кинотеатр', desc: 'Большой телевизор с тонкой рамкой: горное озеро на экране как живое', price: 95 },
   { id: 'headphones-max', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '🎧', title: 'Серебряный Max', desc: 'Наушники в стиле Apple: сетчатое оголовье, мягкие амбушюры и металлические чашки', price: 65 },
@@ -156,6 +182,27 @@ export const SHOP_ITEMS: ShopItem[] = [
   { id: 'ship-sail', slot: 'toy', kind: 'toy', toy: 'ship', emoji: '🚢', title: 'Контейнеровоз', desc: 'Перевозит контейнеры между морскими портами', price: 70 },
   { id: 'ship-steam', slot: 'toy', kind: 'toy', toy: 'ship', emoji: '🛳️', title: 'Супертанкер', desc: 'Огромное судно для перевозки нефти', price: 85 },
   { id: 'ship-carrier', slot: 'toy', kind: 'toy', toy: 'ship', emoji: '🛳️', title: 'Авианосец', desc: 'Военный корабль с длинной взлётной палубой', price: 100 },
+  // ── 0.72.0: розовые машины, электромобиль, розовый танк и «Титаник» ───────
+  { id: 'car-pink-cabrio', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Розовая машина', desc: 'Самая розовая машина города: её видно издалека', price: 60 },
+  { id: 'car-pink-star', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Розовая звезда', desc: 'Розовый спорткар со звездой на капоте', price: 65 },
+  { id: 'car-tesla', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Тесла', desc: 'Тихий электромобиль: огромный экран и двери-крылья', price: 95 },
+  { id: 'car-pink-tank', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Розовый танк', desc: 'Танк, который стреляет только конфетами', price: 110, rarity: 'legendary' },
+  { id: 'ship-titanic', slot: 'toy', kind: 'toy', toy: 'ship', emoji: '🛳️', title: 'Титаник', desc: 'Огромный лайнер с четырьмя трубами из прошлого века', price: 105, rarity: 'legendary' },
+  // ── 0.72.0: питомцы ───────────────────────────────────────────────────────
+  { id: 'pet-cat', slot: 'toy', kind: 'toy', toy: 'pet', emoji: '🐱', title: 'Котёнок', desc: 'Мурчит и гоняется за клубком', price: 45 },
+  { id: 'pet-bunny', slot: 'toy', kind: 'toy', toy: 'pet', emoji: '🐰', title: 'Кролик', desc: 'Длинные уши и любовь к морковке', price: 40 },
+  { id: 'pet-panda', slot: 'toy', kind: 'toy', toy: 'pet', emoji: '🐼', title: 'Панда', desc: 'Спокойная и очень обнимательная', price: 55 },
+  { id: 'pet-corgi', slot: 'toy', kind: 'toy', toy: 'pet', emoji: '🐶', title: 'Корги', desc: 'Короткие лапы, длинные уши и вечная улыбка', price: 60 },
+  // ── 0.72.0: спортивный инвентарь ─────────────────────────────────────────
+  { id: 'sport-ball', slot: 'toy', kind: 'toy', toy: 'sport', emoji: '⚽', title: 'Футбольный мяч', desc: 'Классический, чёрно-белый, для голов', price: 25 },
+  { id: 'sport-skate', slot: 'toy', kind: 'toy', toy: 'sport', emoji: '🛹', title: 'Скейт', desc: 'Доска с яркими колёсами для трюков', price: 35 },
+  { id: 'sport-dumbbell', slot: 'toy', kind: 'toy', toy: 'sport', emoji: '🏋️', title: 'Гантели', desc: 'Пара гантелей — БУК становится сильнее', price: 30 },
+  { id: 'sport-racket', slot: 'toy', kind: 'toy', toy: 'sport', emoji: '🎾', title: 'Теннисная ракетка', desc: 'И мячик в придачу — играем на счёт', price: 35 },
+  // ── 0.72.0: вкусняшки ─────────────────────────────────────────────────────
+  { id: 'food-icecream', slot: 'toy', kind: 'toy', toy: 'food', emoji: '🍦', title: 'Мороженое', desc: 'Три шарика в хрустящем рожке', price: 15 },
+  { id: 'food-donut', slot: 'toy', kind: 'toy', toy: 'food', emoji: '🍩', title: 'Пончик', desc: 'Розовая глазурь и цветная посыпка', price: 18 },
+  { id: 'food-kulich', slot: 'toy', kind: 'toy', toy: 'food', emoji: '🧁', title: 'Куличик', desc: 'Праздничный, с белой шапкой глазури', price: 20 },
+  { id: 'food-cake', slot: 'toy', kind: 'toy', toy: 'food', emoji: '🎂', title: 'Тортик', desc: 'Три яруса и свечки — загадывай желание', price: 30 },
 ];
 
 export const ITEM_BY_ID: Record<string, ShopItem> = Object.fromEntries(SHOP_ITEMS.map((i) => [i.id, i]));

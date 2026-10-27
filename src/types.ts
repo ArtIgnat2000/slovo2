@@ -141,7 +141,7 @@ export interface StudyAnswerMeta {
  * на сову, а стоит рядом с ней, но живёт в том же гардеробе и в том же слоте
  * одновременно может быть только одна вещь.
  */
-export type ShopSlot = 'head' | 'face' | 'neck' | 'badge' | 'back' | 'toy';
+export type ShopSlot = 'head' | 'face' | 'neck' | 'badge' | 'back' | 'body' | 'feet' | 'toy';
 
 /** Размер базовой очереди урока; настройки принадлежат профилю ребёнка. */
 export type LessonSize = 'short' | 'standard' | 'full';

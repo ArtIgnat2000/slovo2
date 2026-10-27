@@ -36,13 +36,13 @@ assert.equal(afterTwo?.price, 20);
 // Когда все наряды куплены — null (техника с другой полки героя не подменяет)
 const allOutfitIds = OUTFIT_ITEMS.map((i) => i.id);
 assert.equal(closestItem(allOutfitIds), null);
-assert.equal(OUTFIT_ITEMS.length, 19, 'на полке нарядов 19 вещей после 0.70.0 (было 6)');
+assert.equal(OUTFIT_ITEMS.length, 34, 'на полке нарядов 34 вещи после 0.72.0 (19 в 0.70.0 + 15 новых: платья, причёски, кулоны, браслеты, сумочка, туфли, коньки)');
 
 // Техника выбирается только явно: на полке «Техника» своя ближайшая покупка.
 const firstToy = closestItem([], 'toy');
 assert.ok(firstToy && firstToy.kind === 'toy', 'у пустой коллекции игрушек есть ближайшая');
-assert.equal(firstToy?.price, 25, 'самая дешёвая вещь техники — за 25 💎');
-assert.ok(firstToy?.toy === 'phone' || firstToy?.toy === 'ship');
+assert.equal(firstToy?.price, 15, 'самая дешёвая вещь техники — мороженое за 15 💎 (полка вкусняшек, 0.72.0)');
+assert.ok(firstToy?.toy === 'phone' || firstToy?.toy === 'ship' || firstToy?.toy === 'food');
 assert.equal(closestItem(TOY_ITEMS.map((item) => item.id), 'toy'), null, 'вся техника куплена — цели нет');
 // Купленные наряды не мешают игрушечной цели и наоборот
 assert.ok(closestItem(allOutfitIds, 'toy'), 'техника остаётся доступной после полного гардероба');

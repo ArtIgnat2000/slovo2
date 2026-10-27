@@ -592,30 +592,34 @@ async function main() {
   if (toyShelf) click(toyShelf);
   await sleep(30);
   const toyTabs = () => Array.from(document.querySelectorAll('.shop-toy-cats [role="tab"]'));
-  check('разделы авто, кораблей и телефонов доступны отдельными вкладками', ['Авто', 'Самолёты', 'Корабли', 'Телефоны'].every((title) => toyTabs().some((tab) => (tab.textContent ?? '').includes(title))), '');
-  check('«Авто» открывается первым и не смешивается с другими товарами', document.querySelectorAll('.shop-item.toy-item').length === 14 && has('Болид') && !has('Морская яхта') && !has('iPhone Air'), '');
+  check('разделы авто, кораблей и телефонов доступны отдельными вкладками', ['Авто', 'Самолёты', 'Корабли', 'Телефоны', 'Питомцы', 'Спорт', 'Вкусняшки'].every((title) => toyTabs().some((tab) => (tab.textContent ?? '').includes(title))), '');
+  check('«Авто» открывается первым и не смешивается с другими товарами', document.querySelectorAll('.shop-item.toy-item').length === 18 && has('Болид') && !has('Морская яхта') && !has('iPhone Air'), '');
   check(
-    '«Авто»: четырнадцать машин с именами-характерами стоят на отдельной полке',
-    ['Звезда', 'Стрела', 'Кубик', 'Адмирал', 'Лорд', 'Бык', 'Молния', 'Болид', 'Скалолаз', 'Жёлтый кэб', 'Квант', 'Импульс', 'Полярник', 'Луноход'].every((title) => has(title)),
+    '«Авто»: восемнадцать машин стоят на отдельной полке (0.72.0: розовые, «Тесла» и розовый танк)',
+    ['Звезда', 'Стрела', 'Кубик', 'Адмирал', 'Лорд', 'Бык', 'Молния', 'Болид', 'Скалолаз', 'Жёлтый кэб', 'Квант', 'Импульс', 'Полярник', 'Луноход', 'Розовая машина', 'Розовая звезда', 'Тесла', 'Розовый танк'].every((title) => has(title)),
     '',
   );
   // Каждая машина — отдельный цветной карандашный рисунок (public/cars/*.webp).
   {
-    const carTitles = /Звезда|Стрела|Кубик|Адмирал|Лорд|Бык|Молния|Болид|Скалолаз|Жёлтый кэб|Квант|Импульс|Полярник|Луноход/;
+    const carTitles = /Звезда|Стрела|Кубик|Адмирал|Лорд|Бык|Молния|Болид|Скалолаз|Жёлтый кэб|Квант|Импульс|Полярник|Луноход|Розовая машина|Розовая звезда|Тесла/;
     const carArt = Array.from(document.querySelectorAll('.shop-item.toy-item'))
       .filter((el) => carTitles.test(el.textContent ?? ''))
       .map((el) => el.querySelector('img')?.getAttribute('src') ?? '');
-    check('«Авто»: у каждой машины свой карандашный рисунок', carArt.length === 14 && new Set(carArt).size === carArt.length && carArt.every((src) => /\/cars\/car-[a-z-]+\.webp$/.test(src)), `уникальных рисунков: ${new Set(carArt).size}/${carArt.length}`);
+    check('«Авто»: у каждой машины свой карандашный рисунок', carArt.length === 17 && new Set(carArt).size === carArt.length && carArt.every((src) => /\/cars\/car-[a-z-]+\.webp$/.test(src)), `уникальных рисунков: ${new Set(carArt).size}/${carArt.length}`);
+    const tankCard = Array.from(document.querySelectorAll('.shop-item.toy-item')).find((el) => (el.textContent ?? '').includes('Розовый танк'));
+    check('«Авто»: розовый танк нарисован векторным рисунком', !!tankCard?.querySelector('svg'), '');
   }
   check('«Авто»: витрина-бутик показывает отдельные карточки машин', document.querySelectorAll('.shop-boutique').length === 1 && !!document.querySelector('.shop-boutique-mint'), '');
 
   const shipTab = toyTabs().find((tab) => (tab.textContent ?? '').includes('Корабли'));
   if (shipTab) click(shipTab);
   await sleep(30);
-  check('«Корабли» — отдельная полка из четырёх больших судов', document.querySelectorAll('.shop-item.toy-item').length === 4 && ['Морская яхта', 'Контейнеровоз', 'Супертанкер', 'Авианосец'].every((title) => has(title)), '');
+  check('«Корабли» — отдельная полка из пяти судов (0.72.0: добавлен «Титаник»)', document.querySelectorAll('.shop-item.toy-item').length === 5 && ['Морская яхта', 'Контейнеровоз', 'Супертанкер', 'Авианосец', 'Титаник'].every((title) => has(title)), '');
   {
     const shipArt = Array.from(document.querySelectorAll('.shop-item.toy-item img')).map((img) => img.getAttribute('src') ?? '');
     check('у яхты, контейнеровоза, танкера и авианосца — свои цветные иллюстрации', shipArt.length === 4 && new Set(shipArt).size === 4 && shipArt.every((src) => /\/ships\/ship-(yacht|container|tanker|carrier)\.webp$/.test(src)), `рисунков: ${shipArt.join(', ')}`);
+    const titanicCard = Array.from(document.querySelectorAll('.shop-item.toy-item')).find((el) => (el.textContent ?? '').includes('Титаник'));
+    check('«Титаник» нарисован векторным рисунком с четырьмя трубами', !!titanicCard?.querySelector('svg'), '');
   }
   const yachtCard = Array.from(document.querySelectorAll('.shop-item.toy-item')).find((el) => (el.textContent ?? '').includes('Морская яхта'));
   if (yachtCard) click(yachtCard);
@@ -635,7 +639,7 @@ async function main() {
   if (phoneTab) click(phoneTab);
   await sleep(30);
   const phoneCard = Array.from(document.querySelectorAll('.shop-item.toy-item')).find((el) => (el.textContent ?? '').includes('iPhone Air'));
-  check('телефоны и электроника остаются отдельным разделом', document.querySelectorAll('.shop-item.toy-item').length === 7 && document.querySelectorAll('.shop-item.toy-item .electronics-art').length === 7 && !!phoneCard?.querySelector('.phone-rotate'), '');
+  check('телефоны и электроника остаются отдельным разделом', document.querySelectorAll('.shop-item.toy-item').length === 11 && document.querySelectorAll('.shop-item.toy-item .electronics-art').length === 11 && !!phoneCard?.querySelector('.phone-rotate'), '');
   const rotatingPhone = phoneCard?.querySelector('.phone-rotate');
   click(rotatingPhone);
   await sleep(30);

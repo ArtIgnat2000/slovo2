@@ -86,7 +86,7 @@ export function WorldScreen() {
   };
 
   /** Категория сцены: техника по типу, наряды — отдельный мягкий фон. */
-  const toneOf = (thing: WorldThing): 'car' | 'plane' | 'ship' | 'phone' | 'outfit' => thing.item?.toy ?? 'outfit';
+  const toneOf = (thing: WorldThing): 'car' | 'plane' | 'ship' | 'phone' | 'pet' | 'sport' | 'food' | 'outfit' => thing.item?.toy ?? 'outfit';
 
   return (
     <div

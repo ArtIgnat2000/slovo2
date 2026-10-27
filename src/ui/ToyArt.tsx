@@ -77,6 +77,31 @@ function Ship({ id, colors }: { id: string; colors: Colors }) {
     );
   }
 
+  if (id === 'ship-titanic') {
+    // «Титаник»: чёрный корпус, красная ватерлиния, четыре трубы.
+    return (
+      <g>
+        <ToyShadow />
+        {waves}
+        <path d="M4 62 L96 62 L84 88 L16 88 Z" fill={main} stroke="#241f36" strokeOpacity=".25" strokeWidth="2" strokeLinejoin="round" />
+        <path d="M8 74 L92 74 L84 88 L16 88 Z" fill={deep} opacity=".9" />
+        {[22, 36, 50, 64, 78].map((x) => (
+          <circle key={x} cx={x} cy="69" r="2.6" fill={accent} stroke={deep} strokeWidth="1" />
+        ))}
+        <rect x="18" y="46" width="64" height="16" rx="3" fill={accent} stroke="#241f36" strokeOpacity=".18" strokeWidth="1.4" />
+        {[26, 40, 54, 68].map((x) => (
+          <g key={x}>
+            <rect x={x} y="24" width="8" height="22" rx="2" fill={main} />
+            <rect x={x - 1} y="24" width="10" height="4" rx="2" fill={deep} />
+          </g>
+        ))}
+        <path d="M14 46 L14 30 M86 46 L86 30" stroke={deep} strokeWidth="2" strokeLinecap="round" />
+        <circle cx="34" cy="14" r="4.4" fill="#94a3b8" opacity=".4" />
+        <circle cx="60" cy="10" r="3.6" fill="#94a3b8" opacity=".3" />
+      </g>
+    );
+  }
+
   // Пароход: корпус, каюта, труба и дым.
   return (
     <g>
@@ -101,10 +126,225 @@ function Ship({ id, colors }: { id: string; colors: Colors }) {
   );
 }
 
+
+/** Простые векторные рисунки новых полок 0.72.0: розовый танк, питомцы, спорт и вкусняшки. */
+function Glyph({ id, colors }: { id: string; colors: Colors }) {
+  const [main, shade, accent] = colors;
+  switch (id) {
+    case 'car-pink-tank':
+      return (
+        <g>
+          <ToyShadow />
+          <rect x="14" y="66" width="72" height="20" rx="10" fill={shade} />
+          {[24, 38, 52, 66, 78].map((x) => (
+            <circle key={x} cx={x} cy="76" r="5.4" fill={accent} stroke={shade} strokeWidth="1.4" />
+          ))}
+          <path d="M22 66 L30 48 L74 48 L82 66Z" fill={main} stroke={shade} strokeWidth="1.8" strokeLinejoin="round" />
+          <rect x="38" y="32" width="26" height="16" rx="5" fill={main} stroke={shade} strokeWidth="1.8" />
+          <path d="M64 38 L94 34" stroke={shade} strokeWidth="5" strokeLinecap="round" />
+          <path d="M50 42 c-2.4-3.4-9-1.4-9 2.8 0 3.4 4.4 5.8 9 8.4 4.6-2.6 9-5 9-8.4 0-4.2-6.6-6.2-9-2.8Z" fill={accent} />
+        </g>
+      );
+    case 'pet-corgi':
+      return (
+        <g>
+          <ToyShadow />
+          <ellipse cx="46" cy="66" rx="27" ry="17" fill={main} stroke={shade} strokeWidth="1.6" />
+          <ellipse cx="40" cy="70" rx="12" ry="9" fill={accent} opacity=".85" />
+          <path d="M24 82 L24 90 M64 82 L64 90" stroke={shade} strokeWidth="5" strokeLinecap="round" />
+          <circle cx="74" cy="50" r="17" fill={main} stroke={shade} strokeWidth="1.6" />
+          <path d="M63 40 L60 22 L72 32Z" fill={main} stroke={shade} strokeWidth="1.5" strokeLinejoin="round" />
+          <path d="M82 38 L88 21 L90 36Z" fill={main} stroke={shade} strokeWidth="1.5" strokeLinejoin="round" />
+          <ellipse cx="74" cy="56" rx="8" ry="6.4" fill={accent} />
+          <circle cx="68" cy="47" r="2.3" fill="#241f36" />
+          <circle cx="80" cy="47" r="2.3" fill="#241f36" />
+          <circle cx="74" cy="54" r="2.4" fill="#241f36" />
+          <path d="M18 60 Q8 56 12 46" stroke={shade} strokeWidth="4" fill="none" strokeLinecap="round" />
+        </g>
+      );
+    case 'pet-cat':
+      return (
+        <g>
+          <ToyShadow />
+          <ellipse cx="50" cy="72" rx="20" ry="15" fill={main} stroke={shade} strokeWidth="1.6" />
+          <path d="M68 74 Q88 70 84 52" stroke={shade} strokeWidth="4.6" fill="none" strokeLinecap="round" />
+          <circle cx="50" cy="46" r="19" fill={main} stroke={shade} strokeWidth="1.6" />
+          <path d="M36 34 L32 16 L46 27Z" fill={main} stroke={shade} strokeWidth="1.5" strokeLinejoin="round" />
+          <path d="M64 34 L68 16 L54 27Z" fill={main} stroke={shade} strokeWidth="1.5" strokeLinejoin="round" />
+          <path d="M38 31 L36 21 L43 27Z" fill={accent} />
+          <path d="M62 31 L64 21 L57 27Z" fill={accent} />
+          <circle cx="43" cy="45" r="2.5" fill="#241f36" />
+          <circle cx="57" cy="45" r="2.5" fill="#241f36" />
+          <path d="M47 52 Q50 54.6 53 52" stroke="#241f36" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+          <path d="M30 50 L40 51 M31 57 L40 55 M70 50 L60 51 M69 57 L60 55" stroke={shade} strokeWidth="1.4" strokeLinecap="round" />
+        </g>
+      );
+    case 'pet-bunny':
+      return (
+        <g>
+          <ToyShadow />
+          <ellipse cx="38" cy="20" rx="6.4" ry="17" fill={main} stroke={shade} strokeWidth="1.5" transform="rotate(-9 38 20)" />
+          <ellipse cx="60" cy="20" rx="6.4" ry="17" fill={main} stroke={shade} strokeWidth="1.5" transform="rotate(9 60 20)" />
+          <ellipse cx="38" cy="21" rx="2.8" ry="11" fill={accent} transform="rotate(-9 38 21)" />
+          <ellipse cx="60" cy="21" rx="2.8" ry="11" fill={accent} transform="rotate(9 60 21)" />
+          <ellipse cx="50" cy="74" rx="21" ry="15" fill={main} stroke={shade} strokeWidth="1.6" />
+          <circle cx="50" cy="48" r="17" fill={main} stroke={shade} strokeWidth="1.6" />
+          <circle cx="44" cy="46" r="2.4" fill="#241f36" />
+          <circle cx="56" cy="46" r="2.4" fill="#241f36" />
+          <ellipse cx="50" cy="53" rx="3" ry="2.2" fill={accent} />
+          <path d="M50 55 L50 58 M44 62 Q47 60 50 58 Q53 60 56 62" stroke="#241f36" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+          <circle cx="71" cy="78" r="6" fill={accent} stroke={shade} strokeWidth="1.2" />
+        </g>
+      );
+    case 'pet-panda':
+      return (
+        <g>
+          <ToyShadow />
+          <circle cx="33" cy="26" r="9" fill={shade} />
+          <circle cx="67" cy="26" r="9" fill={shade} />
+          <ellipse cx="50" cy="74" rx="21" ry="16" fill={main} stroke={shade} strokeWidth="1.5" />
+          <ellipse cx="50" cy="76" rx="11" ry="9" fill={accent} opacity=".55" />
+          <circle cx="50" cy="44" r="20" fill={main} stroke={shade} strokeWidth="1.5" />
+          <ellipse cx="42" cy="42" rx="4.6" ry="6" fill={shade} transform="rotate(-18 42 42)" />
+          <ellipse cx="58" cy="42" rx="4.6" ry="6" fill={shade} transform="rotate(18 58 42)" />
+          <circle cx="42.6" cy="41" r="1.9" fill="#fff" />
+          <circle cx="57.4" cy="41" r="1.9" fill="#fff" />
+          <ellipse cx="50" cy="50" rx="3.2" ry="2.3" fill={shade} />
+          <path d="M45 57 Q50 60 55 57" stroke={shade} strokeWidth="1.5" fill="none" strokeLinecap="round" />
+        </g>
+      );
+    case 'sport-ball':
+      return (
+        <g>
+          <ToyShadow />
+          <circle cx="50" cy="54" r="36" fill={main} stroke={shade} strokeWidth="2" />
+          <polygon points="50,38 65,49 59,66 41,66 35,49" fill={shade} />
+          <path d="M50 38 L50 20 M65 49 L82 42 M59 66 L66 84 M41 66 L34 84 M35 49 L18 42" stroke={shade} strokeWidth="2" />
+          <path d="M22 74 Q30 62 35 66 M78 74 Q70 62 65 66 M28 28 Q38 34 41 38 M72 28 Q62 34 59 38" stroke={shade} strokeWidth="4" fill="none" opacity=".8" />
+          <circle cx="50" cy="54" r="36" fill="none" stroke={accent} strokeWidth="1.4" strokeDasharray="4 6" opacity=".8" />
+        </g>
+      );
+    case 'sport-skate':
+      return (
+        <g>
+          <ToyShadow />
+          <g transform="rotate(-8 50 56)">
+            <rect x="12" y="48" width="76" height="11" rx="5.5" fill={main} stroke={shade} strokeWidth="1.8" />
+            <path d="M20 53.5 H80" stroke={accent} strokeWidth="3" strokeLinecap="round" />
+            <path d="M30 59 L30 66 M70 59 L70 66" stroke={shade} strokeWidth="3.4" />
+            <circle cx="30" cy="72" r="7" fill={accent} stroke={shade} strokeWidth="1.6" />
+            <circle cx="70" cy="72" r="7" fill={accent} stroke={shade} strokeWidth="1.6" />
+            <circle cx="30" cy="72" r="2.4" fill={shade} />
+            <circle cx="70" cy="72" r="2.4" fill={shade} />
+          </g>
+          <polygon points="76,22 78.4,28 84.6,28.4 79.8,32.2 81.4,38.2 76,34.8 70.6,38.2 72.2,32.2 67.4,28.4 73.6,28" fill={accent} />
+        </g>
+      );
+    case 'sport-dumbbell':
+      return (
+        <g>
+          <ToyShadow />
+          <g transform="rotate(-16 50 52)">
+            <rect x="30" y="47" width="40" height="9" rx="4.5" fill={shade} />
+            <rect x="14" y="32" width="11" height="39" rx="4" fill={main} stroke={shade} strokeWidth="1.6" />
+            <rect x="25" y="38" width="8" height="27" rx="3.4" fill={main} stroke={shade} strokeWidth="1.4" />
+            <rect x="75" y="32" width="11" height="39" rx="4" fill={main} stroke={shade} strokeWidth="1.6" />
+            <rect x="67" y="38" width="8" height="27" rx="3.4" fill={main} stroke={shade} strokeWidth="1.4" />
+            <path d="M18 38 H22 M79 38 H83" stroke={accent} strokeWidth="3" strokeLinecap="round" />
+          </g>
+          <path d="M24 84 Q50 76 76 84" stroke={accent} strokeWidth="2.4" fill="none" strokeLinecap="round" opacity=".8" />
+        </g>
+      );
+    case 'sport-racket':
+      return (
+        <g>
+          <ToyShadow />
+          <g transform="rotate(18 46 44)">
+            <ellipse cx="46" cy="40" rx="27" ry="31" fill={accent} fillOpacity=".22" stroke={main} strokeWidth="4.4" />
+            <path d="M28 22 Q46 40 64 22 M24 36 Q46 54 68 36 M26 54 Q46 70 66 54 M36 14 Q42 40 38 68 M50 12 Q48 42 52 68 M60 16 Q54 42 58 66" stroke={shade} strokeWidth="1.1" opacity=".65" fill="none" />
+            <path d="M40 69 L34 88 M52 69 L58 88" stroke={main} strokeWidth="4" strokeLinecap="round" />
+            <rect x="38" y="86" width="16" height="7" rx="3.4" fill={shade} transform="rotate(90 46 89)" />
+          </g>
+          <circle cx="78" cy="74" r="10" fill={accent} stroke={shade} strokeWidth="1.4" />
+          <path d="M71 68 Q78 74 85 80 M85 68 Q78 74 71 80" stroke={shade} strokeWidth="1.2" fill="none" opacity=".7" />
+        </g>
+      );
+    case 'food-icecream':
+      return (
+        <g>
+          <ToyShadow />
+          <path d="M36 52 L64 52 L50 90Z" fill={accent} stroke={shade} strokeWidth="1.7" strokeLinejoin="round" />
+          <path d="M41 60 L56 74 M59 60 L44 74" stroke={shade} strokeWidth="1.3" opacity=".65" />
+          <circle cx="38" cy="42" r="12" fill={main} stroke={shade} strokeWidth="1.5" />
+          <circle cx="56" cy="36" r="13" fill={accent} stroke={shade} strokeWidth="1.5" />
+          <circle cx="62" cy="48" r="11" fill={main} stroke={shade} strokeWidth="1.5" opacity=".92" />
+          <circle cx="56" cy="24" r="3.4" fill={shade} />
+          <path d="M34 38 Q36 34 40 33 M52 30 Q55 27 58 27" stroke="#fff" strokeWidth="2" fill="none" strokeLinecap="round" opacity=".8" />
+        </g>
+      );
+    case 'food-donut':
+      return (
+        <g>
+          <ToyShadow />
+          <circle cx="50" cy="54" r="35" fill={accent} stroke={shade} strokeWidth="2" />
+          <path d="M50 22 a32 32 0 0 1 30 22 c-6 3-9-2-15 1 c-7 3-8-4-15-3 c-8 1-9 6-16 4 c-6-2-9 2-14-2 a32 32 0 0 1 30-22Z" fill={main} stroke={shade} strokeWidth="1.5" />
+          <circle cx="50" cy="54" r="11.5" fill="#fffaf2" stroke={shade} strokeWidth="2" />
+          <g strokeWidth="2.6" strokeLinecap="round">
+            <path d="M34 34 l5 3" stroke="#38bdf8" />
+            <path d="M62 30 l5 3" stroke="#fde047" />
+            <path d="M72 50 l6 1" stroke="#34d399" />
+            <path d="M30 58 l6-2" stroke="#fde047" />
+            <path d="M44 76 l5-3" stroke="#38bdf8" />
+            <path d="M64 72 l4-4" stroke="#fb7185" />
+          </g>
+        </g>
+      );
+    case 'food-kulich':
+      return (
+        <g>
+          <ToyShadow />
+          <path d="M32 42 L68 42 L64 88 L36 88Z" fill={main} stroke={shade} strokeWidth="1.8" strokeLinejoin="round" />
+          <path d="M32 50 Q50 58 68 50 L68 42 L32 42Z" fill={accent} />
+          <path d="M30 40 Q32 24 50 24 Q68 24 70 40 Q60 34 50 40 Q40 34 30 40Z" fill={accent} stroke={shade} strokeWidth="1.5" />
+          <g strokeWidth="2.4" strokeLinecap="round">
+            <path d="M42 30 l4 2" stroke="#f43f5e" />
+            <path d="M55 28 l4 2" stroke="#38bdf8" />
+            <path d="M48 34 l4 2" stroke="#f59e0b" />
+            <path d="M60 36 l4 1" stroke="#34d399" />
+          </g>
+          <path d="M38 66 H62 M39 76 H61" stroke={shade} strokeWidth="1.6" opacity=".55" strokeLinecap="round" />
+        </g>
+      );
+    case 'food-cake':
+      return (
+        <g>
+          <ToyShadow />
+          <rect x="22" y="72" width="56" height="16" rx="4" fill={main} stroke={shade} strokeWidth="1.6" />
+          <rect x="29" y="57" width="42" height="15" rx="4" fill={accent} stroke={shade} strokeWidth="1.5" />
+          <rect x="36" y="43" width="28" height="14" rx="4" fill={main} stroke={shade} strokeWidth="1.5" />
+          <path d="M22 76 Q30 70 38 76 T54 76 T70 76 T78 76" stroke={accent} strokeWidth="2.2" fill="none" opacity=".85" />
+          {[42, 50, 58].map((x) => (
+            <g key={x}>
+              <rect x={x - 1.4} y="27" width="2.8" height="13" rx="1.4" fill={accent} stroke={shade} strokeWidth=".7" />
+              <ellipse cx={x} cy="23" rx="2.6" ry="4" fill="#fbbf24" stroke="#f59e0b" strokeWidth=".8" />
+            </g>
+          ))}
+          <circle cx="50" cy="40" r="3.4" fill={shade} />
+        </g>
+      );
+    default:
+      return null;
+  }
+}
+
 function ToyGlyph({ id, colors }: { id: string; colors: Colors }) {
   const item = ITEM_BY_ID[id];
   if (!item || item.kind !== 'toy') return null;
   if (item.toy === 'ship') return <Ship id={id} colors={colors} />;
+  // 0.72.0: розовый танк, питомцы, спорт и вкусняшки — векторные рисунки выше.
+  if (item.toy === 'pet' || item.toy === 'sport' || item.toy === 'food' || id === 'car-pink-tank') {
+    return <Glyph id={id} colors={colors} />;
+  }
   return null;
 }
 

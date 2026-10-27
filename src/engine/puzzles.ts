@@ -238,6 +238,9 @@ export const BASE_COSTUMES: Costume[] = [
   { id: 'electron-suit', title: 'Повелитель импульса', desc: 'Солнечный костюм с сияющими линиями электронных схем', body: '#4d9d82', belly: '#c4f4d8', wing: '#34745f', trim: '#d9fff0', glow: '#72ffbd', helmet: 'plate', prop: null, baseStyle: 'electron-base', price: 85, rarity: 'legendary' },
   { id: 'arctic-suit', title: 'Полярный исследователь', desc: 'Тёплый костюм для экспедиций среди льдов и северного сияния', body: '#86b7d4', belly: '#e6f8ff', wing: '#5c8eae', trim: '#f1fbff', glow: '#70eaff', helmet: 'bubble', prop: null, baseStyle: 'arctic-base', price: 95, rarity: 'legendary' },
   { id: 'moon-suit', title: 'Лунный первооткрыватель', desc: 'Серебристый скафандр с золотым светом далёких звёзд', body: '#aaa4c8', belly: '#f1edff', wing: '#817b9f', trim: '#fff5d6', glow: '#ffd166', helmet: 'dome', prop: null, baseStyle: 'moon-base', price: 100, rarity: 'top' },
+  // ── Особые костюмы (0.72.0): по просьбам детей — героиня в горошек и титан ─
+  { id: 'lady-bug', title: 'Леди Баг', desc: 'Красный костюм в чёрный горошек и маска героини', body: '#e11d48', belly: '#fb7185', wing: '#be123c', trim: '#111827', glow: '#111827', helmet: 'buns', prop: null, price: 75, rarity: 'cool' },
+  { id: 'titan', title: 'Титан', desc: 'Стальной гигант, которого не сдвинуть с места', body: '#94a3b8', belly: '#cbd5e1', wing: '#64748b', trim: '#334155', glow: '#f97316', helmet: 'plate', prop: null, price: 110, rarity: 'top' },
 ];
 
 /** Все костюмы БУКа: пазловые + кристальные баз. */
