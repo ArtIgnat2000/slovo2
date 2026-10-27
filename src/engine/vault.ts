@@ -23,7 +23,7 @@ export const LOG_MAX = 40;
 /** Через сколько дней без выгрузки напоминаем родителю сделать копию. */
 export const EXPORT_REMINDER_MS = 14 * 24 * 60 * 60 * 1000;
 
-export type TrashReason = 'delete' | 'reset' | 'import' | 'invalid';
+export type TrashReason = 'delete' | 'reset' | 'gems-reset' | 'import' | 'invalid';
 
 /** За что именно снята копия «до списания кристаллов». */
 export type SpendKind = 'buy' | 'sell' | 'music' | 'sound' | 'tint';
@@ -66,6 +66,7 @@ export type LogKind =
   | 'restore-snapshot'
   | 'profile-delete'
   | 'profile-reset'
+  | 'gems-reset'
   | 'profile-restore'
   | 'import'
   | 'export'
@@ -377,6 +378,7 @@ export const LOG_LABEL: Record<LogKind, string> = {
   'restore-snapshot': 'восстановлено из копии',
   'profile-delete': 'профиль удалён',
   'profile-reset': 'прогресс сброшен',
+  'gems-reset': 'кристаллы обнулены',
   'profile-restore': 'профиль восстановлен',
   import: 'загружен файл',
   export: 'сохранён файл',
