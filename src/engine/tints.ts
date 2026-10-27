@@ -557,7 +557,7 @@ export const TINT_PALETTES: Record<string, TintPalette<ItemTint>> = {
     ],
   },
   'phone-18': {
-    base: { id: BASE_TINT, title: 'Голубой', colors: ['#7cc6ff', '#334155', '#e0f2fe'] },
+    base: { id: BASE_TINT, title: 'Бордовый', colors: ['#8e2434', '#5f1220', '#f3c1c9'] },
     extra: [
       { id: 'pink', title: 'Розовый', colors: ['#ff8fb8', '#d94f7e', '#ffeef5'] },
       { id: 'black', title: 'Чёрный', colors: ['#475569', '#1e293b', '#e2e8f0'] },
@@ -565,7 +565,7 @@ export const TINT_PALETTES: Record<string, TintPalette<ItemTint>> = {
     ],
   },
   'phone-18-air': {
-    base: { id: BASE_TINT, title: 'Серебристый', colors: ['#e2e8f0', '#94a3b8', '#ffffff'] },
+    base: { id: BASE_TINT, title: 'Светло-бордовый', colors: ['#b5546a', '#7e2a3c', '#ffe3ea'] },
     extra: [
       { id: 'pink', title: 'Розовый', colors: ['#ff8fb8', '#d94f7e', '#ffeef5'] },
       { id: 'sky', title: 'Голубой', colors: ['#7cc6ff', '#3f8fd9', '#e0f2fe'] },
@@ -573,7 +573,7 @@ export const TINT_PALETTES: Record<string, TintPalette<ItemTint>> = {
     ],
   },
   'phone-18-pro': {
-    base: { id: BASE_TINT, title: 'Титан', colors: ['#78716c', '#44403c', '#f97316'] },
+    base: { id: BASE_TINT, title: 'Тёмный бордо', colors: ['#6d1220', '#3f0a13', '#e8a0a8'] },
     extra: [
       { id: 'black', title: 'Чёрный', colors: ['#475569', '#1e293b', '#e2e8f0'] },
       { id: 'sky', title: 'Голубой', colors: ['#7cc6ff', '#3f8fd9', '#e0f2fe'] },
@@ -581,7 +581,7 @@ export const TINT_PALETTES: Record<string, TintPalette<ItemTint>> = {
     ],
   },
   'phone-18-max': {
-    base: { id: BASE_TINT, title: 'Глубокий синий', colors: ['#1e3a8a', '#0f172a', '#93c5fd'] },
+    base: { id: BASE_TINT, title: 'Винный', colors: ['#57101d', '#2e0810', '#d98c96'] },
     extra: [
       { id: 'black', title: 'Чёрный', colors: ['#475569', '#1e293b', '#e2e8f0'] },
       { id: 'violet', title: 'Сиреневый', colors: ['#c4a2ff', '#8f6ae0', '#f3e8ff'] },

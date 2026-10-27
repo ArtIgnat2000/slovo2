@@ -7,11 +7,12 @@ export const ELECTRONICS_ART: Record<string, string> = {
   'phone-flip': 'phone-17-back',
   'phone-retro': 'phone-max-back',
   'phone-pro': 'phone-pro-back',
-  // 0.72.0: линейка iPhone 18 — спинки переиспользуют существующие рисунки.
-  'phone-18': 'phone-17-back',
-  'phone-18-air': 'phone-air-back',
-  'phone-18-pro': 'phone-pro-back',
-  'phone-18-max': 'phone-max-back',
+  // 0.72.0: линейка iPhone 18 переиспользовала чужие спинки;
+  // 0.72.1: у каждой модели своя сгенерированная 3D-спинка.
+  'phone-18': 'phone-18-back',
+  'phone-18-air': 'phone-18-air-back',
+  'phone-18-pro': 'phone-18-pro-back',
+  'phone-18-max': 'phone-18-pro-max-back',
   'laptop-air': 'laptop-air',
   'tv-cinema': 'tv-cinema',
   'headphones-max': 'headphones-max',
