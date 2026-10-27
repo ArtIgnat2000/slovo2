@@ -48,12 +48,6 @@ import { MUSIC_TRACKS, MUSIC_BY_ID, tracksByShelf, type MusicShelf, type MusicTr
 import { playMusic } from '../../platform/music';
 import { MusicCreditsToggle } from '../Credits';
 import { THEME_STYLES, type ThemeStyle } from '../../engine/theme-styles';
-import {
-  INTERESTS,
-  MAX_INTERESTS,
-  interestsSummary,
-  orderByInterests,
-} from '../../engine/interests';
 import { BackgroundThemeCard } from '../BackgroundThemeCard';
 import { Icon, Gem } from '../Icon';
 
@@ -274,7 +268,6 @@ export function ShopScreen({
   const setSoundPack = useApp((s) => s.setSoundPack);
   const setMusicTrack = useApp((s) => s.setMusicTrack);
   const toggleWishlist = useApp((s) => s.toggleWishlist);
-  const toggleInterestAction = useApp((s) => s.toggleInterest);
   const themeStyle = useApp((s) => s.settings.themeStyle);
   const setSettings = useApp((s) => s.setSettings);
   const [view, setView] = useState<View>(initialView);
@@ -293,9 +286,6 @@ export function ShopScreen({
   // «Ангар БУКа» (0.22.0): сцена коллекции техники, открывается из гардероба
   // и с полки «Техника» (ещё один вход — значок 🚗 в шапке главной, App.tsx).
   const [hangarOpen, setHangarOpen] = useState(initialHangar);
-  // Плитки интересов (0.70.0): показываем их сразу, пока ребёнок ничего не выбрал,
-  // и по кнопке «Изменить» — когда выбор уже есть.
-  const [interestsOpen, setInterestsOpen] = useState(false);
 
   /** Sheet закрывается по фону, по Escape и — если играла примерка —
    *  возвратом к выбранной мелодии (примерка не остаётся «висеть»). */
@@ -338,9 +328,6 @@ export function ShopScreen({
   const soundOwned = profile.shop?.soundOwned ?? [];
   const selectedSound = profile.shop?.soundPack ?? 'classic';
   const wishlist = profile.shop?.wishlist ?? [];
-  // Интересы ребёнка (0.70.0): только порядок полок и строка-подпись, ничего
-  // не скрывают. Пустой список — обычный порядок витрины для всех.
-  const interests = profile.interests ?? [];
   const hero = resolveHero(owned, profile.puzzle, musicOwned);
   // Ближайшая техника — отдельная подсказка на полке «Техника»: герой нарядов
   // намеренно не уводит ребёнка на другую полку (см. engine/shop.ts).
@@ -1228,10 +1215,7 @@ export function ShopScreen({
         </div>
         {view === 'vitrina' && (
           <div className="shop-cats" role="tablist" aria-label="Разделы магазина">
-            {/* 0.70.0: порядок полок зависит от интересов ребёнка (engine/interests.ts).
-                Ничего не скрывается — выбранные интересы просто поднимают свои полки
-                наверх, чтобы витрина начиналась с того, что ребёнку нравится. */}
-            {orderByInterests(CATS, interests).map((c) => (
+            {CATS.map((c) => (
               <button key={c.id} role="tab" aria-selected={cat === c.id} className={`chip${cat === c.id ? ' on' : ''}`} onClick={() => setCat(c.id)}>
                 {c.icon ? <Icon name={c.icon} size={16} /> : c.emoji} {c.title}
               </button>
@@ -1239,67 +1223,6 @@ export function ShopScreen({
           </div>
         )}
       </div>
-
-      {/* ── Интересы (0.70.0) ───────────────────────────────────────────
-          Вопрос не про пол, а про «что тебе нравится»: полок «для девочек» и
-          «для мальчиков» не существует, а выбор двигает полки наверх. Пока
-          ничего не выбрано — плитки видны сами; после выбора остаётся строка с
-          подписью и кнопкой «Изменить». Ни один товар не скрывается. */}
-      {view === 'vitrina' && (
-        <section className="card interest-picker mb" aria-label="Что тебе нравится">
-          <div className="interest-picker-head">
-            <div className="grow">
-              <div className="interest-picker-title">Что тебе нравится?</div>
-              <div className="tiny muted">
-                {interests.length
-                  ? `${interestsSummary(interests)} — эти полки вверху. Можно менять когда захочешь`
-                  : `Выбери до ${MAX_INTERESTS === 2 ? 'двух' : MAX_INTERESTS} — витрина начнётся с любимого`}
-              </div>
-            </div>
-            {interests.length > 0 && (
-              <button
-                type="button"
-                className="btn sm ghost"
-                aria-expanded={interestsOpen}
-                onClick={() => {
-                  sfx.tap();
-                  haptic.tap();
-                  setInterestsOpen((v) => !v);
-                }}
-              >
-                {interestsOpen ? 'Готово' : 'Изменить'}
-              </button>
-            )}
-          </div>
-          {/* Плитки не прячутся после первого выбора: второй интерес добавляется
-              тем же тапом. Сворачиваются, только когда выбраны оба, — или по
-              кнопке «Готово», если ребёнок оставил один. */}
-          {(interests.length < MAX_INTERESTS || interestsOpen) && (
-            <div className="interest-tiles" role="group" aria-label="Выбери интересы">
-              {INTERESTS.map((interest) => {
-                const on = interests.includes(interest.id);
-                return (
-                  <button
-                    key={interest.id}
-                    type="button"
-                    className={`interest-tile${on ? ' on' : ''}`}
-                    aria-pressed={on}
-                    aria-label={`${interest.title}: ${interest.hint}`}
-                    onClick={() => {
-                      sfx.tap();
-                      haptic.tap();
-                      toggleInterestAction(interest.id);
-                    }}
-                  >
-                    <span className="interest-tile-emoji" aria-hidden="true">{interest.emoji}</span>
-                    <span className="interest-tile-title">{interest.title}</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </section>
-      )}
 
       {view === 'vitrina' && cat === 'outfits' && (
         <section className="mt" aria-label="Наряды">

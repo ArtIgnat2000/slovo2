@@ -28,7 +28,6 @@ import { ITEM_BY_ID, isOwned, normalizeWishlist, sellPrice } from '../engine/sho
 import { migrateMusicShop, MUSIC_BY_ID } from '../engine/music';
 import { canBuySoundPack, DEFAULT_SOUND_PACK, hasSoundPack, normalizeSoundShop, SOUND_PACK_BY_ID } from '../engine/sounds';
 import { normalizeTuning, recolor, type RecolorOutcome } from '../engine/tints';
-import { normalizeInterests, toggleInterest } from '../engine/interests';
 import {
   COSTUMES,
   awardLessonPiece,
@@ -367,9 +366,6 @@ function normalizeProfile(raw: Partial<Profile> | null | undefined): Profile | n
         wishlist: normalizeWishlist(raw.shop?.wishlist, owned, puzzle.assembled, music.musicOwned),
       },
       puzzle,
-      // Интересы (0.70.0): мусор из файла выгрузки отбрасываем, дубли схлопываем,
-      // больше двух не храним. Пустой список — это обычный порядок витрины.
-      interests: normalizeInterests(raw.interests),
     };
 }
 
@@ -499,13 +495,6 @@ interface AppState {
    * что открытое не отберётся, если условие перестанет выполняться.
    */
   recordChestSkins: (ids: ChestSkinId[]) => void;
-  /**
-   * Интересы ребёнка (0.70.0, engine/interests.ts): тап по плитке в магазине.
-   * Двигают порядок полок витрины, ничего не скрывают и не дают преимуществ в
-   * уроках. Пола в профиле нет: это выбор ребёнка, его можно менять когда угодно.
-   */
-  toggleInterest: (id: string) => void;
-
   showToast: (t: Omit<Toast, 'id'>) => void;
   hideToast: () => void;
 
@@ -1567,14 +1556,6 @@ export const useApp = create<AppState>()(
             const add = ids.filter((id) => !have.has(id));
             if (!add.length) return p;
             return { ...p, chestSkins: [...have, ...add] };
-          }),
-        ),
-
-      toggleInterest: (id) =>
-        set((s) =>
-          patchActive(s, (p) => {
-            const next = toggleInterest(p.interests ?? [], id);
-            return { ...p, interests: next };
           }),
         ),
 

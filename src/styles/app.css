@@ -2853,66 +2853,6 @@ p {
 .shop-cats .chip { flex: none; }
 .shop-cats .chip:disabled { opacity: 0.55; cursor: default; }
 
-/* ── Интересы ребёнка (0.70.0) ──────────────────────────────────────────────
-   Плитки «что тебе нравится» над витриной. Это не фильтр: ничего не прячется,
-   выбранное лишь поднимает свои полки. Зона нажатия ≥ 48 px — как везде, где
-   нажимает ребёнок (правило из docs/shop-concept.md). */
-.interest-picker {
-  padding: 12px 14px;
-}
-.interest-picker-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.interest-picker-title {
-  font-weight: 800;
-  font-size: var(--fs-sm);
-}
-.interest-tiles {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 10px;
-}
-.interest-tile {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  min-height: 62px;
-  padding: 8px 4px;
-  border: 2px solid var(--line);
-  border-radius: 16px;
-  background: var(--bg-2);
-  color: var(--ink);
-  font: inherit;
-  cursor: pointer;
-  transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
-}
-.interest-tile:active {
-  transform: scale(0.97);
-}
-.interest-tile.on {
-  border-color: var(--primary);
-  background: var(--primary-soft);
-  box-shadow: inset 0 0 0 1px var(--primary);
-}
-.interest-tile-emoji {
-  font-size: 22px;
-  line-height: 1;
-}
-.interest-tile-title {
-  font-size: var(--fs-xs);
-  font-weight: 700;
-  text-align: center;
-  line-height: 1.15;
-}
-.interest-tile.on .interest-tile-title {
-  color: var(--primary-ink);
-}
-
 .shop-stage {
   display: flex;
   align-items: center;

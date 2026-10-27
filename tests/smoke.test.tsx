@@ -45,7 +45,6 @@ import { questTitle } from '../src/engine/quests';
 import { ITEM_BY_ID, SHOP_ITEMS, TOY_ITEMS, growthStage, sellPrice } from '../src/engine/shop';
 import { TINT_PALETTES, TINT_PRICE } from '../src/engine/tints';
 import { THEME_STYLES } from '../src/engine/theme-styles';
-import { INTERESTS } from '../src/engine/interests';
 import { masteredCount } from '../src/state/store';
 import { runStudyEngineChecks } from './study.test';
 
@@ -546,43 +545,6 @@ async function main() {
   );
   click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Витрина'))!);
   await sleep(40);
-
-  // ── Интересы ребёнка (0.70.0) ─────────────────────────────────────────────
-  // Плитки «что тебе нравится» двигают полки витрины и НЕ прячут товары.
-  // Проверяем: плитки есть у новичка, тап сохраняет выбор в профиль, полка
-  // выбранного интереса уезжает вперёд, а число полок не меняется.
-  {
-    const tiles = () => Array.from(document.querySelectorAll('.interest-tile'));
-    check(
-      'на витрине есть плитки интересов (у новичка — сразу видны)',
-      tiles().length === INTERESTS.length,
-      `${tiles().length} плиток`,
-    );
-    const speciesBefore = Array.from(document.querySelectorAll('.shop-cats .chip')).map((c) => (c.textContent ?? '').trim());
-    const homeTile = tiles().find((t) => (t.textContent ?? '').includes('Дом и уют')) as HTMLButtonElement | undefined;
-    check('есть плитка «Дом и уют»', !!homeTile);
-    click(homeTile ?? null);
-    await sleep(40);
-    const saved = useApp.getState().profiles[0].interests ?? [];
-    check('тап по плитке сохраняет интерес в профиль', saved.includes('home'), JSON.stringify(saved));
-    const speciesAfter = Array.from(document.querySelectorAll('.shop-cats .chip')).map((c) => (c.textContent ?? '').trim());
-    check(
-      'выбранный интерес не скрывает полки — только меняет порядок',
-      speciesAfter.length === speciesBefore.length && speciesAfter.slice().sort().join('|') === speciesBefore.slice().sort().join('|'),
-      `${speciesBefore.join(' ')} → ${speciesAfter.join(' ')}`,
-    );
-    check(
-      '«Фоны» поднялись вперёд после выбора «Дом и уют»',
-      speciesAfter[0].includes('Фоны'),
-      speciesAfter.join(' '),
-    );
-    // Второй тап снимает выбор — витрина возвращается к обычному порядку.
-    click(tiles().find((t) => (t.textContent ?? '').includes('Дом и уют')) ?? null);
-    await sleep(40);
-    check('повторный тап снимает интерес', (useApp.getState().profiles[0].interests ?? []).length === 0);
-    const speciesReset = Array.from(document.querySelectorAll('.shop-cats .chip')).map((c) => (c.textContent ?? '').trim());
-    check('после снятия выбора порядок полок обычный', speciesReset[0].includes('Наряды'), speciesReset.join(' '));
-  }
 
   const backgroundShelf = Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Фоны'));
   click(backgroundShelf);
