@@ -148,7 +148,7 @@ export const SHOP_ITEMS: ShopItem[] = [
   { id: 'phone-18', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone 18', desc: 'Новая бордовая линейка: глянцевое стекло и две камеры. Нажми, чтобы повернуть', price: 85 },
   { id: 'phone-18-air', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone 18 Air', desc: 'Самый тонкий в линейке: светло-бордовый корпус и одна камера', price: 95 },
   { id: 'phone-18-pro', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone 18 Pro', desc: 'Бордовый титановый корпус и три камеры. Нажми, чтобы повернуть', price: 120 },
-  { id: 'phone-18-max', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone 18 Pro Max', desc: 'Тёмно-бордовый гигант: самый большой экран линейки и лучшая камера', price: 140 },
+  { id: 'phone-18-max', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone 18 Pro Max', desc: 'Как настоящий Pro Max: широкое плато камер на всю спинку, алюминиевый корпус и стеклянное окошко. Тёмно-бордовый, самый большой в линейке', price: 140 },
   { id: 'laptop-air', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '💻', title: 'Невесомый Air', desc: 'Тонкий серебристый ноутбук: настоящие клавиши, большой трекпад и яркий экран', price: 110 },
   { id: 'tv-cinema', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📺', title: 'Домашний кинотеатр', desc: 'Большой телевизор с тонкой рамкой: горное озеро на экране как живое', price: 95 },
   { id: 'headphones-max', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '🎧', title: 'Серебряный Max', desc: 'Наушники в стиле Apple: сетчатое оголовье, мягкие амбушюры и металлические чашки', price: 65 },
