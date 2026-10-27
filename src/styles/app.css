@@ -8462,7 +8462,11 @@ p {
 .world-slot-art { position: relative; z-index: 1; display: grid; place-items: center; min-height: 96px; }
 .world-slot-art > .car-art, .world-slot-art > .ship-art, .world-slot-art > .airplane-art { width: 132px; }
 .world-pick-art > .car-art, .world-pick-art > .ship-art, .world-pick-art > .airplane-art { width: 84px; }
-.world-slot-art .mascot, .world-pick-art .mascot { position: relative; }
+/* БУК в «Моём мире» — картинка на подиуме, а не плавающий помощник (0.71.1):
+   у базового .mascot position:fixed, сдвиги right/bottom, z-index 25 и вечная
+   анимация float — с одним position:relative сова «летала» над местом и
+   съезжала в угол. Снимаем всё, как в .shop-icon .mascot: стоит ровно. */
+.world-slot-art .mascot, .world-pick-art .mascot { position: static; z-index: auto; animation: none; }
 .world-slot-plinth { position: relative; z-index: 1; width: 72%; height: 8px; border-radius: 6px; background: linear-gradient(180deg, var(--case-mint-plinth), var(--case-mint-deep)); }
 .world-tone-ship .world-slot-plinth, .world-tone-plane .world-slot-plinth { background: linear-gradient(180deg, var(--case-sky-plinth), var(--case-sky-deep)); }
 .world-tone-phone .world-slot-plinth { background: linear-gradient(180deg, var(--stage-lav-frame), var(--stage-lav-frame-2)); }

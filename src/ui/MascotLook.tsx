@@ -91,7 +91,7 @@ export function MascotAccessory({ id, colors }: { id: string; colors?: [string, 
 }
 
 /** Порядок слоёв отрисовки: значки и шея ниже, головные уборы и очки — поверх. */
-export const SLOT_ORDER: ShopSlot[] = ['badge', 'neck', 'head', 'face'];
+export const SLOT_ORDER: ShopSlot[] = ['body', 'badge', 'neck', 'feet', 'head', 'face'];
 
 // ── Костюмы (пазлы, engine/puzzles.ts) ───────────────────────────────────────
 // Та же сетка 100×120. Цвета туловища/живота/крыльев для костюма задаёт палитра

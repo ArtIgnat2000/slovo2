@@ -1829,8 +1829,8 @@ export function ShopScreen({
             );
           })()}
           <ShowcaseGrid>{COSTUMES.map(costumeCard)}</ShowcaseGrid>
-          <h3 className="music-shelf-title" style={{ marginTop: 18 }}>✨ Костюмы научных баз · за кристаллы</h3>
-          <div className="tiny muted mb">Каждый костюм — в цвет своей базы. Покупается сразу, собирать фрагменты не нужно.</div>
+          <h3 className="music-shelf-title" style={{ marginTop: 18 }}>✨ Костюмы за кристаллы</h3>
+          <div className="tiny muted mb">Костюмы баз — в цвет своей базы, а ещё здесь живут особые: Леди Баг и Титан. Покупается сразу, собирать фрагменты не нужно.</div>
           <ShowcaseGrid>{CRYSTAL_COSTUMES.slice().sort((a, b) => RARITY_ORDER.indexOf(a.rarity ?? 'common') - RARITY_ORDER.indexOf(b.rarity ?? 'common') || (a.price ?? 0) - (b.price ?? 0)).map(crystalCostumeCard)}</ShowcaseGrid>
         </section>
       )}
@@ -1939,7 +1939,7 @@ export function ShopScreen({
           {ownedOutfits.length > 0 && (
           <section className="mb" aria-label="Наряды">
             <h2 className="mb">Наряды</h2>
-            {(['head', 'face', 'neck', 'badge'] as const).map((slot) => {
+            {(['head', 'face', 'neck', 'badge', 'back', 'body', 'feet'] as const).map((slot) => {
               const items = ownedBySlot(slot);
               if (!items.length) return null;
               return (

@@ -242,6 +242,163 @@ export function MascotDecorAccessory({ id, colors: override }: { id: string; col
         </g>
       );
     }
+    // ── 0.72.0: причёски, очки «Сигма», кулоны, браслеты, сумочки ──────────
+    case 'hair-buns': {
+      const [hair, shade, bow] = colors(id, override);
+      return (
+        <g>
+          <circle cx="23" cy="15" r="10" fill={hair} stroke={shade} strokeWidth="1.4" />
+          <circle cx="77" cy="15" r="10" fill={hair} stroke={shade} strokeWidth="1.4" />
+          <path d="M23 8 L18 2 L28 4Z" fill={bow} />
+          <path d="M77 8 L82 2 L72 4Z" fill={bow} />
+          <path d="M22 30 Q50 8 78 30 Q78 18 50 14 Q22 18 22 30Z" fill={hair} />
+        </g>
+      );
+    }
+    case 'hair-ponytail': {
+      const [hair, shade, band] = colors(id, override);
+      return (
+        <g>
+          <path d="M72 22 Q92 34 86 62 Q82 76 74 70 Q80 44 70 28Z" fill={hair} stroke={shade} strokeWidth="1.2" />
+          <circle cx="71" cy="24" r="4.4" fill={band} />
+          <path d="M22 30 Q50 8 78 30 Q78 18 50 14 Q22 18 22 30Z" fill={hair} />
+        </g>
+      );
+    }
+    case 'hair-curls': {
+      const [hair, shade, shine] = colors(id, override);
+      const curls = [22, 32, 42, 52, 62, 72, 80].map((x, i) => ({ x, y: 16 - Math.sin((i / 6) * Math.PI) * 5 }));
+      return (
+        <g>
+          {curls.map((c, i) => (
+            <g key={i}>
+              <circle cx={c.x} cy={c.y} r="7.4" fill={hair} stroke={shade} strokeWidth="1.1" />
+              <circle cx={c.x - 2} cy={c.y - 2} r="2.2" fill={shine} opacity=".7" />
+            </g>
+          ))}
+        </g>
+      );
+    }
+    case 'glasses-sigma': {
+      const [frame, dark, lens] = colors(id, override);
+      return (
+        <g>
+          <path d="M20 30 L52 30 L48 48 L26 48Z" fill={dark} stroke={frame} strokeWidth="2" strokeLinejoin="round" />
+          <path d="M80 30 L48 30 L52 48 L74 48Z" fill={dark} stroke={frame} strokeWidth="2" strokeLinejoin="round" />
+          <path d="M24 34 L44 34 L42 40 L27 40Z" fill={lens} opacity=".65" />
+          <path d="M76 34 L56 34 L58 40 L73 40Z" fill={lens} opacity=".65" />
+          <path d="M20 32 L12 28 M80 32 L88 28" stroke={frame} strokeWidth="3" strokeLinecap="round" />
+        </g>
+      );
+    }
+    case 'pendant-heart': {
+      const [gem, chain, shine] = colors(id, override);
+      return (
+        <g>
+          <path d="M32 62 Q50 82 68 62" stroke={chain} strokeWidth="1.8" fill="none" />
+          <path d={heartPath(50, 80, 8)} fill={gem} stroke={chain} strokeWidth="1" />
+          <circle cx="47" cy="76" r="1.8" fill={shine} opacity=".8" />
+        </g>
+      );
+    }
+    case 'pendant-star': {
+      const [gem, chain, shine] = colors(id, override);
+      return (
+        <g>
+          <path d="M32 62 Q50 82 68 62" stroke={chain} strokeWidth="1.8" fill="none" />
+          <polygon points={starPoints(50, 84, 9)} fill={gem} stroke={chain} strokeWidth="1" strokeLinejoin="round" />
+          <polygon points={starPoints(50, 84, 3.4)} fill={shine} />
+        </g>
+      );
+    }
+    case 'bag-pink': {
+      const [main, shade, clasp] = colors(id, override);
+      return (
+        <g>
+          <path d="M32 64 Q58 72 82 90" stroke={shade} strokeWidth="3" fill="none" strokeLinecap="round" />
+          <rect x="70" y="86" width="24" height="18" rx="6" fill={main} stroke={shade} strokeWidth="1.6" />
+          <path d="M70 93 H94" stroke={shade} strokeWidth="1.2" opacity=".65" />
+          <path d="M82 86 L74 78 Q82 74 82 80 Q82 74 90 78Z" fill={clasp} stroke={shade} strokeWidth=".8" />
+        </g>
+      );
+    }
+    case 'bracelet-beads': {
+      const [a, b, c] = colors(id, override);
+      const beadColors = [a, b, c, a, b];
+      return (
+        <g>
+          {beadColors.map((fill, i) => (
+            <circle key={i} cx={13 + i * 3.4} cy={66 + Math.sin(i * 1.1) * 5} r="3.1" fill={fill} stroke="#00000022" strokeWidth=".6" />
+          ))}
+        </g>
+      );
+    }
+    case 'bracelet-heart': {
+      const [main, shade, shine] = colors(id, override);
+      return (
+        <g>
+          <path d="M11 62 Q20 66 22 76" stroke={shade} strokeWidth="2.4" fill="none" strokeLinecap="round" />
+          <path d={heartPath(18, 74, 5.4)} fill={main} stroke={shade} strokeWidth=".9" />
+          <circle cx="16" cy="71" r="1.2" fill={shine} opacity=".85" />
+        </g>
+      );
+    }
+    // ── 0.72.0: платья (слот body) и обувь (слот feet) ──────────────────────
+    case 'dress-pink':
+    case 'dress-star':
+    case 'dress-rainbow': {
+      const [main, shade, accent] = colors(id, override);
+      return (
+        <g>
+          <path d="M36 62 Q50 56 64 62 L78 108 Q50 118 22 108Z" fill={main} stroke={shade} strokeWidth="1.6" strokeLinejoin="round" />
+          {id === 'dress-rainbow' && (
+            <g opacity=".9">
+              <path d="M29 84 Q50 92 71 84 L74 94 Q50 102 26 94Z" fill={shade} />
+              <path d="M26 96 Q50 104 74 96 L76 104 Q50 113 24 104Z" fill={accent} />
+            </g>
+          )}
+          {id === 'dress-star' && (
+            <g fill={accent}>
+              <polygon points={starPoints(40, 84, 5)} />
+              <polygon points={starPoints(58, 94, 4.2)} />
+              <polygon points={starPoints(50, 74, 3.4)} />
+            </g>
+          )}
+          <path d="M40 60 Q50 66 60 60 L58 68 Q50 72 42 68Z" fill={accent} opacity={id === 'dress-star' ? '.9' : '.95'} />
+          <path d="M24 106 Q50 115 76 106" stroke={shade} strokeWidth="2" fill="none" opacity=".7" />
+        </g>
+      );
+    }
+    case 'shoes-pink':
+    case 'shoes-sparkle': {
+      const [main, shade, shine] = colors(id, override);
+      return (
+        <g>
+          <path d="M26 108 Q36 102 46 108 L46 114 Q36 117 26 114Z" fill={main} stroke={shade} strokeWidth="1.3" />
+          <path d="M54 108 Q64 102 74 108 L74 114 Q64 117 54 114Z" fill={main} stroke={shade} strokeWidth="1.3" />
+          <circle cx="36" cy="106" r="2.4" fill={shine} />
+          <circle cx="64" cy="106" r="2.4" fill={shine} />
+          {id === 'shoes-sparkle' && (
+            <g fill={shine}>
+              <polygon points={starPoints(31, 111, 2.6)} />
+              <polygon points={starPoints(69, 111, 2.6)} />
+            </g>
+          )}
+        </g>
+      );
+    }
+    case 'skates-ice': {
+      const [boot, shade, blade] = colors(id, override);
+      return (
+        <g>
+          <path d="M27 100 L45 100 L45 110 L27 110Z" fill={boot} stroke={shade} strokeWidth="1.3" />
+          <path d="M55 100 L73 100 L73 110 L55 110Z" fill={boot} stroke={shade} strokeWidth="1.3" />
+          <path d="M30 104 H42 M30 107 H42 M58 104 H70 M58 107 H70" stroke={shade} strokeWidth="1" opacity=".7" />
+          <path d="M25 114 H47 M53 114 H75" stroke={blade} strokeWidth="2" strokeLinecap="round" />
+          <path d="M30 110 L29 114 M42 110 L43 114 M58 110 L57 114 M70 110 L71 114" stroke={blade} strokeWidth="1.4" />
+        </g>
+      );
+    }
     default:
       return null;
   }

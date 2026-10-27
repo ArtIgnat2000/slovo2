@@ -60,6 +60,21 @@ const EXPECTED_BASE: Record<string, [string, string, string]> = {
   'badge-cat': ['#ffd9e6', '#f2a6c2', '#7a5cff'],
   'wings-butterfly': ['#ff9ec7', '#c86a9b', '#ffe066'],
   'wings-dragon': ['#6a8f4a', '#3f5c2c', '#e8c74a'],
+  'hair-buns': ['#8a5a34', '#6b4226', '#ff6fb5'],
+  'hair-ponytail': ['#a06a35', '#7c4f24', '#ff6fb5'],
+  'hair-curls': ['#7c4a21', '#5d3517', '#ffd166'],
+  'glasses-sigma': ['#111827', '#000000', '#38bdf8'],
+  'pendant-heart': ['#f43f5e', '#b45309', '#ffd9e2'],
+  'pendant-star': ['#ffd166', '#d9a520', '#fff7cc'],
+  'bag-pink': ['#ff8fb8', '#d94f7e', '#ffffff'],
+  'bracelet-beads': ['#ff8fb8', '#7cc6ff', '#ffd166'],
+  'bracelet-heart': ['#f43f5e', '#be123c', '#ffe4e6'],
+  'dress-pink': ['#ff9ec7', '#e05a8a', '#ffffff'],
+  'dress-star': ['#3b5bdb', '#2b3f9e', '#ffd166'],
+  'dress-rainbow': ['#f87171', '#fbbf24', '#7cc6ff'],
+  'shoes-pink': ['#ff8fb8', '#d94f7e', '#ffffff'],
+  'shoes-sparkle': ['#e9d5ff', '#a78bfa', '#ffffff'],
+  'skates-ice': ['#f8fafc', '#94a3b8', '#7cc6ff'],
 };
 
 // Техника: авто, телефоны и корабли. База та же, что на витрине; цвета обязаны
@@ -93,6 +108,27 @@ const EXPECTED_TOY_BASE: Record<string, [string, string, string]> = {
   'ship-sail': ['#183b63', '#202b3b', '#ef673c'],
   'ship-steam': ['#164b4c', '#203b3b', '#c6813d'],
   'ship-carrier': ['#59616a', '#252b34', '#e5b849'],
+  'phone-18': ['#7cc6ff', '#334155', '#e0f2fe'],
+  'phone-18-air': ['#e2e8f0', '#94a3b8', '#ffffff'],
+  'phone-18-pro': ['#78716c', '#44403c', '#f97316'],
+  'phone-18-max': ['#1e3a8a', '#0f172a', '#93c5fd'],
+  'car-pink-cabrio': ['#ff8fb8', '#d94f7e', '#fff1f6'],
+  'car-pink-star': ['#ff6fb5', '#c2185b', '#ffd166'],
+  'car-tesla': ['#1d4ed8', '#0b1220', '#e2e8f0'],
+  'car-pink-tank': ['#ff8fb8', '#d94f7e', '#ffeef5'],
+  'ship-titanic': ['#1f2937', '#b91c1c', '#f8fafc'],
+  'pet-cat': ['#ffb26b', '#e08a3c', '#ffffff'],
+  'pet-bunny': ['#f8fafc', '#cbd5e1', '#ff9ec7'],
+  'pet-panda': ['#f8fafc', '#1f2937', '#7fe3b1'],
+  'pet-corgi': ['#f2a65a', '#d9822b', '#ffffff'],
+  'sport-ball': ['#f8fafc', '#1f2937', '#ef4444'],
+  'sport-skate': ['#f43f5e', '#881337', '#ffd166'],
+  'sport-dumbbell': ['#64748b', '#334155', '#f43f5e'],
+  'sport-racket': ['#38bdf8', '#0369a1', '#fde047'],
+  'food-icecream': ['#ff9ec7', '#fbbf24', '#fff7cc'],
+  'food-donut': ['#ff8fb8', '#b45309', '#ffffff'],
+  'food-kulich': ['#f5d0a9', '#b45309', '#ffffff'],
+  'food-cake': ['#fda4af', '#e11d48', '#fff7cc'],
 };
 
 assert.equal(OUTFIT_ITEMS.length, Object.keys(EXPECTED_BASE).length, 'список нарядов и ожидаемых палитр разошёлся');
@@ -108,11 +144,15 @@ assert.ok(TOY_ITEMS.every((item) => !showsOnBuk(item)), 'техника не д�
 assert.ok(OUTFIT_ITEMS.every((item) => showsOnBuk(item)), 'наряды должны рисоваться на БУКе');
 assert.deepEqual(
   [...new Set(TOY_ITEMS.map((item) => item.toy))].sort(),
-  ['car', 'phone', 'plane', 'ship'],
-  'техника должна быть четырёх видов: авто, самолёты, телефоны, корабли',
+  ['car', 'food', 'pet', 'phone', 'plane', 'ship', 'sport'],
+  'техника и вещи БУКа: авто, самолёты, телефоны, корабли, питомцы, спорт и вкусняшки (0.72.0)',
 );
 // Авто и корабли идут рядом и доступны как отдельные полки.
-assert.deepEqual(TOY_SHELVES.map((shelf) => shelf.id), ['car', 'plane', 'ship', 'phone'], 'полки техники поехали');
+assert.deepEqual(
+  TOY_SHELVES.map((shelf) => shelf.id),
+  ['car', 'plane', 'ship', 'phone', 'pet', 'sport', 'food'],
+  'полки техники поехали',
+);
 assert.equal(TOY_SHELVES[0].title, 'Авто', 'первая полка называется «Авто»');
 assert.equal(TOY_SHELVES[1].title, 'Самолёты', 'самолёты идут отдельной полкой рядом с авто');
 const carIds = toysByShelf('car').map((item) => item.id);
@@ -124,12 +164,12 @@ for (const id of ['car-bmw', 'car-brabus', 'car-mercedes', 'car-lambo', 'car-rol
 // видит ребёнок, не должно называть марку или модель.
 assert.deepEqual(
   toysByShelf('car').map((item) => item.title),
-  ['Болид', 'Скалолаз', 'Жёлтый кэб', 'Звезда', 'Стрела', 'Кубик', 'Адмирал', 'Лорд', 'Бык', 'Молния', 'Квант', 'Импульс', 'Полярник', 'Луноход'],
-  'названия машин должны отражать характер, а не бренд',
+  ['Болид', 'Скалолаз', 'Жёлтый кэб', 'Звезда', 'Стрела', 'Кубик', 'Адмирал', 'Лорд', 'Бык', 'Молния', 'Квант', 'Импульс', 'Полярник', 'Луноход', 'Розовая машина', 'Розовая звезда', 'Тесла', 'Розовый танк'],
+  'названия машин должны отражать характер, а не бренд (0.72.0: по прямой просьбе добавлены «Тесла» и розовые машины)',
 );
 assert.deepEqual(
   toysByShelf('ship').map((item) => item.title),
-  ['Морская яхта', 'Контейнеровоз', 'Супертанкер', 'Авианосец'],
+  ['Морская яхта', 'Контейнеровоз', 'Супертанкер', 'Авианосец', 'Титаник'],
   'корабельная полка должна содержать взрослые типы морских судов',
 );
 assert.ok(toysByShelf('ship').every((item) => item.id in TINT_PALETTES), 'у каждого судна есть тюнинг');
