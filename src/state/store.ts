@@ -328,6 +328,8 @@ function normalizeProfile(raw: Partial<Profile> | null | undefined): Profile | n
       createdAt: typeof raw.createdAt === 'number' && Number.isFinite(raw.createdAt) ? raw.createdAt : base.createdAt,
       xp: typeof raw.xp === 'number' && Number.isFinite(raw.xp) && raw.xp >= 0 ? raw.xp : 0,
       gems: typeof raw.gems === 'number' && Number.isFinite(raw.gems) && raw.gems >= 0 ? raw.gems : 0,
+      progressResetId: typeof raw.progressResetId === 'string' ? raw.progressResetId : undefined,
+      gemsResetId: typeof raw.gemsResetId === 'string' ? raw.gemsResetId : undefined,
       streak: typeof raw.streak === 'number' && Number.isFinite(raw.streak) && raw.streak >= 0 ? raw.streak : 0,
       lastDay: typeof raw.lastDay === 'string' ? raw.lastDay : '',
       freezes: typeof raw.freezes === 'number' && Number.isFinite(raw.freezes) && raw.freezes >= 0 ? raw.freezes : 0,
@@ -507,6 +509,8 @@ interface AppState {
   showToast: (t: Omit<Toast, 'id'>) => void;
   hideToast: () => void;
 
+  /** Обнулить только баланс указанного профиля, сохранив прежнее состояние в корзине. */
+  resetGems: (id: string) => void;
   resetProfile: (id: string) => void;
   replaceAll: (data: { profiles: Profile[]; activeId: string | null; settings: Settings }) => void;
   setSettings: (patch: Partial<Settings>) => void;
@@ -628,6 +632,17 @@ function errorText(e: unknown): string {
   return err?.name ? `${err.name}: ${err?.message ?? ''}`.trim() : String(e);
 }
 
+// Синхронизация могла начать чтение ДО сброса и закончить ПОСЛЕ него.
+// Тогда прочитанный старый профиль нельзя накладывать поверх нового состояния.
+let localResetRevision = 0;
+let hydrationResetRevision = 0;
+
+/** Метка переживает перезапуск и синхронизацию между открытыми копиями. */
+function nextResetId(): string {
+  localResetRevision += 1;
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}-${localResetRevision}`;
+}
+
 /**
  * Сторож писателя: не даёт писать, пока сохранённое не прочитано, снимает
  * копии перед «опасной» перезаписью и сообщает о сбоях в интерфейс, а не в
@@ -700,6 +715,9 @@ interface PendingSpend {
   price: number;
   gemsBefore: number;
   gemsAfter: number;
+  /** Не откатываем состояние поверх осознанного сброса, сделанного позже. */
+  progressResetId?: string;
+  gemsResetId?: string;
   /** Запись «как было» целиком — точный откат, а не вычитание дельты. */
   before: string;
   at: number;
@@ -749,6 +767,8 @@ function beginSpend(args: {
     price,
     gemsBefore: profile.gems,
     gemsAfter,
+    progressResetId: profile.progressResetId,
+    gemsResetId: profile.gemsResetId,
     before,
     at: Date.now(),
   };
@@ -774,14 +794,30 @@ function spendMeta(spend: PendingSpend, profileName: string): PurchaseArchiveMet
  * Легла ли трата в базу: читаем записанное состояние и смотрим на сам результат
  * (вещь в коллекции, оттенок выбран…). Кристаллы намеренно не сверяем: между
  * покупкой и проверкой ребёнок мог получить награду или купить что-то ещё, и
- * сравнение баланса давало бы ложные откаты.
+ * сравнение баланса давало бы ложные откаты. Если в другой вкладке уже
+ * сбросили профиль или баланс, этот сброс важнее незавершённой покупки.
  */
 async function spendLanded(spend: PendingSpend, landed: (p: Profile) => boolean): Promise<boolean> {
   const raw = await guardedStorage.enqueue(async () =>
     Promise.resolve(idbStorage.getItem(MAIN_KEY)).catch(() => null),
   );
   const saved = profileInRecord(raw, spend.profileId);
-  return !!saved && landed(saved);
+  if (!saved) return false;
+  const resetOnDisk =
+    saved.progressResetId !== spend.progressResetId || saved.gemsResetId !== spend.gemsResetId;
+  if (resetOnDisk) {
+    const current = useApp.getState().profiles.find((p) => p.id === spend.profileId);
+    if (!current) return true;
+    const resetInMemory =
+      current.progressResetId !== spend.progressResetId || current.gemsResetId !== spend.gemsResetId;
+    // Другая вкладка могла сбросить профиль, пока эта проверяла покупку.
+    // Подхватываем сохранённое состояние, не затирая более свежий локальный сброс.
+    if (!resetInMemory) {
+      await Promise.resolve(useApp.persist.rehydrate()).catch(() => undefined);
+      return true;
+    }
+  }
+  return landed(saved);
 }
 
 /**
@@ -814,16 +850,25 @@ function undoSpend(spend: PendingSpend): void {
     old = undefined;
   }
   if (!old) return;
+  const current = useApp.getState().profiles.find((p) => p.id === spend.profileId);
+  // Полный сброс уже отменил покупку: её поздняя проверка не должна вернуть
+  // ни прежнюю коллекцию, ни кристаллы (в том числе после синхронизации вкладок).
+  if (!current || current.progressResetId !== spend.progressResetId) return;
+  const gemsWereReset = current.gemsResetId !== spend.gemsResetId;
   useApp.setState((s) => ({
     profiles: s.profiles.map((p) =>
-      p.id === spend.profileId ? { ...p, gems: old!.gems, shop: old!.shop, puzzle: old!.puzzle } : p,
+      p.id === spend.profileId
+        ? { ...p, gems: gemsWereReset ? p.gems : old!.gems, shop: old!.shop, puzzle: old!.puzzle }
+        : p,
     ),
     vault: pushLog(s.vault, 'purchase-failed', `${spend.label} · ${spend.price} 💎`),
   }));
   useApp.getState().showToast({
     emoji: '🛟',
     title: 'Покупка не сохранилась',
-    text: `${spend.label}: кристаллы вернули. Попробуй ещё раз — всё как было до покупки.`,
+    text: gemsWereReset
+      ? `${spend.label}: покупку отменили. Баланс после обнуления не изменился.`
+      : `${spend.label}: кристаллы вернули. Попробуй ещё раз — всё как было до покупки.`,
   });
 }
 
@@ -1543,12 +1588,30 @@ export const useApp = create<AppState>()(
           ),
         ),
 
+      /** Меняем только баланс; копия профиля позволяет отменить ошибочный сброс. */
+      resetGems: (id) => {
+        const prev = get().profiles.find((p) => p.id === id);
+        if (!prev || prev.gems === 0) return;
+        const gemsResetId = nextResetId();
+        set((s) => ({
+          profiles: s.profiles.map((p) => (p.id === id ? { ...p, gems: 0, gemsResetId } : p)),
+          vault: pushLog(addTrash(s.vault, prev, 'gems-reset'), 'gems-reset', `${prev.name} · ${prev.gems} 💎`),
+        }));
+      },
+
       /** Сброс тоже обратим: прежний профиль остаётся в корзине 30 дней. */
       resetProfile: (id) =>
         set((s) => {
           const prev = s.profiles.find((p) => p.id === id);
           if (!prev) return {};
-          const fresh: Profile = { ...newProfile(prev.name, prev.avatar), id, createdAt: prev.createdAt };
+          const resetId = nextResetId();
+          const fresh: Profile = {
+            ...newProfile(prev.name, prev.avatar),
+            id,
+            createdAt: prev.createdAt,
+            progressResetId: resetId,
+            gemsResetId: resetId,
+          };
           const vault = pushLog(addTrash(s.vault, prev, 'reset'), 'profile-reset', prev.name);
           return {
             profiles: s.profiles.map((p) => (p.id === id ? fresh : p)),
@@ -1843,13 +1906,20 @@ export const useApp = create<AppState>()(
         vault: s.vault,
       }),
       // Данные из хранилища (или из файла) проходят санитайзер: раньше
-      // невалидный профиль просто выбрасывался молча.
-      merge: (persisted, current) => ({ ...current, ...normalizePersisted(persisted) }),
+      // невалидный профиль просто выбрасывался молча. Но чтение, начатое до
+      // сброса, уже устарело — иначе оно возвращает старый баланс в память.
+      merge: (persisted, current) =>
+        hydrationResetRevision === localResetRevision
+          ? { ...current, ...normalizePersisted(persisted) }
+          : current,
       // Без migrate любое расхождение версии означает потерю прогресса
       // (zustand не может мигрировать и падает внутри hydrate).
       migrate: (state) => normalizePersisted(state),
-      onRehydrateStorage: () => (state, error) => {
-        void afterHydration(state as AppState | undefined, error);
+      onRehydrateStorage: () => {
+        hydrationResetRevision = localResetRevision;
+        return (state, error) => {
+          void afterHydration(state as AppState | undefined, error);
+        };
       },
     },
   ),

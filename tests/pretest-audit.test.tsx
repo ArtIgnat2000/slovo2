@@ -59,7 +59,7 @@ export async function runPretestAuditChecks(): Promise<void> {
     click(btnText('Войти'));
     await sleep(40);
   }
-  check('аудит: раздел родителей разблокирован', has('XP за сегодня') && has('Что подтянуть'), body().slice(0, 140));
+  check('аудит: раздел родителей разблокирован', has('Как идёт обучение') && has('освоено'), body().slice(0, 140));
 
   // Из родительского раздела удаление доступно — но всё равно через ConfirmDialog.
   const childrenBtn = btnText('Дети');

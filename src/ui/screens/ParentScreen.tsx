@@ -30,13 +30,11 @@ interface Props {
  * («занимается ли?», «где ссылка для бабушки?», «как убрать сову?») и тонул в
  * чужом контенте.
  *
- * Теперь это четыре раздела по вопросам, которые задают на самом деле
- * (принцип «один экран — одна работа», см. docs/parent-section-redesign.md):
- *  📊 Обзор     — как дела у ребёнка;
- *  💾 Прогресс  — файл выгрузки, копии, корзина, сброс (всё про сохранность);
- *  ⚙️ Настройки — как ребёнок занимается: цель, размер урока, подсказки, звук, вид;
- *  📲 Приложение — передать ссылку, поставить на экран, версия и проверка
- *                  обновлений, V-labs.
+ * Четыре коротких входа, чтобы на телефоне не перегружать навигацию:
+ *  📊 Обучение — состояние слов и подробный отчёт;
+ *  🏫 Списки — подготовка к школьной контрольной;
+ *  ⚙️ Настройки — класс, размер урока и подсказки;
+ *  ⋯ Ещё — резервные копии, ссылка, установка и версия приложения.
  *
  * Замок «только для взрослых» остался (это бытовой барьер, а не защита), но
  * стал честнее: ошибка показывается на месте, ответ не стирается, Enter
@@ -44,7 +42,23 @@ interface Props {
  */
 export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs, onOpenDiagnostics, initialTab = 'overview', onOpenWords, onStartList }: Props) {
   const profile = useActiveProfile();
-  const [tab, setTab] = useState<ParentTabId>(initialTab);
+  const [tab, setTab] = useState<ParentTabId>(initialTab === 'app' || initialTab === 'progress' ? 'more' : initialTab);
+  const [moreSection, setMoreSection] = useState<'progress' | 'app'>(initialTab === 'app' ? 'app' : 'progress');
+  const openSection = (id: 'lists' | 'progress' | 'app') => {
+    if (id === 'lists') {
+      setTab('lists');
+      return;
+    }
+    setMoreSection(id);
+    setTab('more');
+  };
+  const moveMoreSection = (delta: number) => {
+    const next = moreSection === 'progress'
+      ? delta > 0 ? 'app' : 'progress'
+      : delta < 0 ? 'progress' : 'app';
+    setMoreSection(next);
+    document.getElementById(`parent-more-tab-${next}`)?.focus();
+  };
 
   if (!profile) return null;
 
@@ -80,7 +94,7 @@ export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs, 
 
       {tab === 'overview' && (
         <ParentPanel id="overview">
-          <OverviewTab profile={profile} onOpenWords={onOpenWords} onOpenSection={setTab} />
+          <OverviewTab profile={profile} onOpenWords={onOpenWords} onOpenSection={openSection} />
         </ParentPanel>
       )}
       {tab === 'lists' && (
@@ -88,19 +102,28 @@ export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs, 
           <ListsTab profile={profile} onTrain={onStartList} />
         </ParentPanel>
       )}
-      {tab === 'progress' && (
-        <ParentPanel id="progress">
-          <ProgressTab profile={profile} />
-        </ParentPanel>
-      )}
       {tab === 'settings' && (
         <ParentPanel id="settings">
           <SettingsTab profile={profile} onOpenDiagnostics={() => onOpenDiagnostics('settings')} />
         </ParentPanel>
       )}
-      {tab === 'app' && (
-        <ParentPanel id="app">
-          <AppTab onOpenVlabs={onOpenVlabs} onOpenDiagnostics={() => onOpenDiagnostics('app')} />
+      {tab === 'more' && (
+        <ParentPanel id="more">
+          <div className="parent-stack">
+            <div className="parent-more-tabs" role="tablist" aria-label="Дополнительные разделы">
+              <button type="button" role="tab" id="parent-more-tab-progress" tabIndex={moreSection === 'progress' ? 0 : -1} aria-selected={moreSection === 'progress'} aria-controls="parent-more-panel-progress" className={`choice-item ${moreSection === 'progress' ? 'on' : ''}`} onClick={() => setMoreSection('progress')} onKeyDown={(event) => { if (event.key === 'ArrowRight') { event.preventDefault(); moveMoreSection(1); } }}>💾 Данные</button>
+              <button type="button" role="tab" id="parent-more-tab-app" tabIndex={moreSection === 'app' ? 0 : -1} aria-selected={moreSection === 'app'} aria-controls="parent-more-panel-app" className={`choice-item ${moreSection === 'app' ? 'on' : ''}`} onClick={() => setMoreSection('app')} onKeyDown={(event) => { if (event.key === 'ArrowLeft') { event.preventDefault(); moveMoreSection(-1); } }}>📲 Приложение</button>
+            </div>
+            {moreSection === 'progress' ? (
+              <section role="tabpanel" id="parent-more-panel-progress" aria-labelledby="parent-more-tab-progress">
+                <ProgressTab profile={profile} />
+              </section>
+            ) : (
+              <section role="tabpanel" id="parent-more-panel-app" aria-labelledby="parent-more-tab-app">
+                <AppTab onOpenVlabs={onOpenVlabs} onOpenDiagnostics={() => onOpenDiagnostics('app')} />
+              </section>
+            )}
+          </div>
         </ParentPanel>
       )}
     </div>

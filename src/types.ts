@@ -308,6 +308,9 @@ export interface Profile {
   createdAt: number;
   xp: number;
   gems: number;
+  /** Метки сброса защищают его от позднего отката незавершённой покупки. */
+  progressResetId?: string;
+  gemsResetId?: string;
   streak: number;
   lastDay: string; // YYYY-MM-DD
   freezes: number; // «заморозки» серии

@@ -126,7 +126,7 @@ export async function runShareAppChecks(): Promise<void> {
     click(buttons().find((b) => (b.textContent ?? '').trim() === 'Войти'));
     await sleep(60);
   }
-  check('раздел «Родителям» открыт на обзоре', has('XP за сегодня'), document.body.textContent?.slice(0, 160) ?? '');
+  check('раздел «Родителям» открыт на кратком анализе обучения', has('Как идёт обучение'), document.body.textContent?.slice(0, 160) ?? '');
   // Ссылка для нового ученика — про приложение, поэтому живёт в разделе «Приложение».
   await openParentSection('Приложение');
   check('в «Родителям» есть карточка «Передать приложение»', !!shareCard(), document.body.textContent?.slice(0, 200) ?? '');
