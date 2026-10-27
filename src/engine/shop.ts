@@ -12,14 +12,14 @@
 // один: покупка, вишлист, тюнинг и выгрузка работают одинаково для всех вещей.
 
 import type { PuzzleState, ShopSlot } from '../types';
-import { COSTUMES, type Costume, costumeProgress, normalizePuzzle, activeCostume } from './puzzles';
+import { ALL_COSTUMES, COSTUMES, type Costume, costumeProgress, normalizePuzzle, activeCostume } from './puzzles';
 import { MUSIC_TRACKS, type MusicTrack } from './music';
 
 /** Полка витрины: наряды или техника. Костюмы/музыка/звуки живут отдельно. */
 export type ShopItemKind = 'outfit' | 'toy';
 
-/** Разделы техники в магазине и ангаре. Авто и корабли идут рядом, телефоны отдельно. */
-export type ToyKind = 'car' | 'ship' | 'phone';
+/** Разделы техники в магазине и ангаре: авто, самолёты, корабли и электроника. */
+export type ToyKind = 'car' | 'plane' | 'ship' | 'phone';
 
 export interface ShopItem {
   id: string;
@@ -34,6 +34,41 @@ export interface ShopItem {
   toy?: ToyKind;
   /** Эмодзи для диалогов и тостов (у нарядов её нет — там 🎩). */
   emoji?: string;
+  /** Редкость вещи. Без поля редкость считается по цене (см. rarityOf). */
+  rarity?: ItemRarity;
+  /** Для техники баз — id базы, в стиле которой сделана вещь (engine/buildings.ts). */
+  baseStyle?: string;
+}
+
+/** Редкость вещи: обычная, крутая, легендарная или ТОПОВАЯ. */
+export type ItemRarity = 'common' | 'cool' | 'legendary' | 'top';
+
+export const RARITY_LABEL: Record<ItemRarity, string> = {
+  common: 'Обычная',
+  cool: 'Крутая',
+  legendary: 'Легендарная',
+  top: 'ТОПОВАЯ',
+};
+
+/** Порядок редкостей от низкой к высокой. */
+export const RARITY_ORDER: ItemRarity[] = ['common', 'cool', 'legendary', 'top'];
+
+/**
+ * Редкость вещи: явная из каталога, иначе — по цене в кристаллах:
+ * обычная — до 30 💎, крутая — 31–60, легендарная — 61–85, ТОПОВАЯ — от 86.
+ */
+export function rarityOf(item: ShopItem): ItemRarity {
+  if (item.rarity) return item.rarity;
+  if (item.price >= 86) return 'top';
+  if (item.price >= 61) return 'legendary';
+  if (item.price >= 31) return 'cool';
+  return 'common';
+}
+
+/** Сортировка по редкости по возрастанию, при равной — по цене. */
+export function compareByRarity(a: ShopItem, b: ShopItem): number {
+  const byRarity = RARITY_ORDER.indexOf(rarityOf(a)) - RARITY_ORDER.indexOf(rarityOf(b));
+  return byRarity || a.price - b.price;
 }
 
 export const SLOT_TITLE: Record<ShopSlot, string> = {
@@ -47,6 +82,7 @@ export const SLOT_TITLE: Record<ShopSlot, string> = {
 /** Полки техники: порядок и подписи для витрины. */
 export const TOY_SHELVES: { id: ToyKind; title: string; emoji: string }[] = [
   { id: 'car', title: 'Авто', emoji: '🚗' },
+  { id: 'plane', title: 'Самолёты', emoji: '✈️' },
   { id: 'ship', title: 'Корабли', emoji: '🚢' },
   { id: 'phone', title: 'Телефоны', emoji: '📱' },
 ];
@@ -80,6 +116,17 @@ export const SHOP_ITEMS: ShopItem[] = [
   { id: 'car-rolls', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Лорд', desc: 'Парадный лимузин: огромная решётка и фигурка на капоте', price: 80 },
   { id: 'car-lambo', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Бык', desc: 'Зелёный суперкар: Y-фары и антикрыло', price: 85 },
   { id: 'car-bugatti', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Молния', desc: 'Голубой гиперкар: подкова решётки и C-линия по борту', price: 90 },
+  // ── Машины научных баз (0.70.0, перенос из Slovo_Developer) ─────────────
+  { id: 'car-atomic-base', slot: 'toy', kind: 'toy', toy: 'car', emoji: '⚛️', title: 'Квант', desc: 'Научный внедорожник для ядерной базы: защитный корпус, датчики на крыше и голубое энергоядро', price: 120, rarity: 'top', baseStyle: 'atomic-base' },
+  { id: 'car-electron-base', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🔋', title: 'Импульс', desc: 'Тихий электрокар электронной базы: солнечная крыша и светящиеся линии схем', price: 100, rarity: 'legendary', baseStyle: 'electron-base' },
+  { id: 'car-arctic-base', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🧊', title: 'Полярник', desc: 'Вездеход арктической базы: гусеницы, тёплая кабина и мачта датчиков', price: 115, rarity: 'legendary', baseStyle: 'arctic-base' },
+  { id: 'car-moon-base', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🌙', title: 'Луноход', desc: 'Шестиколёсный ровер лунной базы: сетчатые колёса, солнечное крыло и камера-мачта', price: 140, rarity: 'top', baseStyle: 'moon-base' },
+  // ── Техника: самолёты (0.70.0, перенос из Slovo_Developer) ──────────────
+  { id: 'plane-swift', slot: 'toy', kind: 'toy', toy: 'plane', emoji: '✈️', title: 'Стриж', desc: 'Манёвренный пассажирский джет: стреловидные крылья, два турбодвигателя и панорамная кабина', price: 90, rarity: 'cool' },
+  { id: 'plane-electron-base', slot: 'toy', kind: 'toy', toy: 'plane', emoji: '🔋', title: 'Схемолёт', desc: 'Самолёт электронной базы с солнечными панелями и сияющими дорожками микросхем', price: 160, rarity: 'legendary', baseStyle: 'electron-base' },
+  { id: 'plane-arctic-base', slot: 'toy', kind: 'toy', toy: 'plane', emoji: '🧊', title: 'Северный ветер', desc: 'Полярный исследовательский самолёт: морозостойкие крылья, датчики и снежинки на фюзеляже', price: 175, rarity: 'legendary', baseStyle: 'arctic-base' },
+  { id: 'plane-moon-base', slot: 'toy', kind: 'toy', toy: 'plane', emoji: '🌙', title: 'Лунный орёл', desc: 'Серебристый высотный самолёт лунной базы с золотыми звёздами и лунными знаками', price: 200, rarity: 'top', baseStyle: 'moon-base' },
+  { id: 'plane-atomic-base', slot: 'toy', kind: 'toy', toy: 'plane', emoji: '⚛️', title: 'Атомный дозор', desc: 'Самый редкий самолёт научного флота: атомная эмблема, турбины и бирюзовый энергоконтур', price: 230, rarity: 'top', baseStyle: 'atomic-base' },
   // ── Техника: морские суда ────────────────────────────────────────────────
   // Старые id ship-paper/ship-sail/ship-steam сохраняем: так покупки,
   // избранный корабль и купленные оттенки в профилях не теряются при обновлении.
@@ -278,7 +325,7 @@ export function normalizeWishlist(
   if (!Array.isArray(raw)) return [];
   const validIds = new Set([
     ...SHOP_ITEMS.map((i) => i.id),
-    ...COSTUMES.map((c) => c.id),
+    ...ALL_COSTUMES.map((c) => c.id),
     ...MUSIC_TRACKS.map((t) => t.id),
   ]);
   const ownedSet = new Set([

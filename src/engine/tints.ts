@@ -254,6 +254,78 @@ export const TINT_PALETTES: Record<string, TintPalette<ItemTint>> = {
       { id: 'red', title: 'Красный', colors: ['#7d3d3e', '#332124', '#f0c150'] },
     ],
   },
+  'car-atomic-base': {
+    base: { id: BASE_TINT, title: 'Кремовая с бирюзой', colors: ['#e8e2d5', '#263348', '#28b8d6'] },
+    extra: [
+      { id: 'blue', title: 'Космическая синяя', colors: ['#487bd3', '#122043', '#7cddff'] },
+      { id: 'violet', title: 'Сиреневая', colors: ['#a887d6', '#29203d', '#f3bf67'] },
+      { id: 'green', title: 'Изумрудная', colors: ['#5b9d78', '#1c443a', '#d4d968'] },
+    ],
+  },
+  'car-electron-base': {
+    base: { id: BASE_TINT, title: 'Белая с бирюзой', colors: ['#eef5f4', '#204956', '#2dced1'] },
+    extra: [
+      { id: 'blue', title: 'Синяя', colors: ['#387bc3', '#142e4a', '#8be3f3'] },
+      { id: 'green', title: 'Мятная', colors: ['#73bdab', '#244e4a', '#ddc75b'] },
+      { id: 'violet', title: 'Лавандовая', colors: ['#aaa1ce', '#34334e', '#5ed3d4'] },
+    ],
+  },
+  'car-arctic-base': {
+    base: { id: BASE_TINT, title: 'Ледяная с оранжевым', colors: ['#b6d2e0', '#2f5063', '#e98a3a'] },
+    extra: [
+      { id: 'blue', title: 'Полярная синяя', colors: ['#6eabd0', '#193a58', '#d6f5ff'] },
+      { id: 'green', title: 'Хвойная', colors: ['#6b9587', '#223d3d', '#f0a33c'] },
+      { id: 'red', title: 'Красная', colors: ['#c86a62', '#492c37', '#f0c36e'] },
+    ],
+  },
+  'car-moon-base': {
+    base: { id: BASE_TINT, title: 'Лунная серебряная', colors: ['#dce0e3', '#374151', '#c9a44f'] },
+    extra: [
+      { id: 'blue', title: 'Звёздная синяя', colors: ['#708cb5', '#1b2a43', '#e4cb86'] },
+      { id: 'red', title: 'Марсианская', colors: ['#bd786a', '#442d33', '#d8b668'] },
+      { id: 'green', title: 'Морская', colors: ['#75a9a0', '#253c43', '#d9bd72'] },
+    ],
+  },
+  'plane-swift': {
+    base: { id: BASE_TINT, title: 'Коралловый', colors: ['#e4573d', '#273750', '#ffc857'] },
+    extra: [
+      { id: 'blue', title: 'Синий', colors: ['#3979d1', '#1b3152', '#9be7ff'] },
+      { id: 'green', title: 'Зелёный', colors: ['#319a72', '#17483d', '#e4d66e'] },
+      { id: 'violet', title: 'Фиолетовый', colors: ['#8258bd', '#34264e', '#ffd166'] },
+    ],
+  },
+  'plane-electron-base': {
+    base: { id: BASE_TINT, title: 'Электрический синий', colors: ['#4d75df', '#26346f', '#4df0db'] },
+    extra: [
+      { id: 'red', title: 'Красный', colors: ['#cc5863', '#4a2939', '#8af7ff'] },
+      { id: 'green', title: 'Зелёный', colors: ['#319b7d', '#174b4b', '#e4f274'] },
+      { id: 'gold', title: 'Золотой', colors: ['#c19a40', '#4a3b2b', '#78f4dd'] },
+    ],
+  },
+  'plane-arctic-base': {
+    base: { id: BASE_TINT, title: 'Ледяной голубой', colors: ['#a8d9e9', '#426a88', '#53b9f0'] },
+    extra: [
+      { id: 'violet', title: 'Сиреневый лёд', colors: ['#a8b5e8', '#46517b', '#f1ffff'] },
+      { id: 'green', title: 'Северное сияние', colors: ['#8ecdbd', '#365e68', '#b9ffde'] },
+      { id: 'red', title: 'Экспедиционный', colors: ['#e59a83', '#68495a', '#fff0ca'] },
+    ],
+  },
+  'plane-moon-base': {
+    base: { id: BASE_TINT, title: 'Лунный металл', colors: ['#777b91', '#34394e', '#ffd166'] },
+    extra: [
+      { id: 'blue', title: 'Синяя орбита', colors: ['#6384bd', '#263650', '#b9efff'] },
+      { id: 'red', title: 'Марсианский', colors: ['#b76c64', '#472d3a', '#f5ce80'] },
+      { id: 'green', title: 'Изумрудная комета', colors: ['#6d9e8f', '#2a4649', '#ffe19b'] },
+    ],
+  },
+  'plane-atomic-base': {
+    base: { id: BASE_TINT, title: 'Атомный бирюзовый', colors: ['#2ca7ad', '#17475d', '#9aefb3'] },
+    extra: [
+      { id: 'blue', title: 'Ионный синий', colors: ['#4c82d3', '#20375e', '#9cfff1'] },
+      { id: 'red', title: 'Плазменный', colors: ['#bf6670', '#492e45', '#ffe17c'] },
+      { id: 'gold', title: 'Солнечный реактор', colors: ['#c19b48', '#51402a', '#aaf5c0'] },
+    ],
+  },
 };
 
 // ── Акценты костюмов ───────────────────────────────────────────────────────

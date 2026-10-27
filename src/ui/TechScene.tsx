@@ -18,10 +18,11 @@ import { ToyArt } from './ToyArt';
  */
 
 /** Тон арки/панели: гараж (авто), море (корабли), лавандовая витрина (телефоны). */
-export type Tone = 'car' | 'ship' | 'phone';
+export type Tone = 'car' | 'plane' | 'ship' | 'phone';
 
 const BAYS: { kind: ToyKind; tone: Tone; label: string; fallback: string }[] = [
   { kind: 'car', tone: 'car', label: 'Авто', fallback: 'car-bmw' },
+  { kind: 'plane', tone: 'plane', label: 'Самолёты', fallback: 'plane-swift' },
   { kind: 'phone', tone: 'phone', label: 'Телефоны', fallback: 'phone-smart' },
   { kind: 'ship', tone: 'ship', label: 'Корабли', fallback: 'ship-sail' },
 ];
@@ -66,6 +67,9 @@ export function BayDecor({ tone }: { tone: Tone }) {
         </span>
       </>
     );
+  }
+  if (tone === 'plane') {
+    return <span className="tech-runway" aria-hidden="true"><i /><i /><i /><i /></span>;
   }
   if (tone === 'ship') {
     return (

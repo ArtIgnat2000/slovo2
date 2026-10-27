@@ -11,6 +11,7 @@ import { ParentScreen } from './ui/screens/ParentScreen';
 import { ProfilesScreen } from './ui/screens/ProfilesScreen';
 import { LessonScreen } from './ui/screens/LessonScreen';
 import { ShopScreen } from './ui/screens/ShopScreen';
+import { WorldScreen } from './ui/screens/WorldScreen';
 import { VlabsScreen } from './ui/screens/VlabsScreen';
 import { DiagnosticsScreen } from './ui/DiagnosticsScreen';
 import type { ParentTabId } from './ui/parent/ParentBits';
@@ -28,7 +29,7 @@ import {
 import { QUIET_MS, QuickSound } from './ui/QuickSound';
 import { applyTheme, applyThemeStyle, writeThemeMirror, writeThemeStyleMirror } from './platform/theme';
 
-type Tab = 'home' | 'words' | 'shop' | 'parent';
+type Tab = 'home' | 'words' | 'shop' | 'world' | 'parent';
 
 function diagnosticsRequested(): boolean {
   return typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('diag') === '1';
@@ -370,6 +371,8 @@ export default function App() {
         />
       ) : tab === 'words' ? (
         <WordsScreen />
+      ) : tab === 'world' ? (
+        <WorldScreen />
       ) : tab === 'shop' ? (
         <ShopScreen
           // Ключ пересоздаёт экран, когда меняется точка входа: иначе тап по
@@ -483,6 +486,10 @@ export default function App() {
         >
           <span className="ico">🎩</span>
           БУК
+        </button>
+        <button className={`tab ${!profilesOpen && tab === 'world' ? 'on' : ''}`} onClick={() => switchTab('world')}>
+          <span className="ico">🌍</span>
+          Мой мир
         </button>
         <button className={`tab ${!profilesOpen && tab === 'parent' ? 'on' : ''}`} onClick={() => switchTab('parent')}>
           <span className="ico">👨‍👩‍👧</span>

@@ -148,6 +148,8 @@ export type LessonSize = 'short' | 'standard' | 'full';
 export interface ShopState {
   owned: string[];
   equipped: Partial<Record<ShopSlot, string>>;
+  /** Купленные кристальные костюмы научных баз (пазловые живут в Profile.puzzle). */
+  crystalCostumesOwned?: string[];
   /** Купленные музыкальные лупы и выбранный для БУКа фон. */
   musicOwned?: string[];
   musicTrack?: string | null;
@@ -158,6 +160,14 @@ export interface ShopState {
   tuning?: ShopTuning;
   /** Список желаемых товаров («Мечты 🤍», фаза 2 магазина): id вещей, костюмов или мелодий. */
   wishlist?: string[];
+  /** «Мой мир»: до трёх купленных вещей или костюмов на сцене (engine/world.ts). */
+  world?: string[];
+  /** Коллекция научных баз (engine/buildings.ts); базы не занимают слоты гардероба. */
+  buildingsOwned?: string[];
+  /** База, поставленная фоном вкладки «Мой мир». */
+  worldBase?: string | null;
+  /** База, которая сейчас стоит на участке в магазине. */
+  activeBuilding?: string | null;
 }
 
 /**
