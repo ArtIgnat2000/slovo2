@@ -529,7 +529,6 @@ interface AppState {
    * что открытое не отберётся, если условие перестанет выполняться.
    */
   recordChestSkins: (ids: ChestSkinId[]) => void;
-
   showToast: (t: Omit<Toast, 'id'>) => void;
   hideToast: () => void;
 

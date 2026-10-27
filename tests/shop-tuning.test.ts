@@ -45,6 +45,21 @@ const EXPECTED_BASE: Record<string, [string, string, string]> = {
   bow: ['#ff6fb5', '#ff4fa0', '#ffd166'],
   scarf: ['#f43f5e', '#e03556', '#ffd166'],
   medal: ['#3b82f6', '#f4a51a', '#e8901a'],
+  // 0.70.0: украшения и крылья (docs/proposals/shop-girls-catalog.md, вариант A).
+  // База — ровно то, что рисуется в ui/MascotDecor.tsx без тюнинга.
+  'clips-stars': ['#f5c542', '#d99a15', '#fff6da'],
+  wreath: ['#ffffff', '#f2c53d', '#4caf6a'],
+  'hat-ribbon': ['#e8cf95', '#c9a55e', '#ff6fa5'],
+  crown: ['#ffd76a', '#d9a520', '#ff6fa5'],
+  'glasses-heart': ['#ff5c8a', '#c93b66', '#ffd6e4'],
+  'glasses-round': ['#c9a24a', '#9a7a2e', '#bfe3ff'],
+  choker: ['#7b2d4a', '#5a1e35', '#ff7aab'],
+  beads: ['#ff8fb1', '#d96a8c', '#ffd166'],
+  bag: ['#b06ad9', '#8a4bb0', '#ffd166'],
+  'brooch-flower': ['#ff8fc0', '#d96a99', '#f5c542'],
+  'badge-cat': ['#ffd9e6', '#f2a6c2', '#7a5cff'],
+  'wings-butterfly': ['#ff9ec7', '#c86a9b', '#ffe066'],
+  'wings-dragon': ['#6a8f4a', '#3f5c2c', '#e8c74a'],
 };
 
 // Техника: авто, телефоны и корабли. База та же, что на витрине; цвета обязаны

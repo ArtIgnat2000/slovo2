@@ -705,3 +705,261 @@
   --ocean-wave: rgba(72, 199, 216, 0.08);
 
 }
+
+/* ── 0.70.0: три «уютных» оформления (docs/proposals/shop-girls-catalog.md, A) ──
+   Разбор интересов показал, что «дом и уют» — один из главных драйверов
+   девочек 7–10 лет (симуляторы 45 % против 15 %), а оформлений было пять и все
+   про «стиль», а не про «мой уголок». Фоны остаются бесплатными настройками:
+   это не товар за кристаллы, а способ сделать приложение своим. */
+
+/* Спальня с гирляндой: тёплый свет, плед, лампочки. */
+[data-theme-style='bedroom'] {
+  --bg: #fff4ec;
+  --bg-2: rgba(255, 255, 255, 0.88);
+  --ink: #3d2b2b;
+  --ink-2: #6b5350;
+  --ink-3: #6f5652;
+  --primary: #b64f7f;
+  --primary-2: #e58aa9;
+  --primary-soft: rgba(182, 79, 127, 0.12);
+  --green: #16834c;
+  --green-soft: rgba(46, 204, 113, 0.15);
+  --orange: #b87500;
+  --orange-soft: rgba(255, 191, 71, 0.2);
+  --orange-ink: #80500d;
+  --red: #ce3d54;
+  --red-soft: rgba(231, 76, 110, 0.14);
+  --on-primary: #ffffff;
+  --primary-ink: #9c3a6a;
+  --good-ink: #147745;
+  --warn-ink: #955f00;
+  --bad-ink: #b5364a;
+  --blue: #3b6fb5;
+  --pink: #c9568a;
+  --card: rgba(255, 255, 255, 0.92);
+  --line: rgba(182, 79, 127, 0.24);
+  --bg-glow-1: rgba(255, 176, 122, 0.2);
+  --bg-glow-2: rgba(255, 214, 140, 0.16);
+  --promo-glow-1: rgba(255, 176, 122, 0.17);
+  --promo-glow-2: rgba(255, 214, 140, 0.14);
+  --scratch-glow: rgba(255, 191, 71, 0.18);
+  --shadow: 0 6px 0 rgba(61, 43, 43, 0.04), 0 0 18px rgba(182, 79, 127, 0.1);
+  --shadow-lg: 0 12px 40px rgba(61, 43, 43, 0.16), 0 0 22px rgba(182, 79, 127, 0.11);
+  --art-plate: #fffaf5;
+  --art-plate-glow: #ffffff;
+  --art-frame-line: rgba(182, 79, 127, 0.36);
+  --garland: rgba(255, 190, 120, 0.55);
+
+}
+
+[data-theme='dark'][data-theme-style='bedroom'] {
+  --bg: #241726;
+  --bg-2: rgba(46, 30, 48, 0.9);
+  --ink: #fdeef4;
+  --ink-2: #d8bcc9;
+  --ink-3: #b89aa8;
+  --primary: #f08bb4;
+  --primary-2: #ffc178;
+  --primary-soft: rgba(240, 139, 180, 0.2);
+  --theme-primary-ink: #33121f;
+  --theme-success-ink: #10291c;
+  --theme-danger-ink: #350813;
+  --green: #55d995;
+  --green-soft: rgba(46, 204, 113, 0.17);
+  --orange: #ffc178;
+  --orange-soft: rgba(255, 193, 120, 0.16);
+  --orange-ink: #ffd166;
+  --red: #ff7182;
+  --red-soft: rgba(255, 92, 124, 0.16);
+  --on-primary: #33121f;
+  --primary-ink: #f08bb4;
+  --good-ink: #55d995;
+  --warn-ink: #ffc178;
+  --bad-ink: #ff7e8d;
+  --blue: #8fbcff;
+  --pink: #f19aba;
+  --card: rgba(46, 30, 48, 0.9);
+  --line: rgba(240, 139, 180, 0.32);
+  --bg-glow-1: rgba(240, 139, 180, 0.18);
+  --bg-glow-2: rgba(255, 193, 120, 0.14);
+  --promo-glow-1: rgba(240, 139, 180, 0.2);
+  --promo-glow-2: rgba(255, 193, 120, 0.14);
+  --scratch-glow: rgba(255, 193, 120, 0.16);
+  --shadow: 0 0 20px rgba(240, 139, 180, 0.18), 0 8px 22px rgba(255, 193, 120, 0.06);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.46), 0 0 26px rgba(240, 139, 180, 0.18);
+  --art-plate: #33202f;
+  --art-plate-glow: #462a3d;
+  --art-frame-line: rgba(240, 139, 180, 0.46);
+  --photo-paper: #f2ece1;
+  --photo-edge: rgba(0, 0, 0, 0.42);
+  --garland: rgba(255, 214, 150, 0.5);
+
+}
+
+/* Сад фей: мята и сирень, светлячки. */
+[data-theme-style='fairygarden'] {
+  --bg: #f2f8f1;
+  --bg-2: rgba(255, 255, 255, 0.88);
+  --ink: #23342b;
+  --ink-2: #4f6a5b;
+  --ink-3: #556b5e;
+  --primary: #6b4fa8;
+  --primary-2: #7ed6b3;
+  --primary-soft: rgba(107, 79, 168, 0.12);
+  --green: #16834c;
+  --green-soft: rgba(46, 204, 113, 0.16);
+  --orange: #b87500;
+  --orange-soft: rgba(255, 191, 71, 0.18);
+  --orange-ink: #80500d;
+  --red: #ce3d54;
+  --red-soft: rgba(231, 76, 110, 0.14);
+  --on-primary: #ffffff;
+  --primary-ink: #5b418f;
+  --good-ink: #147745;
+  --warn-ink: #955f00;
+  --bad-ink: #b5364a;
+  --blue: #2f7fb8;
+  --pink: #c9568a;
+  --card: rgba(255, 255, 255, 0.9);
+  --line: rgba(107, 79, 168, 0.22);
+  --bg-glow-1: rgba(126, 214, 179, 0.18);
+  --bg-glow-2: rgba(168, 145, 224, 0.14);
+  --promo-glow-1: rgba(126, 214, 179, 0.16);
+  --promo-glow-2: rgba(168, 145, 224, 0.13);
+  --scratch-glow: rgba(255, 191, 71, 0.16);
+  --shadow: 0 6px 0 rgba(35, 52, 43, 0.04), 0 0 18px rgba(107, 79, 168, 0.1);
+  --shadow-lg: 0 12px 40px rgba(35, 52, 43, 0.16), 0 0 22px rgba(107, 79, 168, 0.11);
+  --art-plate: #fbfffa;
+  --art-plate-glow: #ffffff;
+  --art-frame-line: rgba(107, 79, 168, 0.34);
+  --fairy-spark: rgba(126, 214, 179, 0.5);
+
+}
+
+[data-theme='dark'][data-theme-style='fairygarden'] {
+  --bg: #141f1c;
+  --bg-2: rgba(28, 42, 37, 0.9);
+  --ink: #eafaf0;
+  --ink-2: #b6d3c3;
+  --ink-3: #93b3a2;
+  --primary: #9a7ee0;
+  --primary-2: #7ed6b3;
+  --primary-soft: rgba(154, 126, 224, 0.2);
+  --theme-primary-ink: #1b1030;
+  --theme-success-ink: #10291c;
+  --theme-danger-ink: #350813;
+  --green: #55d995;
+  --green-soft: rgba(46, 204, 113, 0.17);
+  --orange: #ffd166;
+  --orange-soft: rgba(255, 209, 102, 0.15);
+  --orange-ink: #ffd166;
+  --red: #ff7182;
+  --red-soft: rgba(255, 92, 124, 0.16);
+  --on-primary: #1b1030;
+  --primary-ink: #b6a3f0;
+  --good-ink: #55d995;
+  --warn-ink: #ffd166;
+  --bad-ink: #ff7e8d;
+  --blue: #8fc7ff;
+  --pink: #f19aba;
+  --card: rgba(28, 42, 37, 0.9);
+  --line: rgba(154, 126, 224, 0.3);
+  --bg-glow-1: rgba(126, 214, 179, 0.18);
+  --bg-glow-2: rgba(154, 126, 224, 0.16);
+  --promo-glow-1: rgba(126, 214, 179, 0.2);
+  --promo-glow-2: rgba(154, 126, 224, 0.15);
+  --scratch-glow: rgba(255, 209, 102, 0.16);
+  --shadow: 0 0 20px rgba(154, 126, 224, 0.18), 0 8px 22px rgba(126, 214, 179, 0.06);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.46), 0 0 26px rgba(154, 126, 224, 0.18);
+  --art-plate: #1b2c26;
+  --art-plate-glow: #274034;
+  --art-frame-line: rgba(154, 126, 224, 0.46);
+  --photo-paper: #f2ece1;
+  --photo-edge: rgba(0, 0, 0, 0.42);
+  --fairy-spark: rgba(190, 255, 220, 0.55);
+
+}
+
+/* Радужный закат: пастель, облака, мягкие полосы. */
+[data-theme-style='sunset'] {
+  --bg: #fff1f4;
+  --bg-2: rgba(255, 255, 255, 0.9);
+  --ink: #3a2430;
+  --ink-2: #6b4a58;
+  --ink-3: #6f505f;
+  --primary: #b6485f;
+  --primary-2: #f0a05a;
+  --primary-soft: rgba(182, 72, 95, 0.12);
+  --green: #16834c;
+  --green-soft: rgba(46, 204, 113, 0.15);
+  --orange: #b87500;
+  --orange-soft: rgba(255, 191, 71, 0.2);
+  --orange-ink: #80500d;
+  --red: #c93c57;
+  --red-soft: rgba(231, 76, 110, 0.14);
+  --on-primary: #ffffff;
+  --primary-ink: #9e3550;
+  --good-ink: #147745;
+  --warn-ink: #955f00;
+  --bad-ink: #b5364a;
+  --blue: #3b6fb5;
+  --pink: #c9568a;
+  --card: rgba(255, 255, 255, 0.92);
+  --line: rgba(182, 72, 95, 0.24);
+  --bg-glow-1: rgba(255, 168, 168, 0.22);
+  --bg-glow-2: rgba(255, 205, 140, 0.18);
+  --promo-glow-1: rgba(255, 168, 168, 0.18);
+  --promo-glow-2: rgba(255, 205, 140, 0.16);
+  --scratch-glow: rgba(255, 191, 71, 0.18);
+  --shadow: 0 6px 0 rgba(58, 36, 48, 0.04), 0 0 18px rgba(182, 72, 95, 0.1);
+  --shadow-lg: 0 12px 40px rgba(58, 36, 48, 0.16), 0 0 22px rgba(182, 72, 95, 0.11);
+  --art-plate: #fffafb;
+  --art-plate-glow: #ffffff;
+  --art-frame-line: rgba(182, 72, 95, 0.36);
+  --sunset-band: rgba(255, 160, 170, 0.16);
+
+}
+
+[data-theme='dark'][data-theme-style='sunset'] {
+  --bg: #2a1723;
+  --bg-2: rgba(52, 30, 43, 0.9);
+  --ink: #ffeef2;
+  --ink-2: #dbbcc6;
+  --ink-3: #bd98a6;
+  --primary: #f28ba0;
+  --primary-2: #ffc178;
+  --primary-soft: rgba(242, 139, 160, 0.2);
+  --theme-primary-ink: #360f1a;
+  --theme-success-ink: #10291c;
+  --theme-danger-ink: #350813;
+  --green: #55d995;
+  --green-soft: rgba(46, 204, 113, 0.17);
+  --orange: #ffc178;
+  --orange-soft: rgba(255, 193, 120, 0.16);
+  --orange-ink: #ffd166;
+  --red: #ff7182;
+  --red-soft: rgba(255, 92, 124, 0.16);
+  --on-primary: #360f1a;
+  --primary-ink: #f28ba0;
+  --good-ink: #55d995;
+  --warn-ink: #ffc178;
+  --bad-ink: #ff7e8d;
+  --blue: #8fbcff;
+  --pink: #f19aba;
+  --card: rgba(52, 30, 43, 0.9);
+  --line: rgba(242, 139, 160, 0.32);
+  --bg-glow-1: rgba(242, 139, 160, 0.18);
+  --bg-glow-2: rgba(255, 193, 120, 0.15);
+  --promo-glow-1: rgba(242, 139, 160, 0.2);
+  --promo-glow-2: rgba(255, 193, 120, 0.15);
+  --scratch-glow: rgba(255, 193, 120, 0.16);
+  --shadow: 0 0 20px rgba(242, 139, 160, 0.18), 0 8px 22px rgba(255, 193, 120, 0.06);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.46), 0 0 26px rgba(242, 139, 160, 0.18);
+  --art-plate: #382031;
+  --art-plate-glow: #4a2b40;
+  --art-frame-line: rgba(242, 139, 160, 0.46);
+  --photo-paper: #f2ece1;
+  --photo-edge: rgba(0, 0, 0, 0.42);
+  --sunset-band: rgba(255, 190, 160, 0.14);
+
+}

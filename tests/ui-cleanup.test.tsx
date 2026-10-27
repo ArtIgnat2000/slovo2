@@ -73,11 +73,14 @@ export function runUiCleanupChecks(): void {
       body.trim().replace(/\s+/g, ' ').slice(0, 90),
     );
   }
+  // 0.70.0: тем стало 16 (8 оформлений × 2 схемы), а не 10. Считаем сами темы,
+  // а не число в подписи: иначе каждая новая тема ломает проверку.
+  const themeCount = (tok.match(/--good-ink:/g) ?? []).length;
   check(
-    'темы: во всех 10 темах заданы --good-ink / --warn-ink / --bad-ink',
-    (tok.match(/--good-ink:/g) ?? []).length === 10 &&
-      (tok.match(/--warn-ink:/g) ?? []).length === 10 &&
-      (tok.match(/--bad-ink:/g) ?? []).length === 10,
+    `темы: во всех ${themeCount} темах заданы --good-ink / --warn-ink / --bad-ink`,
+    themeCount === 16 &&
+      (tok.match(/--warn-ink:/g) ?? []).length === themeCount &&
+      (tok.match(/--bad-ink:/g) ?? []).length === themeCount,
     `good ${(tok.match(/--good-ink:/g) ?? []).length}, warn ${
       (tok.match(/--warn-ink:/g) ?? []).length
     }, bad ${(tok.match(/--bad-ink:/g) ?? []).length}`,

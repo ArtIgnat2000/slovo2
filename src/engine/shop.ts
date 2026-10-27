@@ -76,6 +76,7 @@ export const SLOT_TITLE: Record<ShopSlot, string> = {
   face: 'Очки',
   neck: 'На шею',
   badge: 'Значки',
+  back: 'Крылья',
   toy: 'Техника',
 };
 
@@ -95,6 +96,27 @@ export const SHOP_ITEMS: ShopItem[] = [
   { id: 'glasses', slot: 'face', kind: 'outfit', title: 'Умные очки', desc: 'В таких всё видно правильно', price: 35 },
   { id: 'medal', slot: 'badge', kind: 'outfit', title: 'Медаль', desc: 'За то, что не сдаёшься', price: 45 },
   { id: 'grad', slot: 'head', kind: 'outfit', title: 'Шапочка магистра', desc: 'Самая умная шапка в совиной школе', price: 60 },
+  // ── 0.70.0: украшения и крылья (docs/proposals/shop-girls-catalog.md, вариант A) ──
+  // Разбор интересов: девочки 1–4 класса выбирают раскраски и «красивое» заметно
+  // чаще мальчиков (Учи.ру-2026: 27 % против 8 %), а в каталоге на всю витрину был
+  // один бантик. Цены держим в общей лестнице 15–110 💎: в каждом слоте есть вещь
+  // за 15–25, чтобы новая полка начиналась с покупки «сегодня же».
+  { id: 'clips-stars', slot: 'head', kind: 'outfit', title: 'Заколки-звёздочки', desc: 'Две звёздочки в перьях — совсем как у подруги', price: 15 },
+  { id: 'wreath', slot: 'head', kind: 'outfit', title: 'Венок из ромашек', desc: 'Пахнет летом, хотя он из бумаги', price: 25 },
+  { id: 'hat-ribbon', slot: 'head', kind: 'outfit', title: 'Шляпка с лентой', desc: 'Соломенная шляпка с атласной лентой', price: 35 },
+  { id: 'crown', slot: 'head', kind: 'outfit', title: 'Корона', desc: 'Настоящая, с блестящими камешками', price: 70 },
+  { id: 'glasses-heart', slot: 'face', kind: 'outfit', title: 'Очки-сердечки', desc: 'В таких всё выглядит милым', price: 30 },
+  { id: 'glasses-round', slot: 'face', kind: 'outfit', title: 'Круглые очки', desc: 'Как у библиотекаря из сказки', price: 35 },
+  { id: 'choker', slot: 'neck', kind: 'outfit', title: 'Лента на шею', desc: 'Бархатная лента с маленьким бантом', price: 20 },
+  { id: 'beads', slot: 'neck', kind: 'outfit', title: 'Бусы', desc: 'Крупные, как у бабушки в шкатулке', price: 45 },
+  { id: 'bag', slot: 'neck', kind: 'outfit', title: 'Сумочка', desc: 'Маленькая, с застёжкой-сердечком', price: 40 },
+  { id: 'brooch-flower', slot: 'badge', kind: 'outfit', title: 'Брошь-цветок', desc: 'Расцветает, когда БУК радуется', price: 30 },
+  { id: 'badge-cat', slot: 'badge', kind: 'outfit', title: 'Значок с котиком', desc: 'Котик машет лапой', price: 20 },
+  // Крылья — новый слот `back`: они рисуются ПОД телом, поэтому видны и сзади,
+  // и по краям силуэта. Самый заметный «вау» новой полки, и он же — общий с
+  // мальчиками (крылья дракона берут не только девочки).
+  { id: 'wings-butterfly', slot: 'back', kind: 'outfit', title: 'Крылья бабочки', desc: 'Крылья за спиной, ими можно махать', price: 60 },
+  { id: 'wings-dragon', slot: 'back', kind: 'outfit', title: 'Крылья дракона', desc: 'Кожаные крылья с шипами по краю', price: 75 },
   // ── Техника (полка «Техника»): телефоны ─────────────────────────────────
   { id: 'phone-smart', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone Air', desc: 'Тонкий серебристый корпус и одна камера. Нажми на телефон, чтобы увидеть экран', price: 25 },
   { id: 'phone-flip', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone 17', desc: 'Лавандовое стекло и две камеры. Нажми на телефон, чтобы повернуть', price: 30 },
