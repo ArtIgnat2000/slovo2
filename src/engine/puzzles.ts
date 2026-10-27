@@ -160,6 +160,61 @@ export const COSTUMES: Costume[] = [
     helmet: 'ears',
     prop: 'saber-green',
   },
+  // ── 0.70.0: «волшебные» костюмы (docs/proposals/shop-girls-catalog.md, вариант A) ──
+  // Пул пазлов был целиком «боевой сагой»: шлемы, доспехи, светопосохи. Костюм —
+  // это девять уроков, то есть самая длинная цель в приложении, и девочке в этом
+  // пуле выбирать было нечего. Новые четыре образа собраны из УЖЕ существующих
+  // примитивов (buns, hood, dome, ears) и реквизита cane, поэтому новых картинок
+  // и новых пропов не требуют — только палитры.
+  {
+    id: 'fairy',
+    title: 'Фея',
+    desc: 'Два пучка, мятное платье и светящаяся палочка',
+    body: '#bfe9d6',
+    belly: '#eaf9f0',
+    wing: '#8ed6b8',
+    trim: '#7cc9a6',
+    glow: '#ffe066',
+    helmet: 'buns',
+    prop: 'cane',
+  },
+  {
+    id: 'sorceress',
+    title: 'Волшебница',
+    desc: 'Звёздный колпак, мантия с луной и посох',
+    body: '#5a4a8f',
+    belly: '#b9a9e8',
+    wing: '#463a73',
+    trim: '#cdbcf5',
+    glow: '#8fd8ff',
+    helmet: 'hood',
+    prop: 'cane',
+    cape: '#5b21b6',
+  },
+  {
+    id: 'mermaid',
+    title: 'Русалка',
+    desc: 'Стеклянный купол, бирюзовый хвост и жемчужное свечение',
+    body: '#3f9fb5',
+    belly: '#cdf2f7',
+    wing: '#2f7f95',
+    trim: '#8fe3f0',
+    glow: '#7cf0d0',
+    helmet: 'dome',
+    prop: null,
+  },
+  {
+    id: 'cat',
+    title: 'Кошка',
+    desc: 'Ушки, мягкие лапки и розовое свечение — мурр',
+    body: '#8a8199',
+    belly: '#efe6f2',
+    wing: '#6a6178',
+    trim: '#f2a6c2',
+    glow: '#ffb3d9',
+    helmet: 'ears',
+    prop: null,
+  },
 ];
 
 export const COSTUME_BY_ID: Record<string, Costume> = Object.fromEntries(

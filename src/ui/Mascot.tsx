@@ -4,6 +4,7 @@ import { COSTUME_BY_ID } from '../engine/puzzles';
 import { accessoryColors, costumeAccent } from '../engine/tints';
 import { useShopTuning, useWornCostume } from '../state/store';
 import { CostumeCape, CostumeHead, CostumeProp, MascotAccessory, SLOT_ORDER } from './MascotLook';
+import { MascotWings } from './MascotDecor';
 
 export type Mood = 'idle' | 'happy' | 'excited' | 'sad' | 'think' | 'dance';
 
@@ -153,6 +154,10 @@ export const Mascot = React.forwardRef<HTMLDivElement, Props>(function Mascot(
         )}
         {stage === 2 && <path d="M78 98 Q96 92 97 76 Q86 88 74 90Z" fill={cWing} />}
         {cst && <CostumeCape c={cst} accent={accent} />}
+        {/* 0.70.0: крылья — единственный слой ПОД телом (слот `back`), поэтому
+            они рисуются здесь, а не в SLOT_ORDER: так они выглядывают из-за
+            спины и на 44 px в гардеробе остаются узнаваемыми. */}
+        {look?.back && <MascotWings id={look.back} colors={accessoryColors(look.back, tuning)} />}
         <ellipse cx="50" cy="82" rx="36" ry="37" fill={cBody} />
         <ellipse cx="50" cy="88" rx="24" ry="27" fill={cBelly} />
         {mood === 'dance' ? (

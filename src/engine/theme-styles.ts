@@ -43,6 +43,34 @@ export const THEME_STYLES = [
     preview: { light: '#ecf8ff', dark: '#0b2030', accent: '#0787a8', secondary: '#48d5d0' },
     panelColor: { light: '#ecf8ff', dark: '#0b2030' },
   },
+  // ── 0.70.0: «уютные» оформления (docs/proposals/shop-girls-catalog.md, вариант A) ──
+  // Пять прежних стилей — про «какой будет экран». Эти три — про «мой уголок»:
+  // тёплая спальня, сад со светлячками и закат. Выбор остаётся бесплатным и
+  // независимым от light/dark, как и раньше.
+  {
+    id: 'bedroom',
+    title: 'Спальня с гирляндой',
+    emoji: '🛏️',
+    description: 'Тёплый персиковый свет, гирлянда лампочек и плед.',
+    preview: { light: '#fff4ec', dark: '#241726', accent: '#b64f7f', secondary: '#ffc178' },
+    panelColor: { light: '#fff4ec', dark: '#241726' },
+  },
+  {
+    id: 'fairygarden',
+    title: 'Сад фей',
+    emoji: '🧚',
+    description: 'Мята, сирень и светлячки между листьями.',
+    preview: { light: '#f2f8f1', dark: '#141f1c', accent: '#6b4fa8', secondary: '#7ed6b3' },
+    panelColor: { light: '#f2f8f1', dark: '#141f1c' },
+  },
+  {
+    id: 'sunset',
+    title: 'Радужный закат',
+    emoji: '🌅',
+    description: 'Пастельные полосы, облака и тёплый розовый свет.',
+    preview: { light: '#fff1f4', dark: '#2a1723', accent: '#b6485f', secondary: '#f0a05a' },
+    panelColor: { light: '#fff1f4', dark: '#2a1723' },
+  },
 ] as const;
 
 export type ThemeStyle = (typeof THEME_STYLES)[number]['id'];

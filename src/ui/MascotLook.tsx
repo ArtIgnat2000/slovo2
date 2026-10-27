@@ -1,5 +1,6 @@
 import type { ShopSlot } from '../types';
 import { TINT_PALETTES } from '../engine/tints';
+import { MascotDecorAccessory } from './MascotDecor';
 
 /**
  * Аксессуары БУКа — чистая SVG-графика поверх той же системы координат (100×120),
@@ -82,7 +83,10 @@ export function MascotAccessory({ id, colors }: { id: string; colors?: [string, 
       );
     }
     default:
-      return null;
+      // 0.70.0: украшения и крылья живут отдельным модулем (ui/MascotDecor.tsx),
+      // чтобы этот switch остался списком старых аксессуаров, а не свалкой.
+      // Крылья сюда не доходят: у них отдельный слой под телом (MascotWings).
+      return <MascotDecorAccessory id={id} colors={colors} />;
   }
 }
 
