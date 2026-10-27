@@ -7036,14 +7036,12 @@ p {
   background: var(--bg);
   border-bottom: 2px solid var(--line);
 }
-/* С 0.58.1 вкладок пять (Обзор, Списки, Прогресс, Настройки, Приложение).
-   На узком экране пять подписанных вкладок в один ряд сжимались до нечитаемых:
-   «Приложение» ломалось на три строки, а «Списки» терялся. Складываем в две
-   строки — все вкладки видны без прокрутки и без обрезки подписей. */
+/* Четыре основные вкладки: на телефоне — две колонки, без узких
+   подписей и длинного ряда мелких целей касания. */
 @media (max-width: 560px) {
   .seg-tabs {
     grid-auto-flow: row;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -7052,7 +7050,7 @@ p {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 44px;
+  min-height: 48px;
   padding: 8px 6px;
   border: 2px solid var(--line);
   border-radius: var(--r-sm);
@@ -7097,6 +7095,31 @@ p {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+.parent-more-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.parent-more-tabs .choice-item {
+  width: 100%;
+  justify-content: center;
+}
+.parent-metric-help {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.parent-metric-help summary {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  color: var(--primary-ink);
+  font-weight: 700;
+  cursor: pointer;
+}
+.parent-metric-help p:last-child {
+  margin-bottom: 0;
 }
 
 /* Крупные цифры: сначала главное, потом пояснение. */
@@ -7485,7 +7508,7 @@ p {
   gap: 6px;
 }
 .choice-item {
-  min-height: 40px;
+  min-height: 48px;
   padding: 8px 12px;
   border: 2px solid var(--line);
   border-radius: var(--r-pill);
@@ -7512,7 +7535,7 @@ p {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 40px;
+  min-height: 48px;
   padding: 4px 12px 4px 4px;
   border: 2px solid var(--line);
   border-radius: var(--r-pill);
