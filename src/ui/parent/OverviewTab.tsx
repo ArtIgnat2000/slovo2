@@ -146,7 +146,7 @@ export function OverviewTab({ profile, onOpenWords, onOpenSection }: Props) {
   return (
     <div className="parent-stack">
       <div className="card parent-learning-summary">
-        <GroupTitle title="Как идёт обучение" hint="Словарь каждого класса · общие слова учитываются как освоенные" />
+        <GroupTitle title="Как идёт обучение" />
         <label className="setting-row" htmlFor="parent-learning-grade">
           <span className="setting-title">Класс для отчёта</span>
           <select id="parent-learning-grade" className="input" value={grade} onChange={(event) => setGrade(availableClass(Number(event.target.value) as ClassId))}>
@@ -154,15 +154,23 @@ export function OverviewTab({ profile, onOpenWords, onOpenSection }: Props) {
           </select>
         </label>
         <div className="stat-grid">
-          <StatTile value={`${masteredInGrade} из ${gradeWords.length}`} label="освоено уверенно" hint="оценка приложения — 90 из 100 и выше" tone={masteredInGrade > 0 ? 'good' : 'plain'} />
-          <StatTile value={String(inProgressInGrade)} label="в работе" hint="слова уже встречались, но ещё не освоены" />
-          <StatTile value={String(notStartedInGrade)} label="ещё не начинали" hint="слова из словаря этого класса" />
+          <StatTile value={`${masteredInGrade} / ${gradeWords.length}`} label="освоено" tone={masteredInGrade > 0 ? 'good' : 'plain'} />
+          <StatTile value={String(inProgressInGrade)} label="в работе" />
+          <StatTile value={String(notStartedInGrade)} label="ещё не начинали" />
         </div>
         <div className="mt"><Bar value={masteredInGrade / Math.max(1, gradeWords.length) * 100} tone="green" /></div>
-        <p className="setting-hint">Это текущая оценка приложения, а не гарантия, что слово больше не забудется. Общие для классов слова используют один общий результат.</p>
-        <p className="setting-hint">Срок освоения пока не прогнозируем: для надёжной оценки недостаточно истории по каждому слову.</p>
-        <div className="kv"><span>Слова с повторяющимися ошибками в этом классе</span><b>{gradeErrors.length}</b></div>
-        {gradeErrors.length > 0 && <div className="wordlist">{gradeErrors.slice(0, 4).map(([id, count]) => <span className="word-chip weak" key={id}>{wordText(id)} · {count}</span>)}</div>}
+        <details className="parent-metric-help">
+          <summary>Как читать эти данные?</summary>
+          <p className="setting-hint">«Освоено» — текущая оценка приложения 90 из 100 и выше, это не гарантия, что слово больше не забудется. Общие слова учитываются в обоих классах.</p>
+          <p className="setting-hint">Срок освоения пока не оцениваем: для надёжного прогноза недостаточно истории.</p>
+        </details>
+        {gradeErrors.length > 0 ? (
+          <>
+            <div className="kv"><span>Слова с повторными ошибками · за всё время</span><b>{gradeErrors.length}</b></div>
+            <div className="wordlist">{gradeErrors.slice(0, 4).map(([id, count]) => <span className="word-chip weak" key={id}>{wordText(id)} · {count}</span>)}</div>
+            {currentInfo.current && <button className="btn ghost sm mt" onClick={onOpenWords}>Открыть слова в словаре</button>}
+          </>
+        ) : <p className="setting-hint">Повторных ошибок в словах этого класса пока нет.</p>}
         <button className="btn ghost sm mt" aria-expanded={detailsOpen} onClick={() => setDetailsOpen((open) => !open)}>{detailsOpen ? 'Скрыть подробный отчёт' : 'Подробный отчёт'}</button>
       </div>
       {detailsOpen && <>
