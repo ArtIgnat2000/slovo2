@@ -1,8 +1,8 @@
 import { type CSSProperties, useState } from 'react';
 import { BUILDING_BY_ID, WORLD_BASES } from '../../engine/buildings';
-import { growthStage, isOwned, rarityOf, RARITY_ORDER, SHOP_ITEMS, type ItemRarity, type ShopItem } from '../../engine/shop';
+import { growthStage, rarityOf, RARITY_ORDER, SHOP_ITEMS, type ItemRarity, type ShopItem } from '../../engine/shop';
 import { ALL_COSTUMES, type Costume } from '../../engine/puzzles';
-import { normalizeWorld, WORLD_SLOTS } from '../../engine/world';
+import { isWorldPlaceable, normalizeWorld, WORLD_SLOTS } from '../../engine/world';
 import { haptic } from '../../platform/haptics';
 import { sfx } from '../../platform/sound';
 import { masteredCount, useActiveProfile, useApp } from '../../state/store';
@@ -39,9 +39,12 @@ export function WorldScreen() {
   const tuning = profile.shop?.tuning;
   const growth = growthStage(masteredCount(profile));
   // Общий список предметов и костюмов для трёх мест мира.
+  // В выбор попадают только полученные вещи и костюмы (0.71.1): неполученное
+  // в «Мой мир» не поставить — его здесь просто нет, а движок на чужой id
+  // отвечает 'locked' (engine/world.ts, isWorldPlaceable).
   const ownedThings: WorldThing[] = [
-    ...SHOP_ITEMS.filter((item) => isOwned(owned, item.id)).map((item) => ({ id: item.id, title: item.title, rarity: rarityOf(item), item })),
-    ...ALL_COSTUMES.filter((costume) => ownedCostumes.includes(costume.id)).map((costume) => ({ id: costume.id, title: costume.title, rarity: costume.rarity ?? 'common' as ItemRarity, costume })),
+    ...SHOP_ITEMS.filter((item) => isWorldPlaceable(item.id, owned, ownedCostumes)).map((item) => ({ id: item.id, title: item.title, rarity: rarityOf(item), item })),
+    ...ALL_COSTUMES.filter((costume) => isWorldPlaceable(costume.id, owned, ownedCostumes)).map((costume) => ({ id: costume.id, title: costume.title, rarity: costume.rarity ?? 'common' as ItemRarity, costume })),
   ];
   const thingById = new Map(ownedThings.map((thing) => [thing.id, thing]));
   const compareThings = (a: WorldThing, b: WorldThing) => RARITY_ORDER.indexOf(a.rarity) - RARITY_ORDER.indexOf(b.rarity)

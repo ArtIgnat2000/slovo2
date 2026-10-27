@@ -31,6 +31,7 @@ import { runUiCleanupChecks } from './ui-cleanup.test';
 import { runHomePathChecks } from './home-path.test';
 import { runDictionaryUiChecks } from './dictionary-ui.test';
 import { runClassChecks } from './classes.test';
+import { runWorldUiChecks } from './world-ui.test';
 // Смена цвета купленной вещи не должна включать музыку (регрессия магазина).
 import './recolor-music.test';
 import { LESSONS, WORDS } from '../src/content/words';
@@ -1617,6 +1618,9 @@ async function main() {
   // Классы 1–4: смена класса не сбрасывает опыт, товары и награды; путь,
   // герой и урок берутся из программы активного класса (0.27.0).
   await runClassChecks();
+
+  // «Мой мир»: ставится только полученное, БУК в костюме стоит, а не летает.
+  await runWorldUiChecks();
 
   const failures = failureCount();
   console.log(failures ? `\n✗ ошибок: ${failures}` : '\n✓ все проверки пройдены');

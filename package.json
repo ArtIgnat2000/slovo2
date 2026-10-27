@@ -1,6 +1,6 @@
 {
   "name": "slovo2",
-  "version": "0.71.0",
+  "version": "0.71.1",
   "private": true,
   "description": "СЛОВО 2.0 — словарные слова 1–4 класса. Mobile-first офлайн PWA.",
   "type": "module",
