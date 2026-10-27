@@ -16,8 +16,8 @@ import {
 } from '../src/engine/puzzles';
 
 // 1) коллекция из 10 костюмов, id уникальны, у каждого есть название, описание и цвета
-assert.equal(COSTUMES.length, 10);
-assert.equal(new Set(COSTUMES.map((c) => c.id)).size, 10);
+assert.equal(COSTUMES.length, 14);
+assert.equal(new Set(COSTUMES.map((c) => c.id)).size, 14);
 assert.ok(COSTUMES.every((c) => c.title && c.desc && /^#[0-9a-f]{6}$/i.test(c.body) && /^#[0-9a-f]{6}$/i.test(c.belly) && /^#[0-9a-f]{6}$/i.test(c.wing)));
 // «космическая сага» без товарных знаков Disney: запрещённых имён в данных нет
 for (const banned of ['Вейдер', 'штурмовик', 'Дарт', 'дждай', 'джедай', 'Йода', 'Клонов', 'MANDAL', 'Vader', 'Jedi']) {
@@ -66,14 +66,16 @@ assert.equal(toggleWorn(toggleWorn(p, COSTUMES[0].id), COSTUMES[0].id).worn, COS
 
 // 5) перелив: когда все 10 костюмов собраны, урок даёт кристаллы вместо фрагментов
 let q = normalizePuzzle(undefined);
-for (let c = 0; c < 10; c++) {
+// 0.70.0: костюмов стало 14 (добавились «волшебные»), поэтому перелив
+// наступает после сборки всех — считаем от длины списка, а не от «10».
+for (let c = 0; c < COSTUMES.length; c++) {
   for (let i = 0; i < PUZZLE_SIZE; i++) {
     const r = awardLessonPiece(q);
     q = r.puzzle;
     assert.equal(r.award.event, i === PUZZLE_SIZE - 1 ? 'assembled' : 'piece');
   }
 }
-assert.equal(q.assembled.length, 10);
+assert.equal(q.assembled.length, COSTUMES.length);
 assert.deepEqual(collectableCostumes(q), []);
 assert.equal(activeCostume(q), null);
 const over = awardLessonPiece(q);

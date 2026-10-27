@@ -254,6 +254,114 @@ export const TINT_PALETTES: Record<string, TintPalette<ItemTint>> = {
       { id: 'red', title: 'Красный', colors: ['#7d3d3e', '#332124', '#f0c150'] },
     ],
   },
+
+  // ── 0.70.0: украшения и крылья (docs/proposals/shop-girls-catalog.md, вариант A) ─
+  // Индексы те же, что у старых вещей: [основной, тень/второй тон, акцент].
+  // База — ровно то, что нарисовано в ui/MascotLook.tsx по умолчанию.
+  'clips-stars': {
+    base: { id: BASE_TINT, title: 'Золотые', colors: ['#f5c542', '#d99a15', '#fff6da'] },
+    extra: [
+      { id: 'pink', title: 'Розовые', colors: ['#ff6fa5', '#d94d80', '#ffe3ef'] },
+      { id: 'blue', title: 'Голубые', colors: ['#5aa9f0', '#3577b8', '#e6f4ff'] },
+      { id: 'silver', title: 'Серебряные', colors: ['#cdd6e2', '#98a4b6', '#ffffff'] },
+    ],
+  },
+  wreath: {
+    base: { id: BASE_TINT, title: 'Ромашковый', colors: ['#ffffff', '#f2c53d', '#4caf6a'] },
+    extra: [
+      { id: 'pink', title: 'Розовый', colors: ['#ffc2dd', '#f2a03d', '#4caf6a'] },
+      { id: 'blue', title: 'Васильковый', colors: ['#a9c8ff', '#f2c53d', '#3f8a58'] },
+      { id: 'lilac', title: 'Сиреневый', colors: ['#d9c2ff', '#f2c53d', '#5b9a70'] },
+    ],
+  },
+  'hat-ribbon': {
+    base: { id: BASE_TINT, title: 'Соломенная', colors: ['#e8cf95', '#c9a55e', '#ff6fa5'] },
+    extra: [
+      { id: 'white', title: 'С белой лентой', colors: ['#e8cf95', '#c9a55e', '#ffffff'] },
+      { id: 'blue', title: 'С голубой лентой', colors: ['#e8cf95', '#c9a55e', '#6fb8ff'] },
+      { id: 'red', title: 'С красной лентой', colors: ['#e8cf95', '#c9a55e', '#ef4444'] },
+    ],
+  },
+  crown: {
+    base: { id: BASE_TINT, title: 'Золотая', colors: ['#ffd76a', '#d9a520', '#ff6fa5'] },
+    extra: [
+      { id: 'silver', title: 'Серебряная', colors: ['#dfe7f2', '#a3b0c4', '#6fb8ff'] },
+      { id: 'rose', title: 'Розовое золото', colors: ['#f6c1a8', '#cf8c6a', '#ff6fa5'] },
+      { id: 'emerald', title: 'Изумрудная', colors: ['#ffd76a', '#d9a520', '#34c77b'] },
+    ],
+  },
+  'glasses-heart': {
+    base: { id: BASE_TINT, title: 'Розовые', colors: ['#ff5c8a', '#c93b66', '#ffd6e4'] },
+    extra: [
+      { id: 'violet', title: 'Сиреневые', colors: ['#a855f7', '#7c3aed', '#efe0ff'] },
+      { id: 'red', title: 'Красные', colors: ['#ef4444', '#b91c1c', '#ffe0e0'] },
+      { id: 'black', title: 'Чёрные', colors: ['#2f3245', '#1b1d28', '#dfe7f2'] },
+    ],
+  },
+  'glasses-round': {
+    base: { id: BASE_TINT, title: 'Золотые', colors: ['#c9a24a', '#9a7a2e', '#bfe3ff'] },
+    extra: [
+      { id: 'black', title: 'Чёрные', colors: ['#2f3245', '#1b1d28', '#cfe8ff'] },
+      { id: 'silver', title: 'Серебряные', colors: ['#cdd6e2', '#98a4b6', '#dff0ff'] },
+      { id: 'pink', title: 'Розовые', colors: ['#ff8fb1', '#d96a8c', '#ffe6f0'] },
+    ],
+  },
+  choker: {
+    base: { id: BASE_TINT, title: 'Бордовая', colors: ['#7b2d4a', '#5a1e35', '#ff7aab'] },
+    extra: [
+      { id: 'black', title: 'Чёрная', colors: ['#2b2b38', '#1a1a24', '#cdd6e2'] },
+      { id: 'blue', title: 'Синяя', colors: ['#2b4b8f', '#1e3a73', '#8fc7ff'] },
+      { id: 'green', title: 'Зелёная', colors: ['#2f6b46', '#225235', '#8ce9c4'] },
+    ],
+  },
+  beads: {
+    base: { id: BASE_TINT, title: 'Розовые', colors: ['#ff8fb1', '#d96a8c', '#ffd166'] },
+    extra: [
+      { id: 'pearl', title: 'Жемчужные', colors: ['#f4f1ea', '#d8d2c4', '#e8c74a'] },
+      { id: 'blue', title: 'Голубые', colors: ['#7fb8f0', '#4d8ac9', '#ffd166'] },
+      { id: 'green', title: 'Зелёные', colors: ['#6ecf9a', '#3f9c6b', '#ffd166'] },
+    ],
+  },
+  bag: {
+    base: { id: BASE_TINT, title: 'Сиреневый', colors: ['#b06ad9', '#8a4bb0', '#ffd166'] },
+    extra: [
+      { id: 'pink', title: 'Розовый', colors: ['#ff8fb1', '#d96a8c', '#ffd166'] },
+      { id: 'red', title: 'Красный', colors: ['#e04a67', '#a82f47', '#ffd166'] },
+      { id: 'black', title: 'Чёрный', colors: ['#33323f', '#1f1e28', '#cdd6e2'] },
+    ],
+  },
+  'brooch-flower': {
+    base: { id: BASE_TINT, title: 'Розовый', colors: ['#ff8fc0', '#d96a99', '#f5c542'] },
+    extra: [
+      { id: 'blue', title: 'Голубой', colors: ['#8fc4ff', '#5d93d1', '#f5c542'] },
+      { id: 'lilac', title: 'Сиреневый', colors: ['#c9a2ff', '#9670d1', '#f5c542'] },
+      { id: 'red', title: 'Красный', colors: ['#ff7a7a', '#d14f4f', '#f5c542'] },
+    ],
+  },
+  'badge-cat': {
+    base: { id: BASE_TINT, title: 'Персиковый', colors: ['#ffd9e6', '#f2a6c2', '#7a5cff'] },
+    extra: [
+      { id: 'grey', title: 'Дымчатый', colors: ['#d7dae3', '#a9aebd', '#7a5cff'] },
+      { id: 'ginger', title: 'Рыжий', colors: ['#ffc178', '#e09a45', '#2f6b46'] },
+      { id: 'black', title: 'Чёрный', colors: ['#4b4b5a', '#2a2a35', '#ffd166'] },
+    ],
+  },
+  'wings-butterfly': {
+    base: { id: BASE_TINT, title: 'Розовые', colors: ['#ff9ec7', '#c86a9b', '#ffe066'] },
+    extra: [
+      { id: 'blue', title: 'Голубые', colors: ['#8fc7ff', '#5a8fc9', '#ffe066'] },
+      { id: 'violet', title: 'Сиреневые', colors: ['#c4a2ff', '#8f6ae0', '#ffe066'] },
+      { id: 'gold', title: 'Золотые', colors: ['#ffd76a', '#d9a520', '#fff6da'] },
+    ],
+  },
+  'wings-dragon': {
+    base: { id: BASE_TINT, title: 'Изумрудные', colors: ['#6a8f4a', '#3f5c2c', '#e8c74a'] },
+    extra: [
+      { id: 'violet', title: 'Сиреневые', colors: ['#6a4a7a', '#432c50', '#e8c74a'] },
+      { id: 'red', title: 'Багровые', colors: ['#8f3b3b', '#5c2020', '#e8c74a'] },
+      { id: 'night', title: 'Ночные', colors: ['#3f4460', '#232741', '#8fd8ff'] },
+    ],
+  },
 };
 
 // ── Акценты костюмов ───────────────────────────────────────────────────────
@@ -287,6 +395,11 @@ const GLOW_NAMES: Record<string, string> = {
   '#ffffff': 'Белый',
   '#ffd166': 'Золотой',
   '#7dffb0': 'Зелёный',
+  // 0.70.0: свечения «волшебных» костюмов
+  '#ffe066': 'Золотой',
+  '#8fd8ff': 'Голубой',
+  '#7cf0d0': 'Бирюзовый',
+  '#ffb3d9': 'Розовый',
 };
 
 /**
@@ -305,6 +418,11 @@ const COSTUME_ACCENT_EXTRAS: Record<string, [string, string, string]> = {
   'star-commander': ['red', 'blue', 'green'],
   'shadow-initiate': ['blue', 'green', 'violet'],
   'forest-sage': ['red', 'blue', 'violet'],
+  // 0.70.0: «волшебные» костюмы (вариант A разбора интересов).
+  fairy: ['blue', 'violet', 'gold'],
+  sorceress: ['red', 'green', 'gold'],
+  mermaid: ['violet', 'gold', 'green'],
+  cat: ['blue', 'violet', 'gold'],
 };
 
 /**

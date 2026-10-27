@@ -26,7 +26,7 @@
 import type { Profile } from '../types';
 import { mastered } from './srs';
 
-export type ChestSkinId = 'travel' | 'sky' | 'ice' | 'star';
+export type ChestSkinId = 'travel' | 'sky' | 'ice' | 'star' | 'flower' | 'rainbow';
 
 export interface ChestSkinPalette {
   /** Крышка мини-сундука (ChestGlyph) */
@@ -117,8 +117,40 @@ export const CHEST_SKINS: ChestSkin[] = [
       glow: '#9f8bff', aura: 'rgba(159, 139, 255, .62)',
     },
   },
+  // ── 0.70.0: два «уютных» облика (docs/proposals/shop-girls-catalog.md, вариант A) ──
+  // Условия снова из разных механик и не совпадают со старыми: 15 слов — середина
+  // пути к звёздному (30), 14 дней серии — вдвое длиннее ледяного (7). Арт
+  // переиспользует тот же холст 512×512: перекрашивается существующий спрайт,
+  // новый рисунок не рисуется (scripts/recolor-chest-skins.mjs).
+  {
+    id: 'flower',
+    title: 'Цветочный сундук',
+    how: 'Освой 15 слов',
+    need: 15,
+    progress: wordsMastered,
+    palette: {
+      lid: '#f7c2d8', body: '#fff0f6', band: '#8fd6a8', lock: '#a8557f',
+      glow: '#ffb3d9', aura: 'rgba(255, 179, 217, .62)',
+    },
+  },
+  {
+    id: 'rainbow',
+    title: 'Радужный сундук',
+    how: '14 дней занятий подряд',
+    need: 14,
+    progress: (p) => Math.max(0, Math.floor(p.streak)),
+    palette: {
+      lid: '#8f7bd9', body: '#c9b8ff', band: '#ffd166', lock: '#5b3fd6',
+      glow: '#c4a2ff', aura: 'rgba(196, 162, 255, .6)',
+    },
+  },
 ];
 
+// 0.70.0: два «уютных» облика (docs/proposals/shop-girls-catalog.md, вариант A).
+// Условия снова из разных механик и не совпадают со старыми: 15 слов — это
+// середина пути к звёздному (30), 14 дней серии — вдвое длиннее ледяного (7).
+// Арт переиспользует холст 512×512 и ту же геометрию, что остальные облики:
+// новый рисунок не рисуется, перекрашивается существующий спрайт.
 export const BASE_SKIN: ChestSkinId = 'travel';
 
 export function skinById(id: string | undefined | null): ChestSkin {

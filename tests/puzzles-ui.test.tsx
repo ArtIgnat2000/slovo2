@@ -95,7 +95,12 @@ export async function runPuzzleUiChecks(playLesson: (second?: boolean) => Promis
   click(Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Костюмы'))!);
   await sleep(30);
   const cards = () => Array.from(document.querySelectorAll('.costume-card'));
-  check('пазлы: в магазине 10 карточек костюмов', cards().length === 10, String(cards().length));
+  // 0.70.0: костюмов стало 14 — сравниваем с каталогом, а не с числом в тексте.
+  check(
+    `пазлы: в магазине ${COSTUMES.length} карточек костюмов`,
+    cards().length === COSTUMES.length,
+    String(cards().length),
+  );
   const snowCard = cards().find((el) => (el.textContent ?? '').includes(COSTUMES[1].title));
   check(
     'пазлы: на карточке видно 1 собранный фрагмент из 9',

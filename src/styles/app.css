@@ -2853,6 +2853,66 @@ p {
 .shop-cats .chip { flex: none; }
 .shop-cats .chip:disabled { opacity: 0.55; cursor: default; }
 
+/* ── Интересы ребёнка (0.70.0) ──────────────────────────────────────────────
+   Плитки «что тебе нравится» над витриной. Это не фильтр: ничего не прячется,
+   выбранное лишь поднимает свои полки. Зона нажатия ≥ 48 px — как везде, где
+   нажимает ребёнок (правило из docs/shop-concept.md). */
+.interest-picker {
+  padding: 12px 14px;
+}
+.interest-picker-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.interest-picker-title {
+  font-weight: 800;
+  font-size: var(--fs-sm);
+}
+.interest-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+.interest-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 62px;
+  padding: 8px 4px;
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  background: var(--bg-2);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+.interest-tile:active {
+  transform: scale(0.97);
+}
+.interest-tile.on {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+.interest-tile-emoji {
+  font-size: 22px;
+  line-height: 1;
+}
+.interest-tile-title {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.15;
+}
+.interest-tile.on .interest-tile-title {
+  color: var(--primary-ink);
+}
+
 .shop-stage {
   display: flex;
   align-items: center;
@@ -8082,6 +8142,41 @@ p {
   background-repeat: repeat, no-repeat, no-repeat;
 }
 
+/* 0.70.0: «уютные» оформления. У каждого свой мотив, как у космоса и океана:
+   гирлянда над спальней, светлячки в саду и полосы заката. Цвета мотива —
+   из токенов темы, поэтому в тёмном варианте он не «светит» лишним. */
+:root[data-theme-style='bedroom'] .app {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(circle at 20% 8%, var(--garland) 0 2.2px, transparent 3px),
+    radial-gradient(circle at 50% 13%, var(--garland) 0 2.2px, transparent 3px),
+    radial-gradient(circle at 80% 8%, var(--garland) 0 2.2px, transparent 3px),
+    radial-gradient(120% 60% at 15% 0%, var(--bg-glow-1) 0%, transparent 55%),
+    radial-gradient(100% 55% at 100% 0%, var(--bg-glow-2) 0%, transparent 60%);
+  background-size: 100% 170px, 100% 170px, 100% 170px, auto, auto;
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+}
+:root[data-theme-style='fairygarden'] .app {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(circle at 22% 18%, var(--fairy-spark) 0 1.6px, transparent 2.4px),
+    radial-gradient(circle at 68% 42%, var(--fairy-spark) 0 1.6px, transparent 2.4px),
+    radial-gradient(circle at 40% 74%, var(--fairy-spark) 0 1.6px, transparent 2.4px),
+    radial-gradient(120% 60% at 15% 0%, var(--bg-glow-1) 0%, transparent 55%),
+    radial-gradient(100% 55% at 100% 0%, var(--bg-glow-2) 0%, transparent 60%);
+  background-size: 130px 150px, 190px 170px, 240px 220px, auto, auto;
+  background-repeat: repeat, repeat, repeat, no-repeat, no-repeat;
+}
+:root[data-theme-style='sunset'] .app {
+  background-color: var(--bg);
+  background-image:
+    repeating-linear-gradient(102deg, transparent 0 46px, var(--sunset-band) 47px 60px, transparent 61px 108px),
+    radial-gradient(120% 60% at 15% 0%, var(--bg-glow-1) 0%, transparent 55%),
+    radial-gradient(100% 55% at 100% 0%, var(--bg-glow-2) 0%, transparent 60%);
+  background-size: 220px 220px, auto, auto;
+  background-repeat: repeat, no-repeat, no-repeat;
+}
+
 /* Яркие акценты тёмных вариантов получают тёмный текст на заливках. */
 :root[data-theme='dark'][data-theme-style='space'] .btn.primary,
 :root[data-theme='dark'][data-theme-style='space'] .home-hero-cta,
@@ -8100,7 +8195,25 @@ p {
 :root[data-theme='dark'][data-theme-style='ocean'] .choice-item.on,
 :root[data-theme='dark'][data-theme-style='ocean'] .chip.on,
 :root[data-theme='dark'][data-theme-style='ocean'] .vlabs-promo-icon,
-:root[data-theme='dark'][data-theme-style='ocean'] .vlabs-badge {
+:root[data-theme='dark'][data-theme-style='ocean'] .vlabs-badge,
+:root[data-theme='dark'][data-theme-style='bedroom'] .btn.primary,
+:root[data-theme='dark'][data-theme-style='bedroom'] .home-hero-cta,
+:root[data-theme='dark'][data-theme-style='bedroom'] .choice-item.on,
+:root[data-theme='dark'][data-theme-style='bedroom'] .chip.on,
+:root[data-theme='dark'][data-theme-style='bedroom'] .vlabs-promo-icon,
+:root[data-theme='dark'][data-theme-style='bedroom'] .vlabs-badge,
+:root[data-theme='dark'][data-theme-style='fairygarden'] .btn.primary,
+:root[data-theme='dark'][data-theme-style='fairygarden'] .home-hero-cta,
+:root[data-theme='dark'][data-theme-style='fairygarden'] .choice-item.on,
+:root[data-theme='dark'][data-theme-style='fairygarden'] .chip.on,
+:root[data-theme='dark'][data-theme-style='fairygarden'] .vlabs-promo-icon,
+:root[data-theme='dark'][data-theme-style='fairygarden'] .vlabs-badge,
+:root[data-theme='dark'][data-theme-style='sunset'] .btn.primary,
+:root[data-theme='dark'][data-theme-style='sunset'] .home-hero-cta,
+:root[data-theme='dark'][data-theme-style='sunset'] .choice-item.on,
+:root[data-theme='dark'][data-theme-style='sunset'] .chip.on,
+:root[data-theme='dark'][data-theme-style='sunset'] .vlabs-promo-icon,
+:root[data-theme='dark'][data-theme-style='sunset'] .vlabs-badge {
   color: var(--theme-primary-ink);
 }
 :root[data-theme='dark'][data-theme-style='space'] .btn.green,
