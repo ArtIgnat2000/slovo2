@@ -87,9 +87,19 @@ export const byHint = new Map(WORDS.map((w) => [w.hint, w]));
  * «родителям видно…» ловила бы контент соседней вкладки.
  */
 export async function openParentSection(title: string): Promise<HTMLButtonElement | undefined> {
-  const tab = buttons().find(
+  let tab = buttons().find(
     (b) => b.getAttribute('role') === 'tab' && (b.textContent ?? '').includes(title),
   );
+  // «Данные» и «Приложение» теперь собраны под короткой вкладкой «Ещё».
+  // Сначала открываем её, затем выбираем нужный вложенный раздел.
+  if (!tab && (title.includes('Данные') || title.includes('Приложение'))) {
+    const more = buttons().find((b) => b.getAttribute('role') === 'tab' && (b.textContent ?? '').includes('Ещё'));
+    if (more) {
+      click(more);
+      await sleep(50);
+      tab = buttons().find((b) => b.getAttribute('role') === 'tab' && (b.textContent ?? '').includes(title));
+    }
+  }
   if (tab) {
     click(tab);
     await sleep(50);
