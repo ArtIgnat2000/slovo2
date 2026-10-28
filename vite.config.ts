@@ -100,7 +100,11 @@ export default defineConfig(({ command }) => ({
         // 0.74.0: плитки «полки идей» школы НААШ (~100 КБ) тоже вне precache:
         // нужны только тому, кто открыл раздел. Их кладёт кэш `slovo2-naash`
         // при первом просмотре — как платные музыкальные треки.
-        globIgnores: ['docs/**', 'naash/**'],
+        // 0.76.0: интерьеры баз (25 фотореалистичных кадров в public/base-tours)
+        // тоже вне precache — их открывают только те, кто зашёл внутрь базы.
+        // Первый просмотр кладёт файл в кэш `slovo2-base-tours`, дальше он
+        // работает офлайн.
+        globIgnores: ['docs/**', 'naash/**', 'base-tours/**'],
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,
         // Остальная музыка (покупки, прослушивание): первый запрос кладёт файл
@@ -113,6 +117,15 @@ export default defineConfig(({ command }) => ({
             options: {
               cacheName: 'slovo2-naash',
               expiration: { maxEntries: 24 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            urlPattern: /\/base-tours\/.*\.webp$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'slovo2-base-tours',
+              expiration: { maxEntries: 40 },
               cacheableResponse: { statuses: [0, 200] },
             },
           },

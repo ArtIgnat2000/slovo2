@@ -51,6 +51,18 @@ export const BUILDINGS: BuildingItem[] = [
     isBase: true,
     rarity: 'top',
   },
+  {
+    // 0.76.0: пятая база — по просьбе ребёнка, в стиле стимпанк. Внутри неё
+    // есть экскурсия (engine/base-tours.ts, 5 комнат): машинный зал, депо
+    // паровозов, часовая мастерская, кабинет изобретателя и причал дирижаблей.
+    id: 'steam-base',
+    title: 'База паровозов',
+    desc: 'Стимпанк-депо: медные котлы, шестерёнки, паровозы и причал дирижаблей',
+    price: 150,
+    emoji: '🚂',
+    isBase: true,
+    rarity: 'legendary',
+  },
 ];
 
 export const BUILDING_BY_ID: Record<string, BuildingItem> = Object.fromEntries(

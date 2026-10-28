@@ -43,6 +43,22 @@ async function goTab(name: string) {
   await sleep(60);
 }
 
+/**
+ * Открыть полку с карточками костюмов-пазлов.
+ *
+ * С 0.7x отдельного чипа «Костюмы» в витрине нет: пазлы и кристальные костюмы
+ * стоят вместе с нарядами на полке «Наряды» (`.costume-card` внутри неё).
+ * Раньше здесь кликали по чипу «Костюмы» — и весь блок падал на исчезнувшей
+ * кнопке.
+ */
+async function openCostumeShelf() {
+  const shelf = Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Витрина'));
+  if (shelf) { click(shelf); await sleep(30); }
+  const chip = Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Наряды'));
+  click(chip);
+  await sleep(30);
+}
+
 export async function runPuzzleUiChecks(playLesson: (second?: boolean) => Promise<void>) {
   console.log('\n── Костюмные пазлы: урок → фрагмент → костюм ──');
 
@@ -91,9 +107,8 @@ export async function runPuzzleUiChecks(playLesson: (second?: boolean) => Promis
 
   // Магазин БУКа: сетка костюмов, прогресс и примерка
   await goTab('БУК');
-  // Полка костюмов — чип в витрине (концепция 2026-10-17)
-  click(Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Костюмы'))!);
-  await sleep(30);
+  // Полка костюмов — «Наряды» в витрине (0.7x: костюмы и наряды вместе)
+  await openCostumeShelf();
   const cards = () => Array.from(document.querySelectorAll('.costume-card'));
   // 0.70.0: костюмов стало 14 — сравниваем с каталогом, а не с числом в тексте.
   check(
@@ -223,10 +238,7 @@ export async function runPuzzleUiChecks(playLesson: (second?: boolean) => Promis
     wearRows.map((row) => row.textContent).join(' | ').slice(0, 140),
   );
   // Возвращаем полку костюмов: следующие проверки читают карточки витрины.
-  click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Витрина'))!);
-  await sleep(30);
-  click(Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Костюмы'))!);
-  await sleep(30);
+  await openCostumeShelf();
 
   // ── Акцент костюма: свечение и плащ за 1 💎 (тюнинг, engine/tints.ts) ───────
   // Костюм COSTUMES[0] уже собран и надет; у несобранного (COSTUMES[1]) палитры

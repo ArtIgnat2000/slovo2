@@ -14,6 +14,8 @@ import './chest-skins.test';
 import './shop-tuning.test';
 // Школа НААШ (0.74.0): форма БУКа, полка идей и запрет на цены в текстах.
 import './naash.test';
+// Экскурсии внутри баз (0.76.0): пять комнат у каждой базы и файлы картинок.
+import './base-tours.test';
 import './world.test';
 import './rating.test';
 // Магазин фаза 2: герой витрины (closestItem / resolveHero) и Мечты (Wishlist 🤍).
