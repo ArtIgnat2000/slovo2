@@ -265,9 +265,11 @@ function Sheet(props: { onClose: () => void; children: React.ReactNode }) {
 export function ShopScreen({
   initialView = 'vitrina',
   initialHangar = false,
+  onOpenWorld,
 }: {
   initialView?: 'vitrina' | 'wardrobe';
   initialHangar?: boolean;
+  onOpenWorld?: () => void;
 } = {}) {
   const profile = useActiveProfile();
   const look = useLook();
@@ -1459,6 +1461,9 @@ export function ShopScreen({
             БУК <Icon name="hat" size={22} />
           </h1>
           {/* 0.54.0: счётчик кристаллов — иконка + число (Gem). */}
+          <button className="btn" type="button" onClick={onOpenWorld} aria-label="Открыть Мой мир">
+            🌍 Мой мир
+          </button>
           <div className="stat-pill gems">
             <Gem value={gems} size={22} />
           </div>

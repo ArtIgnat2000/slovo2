@@ -55,7 +55,9 @@ export async function runWorldUiChecks() {
   check('мир: стор не ставит некупленную машину', store().toggleWorld('car-bugatti') === 'locked');
   check('мир: стор не ставит несобранный костюм', store().toggleWorld('snow-guard') === 'locked');
 
-  await goTab('Мой мир');
+  await goTab('БУК');
+  click(buttons().find((b) => b.getAttribute('aria-label') === 'Открыть Мой мир'));
+  await sleep(60);
   check('мир: вкладка открылась', has('Мой мир') && !!document.querySelector('.world-screen'), document.body.textContent?.slice(0, 160) ?? '');
   check('мир: устаревшее неполученное не показывается на сцене', !document.querySelector('.world-slot .world-slot-title')?.textContent?.includes('Молния'));
 

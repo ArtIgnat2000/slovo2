@@ -378,6 +378,7 @@ export default function App() {
         <RatingScreen />
       ) : tab === 'shop' ? (
         <ShopScreen
+          onOpenWorld={() => switchTab('world')}
           // Ключ пересоздаёт экран, когда меняется точка входа: иначе тап по
           // нижней вкладке «БУК» из «Моих покупок» не вернул бы витрину —
           // useState(initialView) читается только при монтировании.
@@ -489,10 +490,6 @@ export default function App() {
         >
           <span className="ico">🎩</span>
           БУК
-        </button>
-        <button className={`tab ${!profilesOpen && tab === 'world' ? 'on' : ''}`} onClick={() => switchTab('world')}>
-          <span className="ico">🌍</span>
-          Мой мир
         </button>
         <button className={`tab ${!profilesOpen && tab === 'rating' ? 'on' : ''}`} onClick={() => switchTab('rating')}>
           <span className="ico">🏆</span>
