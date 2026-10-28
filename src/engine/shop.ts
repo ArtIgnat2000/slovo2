@@ -204,7 +204,7 @@ export const SHOP_ITEMS: ShopItem[] = [
   { id: 'car-pink-cabrio', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Розовая машина', desc: 'Самая розовая машина города: её видно издалека', price: 60 },
   { id: 'car-pink-star', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Розовая звезда', desc: 'Розовый спорткар со звездой на капоте', price: 65 },
   { id: 'car-tesla', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Тесла', desc: 'Тихий электромобиль: огромный экран и двери-крылья', price: 95 },
-  { id: 'car-pink-tank', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Розовый танк', desc: 'Танк, который стреляет только конфетами', price: 110, rarity: 'legendary' },
+  { id: 'car-pink-tank', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Розовый танк', desc: 'Розовый бронированный вездеход с гусеницами и металлическим корпусом', price: 110, rarity: 'legendary' },
   { id: 'ship-titanic', slot: 'toy', kind: 'toy', toy: 'ship', emoji: '🛳️', title: 'Титаник', desc: 'Огромный лайнер с четырьмя трубами из прошлого века', price: 105, rarity: 'legendary' },
   // ── 0.72.0: питомцы ───────────────────────────────────────────────────────
   { id: 'pet-cat', slot: 'toy', kind: 'toy', toy: 'pet', emoji: '🐱', title: 'Котёнок', desc: 'Мурчит и гоняется за клубком', price: 45 },
