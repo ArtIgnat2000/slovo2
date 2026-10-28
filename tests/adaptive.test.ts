@@ -12,6 +12,8 @@ import './puzzles.test';
 import './chest-skins.test';
 // Тюнинг цвета купленных вещей: цена оттенка, бесплатное переключение, санитизация.
 import './shop-tuning.test';
+// Школа НААШ (0.74.0): форма БУКа, полка идей и запрет на цены в текстах.
+import './naash.test';
 import './world.test';
 import './rating.test';
 // Магазин фаза 2: герой витрины (closestItem / resolveHero) и Мечты (Wishlist 🤍).

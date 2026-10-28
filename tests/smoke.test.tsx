@@ -587,6 +587,46 @@ async function main() {
     useApp.getState().settings.themeStyle === originalThemeStyle && document.documentElement.dataset.themeStyle === originalThemeStyle,
   );
 
+  // ── Школа НААШ: школьный уголок витрины (0.74.0) ───────────────────────────
+  // Раздел — не девятая полка товаров: форма БУКа за кристаллы и «полка идей»
+  // с картинками серии. Цен в рублях и «заказать» здесь быть не может.
+  const naashChip = Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('НААШ'));
+  check(
+    'в витрине есть школьный уголок «НААШ»',
+    !!naashChip,
+    Array.from(document.querySelectorAll('.shop-cats .chip')).map((c) => c.textContent).join(' | '),
+  );
+  if (naashChip) click(naashChip);
+  await sleep(40);
+  const naashTiles = () => Array.from(document.querySelectorAll('.naash-tile'));
+  check('«Полка идей»: двенадцать картинок серии', naashTiles().length === 12, String(naashTiles().length));
+  check(
+    'форма школы на месте: значок, кепка, шарф, худи',
+    ['Значок школы', 'Кепка школы', 'Шарф в триколоре', 'Худи школы'].every((title) => has(title)),
+    '',
+  );
+  check(
+    'у каждой картинки есть подпись для скринридера',
+    naashTiles().every((tile) => (tile.getAttribute('aria-label') ?? '').length > 5),
+    '',
+  );
+  check(
+    'картинки полки грузятся лениво — установка не тяжелеет',
+    naashTiles().every((tile) => tile.querySelector('img')?.getAttribute('loading') === 'lazy'),
+    '',
+  );
+  check('подпись честная: это идеи, а не товар', has('Это идеи, а не товар'), '');
+  check('в разделе нет рублей и предзаказов', !/₽|руб\.|предзаказ|заказать/i.test(body()), '');
+  if (naashTiles()[0]) click(naashTiles()[0] as HTMLButtonElement);
+  await sleep(40);
+  check('тап по картинке открывает её крупно', !!document.querySelector('.naash-sheet img'), '');
+  click(buttons().find((b) => (b.textContent ?? '').includes('Закрыть')));
+  await sleep(30);
+  check('лист картинки закрывается', !document.querySelector('.naash-sheet'), '');
+  click(Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Наряды')));
+  await sleep(30);
+  check('в «Нарядах» нет дублей формы школы', !has('Значок школы') && has('Наряды БУКа'), '');
+
   // ── Полка «Техника»: отдельные разделы авто, кораблей и телефонов ──────
   const toyShelf = Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Техника'));
   check('в витрине есть полка «Техника»', !!toyShelf, '');

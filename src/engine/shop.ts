@@ -38,7 +38,16 @@ export interface ShopItem {
   rarity?: ItemRarity;
   /** Для техники баз — id базы, в стиле которой сделана вещь (engine/buildings.ts). */
   baseStyle?: string;
+  /**
+   * Серия вещи, если она пришла из отдельной линейки (0.74.0: `naash` —
+   * форма школы). Полка серии фильтрует каталог по метке, а не заводит
+   * второй список товаров: правила покупки у всех вещей общие.
+   */
+  series?: ShopSeries;
 }
+
+/** Линейки товаров, которые живут отдельной полкой витрины. */
+export type ShopSeries = 'naash';
 
 /** Редкость вещи: обычная, крутая, легендарная или ТОПОВАЯ. */
 export type ItemRarity = 'common' | 'cool' | 'legendary' | 'top';
@@ -138,6 +147,15 @@ export const SHOP_ITEMS: ShopItem[] = [
   { id: 'shoes-pink', slot: 'feet', kind: 'outfit', title: 'Розовые туфельки', desc: 'С бантиками и маленьким каблучком', price: 35 },
   { id: 'shoes-sparkle', slot: 'feet', kind: 'outfit', title: 'Блестящие туфли', desc: 'Сверкают, как у принцессы на балу', price: 45 },
   { id: 'skates-ice', slot: 'feet', kind: 'outfit', title: 'Коньки', desc: 'Белые ботинки и острые лезвия для льда', price: 40 },
+  // ── 0.74.0: школа НААШ (docs/proposals/naash-shop.md) ────────────────────
+  // Школьный уголок витрины. Вещи не «ещё четыре наряда»: их собирает метка
+  // `series`, поэтому своя полка не потребовала второго каталога — покупка,
+  // «Мечты», перекраска, сдача и выгрузка работают как у всех. Палитры красят
+  // ткань и эмаль, знак школы — всегда в своих цветах (engine/tints.ts).
+  { id: 'school-pin', slot: 'badge', kind: 'outfit', series: 'naash', title: 'Значок школы', desc: 'Эмалевый знак на лацкане — видно издалека', price: 15 },
+  { id: 'school-cap', slot: 'head', kind: 'outfit', series: 'naash', title: 'Кепка школы', desc: 'Знак вышит на шести панелях, как на настоящей', price: 20 },
+  { id: 'school-scarf', slot: 'neck', kind: 'outfit', series: 'naash', title: 'Шарф в триколоре', desc: 'Полоса в цветах знака, с бахромой', price: 30 },
+  { id: 'school-hoodie', slot: 'body', kind: 'outfit', series: 'naash', title: 'Худи школы', desc: 'Футер цвета знака, знак на груди', price: 45 },
   // ── Техника (полка «Техника»): телефоны ─────────────────────────────────
   { id: 'phone-smart', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone Air', desc: 'Тонкий серебристый корпус и одна камера. Нажми на телефон, чтобы увидеть экран', price: 25 },
   { id: 'phone-flip', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone 17', desc: 'Лавандовое стекло и две камеры. Нажми на телефон, чтобы повернуть', price: 30 },
@@ -219,6 +237,10 @@ export const ITEM_BY_ID: Record<string, ShopItem> = Object.fromEntries(SHOP_ITEM
 
 /** Наряды и техника — одним фильтром, чтобы витрина не смешивала полки. */
 export const OUTFIT_ITEMS = SHOP_ITEMS.filter((item) => item.kind !== 'toy');
+/** Наряды вне линеек — полка «Наряды» без вещей школьного уголка. */
+export const CATALOG_OUTFITS = OUTFIT_ITEMS.filter((item) => !item.series);
+/** Вещи линейки: сейчас это форма школы НААШ (0.74.0). */
+export const SERIES_ITEMS = (series: ShopSeries) => SHOP_ITEMS.filter((item) => item.series === series);
 export const TOY_ITEMS = SHOP_ITEMS.filter((item) => item.kind === 'toy');
 
 export function isToy(item: ShopItem): boolean {
@@ -330,7 +352,9 @@ export function growthStage(mastered: number): GrowthStage {
  * уводить ребёнка на вещь с другой полки. Техника выбирается отдельно.
  */
 export function closestItem(owned: string[], kind: ShopItemKind = 'outfit'): ShopItem | null {
-  const left = SHOP_ITEMS.filter((i) => (i.kind ?? 'outfit') === kind && !isOwned(owned, i.id));
+  // Вещи линеек (0.74.0: форма школы) в общую лестницу не попадают: их полка
+  // живёт отдельно, и «ближайшая цель» не должна вести на чужую витрину.
+  const left = SHOP_ITEMS.filter((i) => (i.kind ?? 'outfit') === kind && !i.series && !isOwned(owned, i.id));
   if (!left.length) return null;
   return left.reduce((best, i) => (i.price < best.price ? i : best), left[0]);
 }

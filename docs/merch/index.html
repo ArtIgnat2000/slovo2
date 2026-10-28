@@ -1,0 +1,1313 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>НААШ — школьный знак на вещах: 37 примеров</title>
+    <meta
+      name="description"
+      content="Витрина идей: как знак Нижегородской авторской академической школы выглядит на одежде, канцелярии, технике и транспорте. 37 примеров картинками."
+    />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230F4CA0'/%3E%3Ctext x='32' y='44' font-family='sans-serif' font-size='30' font-weight='700' fill='white' text-anchor='middle'%3EН%3C/text%3E%3C/svg%3E" />
+    <style>
+      /* Шрифт линейки: Golos Text (SIL OFL 1.1) — тот же, что вшит в рендеры. */
+      @font-face {
+        font-family: 'Golos';
+        font-weight: 500;
+        font-display: swap;
+        src: url('fonts/golos-text-cyrillic-500-normal.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: 'Golos';
+        font-weight: 700;
+        font-display: swap;
+        src: url('fonts/golos-text-cyrillic-700-normal.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: 'Golos';
+        font-weight: 900;
+        font-display: swap;
+        src: url('fonts/golos-text-cyrillic-900-normal.woff2') format('woff2');
+      }
+
+      :root {
+        --blue: #0f4ca0;
+        --navy: #0a2c5e;
+        --navy-deep: #061b3d;
+        --red: #d4212b;
+        --amber: #f0a31c;
+        --green: #2e8b45;
+        --cream: #f4efe4;
+        --paper: #efe9dd;
+        --ink: #141a24;
+        --ink-2: #55596a;
+        --line: rgba(10, 44, 94, 0.12);
+        --radius: 20px;
+        --maxw: 1180px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        font-family: 'Golos', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        color: var(--ink);
+        background: var(--cream);
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+      }
+
+      img {
+        display: block;
+        max-width: 100%;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .wrap {
+        width: min(var(--maxw), calc(100% - 40px));
+        margin-inline: auto;
+      }
+
+      /* ───────────────────────────── шапка ───────────────────────────── */
+      .top {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        background: rgba(244, 239, 228, 0.86);
+        backdrop-filter: saturate(1.4) blur(14px);
+        border-bottom: 1px solid var(--line);
+      }
+
+      .top__in {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        min-height: 64px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        color: var(--navy);
+        text-decoration: none;
+      }
+
+      .brand svg {
+        width: 34px;
+        height: 30px;
+        flex: none;
+      }
+
+      .brand b {
+        font-size: 17px;
+        letter-spacing: 0.08em;
+      }
+
+      .brand span {
+        display: block;
+        font-size: 12px;
+        font-weight: 500;
+        letter-spacing: 0.06em;
+        color: var(--ink-2);
+      }
+
+      .nav {
+        margin-left: auto;
+        display: flex;
+        gap: 4px;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+
+      .nav::-webkit-scrollbar {
+        display: none;
+      }
+
+      .nav a {
+        padding: 8px 12px;
+        border-radius: 999px;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--ink-2);
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      .nav a:hover {
+        background: rgba(15, 76, 160, 0.08);
+        color: var(--navy);
+      }
+
+      /* ───────────────────────────── обложка ───────────────────────────── */
+      .hero {
+        padding: 34px 0 0;
+      }
+
+      .hero__card {
+        overflow: hidden;
+        border-radius: 28px;
+        background: var(--paper);
+        box-shadow: 0 30px 60px -40px rgba(6, 27, 61, 0.5);
+      }
+
+      .hero__img {
+        width: 100%;
+      }
+
+      .hero__lead {
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+        gap: 28px;
+        padding: 34px 36px 38px;
+        background: var(--navy-deep);
+        color: var(--cream);
+      }
+
+      .hero__lead h1 {
+        margin: 0 0 14px;
+        font-size: clamp(26px, 3.2vw, 40px);
+        line-height: 1.12;
+        letter-spacing: -0.01em;
+      }
+
+      .hero__lead p {
+        margin: 0;
+        font-size: 16px;
+        line-height: 1.6;
+        color: #b7c6dd;
+      }
+
+      .facts {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px 20px;
+        align-content: start;
+      }
+
+      .fact b {
+        display: block;
+        font-size: 28px;
+        font-weight: 900;
+        letter-spacing: -0.01em;
+      }
+
+      .fact span {
+        font-size: 13px;
+        font-weight: 500;
+        color: #8fa4c2;
+        letter-spacing: 0.04em;
+      }
+
+      /* ───────────────────────────── секции ───────────────────────────── */
+      section {
+        padding: 56px 0 0;
+        scroll-margin-top: 78px;
+      }
+
+      .card__img {
+        cursor: zoom-in;
+      }
+
+      .card__img:focus-visible {
+        outline: 3px solid var(--blue);
+        outline-offset: -3px;
+      }
+
+      /* Просмотр картинки на весь экран: единственное действие на странице. */
+      .lightbox {
+        position: fixed;
+        inset: 0;
+        z-index: 90;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        padding: 32px;
+        background: rgba(6, 27, 61, 0.95);
+      }
+
+      .lightbox[data-open='1'] {
+        display: flex;
+      }
+
+      .lightbox__img {
+        max-width: min(92vw, 720px);
+        max-height: 76vh;
+        width: auto;
+        border-radius: 16px;
+        box-shadow: 0 40px 90px -40px rgba(0, 0, 0, 0.9);
+        background: var(--paper);
+      }
+
+      .lightbox__cap {
+        text-align: center;
+        color: var(--cream);
+      }
+
+      .lightbox__cap b {
+        display: block;
+        font-size: 19px;
+        font-weight: 700;
+      }
+
+      .lightbox__cap span {
+        display: block;
+        margin-top: 4px;
+        font-size: 14.5px;
+        opacity: 0.72;
+      }
+
+      .lightbox__nav,
+      .lightbox__close {
+        position: absolute;
+        display: grid;
+        place-items: center;
+        border: 1px solid rgba(244, 239, 228, 0.25);
+        border-radius: 999px;
+        background: rgba(244, 239, 228, 0.08);
+        color: var(--cream);
+        font: inherit;
+        font-size: 22px;
+        line-height: 1;
+        cursor: pointer;
+        transition: background 0.2s ease;
+      }
+
+      .lightbox__nav {
+        top: 50%;
+        width: 52px;
+        height: 52px;
+        transform: translateY(-50%);
+      }
+
+      .lightbox__nav--prev {
+        left: 24px;
+      }
+
+      .lightbox__nav--next {
+        right: 24px;
+      }
+
+      .lightbox__close {
+        top: 20px;
+        right: 24px;
+        width: 44px;
+        height: 44px;
+        font-size: 26px;
+      }
+
+      .lightbox__nav:hover,
+      .lightbox__close:hover {
+        background: rgba(244, 239, 228, 0.18);
+      }
+
+      .notice {
+        margin: 28px 0;
+        padding: 18px 20px;
+        border-radius: var(--radius);
+        background: #fbeae6;
+        color: #8a2b1c;
+        font-size: 15px;
+        line-height: 1.5;
+      }
+
+      .lookbook {
+        margin: 0 0 8px;
+        border-radius: var(--radius);
+        background: #fbf8f1;
+        overflow: hidden;
+        box-shadow: 0 24px 60px -46px rgba(6, 27, 61, 0.75);
+      }
+
+      .lookbook img {
+        display: block;
+        width: 100%;
+        aspect-ratio: 1800 / 900;
+        object-fit: cover;
+      }
+
+      .lookbook figcaption {
+        padding: 18px 24px 22px;
+        font-size: 14.5px;
+        line-height: 1.55;
+        color: var(--ink-2);
+      }
+
+      .lookbook figcaption b {
+        color: var(--ink);
+      }
+
+      .sec__note {
+        margin: 22px 0 0;
+        max-width: 62ch;
+        font-size: 14.5px;
+        line-height: 1.55;
+        color: var(--ink-2);
+      }
+
+      .sec__cover {
+        overflow: hidden;
+        border-radius: var(--radius);
+        margin-bottom: 26px;
+      }
+
+      .sec__cover img,
+      .sec__cover-img {
+        width: 100%;
+        aspect-ratio: 1400 / 520;
+        object-fit: cover;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 20px;
+      }
+
+      .card {
+        position: relative;
+        border-radius: var(--radius);
+        background: #fbf8f1;
+        overflow: hidden;
+        box-shadow: 0 18px 40px -34px rgba(6, 27, 61, 0.7);
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+      }
+
+      .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 26px 48px -32px rgba(6, 27, 61, 0.55);
+      }
+
+      .card__img {
+        width: 100%;
+        aspect-ratio: 900 / 1120;
+        object-fit: cover;
+        background: var(--paper);
+      }
+
+      .card__tag {
+        position: absolute;
+        top: 14px;
+        left: 14px;
+        padding: 5px 12px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--blue);
+        background: rgba(15, 76, 160, 0.09);
+      }
+
+      .card__body {
+        padding: 14px 18px 20px;
+      }
+
+      .card__name {
+        margin: 0 0 6px;
+        font-size: 17px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+      }
+
+      .card__sub {
+        margin: 0;
+        font-size: 13.5px;
+        line-height: 1.45;
+        color: var(--ink-2);
+      }
+
+      /* ───────────────────── заголовок секции ───────────────────── */
+      .sec-head {
+        margin: 0 0 20px;
+      }
+
+      .sec-head h2 {
+        margin: 0 0 6px;
+        font-size: clamp(20px, 2.4vw, 26px);
+        font-weight: 900;
+        letter-spacing: -0.02em;
+      }
+
+      .sec-head p {
+        margin: 0;
+        max-width: 64ch;
+        font-size: 15px;
+        line-height: 1.55;
+        color: var(--ink-2);
+      }
+
+      /* ───────────────────────────── знак ───────────────────────────── */
+      .mark-block {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 20px;
+      }
+
+      .mark-block figure {
+        margin: 0;
+        border-radius: var(--radius);
+        overflow: hidden;
+        background: #fbf8f1;
+      }
+
+      .mark-block img {
+        width: 100%;
+      }
+
+      .mark-block figcaption {
+        padding: 12px 18px 16px;
+        font-size: 13.5px;
+        color: var(--ink-2);
+        line-height: 1.5;
+      }
+
+      /* ───────────────────────────── правила ───────────────────────────── */
+      .rules {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 18px;
+        margin-top: 6px;
+      }
+
+      .rule {
+        padding: 22px 22px 24px;
+        border-radius: var(--radius);
+        background: #fbf8f1;
+        border: 1px solid var(--line);
+      }
+
+      .rule b {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 15px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--blue);
+      }
+
+      .rule p {
+        margin: 0;
+        font-size: 14.5px;
+        line-height: 1.55;
+        color: var(--ink-2);
+      }
+
+      .swatches {
+        display: flex;
+        gap: 10px;
+        margin-top: 14px;
+        flex-wrap: wrap;
+      }
+
+      .sw {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        box-shadow: inset 0 0 0 1px rgba(20, 26, 36, 0.08);
+        position: relative;
+      }
+
+      .sw i {
+        position: absolute;
+        inset: auto 0 -20px;
+        font-size: 9.5px;
+        font-style: normal;
+        letter-spacing: 0.04em;
+        color: var(--ink-2);
+        text-align: center;
+      }
+
+      /* ───────────────────── как это встанет в приложение ───────────────────── */
+      .phases {
+        display: grid;
+        gap: 14px;
+        margin-top: 8px;
+      }
+
+      .phase {
+        display: grid;
+        grid-template-columns: 92px minmax(0, 1fr);
+        gap: 20px;
+        padding: 22px 24px;
+        border-radius: var(--radius);
+        background: #fbf8f1;
+        border: 1px solid var(--line);
+      }
+
+      .phase b {
+        font-size: 13px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--red);
+      }
+
+      .phase h3 {
+        margin: 0 0 8px;
+        font-size: 19px;
+      }
+
+      .phase p {
+        margin: 0;
+        font-size: 14.5px;
+        line-height: 1.6;
+        color: var(--ink-2);
+      }
+
+      .phase code {
+        padding: 1px 6px;
+        border-radius: 6px;
+        background: rgba(15, 76, 160, 0.08);
+        font-size: 13px;
+      }
+
+      footer {
+        margin-top: 64px;
+        padding: 34px 0 46px;
+        border-top: 1px solid var(--line);
+        font-size: 13px;
+        line-height: 1.65;
+        color: var(--ink-2);
+      }
+
+      footer b {
+        color: var(--navy);
+      }
+
+      @media (max-width: 760px) {
+        .hero__lead {
+          grid-template-columns: 1fr;
+          padding: 26px 22px 30px;
+        }
+
+        .grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .card__body {
+          padding: 10px 12px 14px;
+        }
+
+        .card__name {
+          font-size: 14px;
+        }
+
+        .card__sub {
+          font-size: 11.5px;
+        }
+
+        .card__tag {
+          top: 9px;
+          left: 9px;
+          font-size: 9px;
+          padding: 4px 9px;
+        }
+
+        .phase {
+          grid-template-columns: 1fr;
+          gap: 8px;
+        }
+
+        .brand span {
+          display: none;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .lightbox {
+          padding: 16px;
+        }
+
+        .lightbox__nav {
+          width: 42px;
+          height: 42px;
+        }
+
+        .lightbox__nav--prev {
+          left: 8px;
+        }
+
+        .lightbox__nav--next {
+          right: 8px;
+        }
+
+        .lightbox__img {
+          max-height: 68vh;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+
+        .card {
+          transition: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="top">
+      <div class="wrap top__in">
+        <a class="brand" href="#top">
+          <svg viewBox="-40 -78 214 200" aria-hidden="true">
+            <g fill="none" stroke="#0F4CA0" stroke-width="9">
+              <path d="M-33 -12 L67 -70 L167 -12" stroke-width="8.6" />
+              <path d="M-21 -12 L67 -50 L155 -12" stroke-width="7.4" />
+              <path d="M56 -12 A11 11 0 0 1 78 -12" stroke-width="7" />
+            </g>
+            <g fill="none" stroke-width="6.2">
+              <path d="M3 100 V0 M26 100 V0 M3 75.6 H26" stroke="#D4212B" />
+              <path d="M38 100 V47 L52.5 0 L67 47 V100 M38 75.6 H67" stroke="#F0A31C" />
+              <path d="M73 100 V47 L87.5 0 L102 47 V100 M73 75.6 H102" stroke="#2E8B45" />
+              <path d="M108 100 V0 M121.5 0 V97 M135 100 V0 M108 97 H135" stroke="#0F4CA0" />
+            </g>
+          </svg>
+          <div>
+            <b>НААШ</b>
+            <span>фирменный мерч · 1995</span>
+          </div>
+        </a>
+        <nav class="nav" aria-label="Полки">
+          <a href="#wear">Одежда</a>
+          <a href="#paper">Канцелярия</a>
+          <a href="#home">Дом</a>
+          <a href="#tech">Техника</a>
+          <a href="#transport">Ливрея</a>
+          <a href="#textile">Ткани</a>
+          <a href="#mark">Знак</a>
+          <a href="#rules">Правила</a>
+          <a href="#app">В приложении</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="top">
+      <div class="wrap hero">
+        <div class="hero__card">
+          <img
+            class="hero__img"
+            src="./img/hero.webp"
+            alt="Футболка, худи и шоппер с фирменной символикой Нижегородской авторской академической школы"
+          />
+          <div class="hero__lead">
+            <div>
+              <h1>Школьный знак на вещах:<br />37 примеров</h1>
+              <p>
+                Как знак НААШ выглядит на футболке, блокноте, кружке, рюкзаке и даже на борту
+                лайнера. Это витрина идей для приложения: подборка картинок, а не товары к продаже —
+                цен нет, заказывать нечего. Нажмите на картинку, чтобы посмотреть её крупно.
+              </p>
+            </div>
+            <div class="facts">
+              <div class="fact"><b>37</b><span>примеров</span></div>
+              <div class="fact"><b>6</b><span>полок</span></div>
+              <div class="fact"><b>3</b><span>версии знака</span></div>
+              <div class="fact"><b>4</b><span>цвета в подборке</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="wrap">
+        <div class="sec-head">
+          <h2>Что нарисовано</h2>
+          <p>
+            Шесть полок — от футболки до лайнера. У каждой вещи один и тот же знак в трёх
+            версиях: цветной, одноцветной и круглой печатью «1995». Клик по картинке — просмотр
+            крупно, стрелки на клавиатуре — соседние примеры.
+          </p>
+        </div>
+      </div>
+
+      <div class="wrap">
+        <figure class="lookbook">
+          <img
+            src="./img/lookbook.webp"
+            alt="Раскладка вещей линейки: рюкзак, футболка, худи, шоппер, кепка, блокнот, ручка, носки и бутылка с одним и тем же знаком"
+            loading="lazy"
+            decoding="async"
+          />
+          <figcaption>
+            <b>Одна серия.</b> Девять вещей рядом: знак один, полоса из трёх цветов одна,
+            шрифт один. Поэтому линейка читается как бренд, а не как набор сувениров.
+          </figcaption>
+        </figure>
+      </div>
+
+      <div class="wrap" id="shelves">
+        <!-- shelves:start — этот блок собирает scripts/make-merch-art.mjs, руками не править -->
+        <section id="wear">
+          <div class="sec__cover"><img class="sec__cover-img" src="./img/cover-wear.webp" alt="Одежда" loading="lazy" decoding="async" /></div>
+          <div class="grid">
+          <article class="card">
+            <div class="card__tag">основа</div>
+            <img class="card__img" src="./img/tee-classic.webp" alt="Футболка «Классика» — Знак 22 см на груди, хлопок 190 г/м²" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Футболка «Классика». Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Футболка «Классика»</h2>
+              <p class="card__sub">Знак 22 см на груди, хлопок 190 г/м²</p>
+            </div>
+          </article>
+          <article class="card">
+            <div class="card__tag">парадная</div>
+            <img class="card__img" src="./img/tee-lockup.webp" alt="Футболка «Замок» — Название школы в одну строку — видно в толпе" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Футболка «Замок». Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Футболка «Замок»</h2>
+              <p class="card__sub">Название школы в одну строку — видно в толпе</p>
+            </div>
+          </article>
+          <article class="card">
+            <img class="card__img" src="./img/tee-back.webp" alt="Футболка «Спина» — Маленький знак на груди, большая печать на спине" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Футболка «Спина». Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Футболка «Спина»</h2>
+              <p class="card__sub">Маленький знак на груди, большая печать на спине</p>
+            </div>
+          </article>
+          <article class="card">
+            <img class="card__img" src="./img/long-1995.webp" alt="Лонгслив «1995» — Год основания на рукаве, знак на груди" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Лонгслив «1995». Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Лонгслив «1995»</h2>
+              <p class="card__sub">Год основания на рукаве, знак на груди</p>
+            </div>
+          </article>
+          <article class="card">
+            <div class="card__tag">вышивка</div>
+            <img class="card__img" src="./img/hoodie-roof.webp" alt="Худи «Крыша» — Футер 320 г/м², вышивка вместо печати" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Худи «Крыша». Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Худи «Крыша»</h2>
+              <p class="card__sub">Футер 320 г/м², вышивка вместо печати</p>
+            </div>
+          </article>
+          <article class="card">
+            <img class="card__img" src="./img/sweatshirt-school.webp" alt="Свитшот «Школа» — Знак и название, мягкая резинка, унисекс" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Свитшот «Школа». Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Свитшот «Школа»</h2>
+              <p class="card__sub">Знак и название, мягкая резинка, унисекс</p>
+            </div>
+          </article>
+          <article class="card">
+            <div class="card__tag">для взрослых</div>
+            <img class="card__img" src="./img/polo-staff.webp" alt="Поло «Учитель» — Пике, вышитый знак, воротник-стойка" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Поло «Учитель». Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Поло «Учитель»</h2>
+              <p class="card__sub">Пике, вышитый знак, воротник-стойка</p>
+            </div>
+          </article>
+          <article class="card">
+            <img class="card__img" src="./img/cap-roof.webp" alt="Кепка «Крыша» — Вышивка на шесть панелей, регулируемый ремешок" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Кепка «Крыша». Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Кепка «Крыша»</h2>
+              <p class="card__sub">Вышивка на шесть панелей, регулируемый ремешок</p>
+            </div>
+          </article>
+          <article class="card">
+            <img class="card__img" src="./img/beanie-winter.webp" alt="Шапка «Зима» — Двойной акрил, нашивка спереди" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Шапка «Зима». Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Шапка «Зима»</h2>
+              <p class="card__sub">Двойной акрил, нашивка спереди</p>
+            </div>
+          </article>
+          <article class="card">
+            <img class="card__img" src="./img/scarf-stripes.webp" alt="Шарф «Полоса» — Полоса в цветах букв, бахрома" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Шарф «Полоса». Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Шарф «Полоса»</h2>
+              <p class="card__sub">Полоса в цветах букв, бахрома</p>
+            </div>
+          </article>
+          <article class="card">
+            <img class="card__img" src="./img/socks-pair.webp" alt="Носки «Пара» — Две пары в наборе: с полосой и со знаком" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Носки «Пара». Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Носки «Пара»</h2>
+              <p class="card__sub">Две пары в наборе: с полосой и со знаком</p>
+            </div>
+          </article>
+          <article class="card">
+            <div class="card__tag">основа</div>
+            <img class="card__img" src="./img/tote-canvas.webp" alt="Шоппер «Холст» — Плотный хлопок, внутренний карман, печать на всю сторону" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Шоппер «Холст». Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Шоппер «Холст»</h2>
+              <p class="card__sub">Плотный хлопок, внутренний карман, печать на всю сторону</p>
+            </div>
+          </article>
+          </div>
+        </section>
+        <section id="paper">
+          <div class="sec__cover"><img class="sec__cover-img" src="./img/cover-paper.webp" alt="Канцелярия" loading="lazy" decoding="async" /></div>
+          <div class="grid">
+          <article class="card">
+            <div class="card__tag">основа</div>
+            <img class="card__img" src="./img/notebook-a5.webp" alt="Блокнот A5 — Твёрдая обложка, резинка, 96 страниц в точку" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Блокнот A5. Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Блокнот A5</h2>
+              <p class="card__sub">Твёрдая обложка, резинка, 96 страниц в точку</p>
+            </div>
+          </article>
+          <article class="card">
+            <img class="card__img" src="./img/pen-gel.webp" alt="Ручка «Синяя» — Гелевая, 0,5 мм, гравировка на корпусе" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Ручка «Синяя». Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Ручка «Синяя»</h2>
+              <p class="card__sub">Гелевая, 0,5 мм, гравировка на корпусе</p>
+            </div>
+          </article>
+          <article class="card">
+            <img class="card__img" src="./img/pencils-set.webp" alt="Карандаши «Четыре» — Набор в цветах букв, точилка в комплекте" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Карандаши «Четыре». Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Карандаши «Четыре»</h2>
+              <p class="card__sub">Набор в цветах букв, точилка в комплекте</p>
+            </div>
+          </article>
+          <article class="card">
+            <img class="card__img" src="./img/stickers.webp" alt="Лист наклеек — Шесть наклеек на ноутбук, пенал и дневник" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Лист наклеек. Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Лист наклеек</h2>
+              <p class="card__sub">Шесть наклеек на ноутбук, пенал и дневник</p>
+            </div>
+          </article>
+          <article class="card">
+            <div class="card__tag">мелкий формат</div>
+            <img class="card__img" src="./img/pins-enamel.webp" alt="Значки «Три» — Эмаль с золотой окантовкой: знак, крыша, 1995" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Значки «Три». Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Значки «Три»</h2>
+              <p class="card__sub">Эмаль с золотой окантовкой: знак, крыша, 1995</p>
+            </div>
+          </article>
+          <article class="card">
+            <img class="card__img" src="./img/patch-chevron.webp" alt="Нашивка «Шеврон» — Тканая, пришивается на рюкзак или куртку" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Нашивка «Шеврон». Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Нашивка «Шеврон»</h2>
+              <p class="card__sub">Тканая, пришивается на рюкзак или куртку</p>
+            </div>
+          </article>
+          <article class="card">
+            <img class="card__img" src="./img/lanyard-card.webp" alt="Ланъярд с пропуском — Для экскурсий: карточка с именем и классом" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Ланъярд с пропуском. Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Ланъярд с пропуском</h2>
+              <p class="card__sub">Для экскурсий: карточка с именем и классом</p>
+            </div>
+          </article>
+          <article class="card">
+            <img class="card__img" src="./img/magnet-home.webp" alt="Магнит «Дом» — На холодильник — знак и город" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Магнит «Дом». Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Магнит «Дом»</h2>
+              <p class="card__sub">На холодильник — знак и город</p>
+            </div>
+          </article>
+          </div>
+        </section>
+        <section id="home">
+          <div class="sec__cover"><img class="sec__cover-img" src="./img/cover-home.webp" alt="Дом и школа" loading="lazy" decoding="async" /></div>
+          <div class="grid">
+          <article class="card">
+            <div class="card__tag">без пластика</div>
+            <img class="card__img" src="./img/bottle-steel.webp" alt="Бутылка «Сталь» — 500 мл, лазерная гравировка, не держит запах" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Бутылка «Сталь». Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Бутылка «Сталь»</h2>
+              <p class="card__sub">500 мл, лазерная гравировка, не держит запах</p>
+            </div>
+          </article>
+          <article class="card">
+            <img class="card__img" src="./img/mug-home.webp" alt="Кружка «Утро» — Керамика 330 мл, печать под глазурью" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Кружка «Утро». Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Кружка «Утро»</h2>
+              <p class="card__sub">Керамика 330 мл, печать под глазурью</p>
+            </div>
+          </article>
+          <article class="card">
+            <img class="card__img" src="./img/tumbler-travel.webp" alt="Термокружка — 350 мл, держит тепло 4 часа — для дороги на олимпиаду" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Термокружка. Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Термокружка</h2>
+              <p class="card__sub">350 мл, держит тепло 4 часа — для дороги на олимпиаду</p>
+            </div>
+          </article>
+          <article class="card">
+            <img class="card__img" src="./img/lunchbox.webp" alt="Ланч-бокс — Два отделения, крышка-тарелка, ручка" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Ланч-бокс. Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Ланч-бокс</h2>
+              <p class="card__sub">Два отделения, крышка-тарелка, ручка</p>
+            </div>
+          </article>
+          <article class="card">
+            <img class="card__img" src="./img/umbrella-panels.webp" alt="Зонт «Восемь клиньев» — Ветрозащитный каркас, чехол в тон" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Зонт «Восемь клиньев». Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Зонт «Восемь клиньев»</h2>
+              <p class="card__sub">Ветрозащитный каркас, чехол в тон</p>
+            </div>
+          </article>
+          <article class="card">
+            <div class="card__tag">1–4 класс</div>
+            <img class="card__img" src="./img/backpack-school.webp" alt="Рюкзак «Школа» — Ортопедическая спинка, светоотражатели, 18 л" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Рюкзак «Школа». Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Рюкзак «Школа»</h2>
+              <p class="card__sub">Ортопедическая спинка, светоотражатели, 18 л</p>
+            </div>
+          </article>
+          </div>
+        </section>
+        <section id="tech">
+          <div class="sec__cover"><img class="sec__cover-img" src="./img/cover-tech.webp" alt="Техника" loading="lazy" decoding="async" /></div>
+          <div class="grid">
+          <article class="card">
+            <img class="card__img" src="./img/phone-case.webp" alt="Чехол для телефона — Мягкий TPU, печать по всей спинке" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Чехол для телефона. Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Чехол для телефона</h2>
+              <p class="card__sub">Мягкий TPU, печать по всей спинке</p>
+            </div>
+          </article>
+          <article class="card">
+            <img class="card__img" src="./img/laptop-sleeve.webp" alt="Чехол для ноутбука — 13–14″, фетр с резинкой, для информатики" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Чехол для ноутбука. Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Чехол для ноутбука</h2>
+              <p class="card__sub">13–14″, фетр с резинкой, для информатики</p>
+            </div>
+          </article>
+          <article class="card">
+            <img class="card__img" src="./img/deskmat.webp" alt="Коврик на стол — Ткань + нескользящая основа, 60×30 см" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Коврик на стол. Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Коврик на стол</h2>
+              <p class="card__sub">Ткань + нескользящая основа, 60×30 см</p>
+            </div>
+          </article>
+          <article class="card">
+            <img class="card__img" src="./img/powerbank.webp" alt="Пауэрбанк 10 000 — Два выхода, индикатор, гравировка" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Пауэрбанк 10 000. Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Пауэрбанк 10 000</h2>
+              <p class="card__sub">Два выхода, индикатор, гравировка</p>
+            </div>
+          </article>
+          <article class="card">
+            <img class="card__img" src="./img/mouse-wireless.webp" alt="Мышь беспроводная — Тихие кнопки, один аккумулятор на полгода" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Мышь беспроводная. Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Мышь беспроводная</h2>
+              <p class="card__sub">Тихие кнопки, один аккумулятор на полгода</p>
+            </div>
+          </article>
+          </div>
+        </section>
+        <section id="transport">
+          <div class="sec__cover"><img class="sec__cover-img" src="./img/cover-transport.webp" alt="Техника в ливрее" loading="lazy" decoding="async" /></div>
+          <div class="grid">
+          <article class="card">
+            <div class="card__tag">серия ливреи</div>
+            <img class="card__img" src="./img/plane-livery.webp" alt="Лайнер «НААШ Эйр» — Полная ливрея: тёмный хвост, триколор, знак на киле" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Лайнер «НААШ Эйр». Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Лайнер «НААШ Эйр»</h2>
+              <p class="card__sub">Полная ливрея: тёмный хвост, триколор, знак на киле</p>
+            </div>
+          </article>
+          <article class="card">
+            <img class="card__img" src="./img/bus-city.webp" alt="Автобус «Школьный» — Ливрея городского маршрута, номер рейса — класс" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Автобус «Школьный». Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Автобус «Школьный»</h2>
+              <p class="card__sub">Ливрея городского маршрута, номер рейса — класс</p>
+            </div>
+          </article>
+          <article class="card">
+            <img class="card__img" src="./img/tram-nn.webp" alt="Трамвай «Нижний» — Ретро-трамвай в цветах школы — для фото у входа" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Трамвай «Нижний». Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Трамвай «Нижний»</h2>
+              <p class="card__sub">Ретро-трамвай в цветах школы — для фото у входа</p>
+            </div>
+          </article>
+          <article class="card">
+            <img class="card__img" src="./img/race-car.webp" alt="Болид «Ретро-07» — Классическая формула в ливрее школы" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Болид «Ретро-07». Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Болид «Ретро-07»</h2>
+              <p class="card__sub">Классическая формула в ливрее школы</p>
+            </div>
+          </article>
+          <article class="card">
+            <img class="card__img" src="./img/scooter.webp" alt="Самокат «До школы» — Складной, для последнего километра" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Самокат «До школы». Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Самокат «До школы»</h2>
+              <p class="card__sub">Складной, для последнего километра</p>
+            </div>
+          </article>
+          <article class="card">
+            <img class="card__img" src="./img/bike-frame.webp" alt="Велосипед «Синий» — Рама в цвет знака, знак на подседельной трубе" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Велосипед «Синий». Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Велосипед «Синий»</h2>
+              <p class="card__sub">Рама в цвет знака, знак на подседельной трубе</p>
+            </div>
+          </article>
+          </div>
+        </section>
+        <section id="textile">
+          <div class="sec__cover"><img class="sec__cover-img" src="./img/cover-textile.webp" alt="Ткани и упаковка" loading="lazy" decoding="async" /></div>
+          <div class="grid">
+          <article class="card">
+            <img class="card__img" src="./img/pattern-wrap.webp" alt="Обёрточная бумага — Узор из знака, шаг 7 мм, 70×100 см" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Обёрточная бумага. Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Обёрточная бумага</h2>
+              <p class="card__sub">Узор из знака, шаг 7 мм, 70×100 см</p>
+            </div>
+          </article>
+          <article class="card">
+            <img class="card__img" src="./img/pattern-fabric.webp" alt="Ткань для сумок и упаковки — Тот же узор в один цвет — печать по льну и хлопку" loading="lazy" decoding="async" tabindex="0" role="button" aria-label="Ткань для сумок и упаковки. Открыть крупно" />
+            <div class="card__body">
+              <h2 class="card__name">Ткань для сумок и упаковки</h2>
+              <p class="card__sub">Тот же узор в один цвет — печать по льну и хлопку</p>
+            </div>
+          </article>
+          </div>
+          <p class="sec__note">Эти два листа — материал, а не позиции каталога: узор можно использовать на бумаге и ткани, поэтому в счёте из 37 примеров его нет.</p>
+        </section>
+        <!-- shelves:end -->
+      </div>
+
+      <section class="wrap" id="mark">
+        <div class="sec-head">
+          <h2>Знак</h2>
+          <p>
+            Всё в подборке держится на одном знаке — он перерисован вектором по присланному
+            логотипу и проверен на мелких размерах: 2 см на значке, 22 см на груди.
+          </p>
+        </div>
+        <div class="mark-block">
+          <figure>
+            <img
+              src="./img/mark-system.webp"
+              alt="Знак школы: цветная и одноцветные версии, печать 1995"
+              loading="lazy"
+              decoding="async"
+            />
+            <figcaption>
+              <b>Знак.</b> Перерисован вектором по присланному логотипу: крыша с оконцем, четыре
+              буквы (обе «А» — домики), линейка. Цветная версия — для одежды, одноцветная — для
+              вышивки, тиснения и гравировки на металле.
+            </figcaption>
+          </figure>
+          <figure>
+            <img
+              src="./img/mark-lockups.webp"
+              alt="Горизонтальный и вертикальный словесные замки"
+              loading="lazy"
+              decoding="async"
+            />
+            <figcaption>
+              <b>Замки.</b> Горизонтальный — на груди и на вывесках, вертикальный — на нашивках,
+              бирках и обороте упаковки. Название никогда не набирается в три строки «лестницей».
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section class="wrap" id="rules">
+        <div class="sec-head">
+          <h2>Правила линейки</h2>
+          <p>
+            Четыре ограничения, из-за которых вещи выглядят как одна серия, а не как сувенирный
+            развал: цвет, печать, типографика и материал.
+          </p>
+        </div>
+        <div class="rules">
+          <div class="rule">
+            <b>Цвет</b>
+            <p>
+              Синий снят с логотипа (#0F4CA0), красный, янтарный и зелёный — цвета букв. Всё
+              остальное — приглушённый «школьный» гардероб: крем, графит, тёмный синий.
+            </p>
+            <div class="swatches">
+              <div class="sw" style="background:#0F4CA0"><i>#0F4CA0</i></div>
+              <div class="sw" style="background:#0A2C5E"><i>#0A2C5E</i></div>
+              <div class="sw" style="background:#D4212B"><i>#D4212B</i></div>
+              <div class="sw" style="background:#F0A31C"><i>#F0A31C</i></div>
+              <div class="sw" style="background:#2E8B45"><i>#2E8B45</i></div>
+              <div class="sw" style="background:#F4EFE4"><i>#F4EFE4</i></div>
+            </div>
+          </div>
+          <div class="rule">
+            <b>Печать</b>
+            <p>
+              На вещи — один знак или один замок. Четыре цвета букв не размножаются: радуга на
+              футболке читается как сувенир, одноцветная печать — как бренд.
+            </p>
+          </div>
+          <div class="rule">
+            <b>Типографика</b>
+            <p>
+              Golos Text (SIL OFL 1.1), 700/900, всегда капслок. «Ш К О Л А» — только вразрядку в
+              замке, никогда отдельной строкой поверх печати.
+            </p>
+          </div>
+          <div class="rule">
+            <b>Материалы</b>
+            <p>
+              Хлопок 190–320 г/м², металл — лазерная гравировка, эмаль — с золотой окантовкой.
+              Никакого пластика там, где он не нужен: бутылка, кружка, ланч-бокс — сталь/керамика.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="wrap" id="app">
+        <div class="sec-head">
+          <h2>Как это встанет в программу</h2>
+          <p>
+            Витрина задумана как раздел внутри приложения, рядом с магазином БУКа. Пока это
+            отдельная тестовая страница — чтобы посмотреть картинки и выбрать, что оставить.
+          </p>
+        </div>
+        <div class="phases">
+          <div class="phase">
+            <b>Где</b>
+            <div>
+              <h3>Раздел «Мерч» внутри программы</h3>
+              <p>
+                Галерея встаёт рядом с магазином БУКа: те же карточки, те же полки, тот же шрифт.
+                Внутри приложения это просто витрина картинок — листать, смотреть крупно,
+                обсуждать с классом.
+              </p>
+            </div>
+          </div>
+          <div class="phase">
+            <b>Что видно</b>
+            <div>
+              <h3>Картинка, название, одна строка смысла</h3>
+              <p>
+                Ни цен, ни кнопки «купить», ни счётчика остатков. Каждый пример объясняет,
+                как знак ложится на вещь: размер, техника, цвет. Этого достаточно, чтобы понять
+                идею линейки.
+              </p>
+            </div>
+          </div>
+          <div class="phase">
+            <b>Как листать</b>
+            <div>
+              <h3>Шесть полок и просмотр на весь экран</h3>
+              <p>
+                Одежда, канцелярия, дом, техника, техника в ливрее, ткани. Клик или тап по
+                картинке открывает её целиком; стрелки на клавиатуре переключают соседние.
+              </p>
+            </div>
+          </div>
+          <div class="phase">
+            <b>Дальше</b>
+            <div>
+              <h3>Сначала выбрать, потом рисовать ещё</h3>
+              <p>
+                Смысл витрины — собрать мнение: какие 10–15 вещей действительно «наши», что
+                убрать, чего не хватает. По этому списку и дорабатывается графика. Настоящий
+                выпуск вещей — отдельное решение школы, не часть этой задачи.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <b>НААШ · школьный знак на вещах.</b> Витрина идей, 2026. Знак перерисован вектором по
+        присланным растровым версиям логотипа; вся графика оригинальная — она собрана скриптом
+        <code>scripts/make-merch-art.mjs</code> из исходников <code>scripts/merch/*.mjs</code>.
+        Шрифт Golos Text распространяется по лицензии SIL OFL 1.1.<br />
+        На странице нет цен, корзины и ссылок на магазины: это примеры оформления, а не товары.
+      </div>
+    </footer>
+
+    <noscript>
+      <p class="notice wrap">
+        Просмотр крупно работает на JavaScript. Сами картинки видны и без него — листайте полки.
+      </p>
+    </noscript>
+    <script>
+      // Просмотр крупно. Страница статическая: карточки уже в HTML, скрипт только
+      // добавляет увеличение. Если он не выполнится, витрина всё равно на месте.
+      (function () {
+        var cards = [].slice.call(document.querySelectorAll('#shelves .card'));
+        if (!cards.length) return;
+
+        var slides = cards.map(function (card) {
+          return {
+            img: card.querySelector('.card__img'),
+            name: (card.querySelector('.card__name') || {}).textContent || '',
+            sub: (card.querySelector('.card__sub') || {}).textContent || '',
+          };
+        });
+
+        var box = document.createElement('div');
+        box.className = 'lightbox';
+        box.setAttribute('role', 'dialog');
+        box.setAttribute('aria-modal', 'true');
+        box.setAttribute('aria-label', 'Просмотр примера');
+        box.innerHTML =
+          '<img class="lightbox__img" alt="" />' +
+          '<div class="lightbox__cap"><b></b><span></span></div>' +
+          '<button type="button" class="lightbox__nav lightbox__nav--prev" aria-label="Предыдущий пример">←</button>' +
+          '<button type="button" class="lightbox__nav lightbox__nav--next" aria-label="Следующий пример">→</button>' +
+          '<button type="button" class="lightbox__close" aria-label="Закрыть просмотр">×</button>';
+        document.body.appendChild(box);
+
+        var bigImg = box.querySelector('.lightbox__img');
+        var nameEl = box.querySelector('.lightbox__cap b');
+        var subEl = box.querySelector('.lightbox__cap span');
+        var current = -1;
+
+        function show(index) {
+          current = (index + slides.length) % slides.length;
+          var slide = slides[current];
+          bigImg.src = slide.img.src;
+          bigImg.alt = slide.img.alt;
+          nameEl.textContent = slide.name;
+          subEl.textContent = slide.sub;
+          box.setAttribute('data-open', '1');
+          document.body.style.overflow = 'hidden';
+          box.querySelector('.lightbox__close').focus();
+        }
+
+        function close() {
+          box.removeAttribute('data-open');
+          document.body.style.overflow = '';
+          if (slides[current]) slides[current].img.focus();
+        }
+
+        slides.forEach(function (slide, index) {
+          var open = function () {
+            show(index);
+          };
+          slide.img.addEventListener('click', open);
+          slide.img.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              open();
+            }
+          });
+        });
+
+        box.querySelector('.lightbox__close').addEventListener('click', close);
+        box.querySelector('.lightbox__nav--prev').addEventListener('click', function () {
+          show(current - 1);
+        });
+        box.querySelector('.lightbox__nav--next').addEventListener('click', function () {
+          show(current + 1);
+        });
+        box.addEventListener('click', function (e) {
+          if (e.target === box) close();
+        });
+        document.addEventListener('keydown', function (e) {
+          if (box.getAttribute('data-open') !== '1') return;
+          if (e.key === 'Escape') close();
+          if (e.key === 'ArrowLeft') show(current - 1);
+          if (e.key === 'ArrowRight') show(current + 1);
+        });
+      })();
+    </script>
+  </body>
+</html>

@@ -1,8 +1,9 @@
-import { Children, useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { masteredCount, useActiveProfile, useApp, useLook } from '../../state/store';
 import { plural } from '../../engine/quests';
 import {
   ITEM_BY_ID,
+  CATALOG_OUTFITS,
   OUTFIT_ITEMS,
   SHOP_ITEMS,
   SLOT_TITLE,
@@ -59,6 +60,9 @@ import { MusicCreditsToggle } from '../Credits';
 import { THEME_STYLES, type ThemeStyle } from '../../engine/theme-styles';
 import { BackgroundThemeCard } from '../BackgroundThemeCard';
 import { Icon, Gem } from '../Icon';
+import { ShowcaseGrid } from '../ShowcaseGrid';
+import { NaashPanel } from '../NaashPanel';
+import { SCHOOL } from '../../engine/naash';
 
 /**
  * Магазин БУКа (концепция 2026-10-17, docs/shop-concept.md).
@@ -101,12 +105,15 @@ const MUSIC_SHELVES: { shelf: MusicShelf; title: string }[] = [
 type View = 'vitrina' | 'wardrobe';
 
 /** Полки витрины — по типу товара, не по слоту совы. */
-type Cat = 'outfits' | 'toys' | 'buildings' | 'costumes' | 'sets' | 'music' | 'sounds' | 'backgrounds';
+type Cat = 'naash' | 'outfits' | 'toys' | 'buildings' | 'costumes' | 'sets' | 'music' | 'sounds' | 'backgrounds';
 
 // 0.54.0: у полок магазина — те же иконки набора, что в остальном интерфейсе.
 // У «Техники», «Музыки» и «Фонов» своей иконки в наборе 20 пока нет — остаются
 // эмодзи до следующей партии (см. docs/proposals/ui-icons.md §6, шаг 3b).
 const CATS: { id: Cat; title: string; emoji: string; icon?: 'hat' | 'puzzle' | 'speaker' }[] = [
+  // 0.74.0: школьный уголок НААШ первым — своя школа, а не ещё одна полка
+  // товаров (docs/proposals/naash-shop.md). Флаг SCHOOL.on убирает его целиком.
+  { id: 'naash', title: 'НААШ', emoji: '🏫' },
   { id: 'outfits', title: 'Наряды', emoji: '🎩', icon: 'hat' },
   { id: 'toys', title: 'Техника', emoji: '🚗' },
   { id: 'buildings', title: 'Базы', emoji: '🏙️' },
@@ -213,30 +220,6 @@ function ShopCard(props: {
         </button>
       )}
     </article>
-  );
-}
-
-/**
- * Витрина (0.19.0).
- *
- * Делим товары на ряды по два: каждый товар — своя арочная ниша с лампой и
- * подиумом, ряд — одна «линия» витрины. Разметка остаётся сеткой
- * `.shop-grid`, поэтому карточки и их размеры не меняются.
- *
- * Последний нечётный товар ставится по центру — пустого угла не остаётся.
- */
-function ShowcaseGrid({ children, tone }: { children: ReactNode; tone?: 'mint' | 'sky' }) {
-  const cells = Children.toArray(children);
-  const rows: ReactNode[][] = [];
-  for (let i = 0; i < cells.length; i += 2) rows.push(cells.slice(i, i + 2));
-  return (
-    <div className={`shop-boutique${tone ? ` shop-boutique-${tone}` : ''}`}>
-      {rows.map((row, index) => (
-        <div className={`shop-boutique-row shop-grid${row.length === 1 ? ' single' : ''}`} key={index}>
-          {row}
-        </div>
-      ))}
-    </div>
   );
 }
 
@@ -363,6 +346,9 @@ export function ShopScreen({
     .filter((item) => !isOwned(owned, item.id))
     .reduce<ShopItem | null>((best, item) => (!best || item.price < best.price ? item : best), null);
   const ownedOutfits = OUTFIT_ITEMS.filter((item) => isOwned(owned, item.id));
+  // 0.74.0: форма школы — отдельной группой в «Моих покупках»: её ищут вместе,
+  // а не по слотам («кепка» рядом с короной, «худи» рядом с платьями).
+  const ownedSchool = ownedOutfits.filter((item) => item.series === 'naash');
   const ownedToys = TOY_ITEMS.filter((item) => isOwned(owned, item.id));
   /**
    * Покупок ещё нет ни одной (0.32.1). Раньше «Мои покупки» у новичка
@@ -1448,7 +1434,7 @@ export function ShopScreen({
   );
 
   const ownedBySlot = (slot: string) =>
-    SHOP_ITEMS.filter((i) => i.slot === slot && isOwned(owned, i.id));
+    SHOP_ITEMS.filter((i) => i.slot === slot && isOwned(owned, i.id) && !i.series);
 
   return (
     <div className="screen">
@@ -1473,7 +1459,7 @@ export function ShopScreen({
         </div>
         {view === 'vitrina' && (
           <div className="shop-cats" role="tablist" aria-label="Разделы магазина">
-            {CATS.map((c) => (
+            {CATS.filter((c) => c.id !== 'naash' || SCHOOL.on).map((c) => (
               <button key={c.id} role="tab" aria-selected={cat === c.id} className={`chip${cat === c.id ? ' on' : ''}`} onClick={() => setCat(c.id)}>
                 {c.icon ? <Icon name={c.icon} size={16} /> : c.emoji} {c.title}
               </button>
@@ -1481,6 +1467,11 @@ export function ShopScreen({
           </div>
         )}
       </div>
+
+      {/* ── Школа НААШ (0.74.0): форма БУКа и полка идей ──────────────────────
+          Полка живёт своим компонентом: карточки ей передаёт магазин, поэтому
+          покупка, «Мечты», перекраска и сдача — те же, что на других полках. */}
+      {view === 'vitrina' && cat === 'naash' && SCHOOL.on && <NaashPanel renderItem={itemCard} />}
 
       {view === 'vitrina' && cat === 'outfits' && (
         <section className="mt" aria-label="Наряды">
@@ -1691,7 +1682,7 @@ export function ShopScreen({
             <h2 className="mb">Наряды БУКа</h2>
             <div className="tiny muted">Купленное сразу надевается · тап по карточке — подробнее</div>
           </div>
-          <ShowcaseGrid>{OUTFIT_ITEMS.map(itemCard)}</ShowcaseGrid>
+          <ShowcaseGrid>{CATALOG_OUTFITS.map(itemCard)}</ShowcaseGrid>
         </section>
       )}
 
@@ -1939,6 +1930,25 @@ export function ShopScreen({
           {ownedOutfits.length > 0 && (
           <section className="mb" aria-label="Наряды">
             <h2 className="mb">Наряды</h2>
+            {ownedSchool.length > 0 && (
+              <div className="mb">
+                <h3 className="music-shelf-title">🏫 Школа НААШ</h3>
+                <div className="col">
+                  {ownedSchool.map((item) =>
+                    wardrobeRow(
+                      item.id,
+                      { kind: 'item', item },
+                      <Mascot mood="idle" look={{ [item.slot]: item.id }} stage={growth.index} size={44} />,
+                      item.title,
+                      item.desc,
+                      isWearing(look, item),
+                      isWearing(look, item) ? 'Снять' : 'Надеть',
+                      () => tapWear(item),
+                    ),
+                  )}
+                </div>
+              </div>
+            )}
             {(['head', 'face', 'neck', 'badge', 'back', 'body', 'feet'] as const).map((slot) => {
               const items = ownedBySlot(slot);
               if (!items.length) return null;
