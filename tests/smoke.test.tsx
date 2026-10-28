@@ -53,6 +53,15 @@ import { runStudyEngineChecks } from './study.test';
 // Общая обвязка (клики, поиск кнопок, счётчик проверок) — в tests/ui-helpers.ts:
 // её же использует блок интеграционных проверок адаптации.
 
+/** Проверяет, что товарные карточки стоят по возрастанию цены. */
+function pricesAscending(selector: string): boolean {
+  const prices = Array.from(document.querySelectorAll(selector)).map((card) => {
+    const text = card.querySelector('.shop-price')?.textContent ?? '';
+    return Number(text.match(/\d+/)?.[0] ?? 0);
+  });
+  return prices.length > 0 && prices.every((price, index) => index === 0 || prices[index - 1] <= price);
+}
+
 /** Полоска прогресса именно урока (в шапке), а не уровня на главной. */
 function lessonBarWidth(): number {
   const i = document.querySelector('.row.mb .bar > i') as HTMLElement | null;
@@ -527,6 +536,7 @@ async function main() {
     Array.from(document.querySelectorAll('.shop-seg button')).map((b) => b.textContent).join(' | '),
   );
   check('витрина по умолчанию — полка нарядов', has('Наряды БУКа'), '');
+  check('наряды в витрине идут от меньшей цены к большей', pricesAscending('.shop-item'), Array.from(document.querySelectorAll('.shop-item .shop-title')).map((el) => el.textContent).join(' → '));
   check(
     'полки — чипами, «Звуки» уже открыты',
     has('Костюмы') && has('Музыка') && !!Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Звуки') && !c.hasAttribute('disabled')) && !has('скоро'),
@@ -535,14 +545,13 @@ async function main() {
   check('полка «Фоны» активна', !!Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Фоны') && !c.hasAttribute('disabled')), '');
   check('показан баланс кристаллов', hasGem(useApp.getState().profiles[0].gems), gemAmounts().join(' / '));
 
-  // 0.32.0: 🚗 убран из шапки главной, поэтому вход в ангар из покупок
-  // виден всегда — даже пока коллекция пуста (иначе ангар было бы не найти).
+  // «Мой мир» — третий верхний раздел БУКа, доступный даже при пустой коллекции.
   click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Мои покупки'))!);
   await sleep(40);
   check(
-    'в «Моих покупках» «Открыть ангар ➜» виден и при пустой коллекции техники',
+    '«Мой мир» доступен из БУКа и при пустой коллекции техники',
     (useApp.getState().profiles[0].shop?.owned ?? []).length === 0 &&
-      !!buttons().find((b) => (b.textContent ?? '').includes('Открыть ангар')),
+      !!Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Мой мир')),
     `куплено вещей: ${(useApp.getState().profiles[0].shop?.owned ?? []).length}`,
   );
   click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Витрина'))!);
@@ -635,6 +644,7 @@ async function main() {
   const toyTabs = () => Array.from(document.querySelectorAll('.shop-toy-cats [role="tab"]'));
   check('разделы авто, кораблей и телефонов доступны отдельными вкладками', ['Авто', 'Самолёты', 'Корабли', 'Телефоны', 'Питомцы', 'Спорт', 'Вкусняшки'].every((title) => toyTabs().some((tab) => (tab.textContent ?? '').includes(title))), '');
   check('«Авто» открывается первым и не смешивается с другими товарами', document.querySelectorAll('.shop-item.toy-item').length === 18 && has('Болид') && !has('Морская яхта') && !has('iPhone Air'), '');
+  check('авто внутри полки идут от меньшей цены к большей', pricesAscending('.shop-item.toy-item'));
   check(
     '«Авто»: восемнадцать машин стоят на отдельной полке (0.72.0: розовые, «Тесла» и розовый танк)',
     ['Звезда', 'Стрела', 'Кубик', 'Адмирал', 'Лорд', 'Бык', 'Молния', 'Болид', 'Скалолаз', 'Жёлтый кэб', 'Квант', 'Импульс', 'Полярник', 'Луноход', 'Розовая машина', 'Розовая звезда', 'Тесла', 'Розовый танк'].every((title) => has(title)),
@@ -656,6 +666,7 @@ async function main() {
   if (shipTab) click(shipTab);
   await sleep(30);
   check('«Корабли» — отдельная полка из пяти судов (0.72.0: добавлен «Титаник»)', document.querySelectorAll('.shop-item.toy-item').length === 5 && ['Морская яхта', 'Контейнеровоз', 'Супертанкер', 'Авианосец', 'Титаник'].every((title) => has(title)), '');
+  check('корабли внутри полки идут от меньшей цены к большей', pricesAscending('.shop-item.toy-item'));
   {
     const shipArt = Array.from(document.querySelectorAll('.shop-item.toy-item img')).map((img) => img.getAttribute('src') ?? '');
     check('у яхты, контейнеровоза, танкера и авианосца — свои цветные иллюстрации', shipArt.length === 4 && new Set(shipArt).size === 4 && shipArt.every((src) => /\/ships\/ship-(yacht|container|tanker|carrier)\.webp$/.test(src)), `рисунков: ${shipArt.join(', ')}`);
@@ -681,6 +692,7 @@ async function main() {
   await sleep(30);
   const phoneCard = Array.from(document.querySelectorAll('.shop-item.toy-item')).find((el) => (el.textContent ?? '').includes('iPhone Air'));
   check('телефоны и электроника остаются отдельным разделом', document.querySelectorAll('.shop-item.toy-item').length === 11 && document.querySelectorAll('.shop-item.toy-item .electronics-art').length === 11 && !!phoneCard?.querySelector('.phone-rotate'), '');
+  check('телефоны внутри полки идут от меньшей цены к большей', pricesAscending('.shop-item.toy-item'));
   const rotatingPhone = phoneCard?.querySelector('.phone-rotate');
   click(rotatingPhone);
   await sleep(30);
@@ -735,55 +747,23 @@ async function main() {
     toyBought && useApp.getState().profiles[0].shop?.equipped?.toy === 'car-racer',
     JSON.stringify(useApp.getState().profiles[0].shop?.equipped),
   );
-  check('купленная вещь показывает «На подиуме ✓»', has('На подиуме ✓'), '');
+  check('купленная техника отмечена как часть «Моего мира»', has('В Моём мире ✓'), '');
   // 0.22.0: техника больше не рисуется на БУКе (ни на сцене полки, ни где
   // ещё): внутри маскота нет <image> с купленной машиной.
   check('купленная техника не рисуется на БУКе', !document.querySelector('.mascot svg image'), '');
 
-  // ── Ангар БУКа (0.22.0): отдельная сцена коллекции техники ──────────────
-  // Вход на полке «Техника» открывает сцену; купленный «Болид» стоит на
-  // главном подиуме со звездой, тап убирает и возвращает вещь с подиума.
-  const hangarBtn = buttons().find((b) => (b.textContent ?? '').includes('Мой ангар'));
-  check('на полке «Техника» есть вход «Мой ангар»', !!hangarBtn, '');
-  click(hangarBtn);
+  // Техника — область полной коллекции, а не отдельная сцена/ангар.
+  const myWorldTab = Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Мой мир'));
+  check('в шапке БУКа есть единый раздел «Мой мир»', !!myWorldTab, '');
+  click(myWorldTab);
   await sleep(60);
-  check('ангар открылся', !!document.querySelector('.hangar') && has('Ангар БУКа'), body().slice(0, 200));
-  const hangarItems = Array.from(document.querySelectorAll('.hangar-item'));
-  check(
-    'в ангаре одна купленная вещь — «Болид» на главном подиуме',
-    hangarItems.length === 1 &&
-      (hangarItems[0].textContent ?? '').includes('Болид') &&
-      !!document.querySelector('.hangar-item.star') &&
-      has('★ На подиуме'),
-    `плашек: ${hangarItems.length}`,
-  );
-  click(document.querySelector('.hangar-item.star'));
-  await sleep(50);
-  check(
-    'тап по вещи на подиуме убирает её с подиума',
-    useApp.getState().profiles[0].shop?.equipped?.toy === undefined && !document.querySelector('.hangar-item.star'),
-    JSON.stringify(useApp.getState().profiles[0].shop?.equipped),
-  );
-  click(document.querySelector('.hangar-item'));
-  await sleep(50);
-  check(
-    'тап по вещи возвращает её на подиум',
-    useApp.getState().profiles[0].shop?.equipped?.toy === 'car-racer' && !!document.querySelector('.hangar-item.star'),
-    JSON.stringify(useApp.getState().profiles[0].shop?.equipped),
-  );
-  click(document.querySelector('.hangar [aria-label="Закрыть ангар"]'));
-  await sleep(50);
-  check('ангар закрывается крестиком', !document.querySelector('.hangar'), '');
+  const techRegion = Array.from(document.querySelectorAll('.collection-area')).find((area) => (area.getAttribute('aria-label') ?? '').startsWith('Техника:'));
+  check('«Мой мир» объединяет технику бывшего ангара с остальной коллекцией', !!techRegion && (techRegion.textContent ?? '').includes('Болид') && !!techRegion.querySelector('.collection-map-thumb') && !document.querySelector('.hangar'), body().slice(0, 200));
+  click(buttons().find((b) => (b.textContent ?? '').includes('Назад в БУК')));
+  await sleep(60);
+  check('возврат из «Моего мира» сохранил исходную полку «Техника»', (document.querySelector('.shop-cats .chip.on')?.textContent ?? '').includes('Техника'));
 
-  // Вход из покупок: у секции «Техника» своя кнопка.
   click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Мои покупки'))!);
-  await sleep(40);
-  const wardrobeHangarBtn = buttons().find((b) => (b.textContent ?? '').includes('Открыть ангар'));
-  check('в «Моих покупках» есть вход «Открыть ангар ➜»', !!wardrobeHangarBtn, '');
-  click(wardrobeHangarBtn);
-  await sleep(60);
-  check('ангар открылся из «Моих покупок»', !!document.querySelector('.hangar'), '');
-  click(document.querySelector('.hangar [aria-label="Закрыть ангар"]'));
   await sleep(40);
   click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Витрина'))!);
   await sleep(40);
@@ -908,6 +888,7 @@ async function main() {
   click(Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Звуки'))!);
   await sleep(30);
   check('в «Звуках» показаны все наборы', document.querySelectorAll('.sound-item').length === SOUND_PACKS.length, String(document.querySelectorAll('.sound-item').length));
+  check('наборы звуков идут от меньшей цены к большей', pricesAscending('.sound-item'));
   check('у каждого набора — «послушать» верный ответ и ошибку', document.querySelectorAll('.sound-item .sound-try button').length === SOUND_PACKS.length * 2, '');
   check('новый профиль звучит классикой', useApp.getState().profiles[0].shop?.soundPack === 'classic', String(useApp.getState().profiles[0].shop?.soundPack));
   const xyloCard = Array.from(document.querySelectorAll('.sound-item')).find((card) => (card.textContent ?? '').includes('Ксилофон'));
@@ -1287,8 +1268,8 @@ async function main() {
     menu?.querySelector('.menu-status')?.textContent ?? '',
   );
   check(
-    'в меню есть награды, покупки, ангар, класс и смена ученика',
-    ['rewards', 'purchases', 'hangar', 'class', 'profiles'].every(
+    'в меню есть награды, покупки, «Мой мир», класс и смена ученика',
+    ['rewards', 'purchases', 'world', 'class', 'profiles'].every(
       (key) => !!menu?.querySelector(`[data-menu="${key}"]`),
     ),
     Array.from(menu?.querySelectorAll('[data-menu]') ?? []).map((n) => n.getAttribute('data-menu')).join(' | '),
@@ -1344,7 +1325,7 @@ async function main() {
   click(btn((b) => (b.getAttribute('aria-label') ?? '') === 'Закрыть'));
   await sleep(40);
 
-  // «Мои покупки» и «Ангар» из меню — в один тап, на нужный сегмент БУКа.
+  // «Мои покупки» и «Мой мир» из меню ведут в соответствующие части БУКа.
   await openHomeMenu();
   click(document.querySelector('[data-menu="purchases"]'));
   await sleep(80);
@@ -1354,7 +1335,6 @@ async function main() {
     !!wardrobeTab && (wardrobeTab.textContent ?? '').includes('Мои покупки') && !document.querySelector('.home-menu'),
     body().slice(0, 200),
   );
-  // Нижняя вкладка «БУК» — всегда витрина, даже если меню завело в покупки.
   click(buttons().find((b) => (b.textContent ?? '').includes('БУК') && b.className.includes('tab')));
   await sleep(80);
   const shopTabSelect = document.querySelector('.shop-seg button[aria-selected="true"]');
@@ -1366,15 +1346,15 @@ async function main() {
   click(homeTab!);
   await sleep(80);
   await openHomeMenu();
-  click(document.querySelector('[data-menu="hangar"]'));
+  click(document.querySelector('[data-menu="world"]'));
   await sleep(80);
   check(
-    '«Ангар» из меню открывает ангар',
-    !!document.querySelector('.hangar') || has('Ангар БУКа'),
+    '«Мой мир» из меню открывает полную карту коллекции внутри БУКа',
+    !!document.querySelector('.my-world') && !!document.querySelector('.collection-map'),
     body().slice(0, 200),
   );
-  click(btn((b) => (b.getAttribute('aria-label') ?? '') === 'Закрыть ангар'));
-  await sleep(40);
+  click(buttons().find((b) => (b.textContent ?? '').includes('Назад в БУК')));
+  await sleep(50);
   click(homeTab!);
   await sleep(80);
 

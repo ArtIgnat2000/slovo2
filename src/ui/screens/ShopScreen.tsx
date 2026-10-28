@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { masteredCount, useActiveProfile, useApp, useLook } from '../../state/store';
 import { plural } from '../../engine/quests';
 import {
@@ -21,9 +21,7 @@ import {
   sellPrice,
   toysByShelf,
   wardrobeValue,
-  compareByRarity,
   rarityOf,
-  RARITY_ORDER,
   type ToyKind,
 } from '../../engine/shop';
 import { BUILDINGS, BUILDING_BY_ID, isBuildingOwned, type BuildingItem } from '../../engine/buildings';
@@ -35,7 +33,7 @@ import { ToyArt } from '../ToyArt';
 import { isRotatingPhone } from '../ElectronicsArt';
 import { carAlt, carKind, carNote, hasCarArt } from '../CarArt';
 import { hasShipArt, shipAlt, shipKind, shipNote } from '../ShipArt';
-import { HangarScene } from '../HangarScene';
+import { WorldScreen } from './WorldScreen';
 import {
   ALL_COSTUMES,
   CRYSTAL_COSTUMES,
@@ -74,16 +72,13 @@ import { SCHOOL } from '../../engine/naash';
  *    фоны / звуки; новый раздел не требует переделки экрана;
  *  • **витрина-бутик (0.19.0):** у каждого товара своя арочная ниша с лампой и
  *    подиумом (`ShowcaseGrid`) — магазин выглядит витриной, а не списком карточек;
- *  • **техника (0.19.0 → 0.22.0):** авто, телефоны и корабли — отдельная
- *    полка с тремя подполками. Вещь живёт в слоте `toy`, но на БУКе больше
- *    не рисуется (правило `showsOnBuk`): коллекция экспонируется в сцене
- *    «Ангар» (ui/HangarScene), а слот означает «любимая вещь на главном
- *    подиуме ангара»;
+ *  • **Техника:** авто, телефоны, корабли и другие предметы лежат в общей
+ *    области «Техника» карты «Моего мира»; она показывает весь инвентарь,
+ *    а не только выбранные для подиума вещи.
  *  • «Звуки» (0.17.0) — наборы мелодий правильного ответа и ошибки
  *    (engine/sounds.ts): послушать оба отклика можно прямо на карточке;
  *  • **единый макет карточки** для всех типов товара: арт, название, статус
- *    плашкой (Твоя ✓ / В ангаре ✓ / Надето ✓ / На подиуме ✓ / Собираю 4/9 / Ещё N 💎)
- *    и ОДНО действие;
+ *    (есть в коллекции / надето / собираю / ещё N 💎) и одно действие;
  *  • подробная карточка — **sheet снизу**: крупная примерка, цена, палитра
  *    цветов. Палитра больше не раскрывается инлайн (верстка не прыгает);
  *  • музыка — отдельная полка (была половиной экрана), примерка и строка
@@ -102,7 +97,7 @@ const MUSIC_SHELVES: { shelf: MusicShelf; title: string }[] = [
 ];
 
 /** Верхние уровни магазина: «чего хочу» и «что моё». */
-type View = 'vitrina' | 'wardrobe';
+type View = 'vitrina' | 'wardrobe' | 'world';
 
 /** Полки витрины — по типу товара, не по слоту совы. */
 type Cat = 'naash' | 'outfits' | 'toys' | 'buildings' | 'costumes' | 'sets' | 'music' | 'sounds' | 'backgrounds';
@@ -134,6 +129,11 @@ type Detail =
   | { kind: 'sound'; pack: SoundPack };
 
 /** «3:25» — длительность записи на карточке. */
+/** Все витрины показывают более доступные покупки раньше дорогих. */
+function byPriceAscending<T extends { price?: number }>(a: T, b: T): number {
+  return (a.price ?? 0) - (b.price ?? 0);
+}
+
 function fmtTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = Math.round(seconds % 60);
@@ -243,16 +243,11 @@ function Sheet(props: { onClose: () => void; children: React.ReactNode }) {
 /**
  * @param initialView — какой сегмент открыть: меню главной ведёт сразу
  *   в «Мои покупки», вкладка внизу — на витрину (0.33.0).
- * @param initialHangar — открыть сцену «Ангар» сразу (вход из меню).
  */
 export function ShopScreen({
   initialView = 'vitrina',
-  initialHangar = false,
-  onOpenWorld,
 }: {
-  initialView?: 'vitrina' | 'wardrobe';
-  initialHangar?: boolean;
-  onOpenWorld?: () => void;
+  initialView?: 'vitrina' | 'wardrobe' | 'world';
 } = {}) {
   const profile = useActiveProfile();
   const look = useLook();
@@ -271,7 +266,6 @@ export function ShopScreen({
   const buyBuilding = useApp((s) => s.buyBuilding);
   const buyCrystalCostume = useApp((s) => s.buyCrystalCostume);
   const buyBaseSet = useApp((s) => s.buyBaseSet);
-  const chooseBuilding = useApp((s) => s.chooseBuilding);
   const themeStyle = useApp((s) => s.settings.themeStyle);
   const setSettings = useApp((s) => s.setSettings);
   const [view, setView] = useState<View>(initialView);
@@ -290,9 +284,24 @@ export function ShopScreen({
   const [askTint, setAskTint] = useState<{ target: TintTarget; tint: TintOption } | null>(null);
   const [previewTrack, setPreviewTrack] = useState<string | null>(null);
   const [mood, setMood] = useState<'idle' | 'happy' | 'dance'>('idle');
-  // «Ангар БУКа» (0.22.0): сцена коллекции техники, открывается из гардероба
-  // и с полки «Техника» (ещё один вход — значок 🚗 в шапке главной, App.tsx).
-  const [hangarOpen, setHangarOpen] = useState(initialHangar);
+  // «Мой мир» — общий обзор всей коллекции; запоминаем место магазина,
+  // чтобы по кнопке возврата восстановить его, а не сбрасывать в витрину.
+  const worldReturnView = useRef<View>(initialView === 'world' ? 'vitrina' : initialView);
+  const worldReturnScroll = useRef(0);
+  const openMyWorld = () => {
+    worldReturnView.current = view === 'world' ? 'vitrina' : view;
+    worldReturnScroll.current = typeof window !== 'undefined' ? window.scrollY : 0;
+    setView('world');
+    if (worldReturnScroll.current > 0) {
+      requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
+    }
+  };
+  const closeMyWorld = () => {
+    setView(worldReturnView.current);
+    if (worldReturnScroll.current > 0) {
+      requestAnimationFrame(() => window.scrollTo({ top: worldReturnScroll.current, behavior: 'auto' }));
+    }
+  };
 
   /** Sheet закрывается по фону, по Escape и — если играла примерка —
    *  возвратом к выбранной мелодии (примерка не остаётся «висеть»). */
@@ -336,8 +345,6 @@ export function ShopScreen({
   const selectedSound = profile.shop?.soundPack ?? 'classic';
   const wishlist = profile.shop?.wishlist ?? [];
   const buildingsOwned = profile.shop?.buildingsOwned ?? [];
-  const activeBuilding = profile.shop?.activeBuilding ?? null;
-  const selectedBuilding = activeBuilding ? BUILDING_BY_ID[activeBuilding] ?? null : null;
   const crystalOwned = profile.shop?.crystalCostumesOwned ?? [];
   const allOwnedCostumes = [...pz.assembled, ...crystalOwned];
   const priceForSet = (setInfo: BaseSet) => baseSetPrice(setInfo, owned, buildingsOwned, allOwnedCostumes);
@@ -492,15 +499,13 @@ export function ShopScreen({
       showToast({
         emoji: ask.emoji ?? '🎩',
         title: `${ask.title} — твой!`,
-        text: toy ? 'Уже на подиуме в Ангаре — показываю!' : 'БУК уже примерил обновку',
+        text: toy ? 'Уже в коллекции «Моего мира» — показываю!' : 'БУК уже примерил обновку',
       });
       if (toy) {
-        // Баг «кристаллы списались, а товара нет» (0.36.0): техника живёт в
-        // ангаре и на БУКе не рисуется, а диалог обещал «появится рядом с
-        // БУКом». Ребёнок покупал и не находил вещь. Теперь покупка техники
-        // сразу показывает её там, где она правда лежит.
+        // Новая техника сразу открывается в общей карте коллекции, чтобы
+        // ребёнок увидел покупку и не искал её по другим полкам.
         setSheet(null);
-        setHangarOpen(true);
+        openMyWorld();
       }
     } else {
       // Честная причина: «не хватает кристаллов» — только когда их правда мало.
@@ -535,13 +540,6 @@ export function ShopScreen({
     toggleEquip(item.id);
     setMood('happy');
     setTimeout(() => setMood('idle'), 1200);
-  };
-
-  /** Открыть сцену «Ангар БУКа» — коллекцию техники крупным планом (0.22.0). */
-  const openHangar = () => {
-    sfx.tap();
-    haptic.tap();
-    setHangarOpen(true);
   };
 
   const tapTint = (target: TintTarget, tint: TintOption, unlocked: boolean) => {
@@ -589,14 +587,6 @@ export function ShopScreen({
     }
   };
 
-  const selectBuilding = (building: BuildingItem) => {
-    if (building.id === activeBuilding) return;
-    if (!chooseBuilding(building.id)) return;
-    sfx.tap();
-    haptic.tap();
-    showToast({ emoji: building.emoji, title: `«${building.title}» теперь на участке!`, text: 'Поставить другую базу можно в любой момент' });
-  };
-
   const confirmBuildingBuy = () => {
     if (!askBuilding) return;
     const building = askBuilding;
@@ -605,7 +595,7 @@ export function ShopScreen({
     if (ok) {
       sfx.reward();
       haptic.correct();
-      showToast({ emoji: building.emoji, title: `«${building.title}» построено!`, text: 'База стоит на участке и готова стать фоном «Моего мира»' });
+      showToast({ emoji: building.emoji, title: `«${building.title}» теперь твоя!`, text: 'База появилась в коллекции «Моего мира»' });
     } else {
       showToast({ emoji: '💎', title: 'Не хватает кристаллов', text: `Нужно ещё ${Math.max(0, building.price - gems)} 💎` });
     }
@@ -636,7 +626,7 @@ export function ShopScreen({
     if (ok) {
       sfx.reward();
       haptic.correct();
-      showToast({ emoji: setInfo.emoji, title: `${setInfo.title} — собран!`, text: 'База — фоном «Моего мира», самолёт — в ангаре, костюм — на БУКе' });
+      showToast({ emoji: setInfo.emoji, title: `${setInfo.title} — собран!`, text: 'База, техника и костюм появились в коллекции «Моего мира»' });
     } else {
       showToast({ emoji: '💎', title: 'Не хватает кристаллов', text: `Нужно ещё ${Math.max(0, price - gems)} 💎` });
     }
@@ -646,14 +636,12 @@ export function ShopScreen({
 
   const itemCard = (item: ShopItem) => {
     const owned_ = isOwned(owned, item.id);
-    const wearing = isWearing(look, item);
+    const toy = isToy(item);
+    const wearing = !toy && isWearing(look, item);
     const affordable = canBuy(item, gems);
     const wished = isWished(wishlist, item.id);
-    const toy = isToy(item);
-    // 0.22.0: техника не «надета» на БУКа — она стоит в ангаре; слот `toy`
-    // означает «любимая вещь на главном подиуме ангара» (HangarScene).
-    const stateOn = toy ? 'На подиуме ✓' : 'Надето ✓';
-    const actionOn = toy ? 'На подиум' : 'Надеть';
+    const stateOn = toy ? 'В Моём мире ✓' : 'Надето ✓';
+    const actionOn = toy ? 'Посмотреть' : 'Надеть';
     return (
       <ShopCard
         key={item.id}
@@ -670,7 +658,7 @@ export function ShopScreen({
         // Арт техники рисуется целиком, без совы: на полке это товар,
         // а не ещё один наряд на БУКе.
         cardCls={[wearing ? 'on' : owned_ ? 'owned' : '', toy ? 'toy-item' : ''].filter(Boolean).join(' ') || undefined}
-        priceLabel={owned_ ? (toy ? 'В ангаре ✓' : 'Твоя ✓') : <Gem value={item.price} size={18} />}
+        priceLabel={owned_ ? (toy ? 'В Моём мире ✓' : 'Твоя ✓') : <Gem value={item.price} size={18} />}
         afford={affordable}
         wished={wished}
         onWish={!owned_ ? () => tapWish(item.id, item.title) : undefined}
@@ -687,8 +675,10 @@ export function ShopScreen({
         actionDisabled={!owned_ && !affordable}
         onOpen={() => openSheet({ kind: 'item', item })}
         onAction={() => {
-          if (owned_) tapWear(item);
-          else if (affordable) {
+          if (owned_) {
+            if (toy) openMyWorld();
+            else tapWear(item);
+          } else if (affordable) {
             sfx.tap();
             setAsk(item);
           } else {
@@ -793,25 +783,24 @@ export function ShopScreen({
 
   const buildingCard = (building: BuildingItem) => {
     const owned_ = isBuildingOwned(buildingsOwned, building.id);
-    const selected = activeBuilding === building.id;
     const affordable = gems >= building.price;
     const missing = Math.max(0, building.price - gems);
     return (
       <ShopCard
         key={building.id}
         rarity={building.rarity}
-        cardCls={`building-item${selected ? ' on' : owned_ ? ' owned' : ''}`}
+        cardCls={`building-item${owned_ ? ' owned' : ''}`}
         art={<BuildingArt id={building.id} className="building-card-art" />}
         title={building.title}
         desc={building.desc}
-        priceLabel={selected ? 'На участке ✓' : owned_ ? 'В коллекции ✓' : <Gem value={building.price} size={18} />}
+        priceLabel={owned_ ? 'В Моём мире ✓' : <Gem value={building.price} size={18} />}
         afford={affordable}
-        actionLabel={selected ? 'На участке ✓' : owned_ ? 'Поставить' : affordable ? `Построить · 💎${building.price}` : `Ещё ${missing} 💎`}
-        actionTone={selected ? 'green' : owned_ ? 'ghost' : affordable ? 'primary' : 'ghost'}
+        actionLabel={owned_ ? 'Посмотреть' : affordable ? `Купить · 💎${building.price}` : `Ещё ${missing} 💎`}
+        actionTone={owned_ ? 'ghost' : affordable ? 'primary' : 'ghost'}
         actionDisabled={!owned_ && !affordable}
         onOpen={() => openSheet({ kind: 'building', building })}
         onAction={() => {
-          if (owned_) selectBuilding(building);
+          if (owned_) openMyWorld();
           else if (affordable) { sfx.tap(); setAskBuilding(building); }
           else showToast({ emoji: '💎', title: `До «${building.title}» ещё ${missing} 💎`, text: 'Кристаллы дают за задания дня и сундук' });
         }}
@@ -1032,13 +1021,13 @@ export function ShopScreen({
           )}
           {toy && (
             <p className="tiny muted">
-              Встанет в ангаре БУКа — там её видно крупно и целиком.
+              После покупки появится в коллекции «Моего мира».
             </p>
           )}
           <div className="row mb">
             <span className={`shop-price${affordable ? ' afford' : ''}`}>💎 {item.price}</span>
             <span className="tiny muted grow" style={{ alignSelf: 'center' }}>
-              {owned_ ? (toy ? 'Уже в ангаре' : 'Уже в гардеробе') : `У тебя ${gems} 💎`}
+              {owned_ ? (toy ? 'Уже в «Моём мире»' : 'Уже в гардеробе') : `У тебя ${gems} 💎`}
             </span>
           </div>
           {!owned_ && (
@@ -1051,11 +1040,12 @@ export function ShopScreen({
               <button
                 className={`btn lg grow ${wearing ? 'green' : 'primary'}`}
                 onClick={() => {
-                  tapWear(item);
+                  if (toy) openMyWorld();
+                  else tapWear(item);
                   closeSheet();
                 }}
               >
-                {wearing ? (toy ? 'С подиума' : 'Снять') : toy ? 'На подиум' : 'Надеть'}
+                {toy ? 'Посмотреть в «Моём мире»' : wearing ? 'Снять' : 'Надеть'}
               </button>
             ) : (
               <button
@@ -1231,7 +1221,6 @@ export function ShopScreen({
     if (sheet.kind === 'building') {
       const building = sheet.building;
       const owned_ = isBuildingOwned(buildingsOwned, building.id);
-      const selected = activeBuilding === building.id;
       const affordable = gems >= building.price;
       const missing = Math.max(0, building.price - gems);
       return (
@@ -1240,14 +1229,14 @@ export function ShopScreen({
           <h2 style={{ margin: '0 0 2px' }}>{building.title}</h2>
           <RarityLabel rarity={building.rarity} className="rarity-chip-detail" />
           <p className="tiny muted" style={{ marginTop: 0 }}>{building.desc}</p>
-          <p className="tiny muted">База стоит на участке и может стать фоном вкладки «Мой мир».</p>
+          <p className="tiny muted">Купленная база — часть твоей коллекции. Её можно рассмотреть в «Моём мире».</p>
           <div className="row mb">
             <span className={`shop-price${affordable ? ' afford' : ''}`}>💎 {building.price}</span>
             <span className="tiny muted grow" style={{ alignSelf: 'center' }}>{owned_ ? 'Уже в коллекции' : `У тебя ${gems} 💎`}</span>
           </div>
           <div className="row mb">
             {owned_ ? (
-              <button className={`btn lg grow ${selected ? 'green' : 'primary'}`} onClick={() => { selectBuilding(building); closeSheet(); }}>{selected ? 'На участке ✓' : 'Поставить на участок'}</button>
+              <button className="btn lg grow primary" onClick={() => { closeSheet(); openMyWorld(); }}>Посмотреть в «Моём мире»</button>
             ) : (
               <button className="btn lg grow primary" disabled={!affordable} onClick={() => { closeSheet(); sfx.tap(); setAskBuilding(building); }}>{affordable ? `Построить · 💎${building.price}` : `Ещё ${missing} 💎`}</button>
             )}
@@ -1441,37 +1430,40 @@ export function ShopScreen({
   return (
     <div className="screen">
       {/* ── Шапка: название и баланс — и больше ничего ─────────────────── */}
-      <div className="shop-sticky">
-        <div className="row mb">
-          <h1 className="grow" style={{ margin: 0 }}>
-            БУК <Icon name="hat" size={22} />
-          </h1>
-          {/* 0.54.0: счётчик кристаллов — иконка + число (Gem). */}
-          <button className="btn" type="button" onClick={onOpenWorld} aria-label="Открыть Мой мир">
-            🌍 Мой мир
-          </button>
-          <div className="stat-pill gems">
-            <Gem value={gems} size={22} />
+      {view !== 'world' && (
+        <div className="shop-sticky">
+          <div className="row mb">
+            <h1 className="grow" style={{ margin: 0 }}>
+              БУК <Icon name="hat" size={22} />
+            </h1>
+            <div className="stat-pill gems">
+              <Gem value={gems} size={22} />
+            </div>
           </div>
-        </div>
-        <div className="shop-seg" role="tablist" aria-label="Витрина или покупки">
-          <button role="tab" aria-selected={view === 'vitrina'} className={view === 'vitrina' ? 'on' : ''} onClick={() => setView('vitrina')}>
-            🛍️ Витрина
-          </button>
-          <button role="tab" aria-selected={view === 'wardrobe'} className={view === 'wardrobe' ? 'on' : ''} onClick={() => setView('wardrobe')}>
-            🎒 Мои покупки · {owned.length + pz.assembled.length + musicOwned.length + soundOwned.length}
-          </button>
-        </div>
-        {view === 'vitrina' && (
-          <div className="shop-cats" role="tablist" aria-label="Разделы магазина">
-            {CATS.filter((c) => c.id !== 'naash' || SCHOOL.on).map((c) => (
-              <button key={c.id} role="tab" aria-selected={cat === c.id} className={`chip${cat === c.id ? ' on' : ''}`} onClick={() => setCat(c.id)}>
-                {c.icon ? <Icon name={c.icon} size={16} /> : c.emoji} {c.title}
-              </button>
-            ))}
+          <div className="shop-seg" role="tablist" aria-label="Разделы БУКа">
+            <button role="tab" aria-selected={view === 'vitrina'} className={view === 'vitrina' ? 'on' : ''} onClick={() => setView('vitrina')}>
+              🛍️ Витрина
+            </button>
+            <button role="tab" aria-selected={view === 'wardrobe'} className={view === 'wardrobe' ? 'on' : ''} onClick={() => setView('wardrobe')}>
+              🎒 Мои покупки
+            </button>
+            <button role="tab" aria-selected={false} onClick={openMyWorld}>
+              🌍 Мой мир
+            </button>
           </div>
-        )}
-      </div>
+          {view === 'vitrina' && (
+            <div className="shop-cats" role="tablist" aria-label="Разделы магазина">
+              {CATS.filter((c) => c.id !== 'naash' || SCHOOL.on).map((c) => (
+                <button key={c.id} role="tab" aria-selected={cat === c.id} className={`chip${cat === c.id ? ' on' : ''}`} onClick={() => setCat(c.id)}>
+                  {c.icon ? <Icon name={c.icon} size={16} /> : c.emoji} {c.title}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {view === 'world' && <WorldScreen onBack={closeMyWorld} />}
 
       {/* ── Школа НААШ (0.74.0): форма БУКа и полка идей ──────────────────────
           Полка живёт своим компонентом: карточки ей передаёт магазин, поэтому
@@ -1687,7 +1679,7 @@ export function ShopScreen({
             <h2 className="mb">Наряды БУКа</h2>
             <div className="tiny muted">Купленное сразу надевается · тап по карточке — подробнее</div>
           </div>
-          <ShowcaseGrid>{CATALOG_OUTFITS.map(itemCard)}</ShowcaseGrid>
+          <ShowcaseGrid>{CATALOG_OUTFITS.slice().sort(byPriceAscending).map(itemCard)}</ShowcaseGrid>
         </section>
       )}
 
@@ -1696,7 +1688,7 @@ export function ShopScreen({
         <section className="mt" aria-label="Техника">
           <div className="mb">
             <h2 className="mb">Техника БУКа</h2>
-            <div className="tiny muted">Авто, самолёты, корабли и телефоны — каждый раздел отдельно. Купленное ждёт тебя в ангаре.</div>
+            <div className="tiny muted">Авто, самолёты, корабли и телефоны. Всё купленное видно в «Моём мире».</div>
           </div>
           <div className="shop-cats shop-toy-cats" role="tablist" aria-label="Разделы техники">
             {TOY_SHELVES.map(({ id, title, emoji }) => (
@@ -1713,8 +1705,8 @@ export function ShopScreen({
             ))}
           </div>
           {ownedToys.length > 0 && (
-            <button type="button" className="btn sm ghost wide hangar-open" onClick={openHangar}>
-              🚗 Мой ангар — вся твоя техника крупным планом ➜
+            <button type="button" className="btn sm ghost wide" onClick={openMyWorld}>
+              🌍 Посмотреть всю коллекцию ➜
             </button>
           )}
           {toyGoal && (
@@ -1752,7 +1744,7 @@ export function ShopScreen({
                 <span aria-hidden="true">{emoji}</span> {title}
               </h3>
               <ShowcaseGrid tone={id === 'car' ? 'mint' : id === 'ship' || id === 'plane' ? 'sky' : undefined}>
-                {toysByShelf(id).slice().sort(compareByRarity).map(itemCard)}
+                {toysByShelf(id).slice().sort(byPriceAscending).map(itemCard)}
               </ShowcaseGrid>
             </div>
           ))}
@@ -1762,23 +1754,10 @@ export function ShopScreen({
       {view === 'vitrina' && cat === 'buildings' && (
         <section className="mt building-section" aria-label="Базы">
           <div className="mb">
-            <h2 className="mb">Научные базы для твоего мира</h2>
-            <div className="tiny muted">База стоит на участке и задаёт фон вкладки «Мой мир».</div>
+            <h2 className="mb">Базы в коллекцию</h2>
+            <div className="tiny muted">Купленные базы будут видны на карте «Моего мира» вместе со всеми твоими вещами.</div>
           </div>
-          <div className={`building-plot${selectedBuilding ? ' has-building' : ''}`}>
-            {selectedBuilding ? (
-              <BuildingArt id={selectedBuilding.id} className="building-plot-art" loading="eager" />
-            ) : (
-              <div className="building-plot-empty" role="img" aria-label="Свободный участок"><span aria-hidden="true">🏗️</span></div>
-            )}
-            <div className="building-plot-caption">
-              <span className="building-plot-kicker">🏡 ТВОЙ УЧАСТОК</span>
-              <b>{selectedBuilding?.title ?? 'Место для первой базы'}</b>
-              <span>{selectedBuilding?.desc ?? 'Купи или выбери базу, чтобы украсить свой мир'}</span>
-            </div>
-            <div className="building-plot-count">В коллекции: {buildingsOwned.length} из {BUILDINGS.length}</div>
-          </div>
-          <ShowcaseGrid tone="sky">{BUILDINGS.slice().sort((a, b) => RARITY_ORDER.indexOf(a.rarity) - RARITY_ORDER.indexOf(b.rarity) || a.price - b.price).map(buildingCard)}</ShowcaseGrid>
+          <ShowcaseGrid tone="sky">{BUILDINGS.slice().sort(byPriceAscending).map(buildingCard)}</ShowcaseGrid>
         </section>
       )}
 
@@ -1788,7 +1767,7 @@ export function ShopScreen({
             <h2 className="mb">Наборы научных баз 🎁</h2>
             <div className="tiny muted">База, её машина, её самолёт и её костюм — одним набором. Цена — за недостающие части ×3.</div>
           </div>
-          <ShowcaseGrid tone="sky">{BASE_SETS.slice().sort((a, b) => RARITY_ORDER.indexOf(a.rarity) - RARITY_ORDER.indexOf(b.rarity) || priceForSet(a) - priceForSet(b)).map(baseSetCard)}</ShowcaseGrid>
+          <ShowcaseGrid tone="sky">{BASE_SETS.slice().sort((a, b) => priceForSet(a) - priceForSet(b)).map(baseSetCard)}</ShowcaseGrid>
         </section>
       )}
 
@@ -1827,7 +1806,7 @@ export function ShopScreen({
           <ShowcaseGrid>{COSTUMES.map(costumeCard)}</ShowcaseGrid>
           <h3 className="music-shelf-title" style={{ marginTop: 18 }}>✨ Костюмы за кристаллы</h3>
           <div className="tiny muted mb">Костюмы баз — в цвет своей базы, а ещё здесь живут особые: Леди Баг и Титан. Покупается сразу, собирать фрагменты не нужно.</div>
-          <ShowcaseGrid>{CRYSTAL_COSTUMES.slice().sort((a, b) => RARITY_ORDER.indexOf(a.rarity ?? 'common') - RARITY_ORDER.indexOf(b.rarity ?? 'common') || (a.price ?? 0) - (b.price ?? 0)).map(crystalCostumeCard)}</ShowcaseGrid>
+          <ShowcaseGrid>{CRYSTAL_COSTUMES.slice().sort(byPriceAscending).map(crystalCostumeCard)}</ShowcaseGrid>
         </section>
       )}
 
@@ -1848,7 +1827,7 @@ export function ShopScreen({
           {MUSIC_SHELVES.map(({ shelf, title }) => (
             <div className="music-shelf" key={shelf}>
               <h3 className="music-shelf-title">{title}</h3>
-              <ShowcaseGrid>{tracksByShelf(shelf).map(trackCard)}</ShowcaseGrid>
+              <ShowcaseGrid>{tracksByShelf(shelf).slice().sort(byPriceAscending).map(trackCard)}</ShowcaseGrid>
             </div>
           ))}
         </section>
@@ -1866,7 +1845,7 @@ export function ShopScreen({
             🎶 Выбранный набор звучит в уроках, заданиях и квестах. Мелодия ошибки всегда мягкая и короткая:
             это подсказка «попробуй иначе», а не наказание.
           </div>
-          <ShowcaseGrid>{SOUND_PACKS.map(soundCard)}</ShowcaseGrid>
+          <ShowcaseGrid>{SOUND_PACKS.slice().sort(byPriceAscending).map(soundCard)}</ShowcaseGrid>
         </section>
       )}
 
@@ -1980,18 +1959,15 @@ export function ShopScreen({
           </section>
           )}
 
-          {/* Техника: авто, телефоны и корабли (0.19.0 → 0.20.0).
-              0.22.0: техника не на БУКе — коллекция в сцене «Ангар», вход здесь. */}
+          {/* Техника остаётся в своих полках магазина и полностью видна в «Моём мире». */}
           <section className="mb" aria-label="Техника">
             <div className="row mb" style={{ alignItems: 'center' }}>
               <h2 className="grow" style={{ margin: 0 }}>
                 Техника
               </h2>
-              {/* 0.32.0: вход виден всегда — в том числе при пустой коллекции.
-                  Из шапки главной значок 🚗 убран, ангар живёт здесь и на
-                  полке «Техника» (docs/proposals/home-header.md). */}
-              <button type="button" className="btn sm ghost" onClick={openHangar}>
-                Открыть ангар ➜
+              {/* Вход в полную карту коллекции остаётся доступен и при пустой технике. */}
+              <button type="button" className="btn sm ghost" onClick={openMyWorld}>
+                Посмотреть в «Моём мире» ➜
               </button>
             </div>
             {ownedToys.length > 0 && (
@@ -2003,9 +1979,9 @@ export function ShopScreen({
                   <ToyArt id={item.id} size={44} tuning={profile.shop?.tuning} />,
                   item.title,
                   item.desc,
-                  isWearing(look, item),
-                  isWearing(look, item) ? 'С подиума' : 'На подиум',
-                  () => tapWear(item),
+                  false,
+                  'Посмотреть',
+                  openMyWorld,
                 ),
               )}
             </div>
@@ -2022,10 +1998,10 @@ export function ShopScreen({
                   { kind: 'building', building },
                   <BuildingArt id={building.id} className="building-wardrobe-art" />,
                   building.title,
-                  activeBuilding === building.id ? 'Стоит на участке · фон «Моего мира» выбирается на вкладке «Мой мир»' : building.desc,
-                  activeBuilding === building.id,
-                  activeBuilding === building.id ? 'На участке ✓' : 'Поставить',
-                  () => selectBuilding(building),
+                  'В твоей коллекции «Моего мира»',
+                  false,
+                  'Посмотреть',
+                  openMyWorld,
                 ),
               )}
             </div>
@@ -2306,9 +2282,6 @@ export function ShopScreen({
         </Sheet>
       )}
 
-      {/* ── «Ангар БУКа»: сцена коллекции техники (0.22.0) ──────────────── */}
-      {hangarOpen && <HangarScene onClose={() => setHangarOpen(false)} />}
-
       {askMusic && (
         <ConfirmDialog
           emoji={askMusic.emoji}
@@ -2341,7 +2314,7 @@ export function ShopScreen({
           title={`Купить «${ask.title}»?`}
           text={
             isToy(ask)
-              ? `Отдашь ${ask.price} 💎 из ${gems}. Вещь сразу встанет на подиум в Ангаре БУКа — покажу её после покупки.`
+              ? `Отдашь ${ask.price} 💎 из ${gems}. Вещь появится в твоей коллекции «Моего мира».`
               : `Отдашь ${ask.price} 💎 из ${gems}. БУК сразу это примерит.`
           }
           stayLabel={`Купить за 💎${ask.price}`}
@@ -2367,7 +2340,7 @@ export function ShopScreen({
         <ConfirmDialog
           emoji={askBuilding.emoji}
           title={`Построить «${askBuilding.title}»?`}
-          text={`Отдашь ${askBuilding.price} 💎 из ${gems}. База сразу встанет на твой участок и сможет стать фоном «Моего мира».`}
+          text={`Отдашь ${askBuilding.price} 💎 из ${gems}. База появится в твоей коллекции «Моего мира».`}
           stayLabel={`Построить · 💎${askBuilding.price}`}
           leaveLabel="Не сейчас"
           onStay={confirmBuildingBuy}

@@ -166,16 +166,16 @@ export async function runPurchaseGuardChecks(): Promise<void> {
   await sleep(80);
   check(
     'диалог не обещает вещь «рядом с БУКом»',
-    !has('рядом с БУКом') && has('Ангар'),
+    !has('рядом с БУКом') && has('Мой мир'),
     document.body.textContent?.slice(0, 200) ?? '',
   );
   click(btn((b) => (b.textContent ?? '').includes('Купить за')));
   await sleep(200);
-  check('после покупки техники сразу открылся ангар', !!document.querySelector('.hangar'), '');
+  check('после покупки техники открылась карта «Моего мира»', !!document.querySelector('.my-world'), '');
   check(
-    'купленный телефон виден в ангаре (а не «пропал»)',
-    (document.querySelector('.hangar')?.textContent ?? '').includes('iPhone Air'),
-    document.querySelector('.hangar')?.textContent?.slice(0, 160) ?? '',
+    'купленный телефон сразу виден в области техники',
+    Array.from(document.querySelectorAll('.collection-area')).some((area) => (area.textContent ?? '').includes('iPhone Air')),
+    document.querySelector('.collection-map')?.textContent?.slice(0, 160) ?? '',
   );
   root.unmount();
   await runGemResetGuardChecks();

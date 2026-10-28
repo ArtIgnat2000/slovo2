@@ -68,7 +68,7 @@ export function NaashPanel({ renderItem }: { renderItem: (item: ShopItem) => Rea
 
       <h3 className="music-shelf-title">{SCHOOL.formTitle}</h3>
       <div className="tiny muted mb">{SCHOOL.formLead}</div>
-      <ShowcaseGrid>{items.map(renderItem)}</ShowcaseGrid>
+      <ShowcaseGrid>{items.slice().sort((a, b) => a.price - b.price).map(renderItem)}</ShowcaseGrid>
 
       <h3 className="music-shelf-title naash-ideas-title">{SCHOOL.ideasTitle}</h3>
       <div className="tiny muted mb">{SCHOOL.ideasLead}</div>

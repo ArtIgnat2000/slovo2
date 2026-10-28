@@ -36,8 +36,8 @@ interface Props {
   onOpenProfiles: () => void;
   /** «Пора повторить» — отдельный режим тренировки, id урока не нужен */
   onStartReview: () => void;
-  /** Меню ведёт прямо в «Мои покупки» или в «Ангар» (0.33.0) */
-  onOpenShop: (view: 'vitrina' | 'wardrobe', hangar?: boolean) => void;
+  /** Меню ведёт прямо в «Мои покупки» или «Мой мир» внутри БУКа. */
+  onOpenShop: (view: 'vitrina' | 'wardrobe' | 'world') => void;
   /** Списки слов к контрольной (0.58.0): тренировка, полный контроль, ошибки. */
   onStartList: (listId: string, mode?: 'train' | 'check' | 'errors') => void;
 }
@@ -68,7 +68,7 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
   const [rewardsOpen, setRewardsOpen] = useState(false);
   /** «Позови друга» — 0.32.1: ссылка должна быть в один тап с первого экрана. */
   const [inviteOpen, setInviteOpen] = useState(false);
-  /** Меню ☰ (0.33.0) — заменяет 🎁 в шапке: награды, покупки, ангар, друг, профиль. */
+  /** Меню ☰ (0.33.0) — заменяет 🎁 в шапке: награды, покупки, мир, друг, профиль. */
   const [menuOpen, setMenuOpen] = useState(false);
   /** Лист класса (0.33.0): вход — строкой в меню, а не пилюлей над героем. */
   const [classOpen, setClassOpen] = useState(false);
@@ -166,7 +166,7 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
       {/* Шапка (0.33.0): три блока и два действия. 💎 — главный и единственный
           счётчик в строке: кристаллы ребёнок видит, тратит и понимает. 🔥 из
           шапки ушёл в меню — там у огонька есть слова, а не только цифра.
-          ☰ заменил 🎁: в меню не только награды, но и покупки, ангар, друг
+          ☰ заменил 🎁: в меню не только награды, но и покупки, мой мир, друг
           и смена ученика (docs/proposals/home-menu.md). */}
       <div className="topbar">
         <button
@@ -507,13 +507,13 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
               <button
                 type="button"
                 className="menu-row"
-                data-menu="hangar"
-                onClick={() => openMenuSheet(() => onOpenShop('wardrobe', true))}
+                data-menu="world"
+                onClick={() => openMenuSheet(() => onOpenShop('world'))}
               >
-                <span className="menu-row-emoji" aria-hidden="true">🚗</span>
+                <span className="menu-row-emoji" aria-hidden="true">🌍</span>
                 <span className="grow">
-                  <span className="menu-row-title">Ангар</span>
-                  <span className="tiny muted">Твоя техника крупным планом</span>
+                  <span className="menu-row-title">Мой мир</span>
+                  <span className="tiny muted">Вся твоя коллекция</span>
                 </span>
                 <span className="menu-row-arrow" aria-hidden="true">›</span>
               </button>
