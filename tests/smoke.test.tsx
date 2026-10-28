@@ -32,6 +32,7 @@ import { runHomePathChecks } from './home-path.test';
 import { runDictionaryUiChecks } from './dictionary-ui.test';
 import { runClassChecks } from './classes.test';
 import { runWorldUiChecks } from './world-ui.test';
+import { runRatingUiChecks } from './rating-ui.test';
 // Смена цвета купленной вещи не должна включать музыку (регрессия магазина).
 import './recolor-music.test';
 import { LESSONS, WORDS } from '../src/content/words';
@@ -1625,6 +1626,9 @@ async function main() {
 
   // «Мой мир»: ставится только полученное, БУК в костюме стоит, а не летает.
   await runWorldUiChecks();
+
+  // Рейтинг: место игрока среди воображаемых соперников.
+  await runRatingUiChecks();
 
   const failures = failureCount();
   console.log(failures ? `\n✗ ошибок: ${failures}` : '\n✓ все проверки пройдены');

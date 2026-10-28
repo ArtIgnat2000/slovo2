@@ -660,6 +660,78 @@ export const TINT_PALETTES: Record<string, TintPalette<ItemTint>> = {
       { id: 'sky', title: 'Голубой', colors: ['#7cc6ff', '#3f8fd9', '#e0f2fe'] },
     ],
   },
+  'pet-hamster': {
+    base: { id: BASE_TINT, title: 'Рыжий', colors: ['#f5a94b', '#d97f26', '#fff3d6'] },
+    extra: [
+      { id: 'white', title: 'Белый', colors: ['#f8fafc', '#cbd5e1', '#fff7cc'] },
+      { id: 'grey', title: 'Серый', colors: ['#cbd5e1', '#94a3b8', '#f8fafc'] },
+      { id: 'brown', title: 'Коричневый', colors: ['#b0722f', '#7e4a1c', '#f5e0bd'] },
+    ],
+  },
+  'pet-chihuahua': {
+    base: { id: BASE_TINT, title: 'Рыжий', colors: ['#e8b06a', '#c98a3f', '#ffffff'] },
+    extra: [
+      { id: 'white', title: 'Белый', colors: ['#f8fafc', '#cbd5e1', '#fff7cc'] },
+      { id: 'black', title: 'Чёрный', colors: ['#475569', '#1e293b', '#e2e8f0'] },
+      { id: 'cream', title: 'Кремовый', colors: ['#fde68a', '#d97706', '#fffbeb'] },
+    ],
+  },
+  'pet-cat-siamese': {
+    base: { id: BASE_TINT, title: 'Кремовый', colors: ['#f3e3cb', '#5b3a44', '#7cc6ff'] },
+    extra: [
+      { id: 'brown', title: 'Коричневый', colors: ['#b0722f', '#7e4a1c', '#f5e0bd'] },
+      { id: 'violet', title: 'Сиреневый', colors: ['#c4a2ff', '#8f6ae0', '#f3e8ff'] },
+      { id: 'pink', title: 'Розовый', colors: ['#ff8fb8', '#d94f7e', '#ffeef5'] },
+    ],
+  },
+  'pet-cat-scottish': {
+    base: { id: BASE_TINT, title: 'Дымчатый', colors: ['#b6c2d2', '#7d90a8', '#ffd166'] },
+    extra: [
+      { id: 'grey', title: 'Серый', colors: ['#cbd5e1', '#94a3b8', '#f8fafc'] },
+      { id: 'pink', title: 'Розовый', colors: ['#ff8fb8', '#d94f7e', '#ffeef5'] },
+      { id: 'mint', title: 'Мятный', colors: ['#7fe3b1', '#39b679', '#e6fff3'] },
+    ],
+  },
+  'pet-poodle': {
+    base: { id: BASE_TINT, title: 'Белый', colors: ['#f8fafc', '#d8c8e8', '#ff9ec7'] },
+    extra: [
+      { id: 'pink', title: 'Розовый', colors: ['#ff8fb8', '#d94f7e', '#ffeef5'] },
+      { id: 'apricot', title: 'Абрикосовый', colors: ['#fed7aa', '#fb923c', '#fff7ed'] },
+      { id: 'grey', title: 'Серый', colors: ['#cbd5e1', '#94a3b8', '#f8fafc'] },
+    ],
+  },
+  'pet-cat-british': {
+    base: { id: BASE_TINT, title: 'Серый', colors: ['#9fb0c3', '#7086a0', '#ffd166'] },
+    extra: [
+      { id: 'violet', title: 'Сиреневый', colors: ['#c4a2ff', '#8f6ae0', '#f3e8ff'] },
+      { id: 'black', title: 'Чёрный', colors: ['#475569', '#1e293b', '#e2e8f0'] },
+      { id: 'cream', title: 'Кремовый', colors: ['#fde68a', '#d97706', '#fffbeb'] },
+    ],
+  },
+  'pet-cat-sphynx': {
+    base: { id: BASE_TINT, title: 'Розовый', colors: ['#eda9a0', '#c97a72', '#a8d8ff'] },
+    extra: [
+      { id: 'grey', title: 'Серый', colors: ['#cbd5e1', '#94a3b8', '#f8fafc'] },
+      { id: 'violet', title: 'Сиреневый', colors: ['#c4a2ff', '#8f6ae0', '#f3e8ff'] },
+      { id: 'cream', title: 'Кремовый', colors: ['#fde68a', '#d97706', '#fffbeb'] },
+    ],
+  },
+  'pet-cat-mainecoon': {
+    base: { id: BASE_TINT, title: 'Рыжий', colors: ['#b0722f', '#7e4a1c', '#f5e0bd'] },
+    extra: [
+      { id: 'grey', title: 'Серый', colors: ['#cbd5e1', '#94a3b8', '#f8fafc'] },
+      { id: 'black', title: 'Чёрный', colors: ['#475569', '#1e293b', '#e2e8f0'] },
+      { id: 'gold', title: 'Золотой', colors: ['#ffd76a', '#d9a520', '#fff6da'] },
+    ],
+  },
+  'pet-elephant': {
+    base: { id: BASE_TINT, title: 'Серый', colors: ['#aebdd1', '#8496b3', '#f8fafc'] },
+    extra: [
+      { id: 'pink', title: 'Розовый', colors: ['#ff8fb8', '#d94f7e', '#ffeef5'] },
+      { id: 'sky', title: 'Голубой', colors: ['#7cc6ff', '#3f8fd9', '#e0f2fe'] },
+      { id: 'sand', title: 'Песочный', colors: ['#fde68a', '#f59e0b', '#fefce8'] },
+    ],
+  },
   'sport-ball': {
     base: { id: BASE_TINT, title: 'Классический', colors: ['#f8fafc', '#1f2937', '#ef4444'] },
     extra: [

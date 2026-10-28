@@ -193,6 +193,16 @@ export const SHOP_ITEMS: ShopItem[] = [
   { id: 'pet-bunny', slot: 'toy', kind: 'toy', toy: 'pet', emoji: '🐰', title: 'Кролик', desc: 'Длинные уши и любовь к морковке', price: 40 },
   { id: 'pet-panda', slot: 'toy', kind: 'toy', toy: 'pet', emoji: '🐼', title: 'Панда', desc: 'Спокойная и очень обнимательная', price: 55 },
   { id: 'pet-corgi', slot: 'toy', kind: 'toy', toy: 'pet', emoji: '🐶', title: 'Корги', desc: 'Короткие лапы, длинные уши и вечная улыбка', price: 60 },
+  // ── 0.73.0: ещё питомцы — собачки, хомяк, слонёнок и породы котов ────────
+  { id: 'pet-hamster', slot: 'toy', kind: 'toy', toy: 'pet', emoji: '🐹', title: 'Хомяк', desc: 'Щёки полны семечек — про запас', price: 25 },
+  { id: 'pet-chihuahua', slot: 'toy', kind: 'toy', toy: 'pet', emoji: '🐶', title: 'Чихуахуа', desc: 'Самая маленькая собачка и самые большие уши', price: 35 },
+  { id: 'pet-cat-siamese', slot: 'toy', kind: 'toy', toy: 'pet', emoji: '🐱', title: 'Сиамский кот', desc: 'Тёмные ушки и мордочка, глаза — как небо', price: 50 },
+  { id: 'pet-cat-scottish', slot: 'toy', kind: 'toy', toy: 'pet', emoji: '🐱', title: 'Шотландский кот', desc: 'Ушки сложены, характер спокойный', price: 50 },
+  { id: 'pet-poodle', slot: 'toy', kind: 'toy', toy: 'pet', emoji: '🐩', title: 'Пудель', desc: 'Кудрявая причёска, как у артиста цирка', price: 55 },
+  { id: 'pet-cat-british', slot: 'toy', kind: 'toy', toy: 'pet', emoji: '🐱', title: 'Британский кот', desc: 'Плюшевый и важный, как лорд', price: 55 },
+  { id: 'pet-cat-sphynx', slot: 'toy', kind: 'toy', toy: 'pet', emoji: '🐱', title: 'Сфинкс', desc: 'Без шерсти, зато с огромными ушами', price: 60 },
+  { id: 'pet-cat-mainecoon', slot: 'toy', kind: 'toy', toy: 'pet', emoji: '🐱', title: 'Мейн-кун', desc: 'Самый большой кот: грива и кисточки на ушах', price: 65 },
+  { id: 'pet-elephant', slot: 'toy', kind: 'toy', toy: 'pet', emoji: '🐘', title: 'Слонёнок', desc: 'Маленький слон с большим хоботом', price: 75 },
   // ── 0.72.0: спортивный инвентарь ─────────────────────────────────────────
   { id: 'sport-ball', slot: 'toy', kind: 'toy', toy: 'sport', emoji: '⚽', title: 'Футбольный мяч', desc: 'Классический, чёрно-белый, для голов', price: 25 },
   { id: 'sport-skate', slot: 'toy', kind: 'toy', toy: 'sport', emoji: '🛹', title: 'Скейт', desc: 'Доска с яркими колёсами для трюков', price: 35 },
