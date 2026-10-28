@@ -186,21 +186,20 @@ export async function runPuzzleUiChecks(playLesson: (second?: boolean) => Promis
   );
 
   // Сменить цель можно тапом — прогресс прежней цели не сгорит
-  const thirdBtn = cards()
-    .find((el) => (el.textContent ?? '').includes(COSTUMES[2].title))
-    ?.querySelector('button') as HTMLButtonElement | undefined;
+  // Кнопка действия живёт в этикетке карточки (`.shop-body`); в углу картинки
+  // теперь сердечко «в мечты», поэтому ищем именно кнопку действия.
+  const actionOf = (card?: Element) => card?.querySelector('.shop-body button') as HTMLButtonElement | undefined;
+  const thirdBtn = actionOf(cards().find((el) => (el.textContent ?? '').includes(COSTUMES[2].title)));
   click(thirdBtn);
   await sleep(40);
   p = active();
   check('пазлы: «Собирать» переключает цель', p.puzzle?.collecting === COSTUMES[2].id, String(p.puzzle?.collecting));
-  const snowBtn = snowCard?.querySelector('button') as HTMLButtonElement | undefined;
+  const snowBtn = actionOf(snowCard);
   check('пазлы: прежняя цель предлагается продолжить', (snowBtn?.textContent ?? '').includes(`Продолжить · 1/${PUZZLE_SIZE}`), snowBtn?.textContent ?? '');
 
   // Снять и снова надеть костюм (кнопки перечитываем: после перерисовки висячие ссылки опасны)
   const wearBtn = (title: string) =>
-    (Array.from(document.querySelectorAll('.costume-card'))
-      .find((el) => (el.textContent ?? '').includes(title))
-      ?.querySelector('button') as HTMLButtonElement | undefined);
+    actionOf(Array.from(document.querySelectorAll('.costume-card')).find((el) => (el.textContent ?? '').includes(title)));
   click(wearBtn(COSTUMES[0].title));
   await sleep(60);
   check('пазлы: тап по «Надето ✓» снимает костюм', active().puzzle?.worn === null, String(active().puzzle?.worn));

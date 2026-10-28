@@ -5,6 +5,7 @@ import { CarArt, hasCarArt } from './CarArt';
 import { ShipArt, hasShipArt } from './ShipArt';
 import { ElectronicsArt, hasElectronicsArt } from './ElectronicsArt';
 import { AirplaneArt, hasAirplaneArt } from './AirplaneArt';
+import { ProductPhoto, hasProductPhoto } from './ProductPhoto';
 
 /**
  * Техника БУКа: авто, самолёты, морские суда и телефоны. Машины и корабли — цветные
@@ -565,6 +566,11 @@ export function ToyArt({
    */
   alt?: string;
 }) {
+  // 0.76.0: у товара есть студийное фото — показываем его. Фото уже со
+  // своим светом и тенью, поэтому перекраска (tuning) к нему не применяется.
+  if (hasProductPhoto(id)) {
+    return <ProductPhoto key={id} id={id} alt={alt} className={className} />;
+  }
   if (hasAirplaneArt(id)) {
     return <AirplaneArt key={id} id={id} size={size} className={className} alt={alt} colors={accessoryColors(id, tuning)} />;
   }
