@@ -75,6 +75,12 @@ const EXPECTED_BASE: Record<string, [string, string, string]> = {
   'shoes-pink': ['#ff8fb8', '#d94f7e', '#ffffff'],
   'shoes-sparkle': ['#e9d5ff', '#a78bfa', '#ffffff'],
   'skates-ice': ['#f8fafc', '#94a3b8', '#7cc6ff'],
+  // 0.74.0: форма школы НААШ (docs/proposals/naash-shop.md). База — ровно то,
+  // что рисуется в ui/MascotLook.tsx: синий знака, тёмно-синий, крем и эмаль.
+  'school-pin': ['#F4EFE4', '#0F4CA0', '#0A2C5E'],
+  'school-cap': ['#0F4CA0', '#0A2C5E', '#F4EFE4'],
+  'school-scarf': ['#0F4CA0', '#0A2C5E', '#F4EFE4'],
+  'school-hoodie': ['#0F4CA0', '#0A2C5E', '#F4EFE4'],
 };
 
 // Техника: авто, телефоны и корабли. База та же, что на витрине; цвета обязаны

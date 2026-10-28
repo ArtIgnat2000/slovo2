@@ -111,6 +111,45 @@ export const TINT_PALETTES: Record<string, TintPalette<ItemTint>> = {
     ],
   },
 
+  // ── Школа НААШ (0.74.0, docs/proposals/naash-shop.md) ────────────────────
+  // Красится ТОЛЬКО ткань: знак школы на всех вещах остаётся кремовым на
+  // синем контуре (в палитре он не участвует). Поэтому у трёх вещей одна и та
+  // же школьная лестница оттенков: синий знака → тёмно-синий → графит → бордо.
+  'school-cap': {
+    base: { id: BASE_TINT, title: 'Синяя', colors: ['#0F4CA0', '#0A2C5E', '#F4EFE4'] },
+    extra: [
+      { id: 'navy', title: 'Тёмно-синяя', colors: ['#0A2C5E', '#061B3D', '#F4EFE4'] },
+      { id: 'graphite', title: 'Графит', colors: ['#2B3140', '#1B2029', '#F4EFE4'] },
+      { id: 'burgundy', title: 'Бордо', colors: ['#7C2B3A', '#5A1C28', '#F4EFE4'] },
+    ],
+  },
+  'school-scarf': {
+    base: { id: BASE_TINT, title: 'Синий', colors: ['#0F4CA0', '#0A2C5E', '#F4EFE4'] },
+    extra: [
+      { id: 'navy', title: 'Тёмно-синий', colors: ['#0A2C5E', '#061B3D', '#F4EFE4'] },
+      { id: 'graphite', title: 'Графит', colors: ['#2B3140', '#1B2029', '#F4EFE4'] },
+      { id: 'burgundy', title: 'Бордо', colors: ['#7C2B3A', '#5A1C28', '#F4EFE4'] },
+    ],
+  },
+  'school-hoodie': {
+    base: { id: BASE_TINT, title: 'Синее', colors: ['#0F4CA0', '#0A2C5E', '#F4EFE4'] },
+    extra: [
+      { id: 'navy', title: 'Тёмно-синее', colors: ['#0A2C5E', '#061B3D', '#F4EFE4'] },
+      { id: 'graphite', title: 'Графит', colors: ['#2B3140', '#1B2029', '#F4EFE4'] },
+      { id: 'burgundy', title: 'Бордо', colors: ['#7C2B3A', '#5A1C28', '#F4EFE4'] },
+    ],
+  },
+  // У значка меняется эмаль, а сам знак (крыша, буквы, полка) — нет: он
+  // читается в цветах школы, иначе это уже не школьный значок.
+  'school-pin': {
+    base: { id: BASE_TINT, title: 'Кремовый', colors: ['#F4EFE4', '#0F4CA0', '#0A2C5E'] },
+    extra: [
+      { id: 'sky', title: 'Голубой', colors: ['#DCE6F4', '#0F4CA0', '#0A2C5E'] },
+      { id: 'sand', title: 'Песочный', colors: ['#EFE2C8', '#8A6A2A', '#0A2C5E'] },
+      { id: 'graphite', title: 'Серый', colors: ['#C9CFDA', '#2B3140', '#0A2C5E'] },
+    ],
+  },
+
   // ── Техника (0.19.0): телефоны, машины, корабли ──────────────────────────
   // 0.21.1: машины нарисованы цветным карандашом, у каждой свой цвет кузова;
   // Те же три роли цвета, что у нарядов: [корпус, тень/стекло, акцент].

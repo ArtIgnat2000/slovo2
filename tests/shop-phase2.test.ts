@@ -36,7 +36,7 @@ assert.equal(afterTwo?.price, 20);
 // Когда все наряды куплены — null (техника с другой полки героя не подменяет)
 const allOutfitIds = OUTFIT_ITEMS.map((i) => i.id);
 assert.equal(closestItem(allOutfitIds), null);
-assert.equal(OUTFIT_ITEMS.length, 34, 'на полке нарядов 34 вещи после 0.72.0 (19 в 0.70.0 + 15 новых: платья, причёски, кулоны, браслеты, сумочка, туфли, коньки)');
+assert.equal(OUTFIT_ITEMS.length, 38, 'на полке нарядов 38 вещей: 34 после 0.72.0 + 4 вещи формы школы НААШ (0.74.0)');
 
 // Техника выбирается только явно: на полке «Техника» своя ближайшая покупка.
 const firstToy = closestItem([], 'toy');

@@ -97,13 +97,25 @@ export default defineConfig(({ command }) => ({
         maximumFileSizeToCacheInBytes: 12 * 1024 * 1024,
         // Витрина вариантов карточки (docs/) — служебная страница для ревью,
         // ей нечего делать в офлайн-кэше у ребёнка.
-        globIgnores: ['docs/**'],
+        // 0.74.0: плитки «полки идей» школы НААШ (~100 КБ) тоже вне precache:
+        // нужны только тому, кто открыл раздел. Их кладёт кэш `slovo2-naash`
+        // при первом просмотре — как платные музыкальные треки.
+        globIgnores: ['docs/**', 'naash/**'],
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,
         // Остальная музыка (покупки, прослушивание): первый запрос кладёт файл
         // в кэш «slovo2-audio», дальше трек играет офлайн. Прогрев стартовых и
         // купленных треков — platform/music.ts:warmTracks.
         runtimeCaching: [
+          {
+            urlPattern: /\/naash\/.*\.webp$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'slovo2-naash',
+              expiration: { maxEntries: 24 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
           {
             urlPattern: /\/audio\/.*\.mp3$/,
             handler: 'CacheFirst',
