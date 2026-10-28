@@ -1,7 +1,7 @@
 // Структурированный словарик: 4 цветовые группы, круговая диаграмма, легенда,
 // поиск и подведение итога по каждой колонке.
 import './setup';
-import { LESSONS_BY_GRADE, WORDS_BY_GRADE } from '../src/content/words';
+import { WORDS_BY_GRADE } from '../src/content/words';
 import {
   COLLAPSE_PREVIEW_COUNT,
   WORD_BUCKETS,
@@ -166,6 +166,29 @@ export async function runDictionaryUiChecks(): Promise<void> {
     !donutText.includes('/') && donutText.includes('2') && donutText.includes(`из ${g2Words.length}`),
     donutText,
   );
+  const midArc = document.querySelector('[data-donut-hit="mid"]') as SVGCircleElement | null;
+  check('UI словарика: дуги имеют подпись, роль кнопки и доступны с клавиатуры',
+    !!midArc && midArc.getAttribute('role') === 'button' &&
+    midArc.getAttribute('tabindex') === '0' &&
+    (midArc.getAttribute('aria-label') ?? '').includes('Учу: 2'));
+  midArc?.dispatchEvent(new window.FocusEvent('focusin', { bubbles: true }));
+  await sleep(30);
+  check('UI словарика: фокус на дуге показывает число и название группы в центре',
+    (document.querySelector('.dict-donut svg')?.textContent ?? '').includes('Учу'));
+  midArc?.dispatchEvent(new window.FocusEvent('focusout', { bubbles: true }));
+  click(midArc);
+  await sleep(50);
+  check('UI словарика: тап по дуге фильтрует колонку и синхронизирует легенду',
+    document.querySelectorAll('[data-word-column]').length === 1 &&
+    !!document.querySelector('[data-word-column="mid"]') &&
+    midArc?.getAttribute('aria-pressed') === 'true' &&
+    document.querySelector('[data-legend="mid"]')?.getAttribute('aria-pressed') === 'true');
+  midArc?.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  await sleep(50);
+  check('UI словарика: Enter по выбранной дуге возвращает все колонки',
+    document.querySelectorAll('[data-word-column]').length === 4 &&
+    midArc?.getAttribute('aria-pressed') === 'false');
+
   const heroText = hero?.textContent ?? '';
   check(
     'UI словарика: ребёнку прямо написано и сколько знает, и сколько осталось выучить',
@@ -282,32 +305,10 @@ export async function runDictionaryUiChecks(): Promise<void> {
     check('UI словарика: крестик очищает поиск', searchInput.value === '');
   }
 
-  // Фильтр урока и состояние «все слова урока выучены!»
-  const firstLesson = LESSONS_BY_GRADE[2][0];
-  const allMasteredLessonStates: Record<string, WordState> = {
-    ...sampleStates,
-    ...Object.fromEntries(
-      firstLesson.wordIds.map((id) => [id, mkState({ s: 100, ok: 8, wrong: 0 })]),
-    ),
-  };
-  useApp.setState((s) => ({
-    profiles: s.profiles.map((p) =>
-      p.id !== activeProfile.id ? p : { ...p, words: allMasteredLessonStates },
-    ),
-  }));
-  await sleep(50);
-  const lessonChip = buttons().find(
-    (b) => b.className.includes('chip') && (b.textContent ?? '').includes(firstLesson.title),
-  );
-  click(lessonChip);
-  await sleep(60);
-  const lessonHeroText = document.querySelector('[data-dict-summary]')?.textContent ?? '';
+  // Разделы-уроки убраны: детский словарик показывает весь класс без второй ленты.
   check(
-    'UI словарика: когда все слова темы выучены — сводка поздравляет и показывает 0 оставшихся',
-    lessonHeroText.includes(`Все ${firstLesson.wordIds.length}`) &&
-      lessonHeroText.includes('Осталось выучить: 0') &&
-      !!document.querySelector('.dict-donut.done'),
-    lessonHeroText.slice(0, 160),
+    'UI словарика: в шапке нет разделов и фильтра уроков',
+    !document.querySelector('.dict-scroll-row') && !body().includes('Все темы'),
   );
 
   // Открытие карточки слова и статус цвета внутри неё + закрытие по Escape
@@ -326,19 +327,18 @@ export async function runDictionaryUiChecks(): Promise<void> {
   await sleep(50);
   check('UI словарика: клавиша Escape закрывает карточку слова', !document.querySelector('.sheet'));
 
-  // Просмотр другого класса в словарике не переключает программу профиля
-  const g3Chip = buttons().find(
-    (b) => b.className.includes('chip') && (b.textContent ?? '').includes('3 класс'),
-  );
-  if (g3Chip) {
-    click(g3Chip);
+  // Компактный выбор класса не переключает программу профиля.
+  const gradePicker = document.querySelector('.dict-grade-picker select') as HTMLSelectElement | null;
+  check('UI словарика: один компактный выбор класса вместо ряда чипов',
+    !!gradePicker && gradePicker.options.length === 4 && gradePicker.value === '2');
+  if (gradePicker) {
+    gradePicker.value = '3';
+    gradePicker.dispatchEvent(new window.Event('change', { bubbles: true }));
     await sleep(50);
     const nowProfile = useApp.getState().profiles.find((p) => p.id === activeProfile.id);
-    check(
-      'UI словарика: просмотр другого класса в словарике не меняет активный класс профиля',
-      nowProfile?.activeClass === 2,
-      String(nowProfile?.activeClass),
-    );
+    check('UI словарика: просмотр 3 класса не меняет программу профиля',
+      nowProfile?.activeClass === 2 &&
+      (document.querySelector('[data-dict-summary]')?.textContent ?? '').includes('3 класс'));
   }
 
   // Восстанавливаем исходный профиль и возвращаемся на «Уроки» для следующих проверок смоука

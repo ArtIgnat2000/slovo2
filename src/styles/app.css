@@ -5647,14 +5647,30 @@ p {
   max-width: 1120px;
 }
 
-.dict-scroll-row {
-  overflow-x: auto;
-  padding-bottom: 4px;
-  scrollbar-width: thin;
+/* Один компактный контрол вместо двух горизонтальных лент в шапке. */
+.dict-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
-.dict-scroll-row > .chip {
-  flex: none;
-  white-space: nowrap;
+.dict-header h1 { margin: 0; min-width: 0; }
+.dict-grade-picker { flex: none; }
+.dict-grade-picker select {
+  min-height: 44px;
+  max-width: 110px;
+  padding: 0 24px 0 10px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+.dict-grade-picker select:focus-visible {
+  outline: 3px solid var(--orange);
+  outline-offset: 2px;
 }
 
 .dict-hero {
@@ -5673,10 +5689,16 @@ p {
   display: block;
 }
 .dict-donut-arc {
-  transition:
-    stroke-dasharray 0.35s ease,
-    stroke-dashoffset 0.35s ease;
+  pointer-events: none;
+  transition: stroke-dasharray 0.35s ease, stroke-dashoffset 0.35s ease, opacity 0.2s ease;
 }
+.dict-donut-arc.dimmed { opacity: 0.35; }
+.dict-donut-hit { cursor: pointer; }
+.dict-donut-hit:focus-visible {
+  outline: none;
+  stroke: color-mix(in srgb, var(--ink) 25%, transparent);
+}
+.dict-donut text { pointer-events: none; }
 @media (prefers-reduced-motion: reduce) {
   .dict-donut-arc {
     transition: none;
