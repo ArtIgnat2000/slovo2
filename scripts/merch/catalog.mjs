@@ -450,8 +450,8 @@ export const ITEMS = [
   {
     id: 'race-car',
     section: 'transport',
-    name: 'Болид «Формула НААШ»',
-    sub: 'Ливрея для команды робототехники',
+    name: 'Болид «Ретро-07»',
+    sub: 'Классическая формула в ливрее школы',
     palette: [C.navy, C.cream],
     art: raceCar({ w: 660 }),
   },

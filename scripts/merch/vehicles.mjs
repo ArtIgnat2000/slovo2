@@ -8,7 +8,7 @@
 // Видны: ближний борт, крыша, нос. Дальние колёса и задний торец не рисуем —
 // их всё равно скрывает корпус.
 
-import { C, MARK_BOX, mark, esc, font } from './brand.mjs';
+import { C, MARK_BOX, mark, font } from './brand.mjs';
 import { shade } from './garments.mjs';
 import {
   pr,
@@ -22,10 +22,12 @@ import {
   contact,
   arch,
   ISO_DEFS,
+  arcSpan,
   SX,
   DYX,
   setDepth,
   depth,
+  discZ,
 } from './iso.mjs';
 
 const fmt = (n) => Math.round(n * 100) / 100;
@@ -180,9 +182,9 @@ export function bus({ s = 1.12 } = {}) {
         [L - ch, y1 + 10, roofIn],
         [-L, y1 + 10, roofIn],
       ],
-      shade(t.top, -6),
+      shade(base, 24),
     ) +
-    topFace(-L, L - ch, -roofIn, roofIn, y1 + 10, t.top) +
+    topFace(-L, L - ch, -roofIn, roofIn, y1 + 10, shade(base, 52)) +
     // крыша: кондиционер, люки
     topFace(-60, 60, -40, 40, y1 + 24, shade(t.top, -2)) +
     sideFace(40, -60, 60, y1 + 10, y1 + 24, shade(t.top, -14)) +
@@ -337,8 +339,14 @@ export function tram({ s = 1.06 } = {}) {
     endFace(L + 0.6, 158, 246, 6, 68, GLASS) +
     endFace(L + 0.9, 158, 178, -64, -10, shade(GLASS, 34)) +
     endFace(L + 0.9, 158, 178, 10, 64, shade(GLASS, 34)) +
-    endFace(L + 0.6, 254, 268, -56, 56, '#0E151E') +
-    endFace(L + 0.9, 256, 266, -46, 6, C.amber, 'opacity="0.9"') +
+    // маршрутоуказатель и номер
+    endFace(L + 0.7, 254, 274, -58, 58, '#101A26') +
+    onFront(
+      L + 1.1,
+      266,
+      0,
+      `<text x="0" y="0" ${font(900)} font-size="13" text-anchor="middle" fill="${C.cream}" letter-spacing="3">7 · ЦЕНТР</text>`,
+    ) +
     onFront(
       L + 1.2,
       118,
@@ -347,17 +355,20 @@ export function tram({ s = 1.06 } = {}) {
         `<ellipse cx="0" cy="0" rx="38" ry="19" fill="#F8EED2"/>` +
         `<ellipse cx="0" cy="0" rx="19" ry="9" fill="#FFFCF2"/>`,
     ) +
-    endFace(L + 0.5, 60, 92, -Z, Z, shade(base, -30)) +
-    endFace(L + 0.6, 64, 86, -40, 40, shade(cream, -8)) +
-    // пантограф
-    line([-30, roofY, -24], [-30, roofY + 14, -24], '#2B3140', 12) +
-    line([52, roofY, -24], [52, roofY + 14, -24], '#2B3140', 12) +
-    line([-30, roofY + 6, 30], [46, roofY + 66, -26], '#39424F', 7, 'stroke-linecap="round"') +
-    line([-30, roofY + 6, -30], [46, roofY + 66, 26], '#39424F', 7, 'stroke-linecap="round"') +
-    line([46, roofY + 66, 26], [96, roofY + 96, 0], '#39424F', 7, 'stroke-linecap="round"') +
-    line([46, roofY + 66, -26], [96, roofY + 96, 0], '#39424F', 7, 'stroke-linecap="round"') +
-    line([92, roofY + 96, -48], [92, roofY + 96, 48], '#20262F', 8, 'stroke-linecap="round"') +
-    line([92, roofY + 99, -40], [92, roofY + 99, 40], '#8A919C', 3, 'stroke-linecap="round"') +
+    endFace(L + 0.5, 58, 96, -Z, Z, shade(base, -32)) +
+    endFace(L + 0.7, 66, 90, -78, 78, shade(cream, -10)) +
+    endFace(L + 0.9, 72, 84, -70, -24, '#F8EED2') +
+    endFace(L + 0.9, 72, 84, 24, 70, '#F8EED2') +
+    // пантограф: изоляторы, нижние и верхние тяги, полоз
+    line([-48, roofY + 1, 40], [-48, roofY + 15, 40], '#20262F', 13) +
+    line([-48, roofY + 1, -40], [-48, roofY + 15, -40], '#20262F', 13) +
+    line([-48, roofY + 13, 40], [10, roofY + 62, 26], '#3B4451', 9, 'stroke-linecap="round"') +
+    line([-48, roofY + 13, -40], [10, roofY + 62, -26], '#3B4451', 9, 'stroke-linecap="round"') +
+    line([10, roofY + 60, 26], [30, roofY + 104, 0], '#3B4451', 8, 'stroke-linecap="round"') +
+    line([10, roofY + 60, -26], [30, roofY + 104, 0], '#3B4451', 8, 'stroke-linecap="round"') +
+    line([-46, roofY + 16, 34], [26, roofY + 100, 4], '#59636F', 3.4, 'stroke-linecap="round"') +
+    line([30, roofY + 102, -62], [30, roofY + 102, 62], '#20262F', 9, 'stroke-linecap="round"') +
+    line([28, roofY + 108, -56], [28, roofY + 108, 56], '#9AA2AD', 4, 'stroke-linecap="round"') +
     // блик по крыше
     line([-L + 6, roofY + 1, Z - 26], [L - 40, roofY + 1, Z - 26], '#FFFFFF', 3, 'opacity="0.3" stroke-linecap="round"');
 
@@ -365,240 +376,137 @@ export function tram({ s = 1.06 } = {}) {
 }
 
 // ──────────────────────────────────────────────────────────────── болид ──
-/** Болид: клин с кокпитом, открытые колёса, переднее и заднее крыло. */
-export function raceCar({ s = 1.18 } = {}) {
+/**
+ * Ретро-болид: сигара с круглым носом, открытый кокпит, четыре открытых колеса.
+ * Форма держится на сечениях — поэтому кузов читается объёмным, а не доской.
+ */
+export function raceCar({ s = 1.04 } = {}) {
   const base = C.navy;
   const t = tones(base);
-  const amber = C.amber;
-  const Z = 46;
+  const cream = C.cream;
 
-  // сечения кузова: [x, верх, полуширина, низ]
+  // [x, верх, низ, полуширина]
   const st = [
-    [214, 24, 16, 16],
-    [186, 30, 26, 14],
-    [140, 40, 34, 14],
-    [96, 52, 44, 16],
-    [40, 70, 46, 18],
-    [-16, 86, 44, 18],
-    [-72, 96, 42, 20],
-    [-130, 98, 40, 22],
-    [-180, 88, 34, 24],
-    [-214, 72, 24, 24],
+    [190, 58, 34, 14],
+    [176, 64, 30, 32],
+    [148, 74, 26, 44],
+    [108, 84, 24, 50],
+    [58, 90, 24, 52],
+    [8, 94, 24, 52],
+    [-42, 92, 24, 50],
+    [-92, 86, 26, 46],
+    [-142, 76, 28, 38],
+    [-180, 64, 34, 24],
+    [-198, 54, 40, 12],
   ];
-
-  const topEdge = st.map(([x, y, w]) => [x, y, w]);
-  const botEdge = st.map(([x, y, w, b]) => [x, b, w]);
-  const shellTop = [
-    ...topEdge,
-    ...[...topEdge].reverse().map(([x, y, w]) => [x, y, -w]),
-  ];
+  const topEdge = st.map(([x, yt, , w]) => [x, yt, w]);
+  const botEdge = st.map(([x, , yb, w]) => [x, yb, w]);
+  const shellTop = [...topEdge, ...[...topEdge].reverse().map(([x, y, w]) => [x, y, -w])];
   const shellSide = [...topEdge, ...[...botEdge].reverse()];
 
-  const wFront = { x: 156, r: 42 };
-  const wRear = { x: -164, r: 48 };
-  const wZ = 88;
+  const wF = { x: 132, r: 42 };
+  const wR = { x: -130, r: 46 };
+  const wZ = 86;
+  const Z = 52;
 
-  const body =
-    sheenDef('carSheen', pr(0, 98, Z)[1], pr(0, 14, Z)[1]) +
-    contact(0, 0, 0, 280, 140, 0.18) +
-    // заднее крыло
-    // стойки «лебединая шея»
-    poly(
-      [
-        [-196, 78, 34],
-        [-186, 86, 34],
-        [-186, 132, 34],
-        [-196, 132, 34],
-      ],
-      '#20262F',
-    ) +
-    poly(
-      [
-        [-196, 78, -34],
-        [-186, 86, -34],
-        [-186, 132, -34],
-        [-196, 132, -34],
-      ],
-      '#20262F',
-    ) +
-    poly(
-      [
-        [-226, 134, 94],
-        [-182, 138, 94],
-        [-182, 138, -94],
-        [-226, 134, -94],
-      ],
-      t.top,
-    ) +
-    poly(
-      [
-        [-226, 134, 94],
-        [-182, 138, 94],
-        [-182, 126, 94],
-        [-226, 122, 94],
-      ],
-      shade(base, -24),
-    ) +
-    poly(
-      [
-        [-182, 138, 94],
-        [-174, 138, 94],
-        [-174, 114, 94],
-        [-182, 126, 94],
-      ],
-      amber,
-    ) +
-    poly(
-      [
-        [-226, 134, -94],
-        [-182, 138, -94],
-        [-182, 126, -94],
-        [-226, 122, -94],
-      ],
-      shade(base, -34),
-    ) +
-    // дальние колёса
-    wheel(wRear.x, wRear.r, -wZ, wRear.r, { arch: false, spin: 18 }) +
-    wheel(wFront.x, wFront.r, -wZ, wFront.r, { arch: false, spin: 36 }) +
-    // корпус
-    poly(shellSide, t.side) +
-    poly(shellTop, t.top) +
-    // кокпит
-    poly(
-      [
-        [46, 66, 38],
-        [0, 82, 34],
-        [-52, 90, 32],
-        [-52, 90, -32],
-        [0, 82, -34],
-        [46, 66, -38],
-      ],
-      '#12171F',
-    ) +
-    poly(
-      [
-        [40, 70, 32],
-        [2, 84, 28],
-        [-46, 91, 26],
-        [-46, 91, -26],
-        [2, 84, -28],
-        [40, 70, -32],
-      ],
-      '#24313F',
-      'opacity="0.9"',
-    ) +
-    // воздухозаборник над головой
-    poly(
-      [
-        [-44, 92, 24],
-        [-62, 96, 22],
-        [-62, 112, 22],
-        [-44, 108, 24],
-      ],
-      t.side,
-    ) +
-    poly(
-      [
-        [-44, 108, 24],
-        [-62, 112, 22],
-        [-62, 112, -22],
-        [-44, 108, -24],
-      ],
-      t.top,
-    ) +
-    poly(
-      [
-        [-62, 112, 22],
-        [-62, 112, -22],
-        [-62, 98, -22],
-        [-62, 98, 22],
-      ],
-      '#0D1218',
-    ) +
-    // подголовник и дуга
-    poly(
-      [
-        [-40, 96, 18],
-        [-58, 98, 18],
-        [-58, 98, -18],
-        [-40, 96, -18],
-      ],
-      shade(base, -12),
-    ) +
-    line([-56, 88, -24], [-64, 124, -16], '#20262F', 8, 'stroke-linecap="round"') +
-    line([-64, 124, -16], [-64, 124, 16], '#20262F', 8, 'stroke-linecap="round"') +
-    line([-64, 124, 16], [-56, 88, 24], '#20262F', 8, 'stroke-linecap="round"') +
-    // ливрея
-    liveryStripes(Z + 0.5, -186, 132, 46, 3.6, 0.8) +
-    onSide(
-      96,
-      42,
-      Z + 1,
-      `<text x="0" y="0" ${font(900)} font-size="38" text-anchor="middle" fill="${C.cream}" letter-spacing="-1">07</text>`,
-    ) +
-    markSide(-124, 60, Z + 1, 34, { mono: C.cream }) +
-    // воздухозаборник
-    poly(
-      [
-        [-24, 92, 34],
-        [-46, 94, 32],
-        [-46, 94, -32],
-        [-24, 92, -34],
-      ],
-      '#0D1218',
-    ) +
-    // подвеска
-    [1, -1].map((k) =>
-      line([104, 44, k * 38], [156, 52, k * 82], '#20262F', 6, 'stroke-linecap="round"') +
-      line([104, 22, k * 36], [156, 32, k * 82], '#20262F', 6, 'stroke-linecap="round"') +
-      line([-116, 46, k * 36], [-164, 56, k * 84], '#20262F', 7, 'stroke-linecap="round"') +
-      line([-116, 24, k * 34], [-164, 34, k * 84], '#20262F', 7, 'stroke-linecap="round"'),
-    ).join('') +
-    // ближние колёса
-    wheel(wRear.x, wRear.r, wZ, wRear.r, { arch: false, spin: 18 }) +
-    wheel(wFront.x, wFront.r, wZ, wFront.r, { arch: false, spin: 36 }) +
-    // переднее крыло
-    poly(
-      [
-        [176, 20, 96],
-        [222, 22, 96],
-        [222, 22, -96],
-        [176, 20, -96],
-      ],
-      t.top,
-    ) +
-    poly(
-      [
-        [176, 20, 96],
-        [222, 22, 96],
-        [222, 12, 96],
-        [176, 10, 96],
-      ],
-      shade(base, -24),
-    ) +
-    poly(
-      [
-        [176, 20, -96],
-        [222, 22, -96],
-        [222, 12, -96],
-        [176, 10, -96],
-      ],
-      shade(base, -34),
-    ) +
-    poly(
-      [
-        [176, 20, 96],
-        [222, 22, 96],
-        [222, 40, 96],
-        [176, 38, 96],
-      ],
-      shade(base, -16),
-    ) +
-    // блик
-    poly(shellSide, 'url(#carSheen)') +
-    line([36, 72, 48], [-176, 92, 42], '#FFFFFF', 2.6, 'opacity="0.32" stroke-linecap="round"');
-
-  return scene(body, { s });
+  return scene(
+    sheenDef('carSheen', pr(0, 94, Z)[1], pr(0, 24, Z)[1]) +
+      contact(0, 0, 0, 250, 150, 0.17) +
+      // дальние колёса
+      wheel(wR.x, wR.r, -wZ, wR.r, { arch: false, spin: 14 }) +
+      wheel(wF.x, wF.r, -wZ, wF.r, { arch: false, spin: 32 }) +
+      // кузов
+      poly(shellSide, t.side) +
+      poly(shellTop, t.top) +
+      // капот: тень от кокпита вперёд
+      poly(
+        [
+          [58, 90, 52],
+          [8, 94, 52],
+          [8, 94, -52],
+          [58, 90, -52],
+        ],
+        shade(base, -10),
+        'opacity="0.50"',
+      ) +
+      // кокпит
+      poly(
+        [
+          [26, 92, 34],
+          [-16, 94, 32],
+          [-62, 90, 26],
+          [-62, 90, -26],
+          [-16, 94, -32],
+          [26, 92, -34],
+        ],
+        '#10151C',
+      ) +
+      poly(
+        [
+          [20, 93, 28],
+          [-14, 94, 26],
+          [-54, 91, 20],
+          [-54, 91, -20],
+          [-14, 94, -26],
+          [20, 93, -28],
+        ],
+        '#24303D',
+        'opacity="0.9"',
+      ) +
+      // лобовое стекло
+      poly(
+        [
+          [34, 94, 30],
+          [30, 116, 26],
+          [30, 116, -26],
+          [34, 94, -30],
+        ],
+        '#28394A',
+        'opacity="0.92"',
+      ) +
+      line([30, 116, -26], [30, 116, 26], '#8FA2B6', 2.4, 'opacity="0.7"') +
+      // подголовник
+      poly(
+        [
+          [-58, 92, 26],
+          [-96, 88, 22],
+          [-96, 112, 20],
+          [-58, 110, 24],
+        ],
+        t.side,
+      ) +
+      poly(
+        [
+          [-58, 110, 24],
+          [-96, 112, 20],
+          [-96, 112, -20],
+          [-58, 110, -24],
+        ],
+        t.top,
+      ) +
+      // нос: решётка и номер
+      discZ(190, 46, 0, 20, shade(base, -26)) +
+      discZ(190.6, 46, 0, 15, '#0E141C') +
+      discX(120, 62, Z + 0.6, 26, cream) +
+      onSide(
+        120,
+        62,
+        Z + 0.9,
+        `<text x="0" y="0" ${font(900)} font-size="26" text-anchor="middle" fill="${base}" letter-spacing="-0.6">07</text>`,
+      ) +
+      // ливрея
+      liveryStripes(Z + 1.2, -150, 96, 38, 3.4, 0.8) +
+      markSide(-170, 54, Z + 1.2, 24, { mono: cream }) +
+      // выхлоп и блик
+      line([-186, 44, 10], [-214, 44, 14], '#7A8490', 6, 'stroke-linecap="round"') +
+      line([-186, 44, -10], [-214, 44, -14], '#7A8490', 6, 'stroke-linecap="round"') +
+      // ближние колёса
+      wheel(wR.x, wR.r, wZ, wR.r, { arch: false, spin: 14 }) +
+      wheel(wF.x, wF.r, wZ, wF.r, { arch: false, spin: 32 }) +
+      poly(shellSide, 'url(#carSheen)') +
+      line([-150, 82, 40], [140, 88, 42], '#FFFFFF', 2.6, 'opacity="0.3" stroke-linecap="round"'),
+    { s },
+  );
 }
 
 // ───────────────────────────────────────────────────────────── самокат ──
@@ -619,8 +527,8 @@ export function scooter({ s = 1.2 } = {}) {
     sheenDef('scootSheen', pr(0, deckY, Z)[1], pr(0, 20, Z)[1]) +
     contact(-16, 0, 0, 180, 76, 0.16) +
     // заднее колесо и маятник
-    wheel(rearW.x, rearW.r, -8, rearW.r, { arch: false, spin: 12 }) +
-    wheel(rearW.x, rearW.r, 0, rearW.r, { arch: false, spin: 12 }) +
+    wheel(rearW.x, rearW.r, -8, rearW.r, { arch: false, spin: 12, rim: '#8E97A3' }) +
+    wheel(rearW.x, rearW.r, 0, rearW.r, { arch: false, spin: 12, rim: '#8E97A3' }) +
     line([deckRear + 4, 30, -22], [rearW.x + 4, rearW.r, -16], shade(base, -8), 9, 'stroke-linecap="round"') +
     line([deckRear + 4, 30, 22], [rearW.x + 4, rearW.r, 16], shade(base, -8), 9, 'stroke-linecap="round"') +
     // дека
@@ -703,10 +611,12 @@ export function scooter({ s = 1.2 } = {}) {
       ],
       '#20262F',
     ) +
-    // руль
-    line([stemTop.x, stemTop.y, -62], [stemTop.x, stemTop.y, 62], '#20262F', 13, 'stroke-linecap="round"') +
-    line([stemTop.x, stemTop.y, -62], [stemTop.x - 4, stemTop.y + 8, -78], '#0E1319', 19, 'stroke-linecap="round"') +
-    line([stemTop.x, stemTop.y, 62], [stemTop.x - 4, stemTop.y + 8, 78], '#0E1319', 19, 'stroke-linecap="round"') +
+    // руль: поперечина и грипсы, которые смотрят на зрителя
+    line([stemTop.x, stemTop.y, -66], [stemTop.x, stemTop.y, 66], '#20262F', 12, 'stroke-linecap="round"') +
+    line([stemTop.x, stemTop.y, 62], [stemTop.x, stemTop.y, 86], '#12181F', 16, 'stroke-linecap="round"') +
+    line([stemTop.x, stemTop.y, -62], [stemTop.x, stemTop.y, -86], '#12181F', 16, 'stroke-linecap="round"') +
+    line([stemTop.x, stemTop.y - 4, 70], [stemTop.x, stemTop.y - 4, 84], '#4A5563', 4, 'stroke-linecap="round"') +
+    line([stemTop.x, stemTop.y - 4, -70], [stemTop.x, stemTop.y - 4, -84], '#4A5563', 4, 'stroke-linecap="round"') +
     poly(
       [
         [stemTop.x - 15, stemTop.y - 6, 18],
@@ -718,10 +628,10 @@ export function scooter({ s = 1.2 } = {}) {
     ) +
     discY(stemTop.x, stemTop.y - 2, 0, 8, C.amber) +
     // переднее колесо и крыло
-    wheel(frontW.x, frontW.r, -8, frontW.r, { arch: false, spin: 24 }) +
-    wheel(frontW.x, frontW.r, 0, frontW.r, { arch: false, spin: 24 }) +
-    arch(frontW.x, frontW.r, 0, frontW.r + 3, t.side, 10) +
-    arch(rearW.x, rearW.r, 0, rearW.r + 3, shade(base, 12), 8) +
+    wheel(frontW.x, frontW.r, -8, frontW.r, { arch: false, spin: 24, rim: '#8E97A3' }) +
+    wheel(frontW.x, frontW.r, 0, frontW.r, { arch: false, spin: 24, rim: '#8E97A3' }) +
+    arcSpan(frontW.x, frontW.r, 2, frontW.r + 4, t.side, 9, 26, 152) +
+    arcSpan(rearW.x, rearW.r, 2, rearW.r + 4, shade(base, 16), 8, 34, 148) +
     // подножка
     line([-96, 20, Z], [-24, 20, Z], '#20262F', 6, 'stroke-linecap="round"');
 
@@ -800,12 +710,12 @@ export function bike({ s = 1.06 } = {}) {
       ],
       '#2A3542',
     ) +
-    // руль с загибом назад
-    line([stem.x, stem.y, -48], [stem.x, stem.y, 48], '#20262F', 9, 'stroke-linecap="round"') +
-    line([stem.x, stem.y, 48], [stem.x - 16, stem.y + 4, 58], '#20262F', 9, 'stroke-linecap="round"') +
-    line([stem.x, stem.y, -48], [stem.x - 14, stem.y - 12, -58], '#20262F', 9, 'stroke-linecap="round"') +
-    line([stem.x - 16, stem.y + 4, 58], [stem.x - 34, stem.y + 8, 60], '#11161D', 13, 'stroke-linecap="round"') +
-    line([stem.x - 14, stem.y - 12, -58], [stem.x - 32, stem.y - 12, -60], '#11161D', 13, 'stroke-linecap="round"') +
+    // руль: прямая поперечина, загнутые назад концы, грипсы вдоль оси
+    line([stem.x, stem.y, -52], [stem.x, stem.y, 52], '#20262F', 9, 'stroke-linecap="round"') +
+    line([stem.x, stem.y, 54], [stem.x - 12, stem.y + 2, 64], '#20262F', 9, 'stroke-linecap="round"') +
+    line([stem.x, stem.y, -54], [stem.x - 12, stem.y + 2, -64], '#20262F', 9, 'stroke-linecap="round"') +
+    line([stem.x - 12, stem.y + 2, 62], [stem.x - 13, stem.y + 2, 78], '#11161D', 13, 'stroke-linecap="round"') +
+    line([stem.x - 12, stem.y + 2, -62], [stem.x - 13, stem.y + 2, -78], '#11161D', 13, 'stroke-linecap="round"') +
     // система, шатун и педаль
     discX(bb.x, bb.y, 18, 27, 'none', `stroke="${shade(RIM, -30)}" stroke-width="5.5"`) +
     discX(bb.x, bb.y, 20, 26, 'none', `stroke="${shade(base, -20)}" stroke-width="9"`) +
@@ -831,8 +741,8 @@ export function bike({ s = 1.06 } = {}) {
 
 // ──────────────────────────────────────────────────────────────── лайнер ──
 /** Лайнер: фюзеляж-тубус, стреловидные крылья, киль, шасси, ливрея. */
-export function airliner({ s = 1.14 } = {}) {
-  setDepth(-0.58, 0.26);
+export function airliner({ s = 1.22 } = {}) {
+  setDepth(-0.5, 0.22);
   const R = 44;
   const yc = 122; // ось фюзеляжа
   const base = C.cream;
@@ -913,10 +823,10 @@ export function airliner({ s = 1.14 } = {}) {
       // ближняя часть
       nac(30, 120, y0, 22, z, tone) +
       line([38, y0 - 12, z + 0.4], [114, y0 - 11, z + 0.4], shade(tone, -26), 8, 'opacity="0.5"') +
-      // воздухозаборник
-      discX(120, y0, z + 0.2, 22, shade(tone, -36)) +
-      discX(120, y0, z + 0.4, 16, '#26303C') +
-      discX(120, y0, z + 0.6, 7, RIM)
+      // воздухозаборник — торец по ходу, поэтому круг в плоскости z–y
+      discZ(120, y0, z, 22, shade(tone, -30)) +
+      discZ(120.4, y0, z, 17, '#26303C') +
+      discZ(120.8, y0, z, 8, RIM)
     );
   };
 
@@ -945,7 +855,7 @@ export function airliner({ s = 1.14 } = {}) {
     gear(-96, 66, 16) +
     gear(248, 0, 14) +
     // дальняя плоскость и стабилизатор
-    wingPts(-1, '#AEBAC9', 236) +
+    wingPts(-1, '#A7B4C4', 236) +
     eng(-1, '#B4C0CE') +
     poly(
       [
@@ -1020,7 +930,7 @@ export function airliner({ s = 1.14 } = {}) {
       'opacity="0.5"',
     ) +
     // ближнее крыло и двигатель
-    wingPts(1, '#CCD5E0') +
+    wingPts(1, '#C3CEDC') +
     eng(1, '#D3DBE6') +
     // знак на киле и надпись
     markSide(-290, yc + 120, 1, 38, { mono: C.cream }) +
@@ -1038,7 +948,5 @@ export function airliner({ s = 1.14 } = {}) {
     );
 
   setDepth(-0.55, 0.36);
-  return scene(body, { s, cy: 560 });
+  return scene(body, { s, cy: 570 });
 }
-
-export { esc, font };

@@ -110,6 +110,15 @@ export const discY = (x, y, z, r, fill, extra = '') => {
   );
 };
 
+/** Круг в плоскости z–y: торец по ходу — воздухозаборник, фара, срез. */
+export const discZ = (x, y, z, r, fill, extra = '') => {
+  const [sx, sy] = pr(x, y, z);
+  return (
+    `<g transform="translate(${fmt(sx)} ${fmt(sy)}) matrix(${fmt(-DX)} ${fmt(-DY)} 0 1 0 0)">` +
+    `<circle r="${fmt(r)}" fill="${fill}" ${extra}/></g>`
+  );
+};
+
 /** Тень на «полу»: эллипс в плоскости x–z с размытием. */
 export const contact = (x, y, z, rx, rz, opacity = 0.16) => {
   const [sx, sy] = pr(x, y, z);
@@ -124,6 +133,18 @@ export const arch = (x, y, z, r, stroke, w = 10, extra = '') => {
   const [sx, sy] = pr(x, y, z);
   const rx = r * SX;
   return `<path d="M${fmt(sx + rx)} ${fmt(sy)} A${fmt(rx)} ${fmt(r)} 0 0 0 ${fmt(sx - rx)} ${fmt(sy)}" fill="none" stroke="${stroke}" stroke-width="${w}" ${extra}/>`;
+};
+
+/** Дуга колеса на любой угол: от a0 до a1 (0 — вправо, 90 — вверх). */
+export const arcSpan = (x, y, z, r, stroke, w = 8, a0 = 20, a1 = 160, extra = '') => {
+  const pts = [];
+  const n = 22;
+  for (let i = 0; i <= n; i += 1) {
+    const a = ((a0 + ((a1 - a0) * i) / n) * Math.PI) / 180;
+    pts.push(pr(x + Math.cos(a) * r, y + Math.sin(a) * r, z));
+  }
+  const d = pts.map(([sx, sy], i) => `${i ? 'L' : 'M'}${fmt(sx)} ${fmt(sy)}`).join('');
+  return `<path d="${d}" fill="none" stroke="${stroke}" stroke-width="${w}" stroke-linecap="round" ${extra}/>`;
 };
 
 export const ISO_DEFS = `

@@ -24,6 +24,8 @@ export const isLight = (hex) => {
   return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.62;
 };
 
+const fmt = (n) => Math.round(n * 10) / 10;
+
 const fabricDefs = (id, light, lightAt) => `
 <linearGradient id="${id}" x1="0.15" y1="0" x2="0.85" y2="1">
   <stop offset="0" stop-color="#ffffff" stop-opacity="${light ? 0.26 : 0.12}"/>
@@ -368,196 +370,290 @@ export function sweatshirt({
 }
 
 // ───────────────────────────────────────────────────────── кепка ──
-/** Кепка, вид спереди: купол, панельные швы, козырёк с отворотом. */
-export function cap({ cx = 450, cy = 470, r = 215, body = C.navy, brim = null, print = null } = {}) {
+/**
+ * Кепка в 3/4: купол из шести панелей, козырёк выходит из-под купола
+ * влево-вниз к зрителю. Порядок важен: козырёк → купол, иначе козырёк
+ * читается как отдельная «лодка» под шапкой.
+ */
+export function cap({ cx = 440, cy = 470, r = 215, body = C.navy, brim = null, print = null } = {}) {
   const light = isLight(body);
   const edge = shade(body, light ? -30 : -24);
-  const brimCol = brim ?? shade(body, light ? -16 : 16);
-  const base = cy + r * 0.06;          // линия пришива козырька
-  const dome =
-    `M${cx - r} ${base} ` +
-    `C${cx - r * 1.02} ${cy - r * 0.5} ${cx - r * 0.52} ${cy - r * 0.95} ${cx} ${cy - r * 0.95} ` +
-    `C${cx + r * 0.52} ${cy - r * 0.95} ${cx + r * 1.02} ${cy - r * 0.5} ${cx + r} ${base} Z`;
+  const brimCol = brim ?? shade(body, light ? -8 : 12);
+  const topY = cy - r * 0.9;
+  const rimY = cy + r * 0.16;
+  const left = cx - r * 1.06;
+  const right = cx + r * 0.98;
+
+  const crown =
+    `M${left} ${rimY - 4} ` +
+    `C${left + r * 0.02} ${cy - r * 0.46} ${cx - r * 0.5} ${topY} ${cx - r * 0.04} ${topY} ` +
+    `C${cx + r * 0.44} ${topY} ${right - r * 0.06} ${cy - r * 0.44} ${right} ${rimY - 10} ` +
+    `C${right - r * 0.32} ${rimY + 14} ${left + r * 0.3} ${rimY + 16} ${left} ${rimY - 4} Z`;
+
+  // козырёк — эллипс, сдвинутый к зрителю: кепка повёрнута влево, поэтому
+  // козырёк асимметричен, а верх купола читается как отдельная плоскость
+  const brimCx = cx - r * 0.12;
+  const brimCy = rimY + r * 0.04;
+  const brimRx = r * 1.04;
+  const brimRy = r * 0.34;
+  const brimRot = -4;
+
   return (
     `<g filter="url(#ground)">` +
     `<defs>` +
-    `<radialGradient id="capShade" gradientUnits="userSpaceOnUse" cx="${cx - r * 0.3}" cy="${cy - r * 0.62}" r="${r * 1.5}">` +
-    `<stop offset="0" stop-color="#fff" stop-opacity="${light ? 0.42 : 0.2}"/>` +
-    `<stop offset="0.62" stop-color="#fff" stop-opacity="0"/>` +
-    `<stop offset="1" stop-color="#000" stop-opacity="${light ? 0.08 : 0.26}"/></radialGradient>` +
-    `<linearGradient id="capBrim" x1="0" y1="0" x2="0" y2="1">` +
+    `<radialGradient id="capDome" gradientUnits="userSpaceOnUse" cx="${cx - r * 0.5}" cy="${cy - r * 0.7}" r="${r * 1.9}">` +
+    `<stop offset="0" stop-color="#fff" stop-opacity="${light ? 0.5 : 0.28}"/>` +
+    `<stop offset="0.52" stop-color="#fff" stop-opacity="0"/>` +
+    `<stop offset="1" stop-color="#000" stop-opacity="${light ? 0.1 : 0.3}"/></radialGradient>` +
+    `<linearGradient id="capBrimG" gradientUnits="userSpaceOnUse" x1="${left}" y1="${rimY - 30}" x2="${cx}" y2="${rimY + r * 0.4}">` +
     `<stop offset="0" stop-color="#fff" stop-opacity="${light ? 0.3 : 0.16}"/>` +
-    `<stop offset="1" stop-color="#000" stop-opacity="${light ? 0.1 : 0.3}"/></linearGradient>` +
+    `<stop offset="0.6" stop-color="#fff" stop-opacity="0"/>` +
+    `<stop offset="1" stop-color="#000" stop-opacity="${light ? 0.14 : 0.3}"/></linearGradient>` +
     `</defs>` +
+    // козырёк (купол потом перекроет его верхнюю часть)
+    `<g transform="rotate(${brimRot} ${brimCx} ${brimCy})">` +
+    `<ellipse cx="${brimCx}" cy="${brimCy}" rx="${brimRx}" ry="${brimRy}" fill="${brimCol}"/>` +
+    `<ellipse cx="${brimCx}" cy="${brimCy}" rx="${brimRx}" ry="${brimRy}" fill="url(#capBrimG)"/>` +
+    `<path d="M${brimCx - brimRx * 0.92} ${brimCy + brimRy * 0.26} A${brimRx * 0.94} ${brimRy * 0.94} 0 0 0 ${brimCx + brimRx * 0.92} ${brimCy + brimRy * 0.26}" fill="none" stroke="${C.cream}" stroke-width="1.4" stroke-dasharray="7 6" opacity="0.22"/>` +
+    `<path d="M${brimCx - brimRx} ${brimCy + brimRy * 0.1} A${brimRx} ${brimRy} 0 0 0 ${brimCx + brimRx} ${brimCy + brimRy * 0.1}" fill="none" stroke="${shade(brimCol, light ? -34 : -22)}" stroke-width="5" opacity="0.55"/>` +
+    `</g>` +
     // купол
-    `<path d="${dome}" fill="${body}"/>` +
-    `<path d="${dome}" fill="url(#capShade)"/>` +
-    // швы шести панелей
-    `<path d="M${cx} ${cy - r * 0.95} V${base}" stroke="${edge}" stroke-width="1.6" opacity="0.35"/>` +
-    `<path d="M${cx} ${cy - r * 0.93} Q${cx - r * 0.5} ${cy - r * 0.5} ${cx - r * 0.97} ${base}" stroke="${edge}" stroke-width="1.4" fill="none" opacity="0.28"/>` +
-    `<path d="M${cx} ${cy - r * 0.93} Q${cx + r * 0.5} ${cy - r * 0.5} ${cx + r * 0.97} ${base}" stroke="${edge}" stroke-width="1.4" fill="none" opacity="0.28"/>` +
+    `<path d="${crown}" fill="${body}"/>` +
+    `<path d="${crown}" fill="url(#capDome)"/>` +
+    // тень купола на козырьке у кромки
+    `<path d="M${left - 2} ${rimY - 2} C${cx - r * 0.4} ${rimY + 18} ${cx + r * 0.4} ${rimY + 14} ${right} ${rimY - 8}" fill="none" stroke="#000" stroke-width="14" opacity="${light ? 0.07 : 0.16}"/>` +
+    // швы панелей
+    `<path d="M${cx - r * 0.04} ${topY + 6} C${cx - r * 0.08} ${cy - r * 0.34} ${cx + r * 0.02} ${cy - r * 0.04} ${cx + r * 0.04} ${rimY + 2}" stroke="${edge}" stroke-width="1.7" fill="none" opacity="0.38"/>` +
+    `<path d="M${cx - r * 0.04} ${topY + 8} C${cx - r * 0.36} ${cy - r * 0.26} ${cx - r * 0.7} ${cy + r * 0.04} ${cx - r * 0.88} ${rimY - 2}" stroke="${edge}" stroke-width="1.5" fill="none" opacity="0.3"/>` +
+    `<path d="M${cx - r * 0.04} ${topY + 8} C${cx + r * 0.3} ${cy - r * 0.32} ${cx + r * 0.58} ${cy - r * 0.04} ${cx + r * 0.76} ${rimY - 18}" stroke="${edge}" stroke-width="1.5" fill="none" opacity="0.3"/>` +
+    // верхняя панель светлее
+    `<path d="M${cx - r * 0.04} ${topY + 2} C${cx + r * 0.36} ${topY + 12} ${cx + r * 0.62} ${cy - r * 0.52} ${cx + r * 0.74} ${cy - r * 0.14} C${cx + r * 0.28} ${cy - r * 0.32} ${cx - r * 0.32} ${cy - r * 0.42} ${cx - r * 0.04} ${topY + 2} Z" fill="${shade(body, light ? -8 : 18)}" opacity="0.5"/>` +
     // пуговица
-    `<circle cx="${cx}" cy="${cy - r * 0.945}" r="${r * 0.038}" fill="${shade(body, light ? -20 : 36)}"/>` +
-    // козырёк — спереди, поэтому читается объём
-    `<path d="M${cx - r * 1.08} ${base - r * 0.02} ` +
-    `Q${cx} ${base + r * 0.62} ${cx + r * 1.08} ${base - r * 0.02} ` +
-    `Q${cx} ${base + r * 0.1} ${cx - r * 1.08} ${base - r * 0.02} Z" fill="${brimCol}"/>` +
-    `<path d="M${cx - r * 1.08} ${base - r * 0.02} ` +
-    `Q${cx} ${base + r * 0.62} ${cx + r * 1.08} ${base - r * 0.02} ` +
-    `Q${cx} ${base + r * 0.1} ${cx - r * 1.08} ${base - r * 0.02} Z" fill="url(#capBrim)"/>` +
-    // отстрочка по краю козырька
-    `<path d="M${cx - r * 1.0} ${base + r * 0.03} Q${cx} ${base + r * 0.54} ${cx + r * 1.0} ${base + r * 0.03}" fill="none" stroke="${C.cream}" stroke-width="1.6" stroke-dasharray="7 6" opacity="0.4"/>` +
-    // тень от купола на козырьке
-    `<path d="M${cx - r * 0.98} ${base - r * 0.01} Q${cx} ${base + r * 0.2} ${cx + r * 0.98} ${base - r * 0.01} L${cx + r * 0.98} ${base + r * 0.05} Q${cx} ${base + r * 0.26} ${cx - r * 0.98} ${base + r * 0.05} Z" fill="#000" opacity="${light ? 0.07 : 0.18}"/>` +
-    (print ? `<g transform="translate(${cx} ${cy - r * 0.24})">${print(r * 0.52)}</g>` : '') +
+    `<ellipse cx="${cx - r * 0.04}" cy="${topY - 1}" rx="${r * 0.044}" ry="${r * 0.03}" fill="${shade(body, light ? -22 : 34)}"/>` +
+    `<ellipse cx="${cx - r * 0.05}" cy="${topY - 3}" rx="${r * 0.021}" ry="${r * 0.013}" fill="#fff" opacity="${light ? 0.5 : 0.26}"/>` +
+    // люверсы
+    `<circle cx="${cx - r * 0.6}" cy="${cy + r * 0.02}" r="${r * 0.03}" fill="${edge}" opacity="0.5"/>` +
+    `<circle cx="${cx + r * 0.56}" cy="${cy - r * 0.16}" r="${r * 0.028}" fill="${edge}" opacity="0.45"/>` +
+    (print ? `<g transform="translate(${cx - r * 0.04} ${cy - r * 0.3})">${print(r * 0.46)}</g>` : '') +
     `</g>`
   );
 }
 
 // ───────────────────────────────────────────────────────── шапка-бини ──
-/** Шапка-бини: вязаный купол с рёбрами и отворот; помпон — по желанию. */
-export function beanie({ cx = 450, cy = 490, r = 200, body = C.red, cuff = null, print = null, pom = true } = {}) {
+/** Шапка-бини: вытянутый вязаный купол, рёбра к макушке, отворот с толщиной. */
+export function beanie({ cx = 450, cy = 500, r = 200, body = C.red, cuff = null, print = null, pom = true } = {}) {
   const light = isLight(body);
   const cuffCol = cuff ?? shade(body, light ? -12 : 14);
-  const hw = r * 0.86;                 // полуширина шапки (она выше, чем шире)
-  const bTop = cy + r * 0.16;          // линия отворота
-  const bBot = cy + r * 0.56;          // низ шапки
-  const topY = cy - r * 0.8;           // макушка
-  const ribCol = shade(body, light ? -22 : 22);
-  // Купол: полная ширина у отворота, плечи скруглены, макушка мягкая, без углов.
+  const hw = r * 0.74;                 // полуширина: шапка выше, чем шире
+  const bTop = cy + r * 0.1;           // линия отворота
+  const bBot = cy + r * 0.54;          // низ шапки
+  const topY = cy - r * 0.96;          // макушка
+  const ribCol = shade(body, light ? -24 : 24);
   const crown =
     `M${cx - hw} ${bTop} ` +
-    `C${cx - hw * 1.06} ${cy - r * 0.3} ${cx - hw * 0.92} ${topY + r * 0.12} ${cx - hw * 0.42} ${topY + r * 0.02} ` +
-    `Q${cx} ${topY - r * 0.08} ${cx + hw * 0.42} ${topY + r * 0.02} ` +
-    `C${cx + hw * 0.92} ${topY + r * 0.12} ${cx + hw * 1.06} ${cy - r * 0.3} ${cx + hw} ${bTop} Z`;
-  // Вертикальные «косы» вязки: сходятся к макушке, повторяя купол.
-  const ribs = Array.from({ length: 11 }, (_, i) => {
-    const t = (i / 10) * 2 - 1;
-    const xa = cx + t * hw * 0.92;
-    const xb = cx + t * hw * 0.4;
+    `C${cx - hw * 1.04} ${cy - r * 0.36} ${cx - hw * 0.86} ${topY + r * 0.14} ${cx - hw * 0.3} ${topY + r * 0.02} ` +
+    `Q${cx + r * 0.02} ${topY - r * 0.1} ${cx + hw * 0.36} ${topY + r * 0.04} ` +
+    `C${cx + hw * 0.9} ${topY + r * 0.16} ${cx + hw * 1.06} ${cy - r * 0.34} ${cx + hw} ${bTop} Z`;
+  const ribs = Array.from({ length: 13 }, (_, i) => {
+    const t = (i / 12) * 2 - 1;
+    const xa = cx + t * hw * 0.94;
+    const xb = cx + t * hw * 0.34;
     const ya = bTop - 2;
-    const yb = topY + r * 0.1 + Math.abs(t) * r * 0.09;
+    const yb = topY + r * 0.1 + Math.abs(t) * r * 0.12;
     return (
-      `<path d="M${xa} ${ya} Q${(xa + xb) / 2 - t * hw * 0.05} ${(ya + yb) / 2} ${xb} ${yb}" ` +
-      `stroke="${ribCol}" stroke-width="2.2" fill="none" opacity="0.4" stroke-linecap="round"/>`
+      `<path d="M${xa} ${ya} Q${(xa + xb) / 2 - t * hw * 0.06} ${(ya + yb) / 2} ${xb} ${yb}" ` +
+      `stroke="${ribCol}" stroke-width="2.4" fill="none" opacity="0.42" stroke-linecap="round"/>`
     );
   }).join('');
-  const pomR = r * 0.2;
-  const cw = hw * 0.99;                // полуширина отворота
+  const pomR = r * 0.19;
+  const cw = hw * 1.02;
+  const cuffH = bBot - bTop;
   return (
     `<defs><linearGradient id="bnShade" gradientUnits="userSpaceOnUse" x1="${cx - hw}" y1="${topY}" x2="${cx + hw}" y2="${bBot}">` +
-    `<stop offset="0" stop-color="#fff" stop-opacity="${light ? 0.32 : 0.14}"/>` +
-    `<stop offset="0.55" stop-color="#fff" stop-opacity="0"/>` +
-    `<stop offset="1" stop-color="#000" stop-opacity="${light ? 0.1 : 0.26}"/></linearGradient></defs>` +
+    `<stop offset="0" stop-color="#fff" stop-opacity="${light ? 0.34 : 0.16}"/>` +
+    `<stop offset="0.5" stop-color="#fff" stop-opacity="0"/>` +
+    `<stop offset="1" stop-color="#000" stop-opacity="${light ? 0.1 : 0.26}"/></linearGradient>` +
+    `<clipPath id="bnCuff"><rect x="${cx - cw}" y="${bTop}" width="${cw * 2}" height="${cuffH}" rx="${hw * 0.12}"/></clipPath></defs>` +
     `<g filter="url(#ground)">` +
-    // помпон: садится на макушку, нижняя часть уходит под купол
+    // помпон
     (pom
-      ? `<circle cx="${cx}" cy="${topY - pomR * 0.5}" r="${pomR}" fill="${shade(body, light ? 2 : 22)}"/>` +
-        `<circle cx="${cx - pomR * 0.32}" cy="${topY - pomR * 0.85}" r="${pomR * 0.4}" fill="#fff" opacity="0.22"/>` +
-        `<path d="M${cx - pomR * 0.9} ${topY - pomR * 0.05} Q${cx} ${topY + pomR * 0.55} ${cx + pomR * 0.9} ${topY - pomR * 0.05}" fill="#000" opacity="${light ? 0.06 : 0.14}"/>`
+      ? `<circle cx="${cx + r * 0.03}" cy="${topY - pomR * 0.45}" r="${pomR}" fill="${shade(body, light ? 2 : 20)}"/>` +
+        [0, 1, 2, 3, 4, 5].map((i) => {
+          const a = (i / 6) * Math.PI * 2;
+          return `<circle cx="${cx + r * 0.03 + Math.cos(a) * pomR * 0.62}" cy="${topY - pomR * 0.45 + Math.sin(a) * pomR * 0.62}" r="${pomR * 0.34}" fill="${shade(body, light ? -4 : 16)}"/>`;
+        }).join('') +
+        `<circle cx="${cx + r * 0.03 - pomR * 0.3}" cy="${topY - pomR * 0.75}" r="${pomR * 0.3}" fill="#fff" opacity="0.2"/>`
       : '') +
+    // купол
     `<path d="${crown}" fill="${body}"/>` +
     `<path d="${crown}" fill="url(#bnShade)"/>` +
     ribs +
-    (print ? `<g transform="translate(${cx} ${cy - r * 0.24})">${print(r * 0.52)}</g>` : '') +
-    // мягкая тень от купола на отворот — иначе отворот читается как отдельная коробка
-    `<path d="M${cx - hw} ${bTop} Q${cx} ${bTop + hw * 0.09} ${cx + hw} ${bTop} L${cx + hw} ${bTop + hw * 0.07} Q${cx} ${bTop + hw * 0.16} ${cx - hw} ${bTop + hw * 0.07} Z" fill="#000" opacity="${light ? 0.07 : 0.16}"/>` +
-    // отворот: двойная вязка, шов сверху, скруглённые углы
-    `<g><clipPath id="bnCuff"><rect x="${cx - cw}" y="${bTop}" width="${cw * 2}" height="${bBot - bTop}" rx="${hw * 0.1}"/></clipPath>` +
-    ribFill(cx - cw, bTop, cw * 2, bBot - bTop, cuffCol, shade(body, light ? -26 : 30)) +
-    `<g clip-path="url(#bnCuff)"><path d="M${cx - cw} ${bTop + (bBot - bTop) * 0.32} H${cx + cw}" stroke="${shade(body, light ? -30 : 34)}" stroke-width="2" opacity="0.38"/></g>` +
-    `<rect x="${cx - cw}" y="${bTop}" width="${cw * 2}" height="${bBot - bTop}" rx="${hw * 0.1}" fill="none" stroke="${shade(body, light ? -30 : 32)}" stroke-width="1.3" opacity="0.4"/></g>` +
+    (print ? `<g transform="translate(${cx} ${cy - r * 0.2})">${print(r * 0.44)}</g>` : '') +
+    // отворот
+    `<rect x="${cx - cw}" y="${bTop}" width="${cw * 2}" height="${cuffH}" rx="${hw * 0.12}" fill="${cuffCol}"/>` +
+    `<g clip-path="url(#bnCuff)">` +
+    ribFill(cx - cw, bTop, cw * 2, cuffH, cuffCol, shade(body, light ? -30 : 34)) +
+    // тень от купола на отвороте
+    `<path d="M${cx - cw} ${bTop} Q${cx} ${bTop + hw * 0.14} ${cx + cw} ${bTop} L${cx + cw} ${bTop + hw * 0.1} Q${cx} ${bTop + hw * 0.24} ${cx - cw} ${bTop + hw * 0.1} Z" fill="#000" opacity="${light ? 0.08 : 0.18}"/>` +
+    // нижняя кромка: отворот огибает голову
+    `<path d="M${cx - cw} ${bBot} Q${cx} ${bBot + hw * 0.16} ${cx + cw} ${bBot} L${cx + cw} ${bBot - hw * 0.1} Q${cx} ${bBot + hw * 0.05} ${cx - cw} ${bBot - hw * 0.1} Z" fill="${shade(body, light ? -18 : 16)}" opacity="0.9"/>` +
+    `<path d="M${cx - cw} ${bTop + cuffH * 0.52} H${cx + cw}" stroke="${shade(body, light ? -32 : 36)}" stroke-width="2" opacity="0.3"/>` +
+    `</g>` +
+    `<rect x="${cx - cw}" y="${bTop}" width="${cw * 2}" height="${cuffH}" rx="${hw * 0.12}" fill="none" stroke="${shade(body, light ? -30 : 32)}" stroke-width="1.3" opacity="0.35"/>` +
     `</g>`
   );
 }
 
 // ───────────────────────────────────────────────────────── шарф ──
 /**
- * Шарф: полотно свисает «волной» — два видимых сгиба, поэтому читается как
- * шарф, а не как прямоугольник. Полосы в цветах букв, бахрома внизу, знак у края.
+ * Шарф перекинут через плечо: сложенное пополам полотно — узкая длинная петля,
+ * два конца разной длины и бахрома. Так силуэт читается сразу.
  */
-export function scarf({ cx = 450, cy = 540, len = 470, wid = 165, body = C.blue, stripe = C.cream, print = null } = {}) {
+export function scarf({ cx = 450, cy = 520, body = C.blue, stripe = C.cream, print = null } = {}) {
   const light = isLight(body);
-  const edge = shade(body, light ? -28 : -34);
-  const W = 300;                 // ширина полотна
-  const H = 540;                 // высота «подвеса»
-  const top = cy - H * 0.5;
-  const left = cx - W * 0.5;
+  const edge = shade(body, light ? -26 : -34);
+  const R = 104;                     // полуширина сложенного полотна
+  const left = cx - R;
+  const right = cx + R;
+  const top = cy - 250;
+  const loopY = top + R;
+  const endL = cy + 104;
+  const endR = cy + 218;
 
-  // Полотно: слева уходит вверх за кадр, справа свисает ниже — мягкий перекос.
-  const sheet =
-    `M${left} ${top + 20} ` +
-    `C${left + W * 0.28} ${top - 6} ${left + W * 0.72} ${top + 26} ${left + W} ${top + 6} ` +
-    `L${left + W} ${top + H * 0.78} ` +
-    `C${left + W * 0.7} ${top + H * 0.84} ${left + W * 0.3} ${top + H * 0.76} ${left} ${top + H * 0.82} Z`;
+  const cloth =
+    `M${left} ${endL} V${loopY} A${R} ${R} 0 0 1 ${right} ${loopY} V${endR} ` +
+    `Q${cx + 26} ${endR - 12} ${left} ${endL} Z`;
 
-  // Бахрома по нижнему краю — с тем же перекосом.
-  const fringe = Array.from({ length: 14 }, (_, i) => {
-    const t = i / 13;
-    const x = left + 10 + t * (W - 20);
-    const y = top + H * 0.80 + Math.sin(t * Math.PI) * -8 + t * 4;
-    return `<path d="M${x.toFixed(1)} ${y.toFixed(1)} l${(t - 0.5) * 3} ${26 + (i % 3) * 4}" stroke="${shade(body, light ? -18 : 16)}" stroke-width="3.6" stroke-linecap="round"/>`;
-  }).join('');
+  const fringe = (x0, x1, yEnd, dir) =>
+    Array.from({ length: 9 }, (_, i) => {
+      const t = i / 8;
+      const x = x0 + 8 + t * (x1 - x0 - 16);
+      const sway = (t - 0.5) * 6 * dir;
+      const h = 26 + (i % 3) * 6;
+      return `<path d="M${fmt(x)} ${fmt(yEnd - 6)} q${fmt(sway * 0.3)} ${fmt(h * 0.7)} ${fmt(sway)} ${h}" stroke="${shade(body, light ? -10 : 16)}" stroke-width="6.5" stroke-linecap="round" fill="none"/>`;
+    }).join('');
 
   return (
-    `<defs><clipPath id="scClip"><path d="${sheet}"/></clipPath>${fabricDefs('sc', light)}</defs>` +
+    `<defs>${fabricDefs('sc', light)}` +
+    `<clipPath id="scBand"><path d="${cloth}"/></clipPath>` +
+    `<linearGradient id="scCrease" gradientUnits="userSpaceOnUse" x1="${cx - 20}" y1="0" x2="${cx + 20}" y2="0">` +
+    `<stop offset="0" stop-color="#000" stop-opacity="0"/>` +
+    `<stop offset="0.42" stop-color="#000" stop-opacity="${light ? 0.06 : 0.16}"/>` +
+    `<stop offset="0.56" stop-color="#fff" stop-opacity="${light ? 0.2 : 0.1}"/>` +
+    `<stop offset="1" stop-color="#fff" stop-opacity="0"/>` +
+    `</linearGradient>` +
+    `<linearGradient id="scLoop" gradientUnits="userSpaceOnUse" x1="0" y1="${top}" x2="0" y2="${loopY + 56}">` +
+    `<stop offset="0" stop-color="#000" stop-opacity="${light ? 0.05 : 0.14}"/>` +
+    `<stop offset="0.55" stop-color="#fff" stop-opacity="${light ? 0.38 : 0.16}"/>` +
+    `<stop offset="1" stop-color="#fff" stop-opacity="0"/>` +
+    `</linearGradient>` +
+    `</defs>` +
     `<g filter="url(#ground)">` +
-    fringe +
-    `<path d="${sheet}" fill="${body}"/>` +
-    `<g clip-path="url(#scClip)">` +
-    `<path d="${sheet}" fill="url(#sc)"/>` +
-    // полосы: кремовая полоса и нить из трёх цветов букв — ритм, а не «флаг»
-    `<rect x="${left - 4}" y="${top + H * 0.14}" width="${W + 8}" height="${H * 0.05}" fill="${stripe}" opacity="0.92"/>` +
-    `<rect x="${left - 4}" y="${top + H * 0.245}" width="${W + 8}" height="${H * 0.011}" fill="${C.red}" opacity="0.9"/>` +
-    `<rect x="${left - 4}" y="${top + H * 0.268}" width="${W + 8}" height="${H * 0.011}" fill="${C.amber}" opacity="0.9"/>` +
-    `<rect x="${left - 4}" y="${top + H * 0.291}" width="${W + 8}" height="${H * 0.011}" fill="${C.green}" opacity="0.9"/>` +
-    // мягкие складки
-    `<path d="M${left + W * 0.2} ${top} q${W * 0.05} ${H * 0.4} -${W * 0.025} ${H * 0.8}" stroke="#000" stroke-opacity="${light ? 0.04 : 0.07}" stroke-width="${W * 0.13}" fill="none"/>` +
-    `<path d="M${left + W * 0.68} ${top + 10} q-${W * 0.05} ${H * 0.36} ${W * 0.02} ${H * 0.72}" stroke="#000" stroke-opacity="${light ? 0.05 : 0.09}" stroke-width="${W * 0.08}" fill="none"/>` +
-    `<path d="M${left + W * 0.06} ${top + 6} q${W * 0.02} ${H * 0.4} 0 ${H * 0.74}" stroke="#fff" stroke-opacity="${light ? 0.2 : 0.12}" stroke-width="${W * 0.06}" fill="none"/>` +
-    (print ? `<g transform="translate(${cx} ${top + H * 0.36})">${print(W * 0.34)}</g>` : '') +
+    fringe(left, cx + 4, endL, -1) +
+    fringe(cx - 4, right, endR, 1) +
+    `<path d="${cloth}" fill="${body}"/>` +
+    `<g clip-path="url(#scBand)">` +
+    `<path d="${cloth}" fill="url(#sc)"/>` +
+    `<path d="${cloth}" fill="url(#scLoop)"/>` +
+    // рисунок: кремовая лента с нитью триколора, огибает сложенное полотно
+    `<rect x="${left - 4}" y="${loopY + 54}" width="${R * 2 + 8}" height="26" fill="${stripe}" opacity="0.94"/>` +
+    `<rect x="${left - 4}" y="${loopY + 90}" width="${R * 2 + 8}" height="6" fill="${C.red}"/>` +
+    `<rect x="${left - 4}" y="${loopY + 99}" width="${R * 2 + 8}" height="6" fill="${C.amber}"/>` +
+    `<rect x="${left - 4}" y="${loopY + 108}" width="${R * 2 + 8}" height="6" fill="${C.green}"/>` +
+    // перегиб: дальняя половина уходит назад (мягкая тень, не линия)
+    `<rect x="${cx - 20}" y="${loopY + 2}" width="40" height="${endR - loopY - 4}" fill="url(#scCrease)"/>` +
+    // мягкие складки вдоль полотна
+    `<path d="M${left + R * 0.34} ${loopY + 20} Q${left + R * 0.2} ${cy} ${left + R * 0.3} ${endL - 16}" stroke="#000" stroke-opacity="${light ? 0.03 : 0.06}" stroke-width="${R * 0.16}" fill="none"/>` +
+    `<path d="M${right - R * 0.3} ${loopY + 16} Q${right - R * 0.44} ${cy + 40} ${right - R * 0.34} ${endR - 20}" stroke="#000" stroke-opacity="${light ? 0.04 : 0.08}" stroke-width="${R * 0.14}" fill="none"/>` +
+    (print ? `<g transform="translate(${cx + R * 0.5} ${endR - 110})">${print(R * 0.5)}</g>` : '') +
     `</g>` +
-    stitchLine(`M${left + 8} ${top + H * 0.78} Q${cx} ${top + H * 0.81} ${left + W - 8} ${top + H * 0.76}`, edge, 1.3, '5 6') +
+    stitchLine(`M${left + 6} ${endL - 20} Q${cx - R * 0.5} ${endL - 34} ${cx - 2} ${endL - 22}`, edge, 1.4, '5 6') +
+    stitchLine(`M${cx + 2} ${endR - 20} Q${cx + R * 0.5} ${endR - 36} ${right - 6} ${endR - 20}`, edge, 1.4, '5 6') +
     `</g>`
   );
 }
 
 // ───────────────────────────────────────────────────────── носки ──
+/** Пара носков в профиль: голень, пятка, стопа, резинка с рёбрами. */
 export function socks({ cx = 450, cy = 520, body = C.white, accent = C.blue } = {}) {
-  const sock = (x, rot) => `
-    <g transform="translate(${x} ${cy}) rotate(${rot})">
-      <path d="M-58 -170 h116 v132 q0 34 34 34 h22 q38 0 38 38 t-38 38 h-72 q-100 0 -100 -100 Z" fill="${body}" stroke="${shade(body, -26)}" stroke-width="2"/>
-      <path d="M-58 -170 h116 v132 q0 34 34 34 h22 q38 0 38 38 t-38 38 h-72 q-100 0 -100 -100 Z" fill="url(#skShade)"/>
-      <rect x="-58" y="-170" width="116" height="40" fill="${accent}"/>
-      <rect x="-58" y="-124" width="116" height="12" fill="${accent}" opacity="0.6"/>
-      <rect x="-58" y="-106" width="116" height="7" fill="${accent}" opacity="0.4"/>
-      <g transform="translate(-14 -10)">${mark({ scale: 0.42, color: false, mono: accent, rule: false })}</g>
-    </g>`;
+  const sock = (x, y, rot, tone, accentTone, back = false) => {
+    const shape =
+      `M-48 -312 H48 V-44 Q48 6 92 6 H160 Q190 6 190 34 Q190 92 132 92 H-14 ` +
+      `Q-78 92 -78 44 Q-78 26 -48 26 Z`;
+    return (
+      `<g transform="translate(${x} ${y}) rotate(${rot})">` +
+      `<path d="${shape}" fill="${tone}" stroke="${shade(tone, -26)}" stroke-width="2.2" stroke-opacity="0.55"/>` +
+      `<path d="${shape}" fill="url(#skShade)" opacity="${back ? 0.9 : 1}"/>` +
+      // резинка
+      `<path d="M-48 -312 H48 V-256 H-48 Z" fill="${accentTone}"/>` +
+      `<g clip-path="url(#skCuff)">` +
+      Array.from({ length: 11 }, (_, i) => `<path d="M${-44 + i * 9} -310 V-258" stroke="${shade(accentTone, -26)}" stroke-width="2" opacity="0.45"/>`).join('') +
+      `</g>` +
+      // две тонкие полосы под резинкой
+      `<path d="M-48 -248 H48 V-241 H-48 Z" fill="${accentTone}" opacity="0.85"/>` +
+      `<path d="M-48 -231 H48 V-227 H-48 Z" fill="${accentTone}" opacity="0.6"/>` +
+      // пятка и мысок — чуть темнее
+      `<path d="M-78 44 Q-78 92 -14 92 Q-58 84 -60 44 Z" fill="${shade(tone, -18)}" opacity="0.45"/>` +
+      `<path d="M132 92 Q190 92 190 34 Q190 80 126 78 Z" fill="${shade(tone, -20)}" opacity="0.4"/>` +
+      // складки
+      `<path d="M-24 -210 Q-18 -120 -26 -40" stroke="#000" stroke-opacity="0.06" stroke-width="13" fill="none"/>` +
+      `<path d="M20 -200 Q27 -120 18 -50" stroke="#000" stroke-opacity="0.05" stroke-width="9" fill="none"/>` +
+      // знак на голени
+      (back ? '' : `<g transform="translate(-4 -160)">${mark({ scale: 0.4, color: false, mono: accentTone, rule: false })}</g>`) +
+      `</g>`
+    );
+  };
   return (
-    `<defs>${fabricDefs('sk', true)}</defs>` +
-    `<g filter="url(#ground)">${sock(cx - 74, -6)}${sock(cx + 74, 6)}</g>`
+    `<defs>${fabricDefs('sk', true)}` +
+    `<clipPath id="skCuff"><path d="M-48 -312 H48 V-256 H-48 Z"/></clipPath></defs>` +
+    `<g filter="url(#ground)">` +
+    sock(cx - 104, cy + 6, -7, shade(body, -16), shade(accent, -16), true) +
+    sock(cx + 88, cy, 5, body, accent) +
+    `</g>`
   );
 }
 
 // ───────────────────────────────────────────────────────── шоппер ──
-export function tote({ cx = 450, cy = 580, w = 440, h = 460, body = C.cream, handle = null, print = null } = {}) {
+export function tote({ cx = 450, cy = 590, w = 440, h = 450, body = C.cream, handle = null, print = null } = {}) {
   const light = isLight(body);
   const edge = shade(body, light ? -26 : -30);
+  const strap = handle ?? shade(body, light ? -20 : 16);
+  const x0 = cx - w / 2;
+  const x1 = cx + w / 2;
+  const y0 = cy - h / 2;
+  const y1 = cy + h / 2;
+  const gus = w * 0.075;              // боковая складка (боковина)
+  // ручки — плоские ремни: дальняя выше и темнее, ближняя светлее
+  const strapPath = (dx, dy, hh) => {
+    const xl = cx - w * 0.19 + dx;
+    const xr = cx + w * 0.19 + dx;
+    const rr = (xr - xl) / 2;
+    const top = y0 - hh + dy;
+    return `M${xl} ${y0 + 12} L${xl} ${top + rr} A${rr} ${rr} 0 0 1 ${xr} ${top + rr} L${xr} ${y0 + 12}`;
+  };
   return (
     `<g filter="url(#ground)">` +
-    `<path d="M${cx - w * 0.24} ${cy - h / 2 + 4} C${cx - w * 0.24} ${cy - h / 2 - 140} ${cx + w * 0.24} ${cy - h / 2 - 140} ${cx + w * 0.24} ${cy - h / 2 + 4}" fill="none" stroke="${handle ?? shade(body, light ? -20 : 16)}" stroke-width="14" stroke-linecap="round"/>` +
-    `<rect x="${cx - w / 2}" y="${cy - h / 2}" width="${w}" height="${h}" rx="8" fill="${body}"/>` +
-    `<rect x="${cx - w / 2}" y="${cy - h / 2}" width="${w}" height="${h}" rx="8" fill="url(#ttShade)"/>` +
-    `<defs>${fabricDefs('tt', light)}<clipPath id="toteClip"><rect x="${cx - w / 2}" y="${cy - h / 2}" width="${w}" height="${h}" rx="8"/></clipPath></defs>` +
-    // мягкая складка ткани
-    `<path d="M${cx - w * 0.1} ${cy - h / 2 + 8} Q${cx - w * 0.16} ${cy + h * 0.2} ${cx - w * 0.09} ${cy + h / 2 - 8}" stroke="#000" stroke-opacity="0.05" stroke-width="${w * 0.06}" fill="none"/>` +
-    `<path d="M${cx + w * 0.2} ${cy - h / 2 + 8} Q${cx + w * 0.24} ${cy + h * 0.2} ${cx + w * 0.19} ${cy + h / 2 - 8}" stroke="#000" stroke-opacity="0.04" stroke-width="${w * 0.05}" fill="none"/>` +
-    `<path d="M${cx - w / 2 + 8} ${cy - h / 2 + 6} H${cx + w / 2 - 8}" stroke="${edge}" stroke-width="1.6" opacity="0.45"/>` +
-    // Печать вписываем с запасом: вертикальный замок выше, чем кажется (×2,72).
+    `<defs>${fabricDefs('tt', light)}<clipPath id="toteClip"><rect x="${x0}" y="${y0}" width="${w - gus}" height="${h}"/></clipPath></defs>` +
+    `<path d="${strapPath(w * 0.058, -26, h * 0.225)}" fill="none" stroke="${shade(strap, light ? -30 : 8)}" stroke-width="20" stroke-linecap="butt" opacity="0.9"/>` +
+    `<path d="${strapPath(0, 0, h * 0.2)}" fill="none" stroke="${strap}" stroke-width="26" stroke-linecap="butt"/>` +
+    `<path d="${strapPath(0, 0, h * 0.2)}" fill="none" stroke="${shade(strap, light ? 20 : -16)}" stroke-width="8" stroke-linecap="butt" opacity="0.55"/>` +
+    // корпус и боковина
+    `<path d="M${x0} ${y0 + 6} H${x1 - gus} L${x1} ${y0 + 22} V${y1 - 8} L${x1 - gus} ${y1} H${x0} Z" fill="${body}"/>` +
+    `<path d="M${x1 - gus} ${y0 + 6} L${x1} ${y0 + 22} V${y1 - 8} L${x1 - gus} ${y1} Z" fill="${shade(body, light ? -16 : 12)}"/>` +
+    `<path d="M${x0} ${y0 + 6} H${x1 - gus} L${x1} ${y0 + 22} V${y1 - 8} L${x1 - gus} ${y1} H${x0} Z" fill="url(#tt)"/>` +
+    // мягкие складки
+    `<path d="M${x0 + w * 0.24} ${y0 + 10} Q${x0 + w * 0.18} ${cy} ${x0 + w * 0.24} ${y1 - 6}" stroke="#000" stroke-opacity="${light ? 0.05 : 0.09}" stroke-width="${w * 0.07}" fill="none"/>` +
+    `<path d="M${x1 - gus - w * 0.06} ${y0 + 10} Q${x1 - gus - w * 0.1} ${cy} ${x1 - gus - w * 0.05} ${y1 - 6}" stroke="#000" stroke-opacity="${light ? 0.04 : 0.07}" stroke-width="${w * 0.05}" fill="none"/>` +
+    `<path d="M${x0 + 14} ${y0 + 18} Q${cx} ${y0 + 4} ${x1 - gus - 10} ${y0 + 14}" stroke="#fff" stroke-opacity="${light ? 0.5 : 0.16}" stroke-width="4" fill="none"/>` +
+    // верхняя кромка: подгиб и тень внутрь
+    `<path d="M${x0} ${y0 + 6} H${x1 - gus} L${x1} ${y0 + 22}" fill="none" stroke="${edge}" stroke-width="2" opacity="0.45"/>` +
+    stitchLine(`M${x0 + 10} ${y0 + 30} H${x1 - gus - 4}`, edge, 1.4, '5 6') +
+    // печать
     (print
-      ? `<g clip-path="url(#toteClip)"><g transform="translate(${cx} ${cy - h * 0.04})">${print(Math.min(w * 0.4, (h * 0.78) / 1.36))}</g></g>`
+      ? `<g clip-path="url(#toteClip)"><g transform="translate(${cx - gus / 2} ${cy - h * 0.02})">${print(Math.min(w * 0.4, (h * 0.72) / 1.36))}</g></g>`
       : '') +
-    stitchLine(`M${cx - w / 2 + 12} ${cy + h / 2 - 12} H${cx + w / 2 - 12}`, edge, 1.4, '5 6') +
+    // шов по низу
+    stitchLine(`M${x0 + 12} ${y1 - 14} H${x1 - gus - 4}`, edge, 1.4, '5 6') +
     `</g>`
   );
 }
