@@ -13,6 +13,7 @@ export const AIRPLANE_IDS = [
   'plane-electron-base',
   'plane-arctic-base',
   'plane-moon-base',
+  'plane-steam-base',
 ] as const;
 
 const AIRPLANE_FILES: Record<string, string> = {
@@ -21,6 +22,7 @@ const AIRPLANE_FILES: Record<string, string> = {
   'plane-electron-base': 'plane-electron-base.webp',
   'plane-arctic-base': 'plane-arctic-base.webp',
   'plane-moon-base': 'plane-moon-base.webp',
+  'plane-steam-base': 'plane-steam-base.webp',
 };
 
 export function hasAirplaneArt(id: string): boolean {

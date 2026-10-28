@@ -22,6 +22,7 @@ export const BASE_SETS: BaseSet[] = [
   { id: 'electron-set', baseId: 'electron-base', carId: 'car-electron-base', planeId: 'plane-electron-base', costumeId: 'electron-suit', title: 'Набор «Импульс»', desc: 'Электронная база, машина «Импульс», самолёт «Схемолёт» и костюм Повелителя импульса', emoji: '🔋', rarity: 'legendary' },
   { id: 'arctic-set', baseId: 'arctic-base', carId: 'car-arctic-base', planeId: 'plane-arctic-base', costumeId: 'arctic-suit', title: 'Набор «Полярный»', desc: 'Арктическая база, вездеход «Полярник», самолёт «Северный ветер» и костюм исследователя', emoji: '🧊', rarity: 'legendary' },
   { id: 'moon-set', baseId: 'moon-base', carId: 'car-moon-base', planeId: 'plane-moon-base', costumeId: 'moon-suit', title: 'Набор «Луна»', desc: 'Лунная база, машина «Луноход», самолёт «Лунный орёл» и костюм первооткрывателя', emoji: '🌙', rarity: 'top' },
+  { id: 'steam-set', baseId: 'steam-base', carId: 'car-steam-base', planeId: 'plane-steam-base', costumeId: 'steam-suit', title: 'Набор «Пар»', desc: 'База паровозов, паровоз «Огнедышащий», биплан «Паролёт» и костюм Машиниста пара', emoji: '🚂', rarity: 'legendary' },
 ];
 
 /** Sets are premium purchases: charge three times the cost of any missing components. */

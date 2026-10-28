@@ -365,6 +365,23 @@ export const TINT_PALETTES: Record<string, TintPalette<ItemTint>> = {
       { id: 'gold', title: 'Солнечный реактор', colors: ['#c19b48', '#51402a', '#aaf5c0'] },
     ],
   },
+  // 0.76.0: база паровозов — медь, латунь и тёплый свет топки.
+  'car-steam-base': {
+    base: { id: BASE_TINT, title: 'Медная с латунью', colors: ['#b4713c', '#3a2418', '#f2c14e'] },
+    extra: [
+      { id: 'green', title: 'Патинная зелёная', colors: ['#6d8f6a', '#24301f', '#e8c27a'] },
+      { id: 'blue', title: 'Ночной синий', colors: ['#4a6d93', '#1b2436', '#f4c766'] },
+      { id: 'red', title: 'Бордовая', colors: ['#9a3f37', '#331a18', '#f0b95a'] },
+    ],
+  },
+  'plane-steam-base': {
+    base: { id: BASE_TINT, title: 'Латунный', colors: ['#c89a52', '#4a3320', '#ffcf6b'] },
+    extra: [
+      { id: 'green', title: 'Бутылочный', colors: ['#5b7f63', '#25332a', '#f0c87a'] },
+      { id: 'red', title: 'Красная медь', colors: ['#b0563f', '#3a201b', '#ffd98a'] },
+      { id: 'blue', title: 'Стальной синий', colors: ['#587696', '#222e3f', '#efc27b'] },
+    ],
+  },
 
   // ── 0.70.0: украшения и крылья (docs/proposals/shop-girls-catalog.md, вариант A) ─
   // Индексы те же, что у старых вещей: [основной, тень/второй тон, акцент].
