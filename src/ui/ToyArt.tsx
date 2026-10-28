@@ -213,6 +213,191 @@ function Glyph({ id, colors }: { id: string; colors: Colors }) {
           <path d="M45 57 Q50 60 55 57" stroke={shade} strokeWidth="1.5" fill="none" strokeLinecap="round" />
         </g>
       );
+    case 'pet-hamster': {
+      return (
+        <g>
+          <ToyShadow />
+          <ellipse cx="50" cy="68" rx="27" ry="21" fill={main} stroke={shade} strokeWidth="1.6" />
+          <circle cx="31" cy="42" r="8" fill={main} stroke={shade} strokeWidth="1.4" />
+          <circle cx="69" cy="42" r="8" fill={main} stroke={shade} strokeWidth="1.4" />
+          <circle cx="31" cy="42" r="3.6" fill={accent} />
+          <circle cx="69" cy="42" r="3.6" fill={accent} />
+          <circle cx="50" cy="52" r="19" fill={main} stroke={shade} strokeWidth="1.5" />
+          <ellipse cx="36" cy="62" rx="8.6" ry="7" fill={accent} opacity=".9" />
+          <ellipse cx="64" cy="62" rx="8.6" ry="7" fill={accent} opacity=".9" />
+          <circle cx="43" cy="50" r="2.5" fill="#241f36" />
+          <circle cx="57" cy="50" r="2.5" fill="#241f36" />
+          <ellipse cx="50" cy="57" rx="3.2" ry="2.4" fill={shade} />
+          <path d="M46 66 Q50 63 54 66" stroke={shade} strokeWidth="1.5" fill="none" strokeLinecap="round" />
+          <ellipse cx="50" cy="72" rx="4.4" ry="3.2" fill={accent} stroke={shade} strokeWidth="1.1" />
+          <path d="M50 69 L50 75 M47 71 L53 71" stroke={shade} strokeWidth="1" opacity=".7" />
+        </g>
+      );
+    }
+    case 'pet-chihuahua': {
+      return (
+        <g>
+          <ToyShadow />
+          <ellipse cx="48" cy="72" rx="18" ry="13" fill={main} stroke={shade} strokeWidth="1.5" />
+          <path d="M34 82 L34 89 M62 82 L62 89" stroke={shade} strokeWidth="4" strokeLinecap="round" />
+          <path d="M31 62 Q20 52 26 42" stroke={shade} strokeWidth="3.6" fill="none" strokeLinecap="round" />
+          <circle cx="66" cy="52" r="16" fill={main} stroke={shade} strokeWidth="1.5" />
+          <path d="M55 42 L48 18 L62 32Z" fill={main} stroke={shade} strokeWidth="1.5" strokeLinejoin="round" />
+          <path d="M76 40 L82 16 L86 36Z" fill={main} stroke={shade} strokeWidth="1.5" strokeLinejoin="round" />
+          <path d="M55 36 L52 24 L59 32Z" fill={accent} />
+          <path d="M78 34 L82 22 L83 34Z" fill={accent} />
+          <circle cx="60" cy="50" r="3" fill="#241f36" />
+          <circle cx="73" cy="50" r="3" fill="#241f36" />
+          <ellipse cx="66" cy="60" rx="6.6" ry="5" fill={accent} />
+          <circle cx="66" cy="58" r="2.2" fill="#241f36" />
+        </g>
+      );
+    }
+    case 'pet-poodle': {
+      const puffs: [number, number, number][] = [
+        [38, 30, 8], [50, 24, 9], [62, 30, 8], [44, 34, 7], [57, 35, 7],
+        [30, 66, 9], [70, 66, 9], [50, 88, 10],
+      ];
+      return (
+        <g>
+          <ToyShadow />
+          <ellipse cx="50" cy="70" rx="21" ry="16" fill={main} stroke={shade} strokeWidth="1.5" />
+          <path d="M68 66 Q86 58 82 44" stroke={shade} strokeWidth="3.6" fill="none" strokeLinecap="round" />
+          <circle cx="82" cy="42" r="6.4" fill={main} stroke={shade} strokeWidth="1.3" />
+          <circle cx="50" cy="46" r="16" fill={main} stroke={shade} strokeWidth="1.5" />
+          {puffs.map(([cx, cy, r], i) => (
+            <circle key={i} cx={cx} cy={cy} r={r} fill={main} stroke={shade} strokeWidth="1.1" />
+          ))}
+          <ellipse cx="50" cy="52" rx="7" ry="5.4" fill={accent} opacity=".55" />
+          <circle cx="44" cy="46" r="2.3" fill="#241f36" />
+          <circle cx="56" cy="46" r="2.3" fill="#241f36" />
+          <circle cx="50" cy="51" r="2.2" fill="#241f36" />
+          <path d="M38 82 L38 89 M62 82 L62 89" stroke={shade} strokeWidth="4.4" strokeLinecap="round" />
+          <path d="M41 62 Q50 68 59 62" stroke={accent} strokeWidth="2.6" fill="none" strokeLinecap="round" />
+        </g>
+      );
+    }
+    case 'pet-elephant': {
+      return (
+        <g>
+          <ToyShadow />
+          <ellipse cx="46" cy="64" rx="29" ry="22" fill={main} stroke={shade} strokeWidth="1.7" />
+          <path d="M24 84 L24 91 M40 86 L40 92 M58 86 L58 92 M70 82 L70 89" stroke={shade} strokeWidth="5" strokeLinecap="round" />
+          <path d="M74 56 Q88 62 84 76" stroke={shade} strokeWidth="3.6" fill="none" strokeLinecap="round" />
+          <circle cx="72" cy="46" r="19" fill={main} stroke={shade} strokeWidth="1.7" />
+          <ellipse cx="60" cy="46" rx="10" ry="13" fill={accent} opacity=".75" stroke={shade} strokeWidth="1.2" />
+          <path d="M84 52 Q94 66 86 80 Q82 86 78 80 Q84 68 80 56Z" fill={main} stroke={shade} strokeWidth="1.5" />
+          <circle cx="74" cy="42" r="2.6" fill="#241f36" />
+          <path d="M84 78 Q88 82 92 79" stroke={accent} strokeWidth="2.2" fill="none" strokeLinecap="round" />
+          <path d="M56 30 Q66 24 76 28" stroke={shade} strokeWidth="1.6" fill="none" opacity=".6" strokeLinecap="round" />
+        </g>
+      );
+    }
+    case 'pet-cat-siamese': {
+      return (
+        <g>
+          <ToyShadow />
+          <ellipse cx="50" cy="72" rx="20" ry="15" fill={main} stroke={shade} strokeWidth="1.6" />
+          <path d="M68 74 Q90 72 88 50" stroke={shade} strokeWidth="4.6" fill="none" strokeLinecap="round" />
+          <path d="M36 84 L34 89 M64 84 L66 89" stroke={shade} strokeWidth="4.4" strokeLinecap="round" />
+          <circle cx="50" cy="46" r="19" fill={main} stroke={shade} strokeWidth="1.6" />
+          <path d="M36 34 L32 15 L47 26Z" fill={shade} />
+          <path d="M64 34 L68 15 L53 26Z" fill={shade} />
+          <ellipse cx="50" cy="53" rx="8" ry="6.6" fill={shade} />
+          <circle cx="42" cy="43" r="2.9" fill={accent} stroke="#241f36" strokeWidth=".8" />
+          <circle cx="58" cy="43" r="2.9" fill={accent} stroke="#241f36" strokeWidth=".8" />
+          <circle cx="50" cy="50" r="2" fill="#1f1420" />
+          <path d="M46 58 Q50 60 54 58" stroke="#1f1420" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+        </g>
+      );
+    }
+    case 'pet-cat-scottish': {
+      return (
+        <g>
+          <ToyShadow />
+          <ellipse cx="50" cy="73" rx="21" ry="15" fill={main} stroke={shade} strokeWidth="1.6" />
+          <path d="M69 75 Q87 74 84 56" stroke={shade} strokeWidth="4.4" fill="none" strokeLinecap="round" />
+          <circle cx="50" cy="47" r="20" fill={main} stroke={shade} strokeWidth="1.6" />
+          <path d="M33 36 Q28 28 36 27 Q42 30 39 38Z" fill={main} stroke={shade} strokeWidth="1.4" />
+          <path d="M67 36 Q72 28 64 27 Q58 30 61 38Z" fill={main} stroke={shade} strokeWidth="1.4" />
+          <ellipse cx="41" cy="58" rx="5.4" ry="4" fill={accent} opacity=".45" />
+          <ellipse cx="59" cy="58" rx="5.4" ry="4" fill={accent} opacity=".45" />
+          <circle cx="42" cy="46" r="3" fill={accent} stroke="#241f36" strokeWidth=".9" />
+          <circle cx="58" cy="46" r="3" fill={accent} stroke="#241f36" strokeWidth=".9" />
+          <circle cx="42" cy="46" r="1.3" fill="#241f36" />
+          <circle cx="58" cy="46" r="1.3" fill="#241f36" />
+          <ellipse cx="50" cy="53" rx="2.6" ry="2" fill={shade} />
+          <path d="M45 59 Q50 62 55 59" stroke="#241f36" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+        </g>
+      );
+    }
+    case 'pet-cat-british': {
+      return (
+        <g>
+          <ToyShadow />
+          <ellipse cx="50" cy="73" rx="22" ry="16" fill={main} stroke={shade} strokeWidth="1.6" />
+          <path d="M70 76 Q88 74 85 58" stroke={shade} strokeWidth="4.6" fill="none" strokeLinecap="round" />
+          <circle cx="50" cy="47" r="21" fill={main} stroke={shade} strokeWidth="1.6" />
+          <path d="M34 33 L31 17 L45 27Z" fill={main} stroke={shade} strokeWidth="1.5" strokeLinejoin="round" />
+          <path d="M66 33 L69 17 L55 27Z" fill={main} stroke={shade} strokeWidth="1.5" strokeLinejoin="round" />
+          <path d="M37 30 L35 21 L42 26Z" fill={accent} opacity=".8" />
+          <path d="M63 30 L65 21 L58 26Z" fill={accent} opacity=".8" />
+          <ellipse cx="39" cy="56" rx="6" ry="4.4" fill={accent} opacity=".35" />
+          <ellipse cx="61" cy="56" rx="6" ry="4.4" fill={accent} opacity=".35" />
+          <circle cx="42" cy="45" r="3.1" fill={accent} stroke="#241f36" strokeWidth=".9" />
+          <circle cx="58" cy="45" r="3.1" fill={accent} stroke="#241f36" strokeWidth=".9" />
+          <circle cx="42" cy="45" r="1.4" fill="#241f36" />
+          <circle cx="58" cy="45" r="1.4" fill="#241f36" />
+          <ellipse cx="50" cy="53" rx="2.7" ry="2.1" fill={shade} />
+          <path d="M44 60 Q50 63 56 60" stroke="#241f36" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+        </g>
+      );
+    }
+    case 'pet-cat-sphynx': {
+      return (
+        <g>
+          <ToyShadow />
+          <ellipse cx="50" cy="73" rx="18" ry="14" fill={main} stroke={shade} strokeWidth="1.6" />
+          <path d="M66 72 Q90 66 88 44" stroke={shade} strokeWidth="3.6" fill="none" strokeLinecap="round" />
+          <circle cx="50" cy="47" r="17" fill={main} stroke={shade} strokeWidth="1.6" />
+          <path d="M38 36 L28 10 L46 25Z" fill={main} stroke={shade} strokeWidth="1.5" strokeLinejoin="round" />
+          <path d="M62 36 L72 10 L54 25Z" fill={main} stroke={shade} strokeWidth="1.5" strokeLinejoin="round" />
+          <path d="M38 31 L33 17 L43 26Z" fill={accent} opacity=".65" />
+          <path d="M62 31 L67 17 L57 26Z" fill={accent} opacity=".65" />
+          <path d="M38 42 Q42 40 46 42 M54 42 Q58 40 62 42 M40 62 Q50 66 60 62" stroke={shade} strokeWidth="1.2" fill="none" opacity=".75" strokeLinecap="round" />
+          <ellipse cx="41" cy="48" rx="3.4" ry="2.6" fill={accent} stroke="#241f36" strokeWidth=".8" transform="rotate(-14 41 48)" />
+          <ellipse cx="59" cy="48" rx="3.4" ry="2.6" fill={accent} stroke="#241f36" strokeWidth=".8" transform="rotate(14 59 48)" />
+          <ellipse cx="50" cy="55" rx="2.5" ry="1.9" fill={shade} />
+          <path d="M34 84 L33 89 M66 84 L67 89" stroke={shade} strokeWidth="3.8" strokeLinecap="round" />
+        </g>
+      );
+    }
+    case 'pet-cat-mainecoon': {
+      const mane: [number, number, number][] = [
+        [32, 34, 8], [38, 24, 9], [50, 20, 9], [62, 24, 9], [68, 34, 8],
+        [30, 46, 8], [70, 46, 8], [36, 58, 7], [64, 58, 7],
+      ];
+      return (
+        <g>
+          <ToyShadow />
+          <ellipse cx="50" cy="74" rx="23" ry="16" fill={main} stroke={shade} strokeWidth="1.6" />
+          <path d="M70 72 Q92 62 86 40 Q98 62 84 78 Q76 84 68 80Z" fill={main} stroke={shade} strokeWidth="1.5" />
+          <path d="M78 52 L90 50 M76 62 L89 62 M74 71 L86 74" stroke={shade} strokeWidth="1.6" strokeLinecap="round" opacity=".7" />
+          {mane.map(([cx, cy, r], i) => (
+            <circle key={i} cx={cx} cy={cy} r={r} fill={main} stroke={shade} strokeWidth="1" />
+          ))}
+          <circle cx="50" cy="44" r="16" fill={main} stroke={shade} strokeWidth="1.4" />
+          <path d="M37 31 L30 12 L44 23Z" fill={main} stroke={shade} strokeWidth="1.4" strokeLinejoin="round" />
+          <path d="M63 31 L70 12 L56 23Z" fill={main} stroke={shade} strokeWidth="1.4" strokeLinejoin="round" />
+          <path d="M34 16 L31 6 M66 16 L69 6" stroke={shade} strokeWidth="2" strokeLinecap="round" />
+          <ellipse cx="50" cy="52" rx="7.4" ry="5.6" fill={accent} opacity=".8" />
+          <circle cx="43" cy="43" r="2.5" fill="#241f36" />
+          <circle cx="57" cy="43" r="2.5" fill="#241f36" />
+          <circle cx="50" cy="50" r="2.2" fill={shade} />
+          <path d="M45 57 Q50 60 55 57" stroke="#241f36" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+        </g>
+      );
+    }
     case 'sport-ball':
       return (
         <g>
