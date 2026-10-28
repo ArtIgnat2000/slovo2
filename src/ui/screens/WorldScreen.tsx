@@ -11,6 +11,7 @@ import { useActiveProfile, useApp, useLook } from '../../state/store';
 import { Mascot } from '../Mascot';
 import { ToyArt } from '../ToyArt';
 import { BuildingArt } from '../BuildingArt';
+import { BaseTour } from '../BaseTour';
 import { playMusic } from '../../platform/music';
 import { previewSoundCue, sfx } from '../../platform/sound';
 import type { ShopTuning } from '../../types';
@@ -272,7 +273,11 @@ export function WorldScreen({ onBack }: { onBack: () => void }) {
       {entry && area && (
         <section className="collection-detail" ref={mapRef}>
           <div className={`collection-detail-art kind-${entry.kind}`}>
-            <CollectionArt entry={entry} size={210} tuning={profile.shop?.tuning} />
+            {/* База (0.76.0) открывается экскурсией: фасад и пять комнат внутри.
+                Остальные вещи показываются как раньше — крупным рисунком. */}
+            {entry.kind === 'building' && entry.building
+              ? <BaseTour id={entry.building.id} loading="eager" />
+              : <CollectionArt entry={entry} size={210} tuning={profile.shop?.tuning} />}
           </div>
           <div className="collection-detail-copy">
             <span className="collection-detail-kicker">{area.emoji} {area.title}</span>
@@ -288,7 +293,7 @@ export function WorldScreen({ onBack }: { onBack: () => void }) {
               <div className="collection-detail-status">{currentLook[entry.item.slot] === entry.item.id ? 'Сейчас надето на Буке ✓' : 'Можно надеть в БУКе'}</div>
             )}
             {entry.kind === 'building' && entry.building && (
-              <div className="collection-detail-status">Часть твоей коллекции ✓</div>
+              <div className="collection-detail-status">Часть твоей коллекции ✓ · нажми на базу, чтобы войти внутрь</div>
             )}
             {entry.kind === 'theme' && entry.theme && (
               <div className="collection-detail-status">{settings.themeStyle === entry.theme.id ? 'Сейчас выбрано ✓' : 'Твоё оформление'}</div>

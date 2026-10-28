@@ -27,6 +27,7 @@ import {
 import { BUILDINGS, BUILDING_BY_ID, isBuildingOwned, type BuildingItem } from '../../engine/buildings';
 import { BASE_SETS, baseSetPrice, type BaseSet } from '../../engine/base-sets';
 import { BuildingArt } from '../BuildingArt';
+import { BaseTour } from '../BaseTour';
 import { RarityChip, RarityLabel } from '../RarityChip';
 import { Mascot } from '../Mascot';
 import { ToyArt } from '../ToyArt';
@@ -1253,11 +1254,11 @@ export function ShopScreen({
       const missing = Math.max(0, building.price - gems);
       return (
         <>
-          <div className="shop-bigart building-detail-art"><BuildingArt id={building.id} loading="eager" /></div>
+          <div className="shop-bigart building-detail-art"><BaseTour id={building.id} loading="eager" /></div>
           <h2 style={{ margin: '0 0 2px' }}>{building.title}</h2>
           <RarityLabel rarity={building.rarity} className="rarity-chip-detail" />
           <p className="tiny muted" style={{ marginTop: 0 }}>{building.desc}</p>
-          <p className="tiny muted">Купленная база — часть твоей коллекции. Её можно рассмотреть в «Моём мире».</p>
+          <p className="tiny muted">Нажми на картинку — и попадёшь внутрь базы: пять комнат с научными секретами и заданиями «найди».</p>
           <div className="row mb">
             <span className={`shop-price${affordable ? ' afford' : ''}`}>💎 {building.price}</span>
             <span className="tiny muted grow" style={{ alignSelf: 'center' }}>{owned_ ? 'Уже в коллекции' : `У тебя ${gems} 💎`}</span>

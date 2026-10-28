@@ -8800,5 +8800,105 @@ p {
 @keyframes lord-reveal { from { opacity: .3; transform: scale(1.035); } to { opacity: 1; transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) { .lord-tour-stage > img { animation: none; } }
 
+/* Экскурсия по базе (0.76.0): фасад → комнаты внутри, по тапу и по кругу.
+   Картинки интерьеров — фотореалистичные, поэтому рамка и подпись сделаны
+   «музейной табличкой»: тёмная плашка поверх фото читается на любом свете. */
+.base-tour { width: 100%; position: relative; z-index: 2; }
+.base-tour-stage {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 16px;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+.base-tour-stage:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.base-tour-stage > .building-art {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 16px;
+}
+.base-tour-photo {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  border-radius: 16px;
+  box-shadow: 0 8px 22px rgba(24, 20, 40, .24);
+  animation: base-tour-reveal .42s ease-out both;
+}
+.base-tour-missing {
+  display: grid;
+  place-items: center;
+  gap: 4px;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  border-radius: 16px;
+  background: linear-gradient(150deg, var(--case-sky-top), var(--case-sky-bottom));
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  padding: 12px;
+}
+.base-tour-missing > span { font-size: 34px; line-height: 1; }
+.base-tour-badge {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  max-width: calc(100% - 16px);
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(22, 18, 32, .72);
+  color: #fff8ec;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.25;
+  backdrop-filter: blur(3px);
+}
+.base-tour-badge.front { background: rgba(255, 248, 236, .9); color: var(--ink); }
+.base-tour-dots { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+.base-tour-dot {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  background: var(--bg-2);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform .12s ease, border-color .12s ease;
+}
+.base-tour-dot.on { border-color: var(--primary); background: var(--primary-soft); transform: translateY(-2px); }
+.base-tour-dot:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.base-tour-copy {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg-2);
+  text-align: left;
+}
+.base-tour-copy > p { margin: 0; }
+.base-tour-title { font-size: 14px; font-weight: 800; margin-bottom: 3px !important; }
+.base-tour-fact { font-size: 12px; line-height: 1.45; color: var(--ink-2); }
+.base-tour-find { margin-top: 6px !important; font-size: 12px; line-height: 1.4; color: var(--primary); }
+.shop-bigart > .base-tour .base-tour-stage { max-width: 440px; margin: 0 auto; }
+.shop-bigart > .base-tour .base-tour-copy { max-width: 440px; margin-inline: auto; }
+.collection-detail-art > .base-tour { width: min(100%, 420px); }
+@keyframes base-tour-reveal { from { opacity: .25; transform: scale(1.03); } to { opacity: 1; transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .base-tour-photo { animation: none; } }
+@media (max-width: 360px) { .base-tour-dot { width: 30px; height: 30px; font-size: 13px; } }
+
 /* Studio renders intentionally have a photographic background, not transparent pencil art. */
 .car-art-studio { border-radius: 7px; overflow: hidden; box-shadow: 0 3px 12px rgba(18, 15, 12, .16); }

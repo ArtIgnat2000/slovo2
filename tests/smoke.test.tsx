@@ -33,6 +33,7 @@ import { runHomePathChecks } from './home-path.test';
 import { runDictionaryUiChecks } from './dictionary-ui.test';
 import { runClassChecks } from './classes.test';
 import { runWorldUiChecks } from './world-ui.test';
+import { runBaseTourUiChecks } from './base-tour-ui.test';
 import { runRatingUiChecks } from './rating-ui.test';
 // Смена цвета купленной вещи не должна включать музыку (регрессия магазина).
 import './recolor-music.test';
@@ -54,12 +55,18 @@ import { runStudyEngineChecks } from './study.test';
 // Общая обвязка (клики, поиск кнопок, счётчик проверок) — в tests/ui-helpers.ts:
 // её же использует блок интеграционных проверок адаптации.
 
-/** Проверяет, что товарные карточки внутри витрины стоят по возрастанию цены. */
+/**
+ * Проверяет, что товарные карточки внутри витрины стоят по возрастанию цены.
+ *
+ * У карточек костюмов-пазлов на месте цены прогресс («0/9 🧩»): это не цена,
+ * поэтому в сравнение идут только числа целиком. Иначе «0» вставал в середину
+ * списка и полка выглядела неотсортированной.
+ */
 function pricesAscending(selector: string, root: ParentNode = document): boolean {
-  const prices = Array.from(root.querySelectorAll(selector)).map((card) => {
-    const text = card.querySelector('.shop-price')?.textContent ?? '';
-    return Number(text.match(/\d+/)?.[0] ?? 0);
-  });
+  const prices = Array.from(root.querySelectorAll(selector))
+    .map((card) => (card.querySelector('.shop-price')?.textContent ?? '').trim())
+    .filter((text) => /^\d+$/.test(text))
+    .map(Number);
   return prices.length > 0 && prices.every((price, index) => index === 0 || prices[index - 1] <= price);
 }
 
@@ -674,20 +681,20 @@ async function main() {
     ['Питомцы', 'Спорт', 'Вкусняшки'].every((title) => shopChip(title)) && !toyTabs().some((tab) => /Питомцы|Спорт|Вкусняшки/.test(tab.textContent ?? '')),
     toyTabs().map((tab) => tab.textContent).join(' | '),
   );
-  check('«Авто» открывается первым и не смешивается с другими товарами', document.querySelectorAll('.shop-item.toy-item').length === 18 && has('Болид') && !has('Морская яхта') && !has('iPhone Air'), '');
+  check('«Авто» открывается первым и не смешивается с другими товарами', document.querySelectorAll('.shop-item.toy-item').length === 19 && has('Болид') && !has('Морская яхта') && !has('iPhone Air'), '');
   check('авто внутри полки идут от меньшей цены к большей', pricesAscending('.shop-item.toy-item'));
   check(
-    '«Авто»: восемнадцать машин стоят на отдельной полке (0.72.0: розовые, «Тесла» и розовый танк)',
-    ['Звезда', 'Стрела', 'Кубик', 'Адмирал', 'Лорд', 'Бык', 'Молния', 'Болид', 'Скалолаз', 'Жёлтый кэб', 'Квант', 'Импульс', 'Полярник', 'Луноход', 'Розовая машина', 'Розовая звезда', 'Тесла', 'Розовый танк'].every((title) => has(title)),
+    '«Авто»: девятнадцать машин стоят на отдельной полке (0.76.0: паровоз «Огнедышащий»)',
+    ['Звезда', 'Стрела', 'Кубик', 'Адмирал', 'Лорд', 'Бык', 'Молния', 'Болид', 'Скалолаз', 'Жёлтый кэб', 'Квант', 'Импульс', 'Полярник', 'Луноход', 'Огнедышащий', 'Розовая машина', 'Розовая звезда', 'Тесла', 'Розовый танк'].every((title) => has(title)),
     '',
   );
   // Каждая машина — отдельный цветной карандашный рисунок (public/cars/*.webp).
   {
-    const carTitles = /Звезда|Стрела|Кубик|Адмирал|Лорд|Бык|Молния|Болид|Скалолаз|Жёлтый кэб|Квант|Импульс|Полярник|Луноход|Розовая машина|Розовая звезда|Тесла/;
+    const carTitles = /Звезда|Стрела|Кубик|Адмирал|Лорд|Бык|Молния|Болид|Скалолаз|Жёлтый кэб|Квант|Импульс|Полярник|Луноход|Огнедышащий|Розовая машина|Розовая звезда|Тесла/;
     const carArt = Array.from(document.querySelectorAll('.shop-item.toy-item'))
       .filter((el) => carTitles.test(el.textContent ?? ''))
       .map((el) => el.querySelector('img')?.getAttribute('src') ?? '');
-    check('«Авто»: у каждой машины свой карандашный рисунок', carArt.length === 17 && new Set(carArt).size === carArt.length && carArt.every((src) => /\/cars\/car-[a-z-]+\.webp$/.test(src)), `уникальных рисунков: ${new Set(carArt).size}/${carArt.length}`);
+    check('«Авто»: у каждой машины свой карандашный рисунок', carArt.length === 18 && new Set(carArt).size === carArt.length && carArt.every((src) => /\/cars\/car-[a-z-]+\.webp$/.test(src)), `уникальных рисунков: ${new Set(carArt).size}/${carArt.length}`);
     const tankCard = Array.from(document.querySelectorAll('.shop-item.toy-item')).find((el) => (el.textContent ?? '').includes('Розовый танк'));
     check('«Авто»: розовый танк нарисован векторным рисунком', !!tankCard?.querySelector('svg'), '');
   }
@@ -1708,6 +1715,7 @@ async function main() {
 
   // «Мой мир»: ставится только полученное, БУК в костюме стоит, а не летает.
   await runWorldUiChecks();
+  await runBaseTourUiChecks();
 
   // Рейтинг: место игрока среди воображаемых соперников.
   await runRatingUiChecks();

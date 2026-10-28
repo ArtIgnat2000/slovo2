@@ -43,6 +43,7 @@ async function goTab(name: string) {
   await sleep(60);
 }
 
+
 export async function runPuzzleUiChecks(playLesson: (second?: boolean) => Promise<void>) {
   console.log('\n── Костюмные пазлы: урок → фрагмент → костюм ──');
 
