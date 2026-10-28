@@ -30,6 +30,7 @@ import { BuildingArt } from '../BuildingArt';
 import { RarityChip, RarityLabel } from '../RarityChip';
 import { Mascot } from '../Mascot';
 import { ToyArt } from '../ToyArt';
+import { CarTour, CAR_TOUR_IDS } from '../CarTour';
 import { isRotatingPhone } from '../ElectronicsArt';
 import { carAlt, carKind, carNote, hasCarArt } from '../CarArt';
 import { hasShipArt, shipAlt, shipKind, shipNote } from '../ShipArt';
@@ -100,7 +101,7 @@ const MUSIC_SHELVES: { shelf: MusicShelf; title: string }[] = [
 type View = 'vitrina' | 'wardrobe' | 'world';
 
 /** Полки витрины — по типу товара, не по слоту совы. */
-type Cat = 'naash' | 'outfits' | 'toys' | 'buildings' | 'costumes' | 'sets' | 'music' | 'sounds' | 'backgrounds';
+type Cat = 'naash' | 'outfits' | 'toys' | 'buildings' | 'pets' | 'sport' | 'food' | 'sets' | 'music' | 'sounds' | 'backgrounds';
 
 // 0.54.0: у полок магазина — те же иконки набора, что в остальном интерфейсе.
 // У «Техники», «Музыки» и «Фонов» своей иконки в наборе 20 пока нет — остаются
@@ -112,7 +113,9 @@ const CATS: { id: Cat; title: string; emoji: string; icon?: 'hat' | 'puzzle' | '
   { id: 'outfits', title: 'Наряды', emoji: '🎩', icon: 'hat' },
   { id: 'toys', title: 'Техника', emoji: '🚗' },
   { id: 'buildings', title: 'Базы', emoji: '🏙️' },
-  { id: 'costumes', title: 'Костюмы', emoji: '🧩', icon: 'puzzle' },
+  { id: 'pets', title: 'Питомцы', emoji: '🐾' },
+  { id: 'sport', title: 'Спорт', emoji: '⚽' },
+  { id: 'food', title: 'Вкусняшки', emoji: '🧁' },
   { id: 'sets', title: 'Наборы', emoji: '🎁' },
   { id: 'music', title: 'Музыка', emoji: '🎵' },
   { id: 'sounds', title: 'Звуки', emoji: '🔊', icon: 'speaker' },
@@ -991,7 +994,7 @@ export function ShopScreen({
               // Техника в подробной карточке — сам товар крупным планом
               // (машина/судно — карандашный лист, телефон — поворотный WebP). БУКа здесь
               // нет: ребёнок пришёл посмотреть вещь, а не примерку на сове.
-              <ToyArt
+              CAR_TOUR_IDS.has(item.id) ? <CarTour key={item.id} id={item.id} tuning={profile.shop?.tuning} alt={artAlt} /> : <ToyArt
                 key={item.id}
                 id={item.id}
                 interactive
@@ -1004,6 +1007,7 @@ export function ShopScreen({
               <Mascot mood="happy" look={{ [item.slot]: item.id }} costumeId={null} stage={growth.index} size={150} />
             )}
           </div>
+          {hasCarArt(item.id) && !CAR_TOUR_IDS.has(item.id) && <p className="tiny muted phone-rotate-hint">Нажми на машину — рассмотри кузов ближе</p>}
           {isRotatingPhone(item.id) && <p className="tiny muted phone-rotate-hint">↻ Нажми на телефон — он повернётся</p>}
           <h2 style={{ margin: '0 0 2px' }}>{item.title}</h2>
           <RarityChip item={item} className="rarity-chip-detail" />
@@ -1555,13 +1559,13 @@ export function ShopScreen({
               aria-label={`Следующая цель: ${hero.costume.title}`}
               onClick={() => {
                 setView('vitrina');
-                setCat('costumes');
+                setCat('outfits');
                 openSheet({ kind: 'costume', costume: hero.costume });
               }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   setView('vitrina');
-                  setCat('costumes');
+                  setCat('outfits');
                   openSheet({ kind: 'costume', costume: hero.costume });
                 }
               }}
@@ -1585,7 +1589,7 @@ export function ShopScreen({
                   onClick={(e) => {
                     e.stopPropagation();
                     setView('vitrina');
-                    setCat('costumes');
+                    setCat('outfits');
                     tapPickCostume(hero.costume.id);
                   }}
                 >
@@ -1684,14 +1688,14 @@ export function ShopScreen({
       )}
 
       {/* ── Техника: отдельные полки авто, кораблей и телефонов ─────────── */}
-      {view === 'vitrina' && cat === 'toys' && (
-        <section className="mt" aria-label="Техника">
+      {view === 'vitrina' && (cat === 'toys' || cat === 'pets' || cat === 'sport' || cat === 'food') && (
+        <section className="mt" aria-label={cat === 'toys' ? 'Техника' : cat === 'pets' ? 'Питомцы' : cat === 'sport' ? 'Спорт' : 'Вкусняшки'}>
           <div className="mb">
-            <h2 className="mb">Техника БУКа</h2>
-            <div className="tiny muted">Авто, самолёты, корабли и телефоны. Всё купленное видно в «Моём мире».</div>
+            <h2 className="mb">{cat === 'toys' ? 'Техника БУКа' : cat === 'pets' ? 'Питомцы' : cat === 'sport' ? 'Спорт' : 'Вкусняшки'}</h2>
+            <div className="tiny muted">Всё купленное видно в «Моём мире».</div>
           </div>
-          <div className="shop-cats shop-toy-cats" role="tablist" aria-label="Разделы техники">
-            {TOY_SHELVES.map(({ id, title, emoji }) => (
+          {cat === 'toys' && <div className="shop-cats shop-toy-cats" role="tablist" aria-label="Разделы техники">
+            {TOY_SHELVES.filter(({ id }) => !['pet', 'sport', 'food'].includes(id)).map(({ id, title, emoji }) => (
               <button
                 key={id}
                 type="button"
@@ -1703,13 +1707,13 @@ export function ShopScreen({
                 {emoji} {title}
               </button>
             ))}
-          </div>
+          </div>}
           {ownedToys.length > 0 && (
             <button type="button" className="btn sm ghost wide" onClick={openMyWorld}>
               🌍 Посмотреть всю коллекцию ➜
             </button>
           )}
-          {toyGoal && (
+          {cat === 'toys' && toyGoal && (
             <div className="shop-tech-goal">
               <span className="shop-tech-goal-icon" aria-hidden="true">
                 <ToyArt id={toyGoal.id} size={48} tuning={profile.shop?.tuning} />
@@ -1738,7 +1742,7 @@ export function ShopScreen({
               </button>
             </div>
           )}
-          {TOY_SHELVES.filter(({ id }) => id === toyShelf).map(({ id, title, emoji }) => (
+          {TOY_SHELVES.filter(({ id }) => id === (cat === 'pets' ? 'pet' : cat === 'sport' ? 'sport' : cat === 'food' ? 'food' : toyShelf)).map(({ id, title, emoji }) => (
             <div className={`shop-case-group shop-case-${id}`} key={id}>
               <h3 className="shop-case-group-title">
                 <span aria-hidden="true">{emoji}</span> {title}
@@ -1771,7 +1775,7 @@ export function ShopScreen({
         </section>
       )}
 
-      {view === 'vitrina' && cat === 'costumes' && (
+      {view === 'vitrina' && cat === 'outfits' && (
         <section className="mt" aria-label="Костюмы">
           <div className="mb">
             <h2 className="mb">Костюмы · пазлы</h2>
@@ -2250,7 +2254,7 @@ export function ShopScreen({
                           onClick={(e) => {
                             e.stopPropagation();
                             setView('vitrina');
-                            setCat('costumes');
+                            setCat('outfits');
                             tapPickCostume(costume.id);
                           }}
                         >

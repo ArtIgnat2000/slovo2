@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
 
 /**
  * Автомобили мечты (0.21.0, цвет — 0.21.1): цветные карандашные рисунки
@@ -105,6 +105,10 @@ export const CAR_ART: Record<string, { kind: string; note: string }> = {
     kind: 'Розовый спорткар',
     note: 'Розовый клин с антикрылом и звездой на капоте',
   },
+  'car-pink-tank': {
+    kind: 'Бронированный гусеничный вездеход',
+    note: 'Матовая розовая броня, стальные гусеницы и бронированная кабина',
+  },
   'car-tesla': {
     kind: 'Электромобиль',
     note: 'Тихий электромобиль: огромный экран и двери-крылья',
@@ -159,6 +163,7 @@ export function CarArt({
   tint,
   alt,
   className,
+  interactive = false,
 }: {
   id: string;
   /** Цветной карандаш поверх рисунка; null/undefined — природные цвета. */
@@ -166,19 +171,28 @@ export function CarArt({
   /** Пустая строка — рисунок декоративный (карточка уже озвучена). */
   alt?: string;
   className?: string;
+  interactive?: boolean;
 }) {
+  const [moving, setMoving] = useState(false);
   const src = carArtUrl(id);
   if (!src) return null;
-  const style = tint
+  // Studio photographs have opaque backdrops: tinting their alpha mask would recolor the entire scene.
+  const style = tint && !['car-pink-cabrio', 'car-pink-star', 'car-pink-tank'].includes(id)
     ? ({
         '--car-tint': tint,
         '--car-mask': `url("${src}")`,
       } as unknown as CSSProperties)
     : undefined;
-  return (
-    <span className={`car-art${className ? ` ${className}` : ''}`} style={style}>
+  const artwork = (
+    <span className={`car-art${['car-pink-cabrio', 'car-pink-star', 'car-pink-tank'].includes(id) ? ' car-art-studio' : ''}${className ? ` ${className}` : ''}${moving ? ' car-art-moving' : ''}`} style={style}>
       <img src={src} width={720} height={480} alt={alt ?? ''} draggable={false} decoding="async" loading="lazy" />
-      {tint && <span className="car-art-wash" aria-hidden="true" />}
+      {style && <span className="car-art-wash" aria-hidden="true" />}
     </span>
+  );
+  if (!interactive) return artwork;
+  return (
+    <button type="button" className="car-art-control" aria-label="Приблизить автомобиль" onClick={() => { setMoving(false); requestAnimationFrame(() => setMoving(true)); }} onAnimationEnd={() => setMoving(false)}>
+      {artwork}
+    </button>
   );
 }
