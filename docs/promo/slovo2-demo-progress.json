@@ -1,0 +1,6061 @@
+{
+  "profiles": [
+    {
+      "id": "p_demo_sonya",
+      "name": "Соня",
+      "avatar": "🦊",
+      "createdAt": 1788512400000,
+      "xp": 12865,
+      "gems": 184,
+      "streak": 16,
+      "lastDay": "2026-10-27",
+      "freezes": 2,
+      "words": {
+        "g2_алфавит": {
+          "s": 100,
+          "due": 1798219180000,
+          "iv": 60,
+          "n": 14,
+          "seen": 1793035180000,
+          "ok": 14,
+          "wrong": 0
+        },
+        "g2_карандаш": {
+          "s": 90,
+          "due": 1793121656000,
+          "iv": 1,
+          "n": 1,
+          "seen": 1793035256000,
+          "ok": 19,
+          "wrong": 5
+        },
+        "g2_картина": {
+          "s": 100,
+          "due": 1798219284000,
+          "iv": 60,
+          "n": 7,
+          "seen": 1793035284000,
+          "ok": 16,
+          "wrong": 2
+        },
+        "g2_класс": {
+          "s": 100,
+          "due": 1798219307000,
+          "iv": 60,
+          "n": 15,
+          "seen": 1793035307000,
+          "ok": 15,
+          "wrong": 0
+        },
+        "g2_пенал": {
+          "s": 100,
+          "due": 1798219325000,
+          "iv": 60,
+          "n": 14,
+          "seen": 1793035325000,
+          "ok": 14,
+          "wrong": 0
+        },
+        "g2_рисунок": {
+          "s": 100,
+          "due": 1793208149000,
+          "iv": 2,
+          "n": 2,
+          "seen": 1793035349000,
+          "ok": 19,
+          "wrong": 3
+        },
+        "g2_тетрадь": {
+          "s": 90,
+          "due": 1793121816000,
+          "iv": 1,
+          "n": 1,
+          "seen": 1793035416000,
+          "ok": 15,
+          "wrong": 1
+        },
+        "g2_язык": {
+          "s": 100,
+          "due": 1798219434000,
+          "iv": 60,
+          "n": 14,
+          "seen": 1793035434000,
+          "ok": 14,
+          "wrong": 0
+        },
+        "g2_ученик": {
+          "s": 100,
+          "due": 1798301933000,
+          "iv": 60,
+          "n": 9,
+          "seen": 1793117933000,
+          "ok": 13,
+          "wrong": 1
+        },
+        "g2_ученица": {
+          "s": 90,
+          "due": 1793204410000,
+          "iv": 1,
+          "n": 1,
+          "seen": 1793118010000,
+          "ok": 13,
+          "wrong": 2
+        },
+        "g2_учитель": {
+          "s": 100,
+          "due": 1798302029000,
+          "iv": 60,
+          "n": 12,
+          "seen": 1793118029000,
+          "ok": 12,
+          "wrong": 0
+        },
+        "g2_учительница": {
+          "s": 100,
+          "due": 1798302068000,
+          "iv": 60,
+          "n": 12,
+          "seen": 1793118068000,
+          "ok": 12,
+          "wrong": 0
+        },
+        "g2_фамилия": {
+          "s": 100,
+          "due": 1798302102000,
+          "iv": 60,
+          "n": 9,
+          "seen": 1793118102000,
+          "ok": 15,
+          "wrong": 2
+        },
+        "g2_воробей": {
+          "s": 100,
+          "due": 1794410990000,
+          "iv": 17,
+          "n": 5,
+          "seen": 1792942190000,
+          "ok": 14,
+          "wrong": 1
+        },
+        "g2_ворона": {
+          "s": 100,
+          "due": 1796744392000,
+          "iv": 60,
+          "n": 11,
+          "seen": 1791560392000,
+          "ok": 11,
+          "wrong": 0
+        },
+        "g2_петух": {
+          "s": 100,
+          "due": 1796744417000,
+          "iv": 60,
+          "n": 10,
+          "seen": 1791560417000,
+          "ok": 10,
+          "wrong": 0
+        },
+        "g2_снегирь": {
+          "s": 100,
+          "due": 1796744436000,
+          "iv": 60,
+          "n": 11,
+          "seen": 1791560436000,
+          "ok": 11,
+          "wrong": 0
+        },
+        "g2_сорока": {
+          "s": 100,
+          "due": 1796744472000,
+          "iv": 60,
+          "n": 10,
+          "seen": 1791560472000,
+          "ok": 10,
+          "wrong": 0
+        },
+        "g2_заяц": {
+          "s": 100,
+          "due": 1798125959000,
+          "iv": 60,
+          "n": 9,
+          "seen": 1792941959000,
+          "ok": 9,
+          "wrong": 0
+        },
+        "g2_корова": {
+          "s": 100,
+          "due": 1798125992000,
+          "iv": 60,
+          "n": 7,
+          "seen": 1792941992000,
+          "ok": 13,
+          "wrong": 1
+        },
+        "g2_лягушка": {
+          "s": 100,
+          "due": 1798126023000,
+          "iv": 60,
+          "n": 8,
+          "seen": 1792942023000,
+          "ok": 12,
+          "wrong": 1
+        },
+        "g2_медведь": {
+          "s": 100,
+          "due": 1798126042000,
+          "iv": 60,
+          "n": 9,
+          "seen": 1792942042000,
+          "ok": 9,
+          "wrong": 0
+        },
+        "g2_обезьяна": {
+          "s": 100,
+          "due": 1798126069000,
+          "iv": 60,
+          "n": 9,
+          "seen": 1792942069000,
+          "ok": 9,
+          "wrong": 0
+        },
+        "g2_собака": {
+          "s": 100,
+          "due": 1798126108000,
+          "iv": 60,
+          "n": 9,
+          "seen": 1792942108000,
+          "ok": 9,
+          "wrong": 0
+        },
+        "g2_капуста": {
+          "s": 100,
+          "due": 1797095938000,
+          "iv": 60,
+          "n": 8,
+          "seen": 1791911938000,
+          "ok": 8,
+          "wrong": 0
+        },
+        "g2_молоко": {
+          "s": 100,
+          "due": 1797095966000,
+          "iv": 60,
+          "n": 8,
+          "seen": 1791911966000,
+          "ok": 8,
+          "wrong": 0
+        },
+        "g2_морковь": {
+          "s": 100,
+          "due": 1797096007000,
+          "iv": 60,
+          "n": 7,
+          "seen": 1791912007000,
+          "ok": 9,
+          "wrong": 2
+        },
+        "g2_обед": {
+          "s": 100,
+          "due": 1797096042000,
+          "iv": 60,
+          "n": 8,
+          "seen": 1791912042000,
+          "ok": 8,
+          "wrong": 1
+        },
+        "g2_сахар": {
+          "s": 100,
+          "due": 1797096075000,
+          "iv": 60,
+          "n": 8,
+          "seen": 1791912075000,
+          "ok": 8,
+          "wrong": 0
+        },
+        "g2_земляника": {
+          "s": 100,
+          "due": 1793463728000,
+          "iv": 4,
+          "n": 3,
+          "seen": 1793118128000,
+          "ok": 11,
+          "wrong": 1
+        },
+        "g2_малина": {
+          "s": 100,
+          "due": 1798302169000,
+          "iv": 60,
+          "n": 10,
+          "seen": 1793118169000,
+          "ok": 10,
+          "wrong": 0
+        },
+        "g2_щавель": {
+          "s": 100,
+          "due": 1798302190000,
+          "iv": 60,
+          "n": 10,
+          "seen": 1793118190000,
+          "ok": 10,
+          "wrong": 0
+        },
+        "g2_яблоко": {
+          "s": 100,
+          "due": 1794587032000,
+          "iv": 17,
+          "n": 5,
+          "seen": 1793118232000,
+          "ok": 11,
+          "wrong": 1
+        },
+        "g2_яблоня": {
+          "s": 100,
+          "due": 1796228673000,
+          "iv": 36,
+          "n": 6,
+          "seen": 1793118273000,
+          "ok": 11,
+          "wrong": 1
+        },
+        "g2_ягода": {
+          "s": 100,
+          "due": 1798302312000,
+          "iv": 60,
+          "n": 10,
+          "seen": 1793118312000,
+          "ok": 10,
+          "wrong": 0
+        },
+        "g2_город": {
+          "s": 100,
+          "due": 1793381065000,
+          "iv": 4,
+          "n": 3,
+          "seen": 1793035465000,
+          "ok": 16,
+          "wrong": 2
+        },
+        "g2_завод": {
+          "s": 100,
+          "due": 1796145907000,
+          "iv": 36,
+          "n": 6,
+          "seen": 1793035507000,
+          "ok": 16,
+          "wrong": 2
+        },
+        "g2_магазин": {
+          "s": 100,
+          "due": 1798219527000,
+          "iv": 60,
+          "n": 7,
+          "seen": 1793035527000,
+          "ok": 17,
+          "wrong": 2
+        },
+        "g2_машина": {
+          "s": 100,
+          "due": 1794504368000,
+          "iv": 17,
+          "n": 5,
+          "seen": 1793035568000,
+          "ok": 16,
+          "wrong": 1
+        },
+        "g2_метро": {
+          "s": 100,
+          "due": 1798219606000,
+          "iv": 60,
+          "n": 7,
+          "seen": 1793035606000,
+          "ok": 15,
+          "wrong": 2
+        },
+        "g2_улица": {
+          "s": 100,
+          "due": 1798219646000,
+          "iv": 60,
+          "n": 13,
+          "seen": 1793035646000,
+          "ok": 13,
+          "wrong": 0
+        },
+        "g2_Москва": {
+          "s": 100,
+          "due": 1797786714000,
+          "iv": 60,
+          "n": 8,
+          "seen": 1792602714000,
+          "ok": 8,
+          "wrong": 0
+        },
+        "g2_Родина": {
+          "s": 100,
+          "due": 1797786734000,
+          "iv": 60,
+          "n": 9,
+          "seen": 1792602734000,
+          "ok": 9,
+          "wrong": 0
+        },
+        "g2_Россия": {
+          "s": 100,
+          "due": 1797786768000,
+          "iv": 60,
+          "n": 8,
+          "seen": 1792602768000,
+          "ok": 8,
+          "wrong": 1
+        },
+        "g2_русский": {
+          "s": 100,
+          "due": 1797786808000,
+          "iv": 60,
+          "n": 8,
+          "seen": 1792602808000,
+          "ok": 8,
+          "wrong": 0
+        },
+        "g2_мебель": {
+          "s": 100,
+          "due": 1797875395000,
+          "iv": 60,
+          "n": 11,
+          "seen": 1792691395000,
+          "ok": 11,
+          "wrong": 0
+        },
+        "g2_одежда": {
+          "s": 100,
+          "due": 1797875424000,
+          "iv": 60,
+          "n": 7,
+          "seen": 1792691424000,
+          "ok": 14,
+          "wrong": 2
+        },
+        "g2_пальто": {
+          "s": 100,
+          "due": 1797875444000,
+          "iv": 60,
+          "n": 11,
+          "seen": 1792691444000,
+          "ok": 11,
+          "wrong": 0
+        },
+        "g2_платок": {
+          "s": 100,
+          "due": 1797875482000,
+          "iv": 60,
+          "n": 11,
+          "seen": 1792691482000,
+          "ok": 11,
+          "wrong": 1
+        },
+        "g2_посуда": {
+          "s": 100,
+          "due": 1797875516000,
+          "iv": 60,
+          "n": 11,
+          "seen": 1792691516000,
+          "ok": 11,
+          "wrong": 0
+        },
+        "g2_сапоги": {
+          "s": 100,
+          "due": 1797875541000,
+          "iv": 60,
+          "n": 10,
+          "seen": 1792691541000,
+          "ok": 14,
+          "wrong": 2
+        },
+        "g2_стакан": {
+          "s": 100,
+          "due": 1797875564000,
+          "iv": 60,
+          "n": 11,
+          "seen": 1792691564000,
+          "ok": 11,
+          "wrong": 1
+        },
+        "g2_тарелка": {
+          "s": 100,
+          "due": 1795801983000,
+          "iv": 36,
+          "n": 6,
+          "seen": 1792691583000,
+          "ok": 17,
+          "wrong": 6
+        },
+        "g2_лопата": {
+          "s": 100,
+          "due": 1798219687000,
+          "iv": 60,
+          "n": 7,
+          "seen": 1793035687000,
+          "ok": 7,
+          "wrong": 0
+        },
+        "g2_молоток": {
+          "s": 100,
+          "due": 1798219708000,
+          "iv": 60,
+          "n": 7,
+          "seen": 1793035708000,
+          "ok": 10,
+          "wrong": 1
+        },
+        "g2_работа": {
+          "s": 100,
+          "due": 1798219738000,
+          "iv": 60,
+          "n": 7,
+          "seen": 1793035738000,
+          "ok": 7,
+          "wrong": 0
+        },
+        "g2_рабочий": {
+          "s": 100,
+          "due": 1798219775000,
+          "iv": 60,
+          "n": 7,
+          "seen": 1793035775000,
+          "ok": 10,
+          "wrong": 1
+        },
+        "g2_топор": {
+          "s": 100,
+          "due": 1798219812000,
+          "iv": 60,
+          "n": 7,
+          "seen": 1793035812000,
+          "ok": 7,
+          "wrong": 0
+        },
+        "g2_иней": {
+          "s": 100,
+          "due": 1797957937000,
+          "iv": 60,
+          "n": 12,
+          "seen": 1792773937000,
+          "ok": 12,
+          "wrong": 0
+        },
+        "g2_коньки": {
+          "s": 100,
+          "due": 1793465157000,
+          "iv": 8,
+          "n": 4,
+          "seen": 1792773957000,
+          "ok": 13,
+          "wrong": 2
+        },
+        "g2_метель": {
+          "s": 100,
+          "due": 1797957975000,
+          "iv": 60,
+          "n": 11,
+          "seen": 1792773975000,
+          "ok": 14,
+          "wrong": 1
+        },
+        "g2_мороз": {
+          "s": 100,
+          "due": 1793633348000,
+          "iv": 8,
+          "n": 4,
+          "seen": 1792942148000,
+          "ok": 12,
+          "wrong": 1
+        },
+        "g2_февраль": {
+          "s": 100,
+          "due": 1797958030000,
+          "iv": 60,
+          "n": 12,
+          "seen": 1792774030000,
+          "ok": 12,
+          "wrong": 0
+        },
+        "g2_январь": {
+          "s": 100,
+          "due": 1797958054000,
+          "iv": 60,
+          "n": 11,
+          "seen": 1792774054000,
+          "ok": 14,
+          "wrong": 1
+        },
+        "g2_берёза": {
+          "s": 26,
+          "due": 1793290446000,
+          "iv": 2,
+          "n": 2,
+          "seen": 1793117646000,
+          "ok": 2,
+          "wrong": 0
+        },
+        "g2_ветер": {
+          "s": 26,
+          "due": 1793291149000,
+          "iv": 2,
+          "n": 2,
+          "seen": 1793118349000,
+          "ok": 2,
+          "wrong": 0
+        },
+        "g2_деревня": {
+          "s": 26,
+          "due": 1793291190000,
+          "iv": 2,
+          "n": 2,
+          "seen": 1793118390000,
+          "ok": 2,
+          "wrong": 0
+        },
+        "g2_дорога": {
+          "s": 26,
+          "due": 1793290569000,
+          "iv": 2,
+          "n": 2,
+          "seen": 1793117769000,
+          "ok": 2,
+          "wrong": 0
+        },
+        "g2_облако": {
+          "s": 26,
+          "due": 1793290626000,
+          "iv": 2,
+          "n": 2,
+          "seen": 1793117826000,
+          "ok": 2,
+          "wrong": 0
+        },
+        "g2_осина": {
+          "s": 30,
+          "due": 1793291229000,
+          "iv": 2,
+          "n": 2,
+          "seen": 1793118429000,
+          "ok": 2,
+          "wrong": 0
+        },
+        "g2_урожай": {
+          "s": 30,
+          "due": 1793291247000,
+          "iv": 2,
+          "n": 2,
+          "seen": 1793118447000,
+          "ok": 2,
+          "wrong": 0
+        }
+      },
+      "lessons": {
+        "school": {
+          "level": 5,
+          "best": 100,
+          "doneAt": 1793035434000,
+          "plays": 13
+        },
+        "schoolpeople": {
+          "level": 5,
+          "best": 100,
+          "doneAt": 1793118102000,
+          "plays": 9
+        },
+        "birds": {
+          "level": 5,
+          "best": 100,
+          "doneAt": 1791560472000,
+          "plays": 8
+        },
+        "animals": {
+          "level": 5,
+          "best": 100,
+          "doneAt": 1792942108000,
+          "plays": 7
+        },
+        "food": {
+          "level": 5,
+          "best": 100,
+          "doneAt": 1791912075000,
+          "plays": 6
+        },
+        "garden": {
+          "level": 5,
+          "best": 100,
+          "doneAt": 1793118312000,
+          "plays": 7
+        },
+        "city": {
+          "level": 5,
+          "best": 100,
+          "doneAt": 1793035646000,
+          "plays": 12
+        },
+        "country": {
+          "level": 5,
+          "best": 100,
+          "doneAt": 1792602808000,
+          "plays": 5
+        },
+        "home": {
+          "level": 5,
+          "best": 100,
+          "doneAt": 1792691583000,
+          "plays": 9
+        },
+        "work": {
+          "level": 5,
+          "best": 100,
+          "doneAt": 1793035812000,
+          "plays": 5
+        },
+        "winter": {
+          "level": 5,
+          "best": 100,
+          "doneAt": 1792774054000,
+          "plays": 10
+        },
+        "nature": {
+          "level": 1,
+          "best": 100,
+          "doneAt": 1793117892000,
+          "plays": 1
+        }
+      },
+      "errors": {
+        "g2_карандаш": 5,
+        "g2_картина": 2,
+        "g2_морковь": 2,
+        "g2_обед": 1,
+        "g2_Россия": 1,
+        "g2_платок": 1,
+        "g2_стакан": 1,
+        "g2_тарелка": 6,
+        "g2_завод": 2,
+        "g2_сапоги": 2,
+        "g2_метель": 1,
+        "g2_январь": 1,
+        "g2_молоток": 1,
+        "g2_рабочий": 1,
+        "g2_одежда": 2,
+        "g2_лягушка": 1,
+        "g2_фамилия": 2,
+        "g2_магазин": 2,
+        "g2_ученик": 1,
+        "g2_корова": 1,
+        "g2_метро": 2,
+        "g2_воробей": 1,
+        "g2_рисунок": 3,
+        "g2_яблоня": 1,
+        "g2_город": 2,
+        "g2_коньки": 2,
+        "g2_яблоко": 1,
+        "g2_машина": 1,
+        "g2_мороз": 1,
+        "g2_земляника": 1,
+        "g2_ученица": 2,
+        "g2_тетрадь": 1
+      },
+      "days": {
+        "2026-09-04": {
+          "xp": 398,
+          "correct": 27,
+          "wrong": 0,
+          "lessons": 2,
+          "flawless": 21,
+          "reviewCorrect": 0,
+          "reviewWords": [],
+          "activeSeconds": 953,
+          "tasks": 27,
+          "errorWords": {},
+          "recoveredWords": [],
+          "streak": 21
+        },
+        "2026-09-05": {
+          "xp": 228,
+          "correct": 17,
+          "wrong": 0,
+          "lessons": 1,
+          "flawless": 17,
+          "reviewCorrect": 6,
+          "reviewWords": [
+            "g2_карандаш",
+            "g2_тетрадь",
+            "g2_ворона",
+            "g2_картина",
+            "g2_класс",
+            "g2_рисунок"
+          ],
+          "activeSeconds": 547,
+          "tasks": 17,
+          "errorWords": {},
+          "recoveredWords": [],
+          "streak": 17
+        },
+        "2026-09-08": {
+          "xp": 494,
+          "correct": 35,
+          "wrong": 4,
+          "lessons": 3,
+          "flawless": 32,
+          "reviewCorrect": 5,
+          "reviewWords": [
+            "g2_ученица",
+            "g2_сорока",
+            "g2_ученик",
+            "g2_учитель",
+            "g2_учительница"
+          ],
+          "activeSeconds": 1431,
+          "tasks": 39,
+          "errorWords": {
+            "g2_карандаш": 1,
+            "g2_картина": 1,
+            "g2_морковь": 1,
+            "g2_обед": 1
+          },
+          "recoveredWords": [
+            "g2_карандаш",
+            "g2_картина",
+            "g2_морковь",
+            "g2_обед"
+          ],
+          "streak": 32
+        },
+        "2026-09-09": {
+          "xp": 545,
+          "correct": 38,
+          "wrong": 1,
+          "lessons": 3,
+          "flawless": 33,
+          "reviewCorrect": 4,
+          "reviewWords": [
+            "g2_воробей",
+            "g2_петух",
+            "g2_фамилия",
+            "g2_ворона"
+          ],
+          "activeSeconds": 1343,
+          "tasks": 39,
+          "errorWords": {
+            "g2_Россия": 1
+          },
+          "recoveredWords": [
+            "g2_Россия"
+          ],
+          "streak": 33
+        },
+        "2026-09-10": {
+          "xp": 505,
+          "correct": 34,
+          "wrong": 3,
+          "lessons": 3,
+          "flawless": 34,
+          "reviewCorrect": 4,
+          "reviewWords": [
+            "g2_снегирь",
+            "g2_капуста",
+            "g2_лягушка",
+            "g2_медведь"
+          ],
+          "activeSeconds": 1323,
+          "tasks": 37,
+          "errorWords": {
+            "g2_платок": 1,
+            "g2_стакан": 1,
+            "g2_тарелка": 1
+          },
+          "recoveredWords": [
+            "g2_платок",
+            "g2_стакан",
+            "g2_тарелка"
+          ],
+          "streak": 34
+        },
+        "2026-09-11": {
+          "xp": 511,
+          "correct": 34,
+          "wrong": 2,
+          "lessons": 3,
+          "flawless": 23,
+          "reviewCorrect": 6,
+          "reviewWords": [
+            "g2_корова",
+            "g2_заяц",
+            "g2_обезьяна",
+            "g2_собака",
+            "g2_морковь",
+            "g2_сахар"
+          ],
+          "activeSeconds": 1251,
+          "tasks": 36,
+          "errorWords": {
+            "g2_завод": 1,
+            "g2_морковь": 1
+          },
+          "recoveredWords": [
+            "g2_завод",
+            "g2_морковь"
+          ],
+          "streak": 23
+        },
+        "2026-09-13": {
+          "xp": 278,
+          "correct": 18,
+          "wrong": 1,
+          "lessons": 2,
+          "flawless": 18,
+          "reviewCorrect": 5,
+          "reviewWords": [
+            "g2_яблоня",
+            "g2_Москва",
+            "g2_молоко",
+            "g2_обед",
+            "g2_земляника"
+          ],
+          "activeSeconds": 638,
+          "tasks": 19,
+          "errorWords": {
+            "g2_карандаш": 1
+          },
+          "recoveredWords": [
+            "g2_карандаш"
+          ],
+          "streak": 18
+        },
+        "2026-09-14": {
+          "xp": 177,
+          "correct": 11,
+          "wrong": 0,
+          "lessons": 1,
+          "flawless": 11,
+          "reviewCorrect": 6,
+          "reviewWords": [
+            "g2_морковь",
+            "g2_малина",
+            "g2_щавель",
+            "g2_яблоко",
+            "g2_ягода",
+            "g2_Россия"
+          ],
+          "activeSeconds": 417,
+          "tasks": 11,
+          "errorWords": {},
+          "recoveredWords": [],
+          "streak": 11
+        },
+        "2026-09-16": {
+          "xp": 402,
+          "correct": 21,
+          "wrong": 1,
+          "lessons": 3,
+          "flawless": 16,
+          "reviewCorrect": 4,
+          "reviewWords": [
+            "g2_русский",
+            "g2_мебель",
+            "g2_посуда",
+            "g2_сапоги"
+          ],
+          "activeSeconds": 947,
+          "tasks": 22,
+          "errorWords": {
+            "g2_сапоги": 1
+          },
+          "recoveredWords": [
+            "g2_сапоги"
+          ],
+          "streak": 16
+        },
+        "2026-09-17": {
+          "xp": 347,
+          "correct": 20,
+          "wrong": 5,
+          "lessons": 3,
+          "flawless": 15,
+          "reviewCorrect": 4,
+          "reviewWords": [
+            "g2_одежда",
+            "g2_платок",
+            "g2_тарелка",
+            "g2_Родина"
+          ],
+          "activeSeconds": 893,
+          "tasks": 25,
+          "errorWords": {
+            "g2_метель": 1,
+            "g2_январь": 1,
+            "g2_молоток": 1,
+            "g2_рабочий": 1,
+            "g2_тарелка": 1
+          },
+          "recoveredWords": [
+            "g2_метель",
+            "g2_январь",
+            "g2_молоток",
+            "g2_рабочий",
+            "g2_тарелка"
+          ],
+          "streak": 15
+        },
+        "2026-09-19": {
+          "xp": 164,
+          "correct": 10,
+          "wrong": 0,
+          "lessons": 1,
+          "flawless": 9,
+          "reviewCorrect": 6,
+          "reviewWords": [
+            "g2_пальто",
+            "g2_завод",
+            "g2_тарелка",
+            "g2_ученик",
+            "g2_корова",
+            "g2_лягушка"
+          ],
+          "activeSeconds": 404,
+          "tasks": 10,
+          "errorWords": {},
+          "recoveredWords": [],
+          "streak": 9
+        },
+        "2026-09-20": {
+          "xp": 287,
+          "correct": 21,
+          "wrong": 4,
+          "lessons": 2,
+          "flawless": 17,
+          "reviewCorrect": 7,
+          "reviewWords": [
+            "g2_карандаш",
+            "g2_учительница",
+            "g2_молоток",
+            "g2_рабочий",
+            "g2_фамилия",
+            "g2_январь",
+            "g2_город"
+          ],
+          "activeSeconds": 914,
+          "tasks": 25,
+          "errorWords": {
+            "g2_одежда": 1,
+            "g2_тарелка": 1,
+            "g2_лягушка": 1,
+            "g2_фамилия": 1
+          },
+          "recoveredWords": [
+            "g2_одежда",
+            "g2_тарелка",
+            "g2_лягушка",
+            "g2_фамилия"
+          ],
+          "streak": 17
+        },
+        "2026-09-21": {
+          "xp": 148,
+          "correct": 12,
+          "wrong": 2,
+          "lessons": 1,
+          "flawless": 11,
+          "reviewCorrect": 6,
+          "reviewWords": [
+            "g2_ученица",
+            "g2_учитель",
+            "g2_метель",
+            "g2_тарелка",
+            "g2_фамилия",
+            "g2_лягушка"
+          ],
+          "activeSeconds": 490,
+          "tasks": 14,
+          "errorWords": {
+            "g2_магазин": 1,
+            "g2_тарелка": 1
+          },
+          "recoveredWords": [
+            "g2_магазин",
+            "g2_тарелка"
+          ],
+          "streak": 11
+        },
+        "2026-09-22": {
+          "xp": 428,
+          "correct": 26,
+          "wrong": 2,
+          "lessons": 3,
+          "flawless": 23,
+          "reviewCorrect": 5,
+          "reviewWords": [
+            "g2_тарелка",
+            "g2_молоток",
+            "g2_рабочий",
+            "g2_январь",
+            "g2_магазин"
+          ],
+          "activeSeconds": 1046,
+          "tasks": 28,
+          "errorWords": {
+            "g2_карандаш": 1,
+            "g2_тарелка": 1
+          },
+          "recoveredWords": [
+            "g2_карандаш",
+            "g2_тарелка"
+          ],
+          "streak": 23
+        },
+        "2026-09-23": {
+          "xp": 365,
+          "correct": 17,
+          "wrong": 0,
+          "lessons": 3,
+          "flawless": 13,
+          "reviewCorrect": 0,
+          "reviewWords": [],
+          "activeSeconds": 665,
+          "tasks": 17,
+          "errorWords": {},
+          "recoveredWords": [],
+          "streak": 13
+        },
+        "2026-09-24": {
+          "xp": 268,
+          "correct": 17,
+          "wrong": 2,
+          "lessons": 2,
+          "flawless": 15,
+          "reviewCorrect": 3,
+          "reviewWords": [
+            "g2_метель",
+            "g2_фамилия",
+            "g2_карандаш"
+          ],
+          "activeSeconds": 715,
+          "tasks": 19,
+          "errorWords": {
+            "g2_сапоги": 1,
+            "g2_фамилия": 1
+          },
+          "recoveredWords": [
+            "g2_сапоги",
+            "g2_фамилия"
+          ],
+          "streak": 15
+        },
+        "2026-09-25": {
+          "xp": 254,
+          "correct": 12,
+          "wrong": 0,
+          "lessons": 2,
+          "flawless": 9,
+          "reviewCorrect": 0,
+          "reviewWords": [],
+          "activeSeconds": 443,
+          "tasks": 12,
+          "errorWords": {},
+          "recoveredWords": [],
+          "streak": 9
+        },
+        "2026-09-26": {
+          "xp": 255,
+          "correct": 16,
+          "wrong": 1,
+          "lessons": 2,
+          "flawless": 11,
+          "reviewCorrect": 6,
+          "reviewWords": [
+            "g2_сапоги",
+            "g2_тарелка",
+            "g2_коньки",
+            "g2_топор",
+            "g2_иней",
+            "g2_февраль"
+          ],
+          "activeSeconds": 677,
+          "tasks": 17,
+          "errorWords": {
+            "g2_ученик": 1
+          },
+          "recoveredWords": [
+            "g2_ученик"
+          ],
+          "streak": 11
+        },
+        "2026-09-29": {
+          "xp": 294,
+          "correct": 16,
+          "wrong": 0,
+          "lessons": 2,
+          "flawless": 16,
+          "reviewCorrect": 5,
+          "reviewWords": [
+            "g2_одежда",
+            "g2_ученик",
+            "g2_лопата",
+            "g2_работа",
+            "g2_молоток"
+          ],
+          "activeSeconds": 645,
+          "tasks": 16,
+          "errorWords": {},
+          "recoveredWords": [],
+          "streak": 16
+        },
+        "2026-09-30": {
+          "xp": 114,
+          "correct": 5,
+          "wrong": 0,
+          "lessons": 1,
+          "flawless": 3,
+          "reviewCorrect": 0,
+          "reviewWords": [],
+          "activeSeconds": 204,
+          "tasks": 5,
+          "errorWords": {},
+          "recoveredWords": [],
+          "streak": 3
+        },
+        "2026-10-01": {
+          "xp": 137,
+          "correct": 10,
+          "wrong": 1,
+          "lessons": 1,
+          "flawless": 8,
+          "reviewCorrect": 4,
+          "reviewWords": [
+            "g2_сапоги",
+            "g2_рабочий",
+            "g2_магазин",
+            "g2_карандаш"
+          ],
+          "activeSeconds": 415,
+          "tasks": 11,
+          "errorWords": {
+            "g2_корова": 1
+          },
+          "recoveredWords": [
+            "g2_корова"
+          ],
+          "streak": 8
+        },
+        "2026-10-02": {
+          "xp": 241,
+          "correct": 11,
+          "wrong": 0,
+          "lessons": 2,
+          "flawless": 10,
+          "reviewCorrect": 0,
+          "reviewWords": [],
+          "activeSeconds": 433,
+          "tasks": 11,
+          "errorWords": {},
+          "recoveredWords": [],
+          "streak": 10
+        },
+        "2026-10-03": {
+          "xp": 348,
+          "correct": 21,
+          "wrong": 3,
+          "lessons": 3,
+          "flawless": 16,
+          "reviewCorrect": 2,
+          "reviewWords": [
+            "g2_тарелка",
+            "g2_стакан"
+          ],
+          "activeSeconds": 905,
+          "tasks": 24,
+          "errorWords": {
+            "g2_метро": 1,
+            "g2_карандаш": 1,
+            "g2_картина": 1
+          },
+          "recoveredWords": [
+            "g2_метро",
+            "g2_карандаш",
+            "g2_картина"
+          ],
+          "streak": 16
+        },
+        "2026-10-06": {
+          "xp": 290,
+          "correct": 15,
+          "wrong": 0,
+          "lessons": 2,
+          "flawless": 14,
+          "reviewCorrect": 5,
+          "reviewWords": [
+            "g2_одежда",
+            "g2_сапоги",
+            "g2_метро",
+            "g2_корова",
+            "g2_картина"
+          ],
+          "activeSeconds": 598,
+          "tasks": 15,
+          "errorWords": {},
+          "recoveredWords": [],
+          "streak": 14
+        },
+        "2026-10-07": {
+          "xp": 127,
+          "correct": 6,
+          "wrong": 0,
+          "lessons": 1,
+          "flawless": 6,
+          "reviewCorrect": 1,
+          "reviewWords": [
+            "g2_карандаш"
+          ],
+          "activeSeconds": 288,
+          "tasks": 6,
+          "errorWords": {},
+          "recoveredWords": [],
+          "streak": 6
+        },
+        "2026-10-09": {
+          "xp": 371,
+          "correct": 23,
+          "wrong": 2,
+          "lessons": 3,
+          "flawless": 21,
+          "reviewCorrect": 2,
+          "reviewWords": [
+            "g2_метель",
+            "g2_январь"
+          ],
+          "activeSeconds": 935,
+          "tasks": 25,
+          "errorWords": {
+            "g2_одежда": 1,
+            "g2_воробей": 1
+          },
+          "recoveredWords": [
+            "g2_одежда",
+            "g2_воробей"
+          ],
+          "streak": 21
+        },
+        "2026-10-10": {
+          "xp": 371,
+          "correct": 23,
+          "wrong": 4,
+          "lessons": 3,
+          "flawless": 23,
+          "reviewCorrect": 4,
+          "reviewWords": [
+            "g2_одежда",
+            "g2_щавель",
+            "g2_яблоня",
+            "g2_малина"
+          ],
+          "activeSeconds": 986,
+          "tasks": 27,
+          "errorWords": {
+            "g2_магазин": 1,
+            "g2_метро": 1,
+            "g2_рисунок": 1,
+            "g2_яблоня": 1
+          },
+          "recoveredWords": [
+            "g2_магазин",
+            "g2_метро",
+            "g2_рисунок",
+            "g2_яблоня"
+          ],
+          "streak": 23
+        },
+        "2026-10-12": {
+          "xp": 407,
+          "correct": 20,
+          "wrong": 0,
+          "lessons": 3,
+          "flawless": 14,
+          "reviewCorrect": 0,
+          "reviewWords": [],
+          "activeSeconds": 738,
+          "tasks": 20,
+          "errorWords": {},
+          "recoveredWords": [],
+          "streak": 14
+        },
+        "2026-10-13": {
+          "xp": 274,
+          "correct": 17,
+          "wrong": 1,
+          "lessons": 2,
+          "flawless": 17,
+          "reviewCorrect": 4,
+          "reviewWords": [
+            "g2_яблоня",
+            "g2_земляника",
+            "g2_ягода",
+            "g2_Москва"
+          ],
+          "activeSeconds": 755,
+          "tasks": 18,
+          "errorWords": {
+            "g2_тарелка": 1
+          },
+          "recoveredWords": [
+            "g2_тарелка"
+          ],
+          "streak": 17
+        },
+        "2026-10-14": {
+          "xp": 147,
+          "correct": 8,
+          "wrong": 0,
+          "lessons": 1,
+          "flawless": 8,
+          "reviewCorrect": 2,
+          "reviewWords": [
+            "g2_русский",
+            "g2_Родина"
+          ],
+          "activeSeconds": 309,
+          "tasks": 8,
+          "errorWords": {},
+          "recoveredWords": [],
+          "streak": 8
+        },
+        "2026-10-15": {
+          "xp": 254,
+          "correct": 15,
+          "wrong": 3,
+          "lessons": 2,
+          "flawless": 12,
+          "reviewCorrect": 4,
+          "reviewWords": [
+            "g2_тарелка",
+            "g2_воробей",
+            "g2_корова",
+            "g2_рисунок"
+          ],
+          "activeSeconds": 656,
+          "tasks": 18,
+          "errorWords": {
+            "g2_город": 1,
+            "g2_завод": 1,
+            "g2_рисунок": 1
+          },
+          "recoveredWords": [
+            "g2_город",
+            "g2_завод",
+            "g2_рисунок"
+          ],
+          "streak": 12
+        },
+        "2026-10-16": {
+          "xp": 140,
+          "correct": 7,
+          "wrong": 0,
+          "lessons": 1,
+          "flawless": 4,
+          "reviewCorrect": 1,
+          "reviewWords": [
+            "g2_Россия"
+          ],
+          "activeSeconds": 294,
+          "tasks": 7,
+          "errorWords": {},
+          "recoveredWords": [],
+          "streak": 4
+        },
+        "2026-10-17": {
+          "xp": 157,
+          "correct": 9,
+          "wrong": 0,
+          "lessons": 1,
+          "flawless": 7,
+          "reviewCorrect": 1,
+          "reviewWords": [
+            "g2_воробей"
+          ],
+          "activeSeconds": 354,
+          "tasks": 9,
+          "errorWords": {},
+          "recoveredWords": [],
+          "streak": 7
+        },
+        "2026-10-18": {
+          "xp": 318,
+          "correct": 18,
+          "wrong": 2,
+          "lessons": 3,
+          "flawless": 12,
+          "reviewCorrect": 0,
+          "reviewWords": [],
+          "activeSeconds": 702,
+          "tasks": 20,
+          "errorWords": {
+            "g2_коньки": 1,
+            "g2_яблоко": 1
+          },
+          "recoveredWords": [
+            "g2_коньки",
+            "g2_яблоко"
+          ],
+          "streak": 12
+        },
+        "2026-10-19": {
+          "xp": 350,
+          "correct": 17,
+          "wrong": 1,
+          "lessons": 3,
+          "flawless": 11,
+          "reviewCorrect": 2,
+          "reviewWords": [
+            "g2_рисунок",
+            "g2_лягушка"
+          ],
+          "activeSeconds": 735,
+          "tasks": 18,
+          "errorWords": {
+            "g2_машина": 1
+          },
+          "recoveredWords": [
+            "g2_машина"
+          ],
+          "streak": 11
+        },
+        "2026-10-20": {
+          "xp": 321,
+          "correct": 19,
+          "wrong": 1,
+          "lessons": 2,
+          "flawless": 14,
+          "reviewCorrect": 3,
+          "reviewWords": [
+            "g2_яблоко",
+            "g2_машина",
+            "g2_коньки"
+          ],
+          "activeSeconds": 726,
+          "tasks": 20,
+          "errorWords": {
+            "g2_коньки": 1
+          },
+          "recoveredWords": [
+            "g2_коньки"
+          ],
+          "streak": 14
+        },
+        "2026-10-21": {
+          "xp": 261,
+          "correct": 16,
+          "wrong": 2,
+          "lessons": 2,
+          "flawless": 13,
+          "reviewCorrect": 6,
+          "reviewWords": [
+            "g2_яблоко",
+            "g2_молоток",
+            "g2_воробей",
+            "g2_рабочий",
+            "g2_машина",
+            "g2_город"
+          ],
+          "activeSeconds": 683,
+          "tasks": 18,
+          "errorWords": {
+            "g2_мороз": 1,
+            "g2_город": 1
+          },
+          "recoveredWords": [
+            "g2_мороз",
+            "g2_город"
+          ],
+          "streak": 13
+        },
+        "2026-10-22": {
+          "xp": 437,
+          "correct": 23,
+          "wrong": 0,
+          "lessons": 3,
+          "flawless": 23,
+          "reviewCorrect": 1,
+          "reviewWords": [
+            "g2_город"
+          ],
+          "activeSeconds": 817,
+          "tasks": 23,
+          "errorWords": {},
+          "recoveredWords": [],
+          "streak": 23
+        },
+        "2026-10-23": {
+          "xp": 134,
+          "correct": 7,
+          "wrong": 0,
+          "lessons": 1,
+          "flawless": 7,
+          "reviewCorrect": 1,
+          "reviewWords": [
+            "g2_завод"
+          ],
+          "activeSeconds": 263,
+          "tasks": 7,
+          "errorWords": {},
+          "recoveredWords": [],
+          "streak": 7
+        },
+        "2026-10-24": {
+          "xp": 204,
+          "correct": 13,
+          "wrong": 2,
+          "lessons": 2,
+          "flawless": 10,
+          "reviewCorrect": 2,
+          "reviewWords": [
+            "g2_корова",
+            "g2_рисунок"
+          ],
+          "activeSeconds": 597,
+          "tasks": 15,
+          "errorWords": {
+            "g2_земляника": 1,
+            "g2_ученица": 1
+          },
+          "recoveredWords": [
+            "g2_земляника",
+            "g2_ученица"
+          ],
+          "streak": 10
+        },
+        "2026-10-25": {
+          "xp": 324,
+          "correct": 19,
+          "wrong": 1,
+          "lessons": 2,
+          "flawless": 18,
+          "reviewCorrect": 7,
+          "reviewWords": [
+            "g2_машина",
+            "g2_мороз",
+            "g2_воробей",
+            "g2_завод",
+            "g2_рисунок",
+            "g2_магазин",
+            "g2_метро"
+          ],
+          "activeSeconds": 730,
+          "tasks": 20,
+          "errorWords": {
+            "g2_рисунок": 1
+          },
+          "recoveredWords": [
+            "g2_рисунок"
+          ],
+          "streak": 18
+        },
+        "2026-10-26": {
+          "xp": 378,
+          "correct": 21,
+          "wrong": 2,
+          "lessons": 3,
+          "flawless": 19,
+          "reviewCorrect": 2,
+          "reviewWords": [
+            "g2_земляника",
+            "g2_ученица"
+          ],
+          "activeSeconds": 921,
+          "tasks": 23,
+          "errorWords": {
+            "g2_карандаш": 1,
+            "g2_тетрадь": 1
+          },
+          "recoveredWords": [
+            "g2_карандаш",
+            "g2_тетрадь"
+          ],
+          "streak": 19
+        },
+        "2026-10-27": {
+          "xp": 412,
+          "correct": 25,
+          "wrong": 1,
+          "lessons": 3,
+          "flawless": 17,
+          "reviewCorrect": 4,
+          "reviewWords": [
+            "g2_ветер",
+            "g2_деревня",
+            "g2_осина",
+            "g2_урожай"
+          ],
+          "activeSeconds": 1047,
+          "tasks": 26,
+          "errorWords": {
+            "g2_ученица": 1
+          },
+          "recoveredWords": [
+            "g2_ученица"
+          ],
+          "streak": 17
+        }
+      },
+      "studySessions": [
+        {
+          "id": "study_mumz1npc_hg90",
+          "day": "2026-09-29",
+          "startedAt": 1790704200000,
+          "endedAt": 1790704416000,
+          "activeSeconds": 216,
+          "mode": "lesson",
+          "lessonId": "birds",
+          "tasks": 5,
+          "correct": 5,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1790704339000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mumz4myg_is8u",
+          "day": "2026-09-29",
+          "startedAt": 1790704339000,
+          "endedAt": 1790704623000,
+          "activeSeconds": 284,
+          "mode": "lesson",
+          "lessonId": "winter",
+          "tasks": 6,
+          "correct": 6,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1790704550000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mumz95rk_jhy4",
+          "day": "2026-09-29",
+          "startedAt": 1790704550000,
+          "endedAt": 1790704762000,
+          "activeSeconds": 212,
+          "mode": "review",
+          "tasks": 5,
+          "correct": 5,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1790704710000,
+          "status": "completed"
+        },
+        {
+          "id": "study_muo9mm2o_4091",
+          "day": "2026-09-30",
+          "startedAt": 1790782440000,
+          "endedAt": 1790782658000,
+          "activeSeconds": 218,
+          "mode": "lesson",
+          "lessonId": "schoolpeople",
+          "tasks": 5,
+          "correct": 5,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1790782599000,
+          "status": "completed"
+        },
+        {
+          "id": "study_muptqxk0_3cgs",
+          "day": "2026-10-01",
+          "startedAt": 1790876700000,
+          "endedAt": 1790876986000,
+          "activeSeconds": 286,
+          "mode": "lesson",
+          "lessonId": "animals",
+          "tasks": 7,
+          "correct": 6,
+          "wrong": 1,
+          "errorWords": {
+            "g2_корова": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g2_корова"
+          ],
+          "lastActivityAt": 1790876914000,
+          "status": "completed"
+        },
+        {
+          "id": "study_muptviog_41ot",
+          "day": "2026-10-01",
+          "startedAt": 1790876914000,
+          "endedAt": 1790877096000,
+          "activeSeconds": 182,
+          "mode": "review",
+          "tasks": 4,
+          "correct": 4,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1790877025000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mur3slhc_3oxm",
+          "day": "2026-10-02",
+          "startedAt": 1790954040000,
+          "endedAt": 1790954318000,
+          "activeSeconds": 278,
+          "mode": "lesson",
+          "lessonId": "animals",
+          "tasks": 6,
+          "correct": 6,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1790954229000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mur3wnbc_6zn0",
+          "day": "2026-10-02",
+          "startedAt": 1790954229000,
+          "endedAt": 1790954473000,
+          "activeSeconds": 244,
+          "mode": "lesson",
+          "lessonId": "schoolpeople",
+          "tasks": 5,
+          "correct": 5,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1790954383000,
+          "status": "completed"
+        },
+        {
+          "id": "study_musm3buo_5q7f",
+          "day": "2026-10-03",
+          "startedAt": 1791045240000,
+          "endedAt": 1791045505000,
+          "activeSeconds": 265,
+          "mode": "lesson",
+          "lessonId": "city",
+          "tasks": 7,
+          "correct": 6,
+          "wrong": 1,
+          "errorWords": {
+            "g2_метро": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g2_метро"
+          ],
+          "lastActivityAt": 1791045445000,
+          "status": "completed"
+        },
+        {
+          "id": "study_musm7q14_8n8l",
+          "day": "2026-10-03",
+          "startedAt": 1791045445000,
+          "endedAt": 1791045814000,
+          "activeSeconds": 369,
+          "mode": "lesson",
+          "lessonId": "school",
+          "tasks": 10,
+          "correct": 8,
+          "wrong": 2,
+          "errorWords": {
+            "g2_карандаш": 1,
+            "g2_картина": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g2_карандаш",
+            "g2_картина"
+          ],
+          "lastActivityAt": 1791045749000,
+          "status": "completed"
+        },
+        {
+          "id": "study_musme8lk_lfd4",
+          "day": "2026-10-03",
+          "startedAt": 1791045749000,
+          "endedAt": 1791045989000,
+          "activeSeconds": 240,
+          "mode": "lesson",
+          "lessonId": "birds",
+          "tasks": 5,
+          "correct": 5,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791045903000,
+          "status": "completed"
+        },
+        {
+          "id": "study_musmhjfc_4udg",
+          "day": "2026-10-03",
+          "startedAt": 1791045903000,
+          "endedAt": 1791046023000,
+          "activeSeconds": 120,
+          "mode": "review",
+          "tasks": 2,
+          "correct": 2,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791045965000,
+          "status": "completed"
+        },
+        {
+          "id": "study_muwwhgg0_ho6k",
+          "day": "2026-10-06",
+          "startedAt": 1791304560000,
+          "endedAt": 1791304760000,
+          "activeSeconds": 200,
+          "mode": "lesson",
+          "lessonId": "birds",
+          "tasks": 5,
+          "correct": 5,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791304690000,
+          "status": "completed"
+        },
+        {
+          "id": "study_muwwk8r4_7su7",
+          "day": "2026-10-06",
+          "startedAt": 1791304690000,
+          "endedAt": 1791304915000,
+          "activeSeconds": 225,
+          "mode": "lesson",
+          "lessonId": "schoolpeople",
+          "tasks": 5,
+          "correct": 5,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791304844000,
+          "status": "completed"
+        },
+        {
+          "id": "study_muwwnjkw_jxu9",
+          "day": "2026-10-06",
+          "startedAt": 1791304844000,
+          "endedAt": 1791305096000,
+          "activeSeconds": 252,
+          "mode": "review",
+          "tasks": 5,
+          "correct": 5,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791305023000,
+          "status": "completed"
+        },
+        {
+          "id": "study_muye8wdc_bsi7",
+          "day": "2026-10-07",
+          "startedAt": 1791394860000,
+          "endedAt": 1791395110000,
+          "activeSeconds": 250,
+          "mode": "lesson",
+          "lessonId": "work",
+          "tasks": 5,
+          "correct": 5,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791395025000,
+          "status": "completed"
+        },
+        {
+          "id": "study_muyecfoo_2jq5",
+          "day": "2026-10-07",
+          "startedAt": 1791395025000,
+          "endedAt": 1791395122000,
+          "activeSeconds": 97,
+          "mode": "review",
+          "tasks": 1,
+          "correct": 1,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791395058000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mv14la2o_cf17",
+          "day": "2026-10-09",
+          "startedAt": 1791560040000,
+          "endedAt": 1791560362000,
+          "activeSeconds": 322,
+          "mode": "lesson",
+          "lessonId": "home",
+          "tasks": 9,
+          "correct": 8,
+          "wrong": 1,
+          "errorWords": {
+            "g2_одежда": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g2_одежда"
+          ],
+          "lastActivityAt": 1791560297000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mv14qsdk_9o06",
+          "day": "2026-10-09",
+          "startedAt": 1791560297000,
+          "endedAt": 1791560514000,
+          "activeSeconds": 217,
+          "mode": "lesson",
+          "lessonId": "birds",
+          "tasks": 6,
+          "correct": 5,
+          "wrong": 1,
+          "errorWords": {
+            "g2_воробей": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g2_воробей"
+          ],
+          "lastActivityAt": 1791560472000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mv14ujeo_8mid",
+          "day": "2026-10-09",
+          "startedAt": 1791560472000,
+          "endedAt": 1791560785000,
+          "activeSeconds": 313,
+          "mode": "lesson",
+          "lessonId": "school",
+          "tasks": 8,
+          "correct": 8,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791560726000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mv14zze8_h1c3",
+          "day": "2026-10-09",
+          "startedAt": 1791560726000,
+          "endedAt": 1791560837000,
+          "activeSeconds": 111,
+          "mode": "review",
+          "tasks": 2,
+          "correct": 2,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791560795000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mv2jbetc_cteb",
+          "day": "2026-10-10",
+          "startedAt": 1791645240000,
+          "endedAt": 1791645541000,
+          "activeSeconds": 301,
+          "mode": "lesson",
+          "lessonId": "city",
+          "tasks": 8,
+          "correct": 6,
+          "wrong": 2,
+          "errorWords": {
+            "g2_магазин": 1,
+            "g2_метро": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g2_магазин",
+            "g2_метро"
+          ],
+          "lastActivityAt": 1791645472000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mv2jgdts_2qh0",
+          "day": "2026-10-10",
+          "startedAt": 1791645472000,
+          "endedAt": 1791645706000,
+          "activeSeconds": 234,
+          "mode": "lesson",
+          "lessonId": "food",
+          "tasks": 5,
+          "correct": 5,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791645655000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mv2jkb14_lenp",
+          "day": "2026-10-10",
+          "startedAt": 1791645655000,
+          "endedAt": 1791645962000,
+          "activeSeconds": 307,
+          "mode": "lesson",
+          "lessonId": "school",
+          "tasks": 9,
+          "correct": 8,
+          "wrong": 1,
+          "errorWords": {
+            "g2_рисунок": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g2_рисунок"
+          ],
+          "lastActivityAt": 1791645911000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mv2jpsk8_efgg",
+          "day": "2026-10-10",
+          "startedAt": 1791645911000,
+          "endedAt": 1791646090000,
+          "activeSeconds": 179,
+          "mode": "review",
+          "tasks": 5,
+          "correct": 4,
+          "wrong": 1,
+          "errorWords": {
+            "g2_яблоня": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g2_яблоня"
+          ],
+          "lastActivityAt": 1791646046000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mv5h1zuo_e2cv",
+          "day": "2026-10-12",
+          "startedAt": 1791822840000,
+          "endedAt": 1791823097000,
+          "activeSeconds": 257,
+          "mode": "lesson",
+          "lessonId": "city",
+          "tasks": 6,
+          "correct": 6,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791823030000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mv5h62gg_2ezh",
+          "day": "2026-10-12",
+          "startedAt": 1791823030000,
+          "endedAt": 1791823311000,
+          "activeSeconds": 281,
+          "mode": "lesson",
+          "lessonId": "school",
+          "tasks": 8,
+          "correct": 8,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791823252000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mv5hatr4_e7oh",
+          "day": "2026-10-12",
+          "startedAt": 1791823252000,
+          "endedAt": 1791823525000,
+          "activeSeconds": 273,
+          "mode": "lesson",
+          "lessonId": "winter",
+          "tasks": 6,
+          "correct": 6,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791823443000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mv6xw02o_91q8",
+          "day": "2026-10-13",
+          "startedAt": 1791911580000,
+          "endedAt": 1791911958000,
+          "activeSeconds": 378,
+          "mode": "lesson",
+          "lessonId": "home",
+          "tasks": 9,
+          "correct": 8,
+          "wrong": 1,
+          "errorWords": {
+            "g2_тарелка": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g2_тарелка"
+          ],
+          "lastActivityAt": 1791911896000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mv6y2rwg_eybr",
+          "day": "2026-10-13",
+          "startedAt": 1791911896000,
+          "endedAt": 1791912151000,
+          "activeSeconds": 255,
+          "mode": "lesson",
+          "lessonId": "food",
+          "tasks": 5,
+          "correct": 5,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791912075000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mv6y6m0o_7yml",
+          "day": "2026-10-13",
+          "startedAt": 1791912075000,
+          "endedAt": 1791912244000,
+          "activeSeconds": 169,
+          "mode": "review",
+          "tasks": 4,
+          "correct": 4,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791912200000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mv89d3uo_gtao",
+          "day": "2026-10-14",
+          "startedAt": 1791991320000,
+          "endedAt": 1791991545000,
+          "activeSeconds": 225,
+          "mode": "lesson",
+          "lessonId": "garden",
+          "tasks": 6,
+          "correct": 6,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791991483000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mv89glmg_27bo",
+          "day": "2026-10-14",
+          "startedAt": 1791991483000,
+          "endedAt": 1791991602000,
+          "activeSeconds": 119,
+          "mode": "review",
+          "tasks": 2,
+          "correct": 2,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791991539000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mv9r5u2o_4p0f",
+          "day": "2026-10-15",
+          "startedAt": 1792081680000,
+          "endedAt": 1792081977000,
+          "activeSeconds": 297,
+          "mode": "lesson",
+          "lessonId": "city",
+          "tasks": 8,
+          "correct": 6,
+          "wrong": 2,
+          "errorWords": {
+            "g2_город": 1,
+            "g2_завод": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g2_город",
+            "g2_завод"
+          ],
+          "lastActivityAt": 1792081918000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mv9raxps_kn4y",
+          "day": "2026-10-15",
+          "startedAt": 1792081918000,
+          "endedAt": 1792082157000,
+          "activeSeconds": 239,
+          "mode": "lesson",
+          "lessonId": "schoolpeople",
+          "tasks": 5,
+          "correct": 5,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792082070000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mv9re700_4jnw",
+          "day": "2026-10-15",
+          "startedAt": 1792082070000,
+          "endedAt": 1792082264000,
+          "activeSeconds": 194,
+          "mode": "review",
+          "tasks": 5,
+          "correct": 4,
+          "wrong": 1,
+          "errorWords": {
+            "g2_рисунок": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g2_рисунок"
+          ],
+          "lastActivityAt": 1792082201000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvb4s3mo_f7q4",
+          "day": "2026-10-16",
+          "startedAt": 1792165020000,
+          "endedAt": 1792165259000,
+          "activeSeconds": 239,
+          "mode": "lesson",
+          "lessonId": "city",
+          "tasks": 6,
+          "correct": 6,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792165199000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvb4vxqw_gvlb",
+          "day": "2026-10-16",
+          "startedAt": 1792165199000,
+          "endedAt": 1792165297000,
+          "activeSeconds": 98,
+          "mode": "review",
+          "tasks": 1,
+          "correct": 1,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792165224000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvcnr9mo_7ztt",
+          "day": "2026-10-17",
+          "startedAt": 1792257360000,
+          "endedAt": 1792257688000,
+          "activeSeconds": 328,
+          "mode": "lesson",
+          "lessonId": "home",
+          "tasks": 8,
+          "correct": 8,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792257602000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvcnwgcw_9dnn",
+          "day": "2026-10-17",
+          "startedAt": 1792257602000,
+          "endedAt": 1792257688000,
+          "activeSeconds": 86,
+          "mode": "review",
+          "tasks": 1,
+          "correct": 1,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792257624000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvdyu85c_6pak",
+          "day": "2026-10-18",
+          "startedAt": 1792336440000,
+          "endedAt": 1792336757000,
+          "activeSeconds": 317,
+          "mode": "lesson",
+          "lessonId": "winter",
+          "tasks": 7,
+          "correct": 6,
+          "wrong": 1,
+          "errorWords": {
+            "g2_коньки": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g2_коньки"
+          ],
+          "lastActivityAt": 1792336679000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvdyzck8_8abp",
+          "day": "2026-10-18",
+          "startedAt": 1792336679000,
+          "endedAt": 1792336875000,
+          "activeSeconds": 196,
+          "mode": "lesson",
+          "lessonId": "winter",
+          "tasks": 6,
+          "correct": 6,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792336821000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvdz2e4o_bhov",
+          "day": "2026-10-18",
+          "startedAt": 1792336821000,
+          "endedAt": 1792337094000,
+          "activeSeconds": 273,
+          "mode": "lesson",
+          "lessonId": "garden",
+          "tasks": 7,
+          "correct": 6,
+          "wrong": 1,
+          "errorWords": {
+            "g2_яблоко": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g2_яблоко"
+          ],
+          "lastActivityAt": 1792337007000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvfegiao_hraa",
+          "day": "2026-10-19",
+          "startedAt": 1792423140000,
+          "endedAt": 1792423356000,
+          "activeSeconds": 216,
+          "mode": "lesson",
+          "lessonId": "country",
+          "tasks": 4,
+          "correct": 4,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792423285000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvfejm6g_93gf",
+          "day": "2026-10-19",
+          "startedAt": 1792423285000,
+          "endedAt": 1792423493000,
+          "activeSeconds": 208,
+          "mode": "lesson",
+          "lessonId": "schoolpeople",
+          "tasks": 5,
+          "correct": 5,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792423429000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvfempag_8qwg",
+          "day": "2026-10-19",
+          "startedAt": 1792423429000,
+          "endedAt": 1792423715000,
+          "activeSeconds": 286,
+          "mode": "lesson",
+          "lessonId": "city",
+          "tasks": 7,
+          "correct": 6,
+          "wrong": 1,
+          "errorWords": {
+            "g2_машина": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g2_машина"
+          ],
+          "lastActivityAt": 1792423644000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvferb6o_79t7",
+          "day": "2026-10-19",
+          "startedAt": 1792423644000,
+          "endedAt": 1792423782000,
+          "activeSeconds": 138,
+          "mode": "review",
+          "tasks": 2,
+          "correct": 2,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792423695000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvgvsio0_iqyc",
+          "day": "2026-10-20",
+          "startedAt": 1792512720000,
+          "endedAt": 1792512990000,
+          "activeSeconds": 270,
+          "mode": "lesson",
+          "lessonId": "school",
+          "tasks": 8,
+          "correct": 8,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792512944000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvgvxbi8_7uex",
+          "day": "2026-10-20",
+          "startedAt": 1792512944000,
+          "endedAt": 1792513283000,
+          "activeSeconds": 339,
+          "mode": "lesson",
+          "lessonId": "home",
+          "tasks": 8,
+          "correct": 8,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792513199000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvgw2s9k_kep4",
+          "day": "2026-10-20",
+          "startedAt": 1792513199000,
+          "endedAt": 1792513352000,
+          "activeSeconds": 153,
+          "mode": "review",
+          "tasks": 4,
+          "correct": 3,
+          "wrong": 1,
+          "errorWords": {
+            "g2_коньки": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g2_коньки"
+          ],
+          "lastActivityAt": 1792513311000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvid8dxc_cza0",
+          "day": "2026-10-21",
+          "startedAt": 1792602480000,
+          "endedAt": 1792602735000,
+          "activeSeconds": 255,
+          "mode": "lesson",
+          "lessonId": "winter",
+          "tasks": 7,
+          "correct": 6,
+          "wrong": 1,
+          "errorWords": {
+            "g2_мороз": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g2_мороз"
+          ],
+          "lastActivityAt": 1792602693000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvidcya0_isei",
+          "day": "2026-10-21",
+          "startedAt": 1792602693000,
+          "endedAt": 1792602892000,
+          "activeSeconds": 199,
+          "mode": "lesson",
+          "lessonId": "country",
+          "tasks": 4,
+          "correct": 4,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792602808000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvidff0g_2fzn",
+          "day": "2026-10-21",
+          "startedAt": 1792602808000,
+          "endedAt": 1792603099000,
+          "activeSeconds": 291,
+          "mode": "review",
+          "tasks": 7,
+          "correct": 6,
+          "wrong": 1,
+          "errorWords": {
+            "g2_город": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g2_город"
+          ],
+          "lastActivityAt": 1792603028000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvjtx8yo_ij68",
+          "day": "2026-10-22",
+          "startedAt": 1792690980000,
+          "endedAt": 1792691202000,
+          "activeSeconds": 222,
+          "mode": "lesson",
+          "lessonId": "winter",
+          "tasks": 6,
+          "correct": 6,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792691147000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvju0ttk_ky47",
+          "day": "2026-10-22",
+          "startedAt": 1792691147000,
+          "endedAt": 1792691428000,
+          "activeSeconds": 281,
+          "mode": "lesson",
+          "lessonId": "home",
+          "tasks": 8,
+          "correct": 8,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792691377000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvju5rag_ci0m",
+          "day": "2026-10-22",
+          "startedAt": 1792691377000,
+          "endedAt": 1792691672000,
+          "activeSeconds": 295,
+          "mode": "lesson",
+          "lessonId": "home",
+          "tasks": 8,
+          "correct": 8,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792691583000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvjua68o_d2pi",
+          "day": "2026-10-22",
+          "startedAt": 1792691583000,
+          "endedAt": 1792691659000,
+          "activeSeconds": 76,
+          "mode": "review",
+          "tasks": 1,
+          "correct": 1,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792691617000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvl7aig0_886j",
+          "day": "2026-10-23",
+          "startedAt": 1792773900000,
+          "endedAt": 1792774126000,
+          "activeSeconds": 226,
+          "mode": "lesson",
+          "lessonId": "winter",
+          "tasks": 6,
+          "correct": 6,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792774054000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvl7dt9s_81b0",
+          "day": "2026-10-23",
+          "startedAt": 1792774054000,
+          "endedAt": 1792774119000,
+          "activeSeconds": 65,
+          "mode": "review",
+          "tasks": 1,
+          "correct": 1,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792774073000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvmo8dk0_ifsx",
+          "day": "2026-10-24",
+          "startedAt": 1792862820000,
+          "endedAt": 1792863114000,
+          "activeSeconds": 294,
+          "mode": "lesson",
+          "lessonId": "garden",
+          "tasks": 7,
+          "correct": 6,
+          "wrong": 1,
+          "errorWords": {
+            "g2_земляника": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g2_земляника"
+          ],
+          "lastActivityAt": 1792863025000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvmocrqg_9kyc",
+          "day": "2026-10-24",
+          "startedAt": 1792863025000,
+          "endedAt": 1792863251000,
+          "activeSeconds": 226,
+          "mode": "lesson",
+          "lessonId": "schoolpeople",
+          "tasks": 6,
+          "correct": 5,
+          "wrong": 1,
+          "errorWords": {
+            "g2_ученица": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g2_ученица"
+          ],
+          "lastActivityAt": 1792863208000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvmogoxs_iki6",
+          "day": "2026-10-24",
+          "startedAt": 1792863208000,
+          "endedAt": 1792863339000,
+          "activeSeconds": 131,
+          "mode": "review",
+          "tasks": 2,
+          "correct": 2,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792863282000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvnz7h6o_hxmu",
+          "day": "2026-10-25",
+          "startedAt": 1792941720000,
+          "endedAt": 1792942020000,
+          "activeSeconds": 300,
+          "mode": "lesson",
+          "lessonId": "animals",
+          "tasks": 6,
+          "correct": 6,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792941936000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvnzc3uo_esph",
+          "day": "2026-10-25",
+          "startedAt": 1792941936000,
+          "endedAt": 1792942174000,
+          "activeSeconds": 238,
+          "mode": "lesson",
+          "lessonId": "animals",
+          "tasks": 6,
+          "correct": 6,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792942108000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvnzfskg_jbug",
+          "day": "2026-10-25",
+          "startedAt": 1792942108000,
+          "endedAt": 1792942378000,
+          "activeSeconds": 270,
+          "mode": "review",
+          "tasks": 8,
+          "correct": 7,
+          "wrong": 1,
+          "errorWords": {
+            "g2_рисунок": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g2_рисунок"
+          ],
+          "lastActivityAt": 1792942315000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvpitsio_bh00",
+          "day": "2026-10-26",
+          "startedAt": 1793035140000,
+          "endedAt": 1793035476000,
+          "activeSeconds": 336,
+          "mode": "lesson",
+          "lessonId": "school",
+          "tasks": 10,
+          "correct": 8,
+          "wrong": 2,
+          "errorWords": {
+            "g2_карандаш": 1,
+            "g2_тетрадь": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g2_карандаш",
+            "g2_тетрадь"
+          ],
+          "lastActivityAt": 1793035434000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvpj03dc_l2lf",
+          "day": "2026-10-26",
+          "startedAt": 1793035434000,
+          "endedAt": 1793035727000,
+          "activeSeconds": 293,
+          "mode": "lesson",
+          "lessonId": "city",
+          "tasks": 6,
+          "correct": 6,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1793035646000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvpj4my8_857m",
+          "day": "2026-10-26",
+          "startedAt": 1793035646000,
+          "endedAt": 1793035868000,
+          "activeSeconds": 222,
+          "mode": "lesson",
+          "lessonId": "work",
+          "tasks": 5,
+          "correct": 5,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1793035812000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvpj871c_4xp7",
+          "day": "2026-10-26",
+          "startedAt": 1793035812000,
+          "endedAt": 1793035958000,
+          "activeSeconds": 146,
+          "mode": "review",
+          "tasks": 2,
+          "correct": 2,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1793035881000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvqvwrmo_c11g",
+          "day": "2026-10-27",
+          "startedAt": 1793117580000,
+          "endedAt": 1793117936000,
+          "activeSeconds": 356,
+          "mode": "lesson",
+          "lessonId": "nature",
+          "tasks": 10,
+          "correct": 10,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1793117892000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvqw3gdc_bnrc",
+          "day": "2026-10-27",
+          "startedAt": 1793117892000,
+          "endedAt": 1793118163000,
+          "activeSeconds": 271,
+          "mode": "lesson",
+          "lessonId": "schoolpeople",
+          "tasks": 6,
+          "correct": 5,
+          "wrong": 1,
+          "errorWords": {
+            "g2_ученица": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g2_ученица"
+          ],
+          "lastActivityAt": 1793118102000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvqw7yeo_btjq",
+          "day": "2026-10-27",
+          "startedAt": 1793118102000,
+          "endedAt": 1793118384000,
+          "activeSeconds": 282,
+          "mode": "lesson",
+          "lessonId": "garden",
+          "tasks": 6,
+          "correct": 6,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1793118312000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvqwcgg0_2rgg",
+          "day": "2026-10-27",
+          "startedAt": 1793118312000,
+          "endedAt": 1793118496000,
+          "activeSeconds": 184,
+          "mode": "review",
+          "tasks": 4,
+          "correct": 4,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1793118447000,
+          "status": "completed"
+        }
+      ],
+      "achievements": [
+        "first",
+        "streak3",
+        "streak7",
+        "words25",
+        "perfect",
+        "xp500"
+      ],
+      "lessonSize": "standard",
+      "activeClass": 2,
+      "daily": {
+        "day": "2026-10-28",
+        "claimed": [],
+        "chestsToday": 0,
+        "bonusChestsClaimed": 0,
+        "chestsTotal": 109,
+        "plan": [
+          {
+            "kind": "lessons",
+            "target": 2
+          },
+          {
+            "kind": "review",
+            "target": 5
+          },
+          {
+            "kind": "correct",
+            "target": 12
+          }
+        ]
+      },
+      "weekly": {
+        "week": "2026-10-26",
+        "claimed": []
+      },
+      "shop": {
+        "owned": [
+          "clips-stars",
+          "food-donut",
+          "cap",
+          "bow",
+          "wreath",
+          "phone-smart",
+          "sport-ball",
+          "scarf",
+          "glasses-heart",
+          "phone-flip",
+          "car-racer",
+          "car-jeep",
+          "pet-bunny",
+          "dress-rainbow",
+          "car-taxi",
+          "ship-paper",
+          "headphones-max",
+          "plane-swift",
+          "car-electron-base"
+        ],
+        "equipped": {
+          "head": "wreath",
+          "toy": "car-electron-base",
+          "neck": "scarf",
+          "face": "glasses-heart",
+          "body": "dress-rainbow"
+        },
+        "crystalCostumesOwned": [
+          "electron-suit"
+        ],
+        "musicOwned": [
+          "carefree",
+          "easy-lemon",
+          "life-of-riley",
+          "pixelland"
+        ],
+        "musicTrack": "pixelland",
+        "soundOwned": [
+          "classic",
+          "xylophone"
+        ],
+        "soundPack": "xylophone",
+        "tuning": {
+          "current": {
+            "clips-stars": "pink",
+            "food-donut": "violet"
+          },
+          "unlocked": {
+            "clips-stars": [
+              "pink"
+            ],
+            "food-donut": [
+              "violet"
+            ],
+            "cap": [
+              "red"
+            ]
+          }
+        },
+        "wishlist": [
+          "crown",
+          "car-tesla",
+          "ship-titanic",
+          "titan"
+        ],
+        "world": [
+          "car-electron-base",
+          "pet-bunny",
+          "dark-lord"
+        ],
+        "buildingsOwned": [
+          "electron-base"
+        ],
+        "worldBase": "electron-base",
+        "activeBuilding": "electron-base"
+      },
+      "puzzle": {
+        "pieces": {
+          "dark-lord": 9,
+          "snow-guard": 9,
+          "steel-keeper": 9,
+          "light-master": 9,
+          "star-ranger": 9,
+          "fighter-pilot": 9,
+          "brave-droid": 9,
+          "star-commander": 9,
+          "shadow-initiate": 9,
+          "forest-sage": 9,
+          "fairy": 2
+        },
+        "collecting": "fairy",
+        "assembled": [
+          "dark-lord",
+          "snow-guard",
+          "steel-keeper",
+          "light-master",
+          "star-ranger",
+          "fighter-pilot",
+          "brave-droid",
+          "star-commander",
+          "shadow-initiate",
+          "forest-sage"
+        ],
+        "worn": "forest-sage"
+      },
+      "chestSkin": "star",
+      "chestSkins": [
+        "travel",
+        "sky",
+        "ice",
+        "star",
+        "flower",
+        "rainbow"
+      ]
+    },
+    {
+      "id": "p_demo_misha",
+      "name": "Миша",
+      "avatar": "🦖",
+      "createdAt": 1788858000000,
+      "xp": 11117,
+      "gems": 179,
+      "streak": 11,
+      "lastDay": "2026-10-27",
+      "freezes": 1,
+      "words": {
+        "g3_понедельник": {
+          "s": 100,
+          "due": 1793287328000,
+          "iv": 4,
+          "n": 3,
+          "seen": 1792941728000,
+          "ok": 18,
+          "wrong": 3
+        },
+        "g3_вторник": {
+          "s": 100,
+          "due": 1795196621000,
+          "iv": 36,
+          "n": 6,
+          "seen": 1792086221000,
+          "ok": 13,
+          "wrong": 1
+        },
+        "g3_среда": {
+          "s": 100,
+          "due": 1793205965000,
+          "iv": 8,
+          "n": 4,
+          "seen": 1792514765000,
+          "ok": 16,
+          "wrong": 2
+        },
+        "g3_четверг": {
+          "s": 100,
+          "due": 1797270277000,
+          "iv": 60,
+          "n": 12,
+          "seen": 1792086277000,
+          "ok": 12,
+          "wrong": 1
+        },
+        "g3_пятница": {
+          "s": 100,
+          "due": 1797270301000,
+          "iv": 60,
+          "n": 13,
+          "seen": 1792086301000,
+          "ok": 13,
+          "wrong": 0
+        },
+        "g3_воскресенье": {
+          "s": 100,
+          "due": 1793983665000,
+          "iv": 17,
+          "n": 5,
+          "seen": 1792514865000,
+          "ok": 19,
+          "wrong": 4
+        },
+        "g3_праздник": {
+          "s": 100,
+          "due": 1793209551000,
+          "iv": 2,
+          "n": 2,
+          "seen": 1793036751000,
+          "ok": 14,
+          "wrong": 1
+        },
+        "g3_столица": {
+          "s": 100,
+          "due": 1798125554000,
+          "iv": 60,
+          "n": 13,
+          "seen": 1792941554000,
+          "ok": 13,
+          "wrong": 1
+        },
+        "g3_Красная площадь": {
+          "s": 100,
+          "due": 1793296451000,
+          "iv": 2,
+          "n": 2,
+          "seen": 1793123651000,
+          "ok": 17,
+          "wrong": 3
+        },
+        "g3_Московский Кремль": {
+          "s": 100,
+          "due": 1798125626000,
+          "iv": 60,
+          "n": 8,
+          "seen": 1792941626000,
+          "ok": 15,
+          "wrong": 1
+        },
+        "g3_герой": {
+          "s": 100,
+          "due": 1798125661000,
+          "iv": 60,
+          "n": 8,
+          "seen": 1792941661000,
+          "ok": 15,
+          "wrong": 1
+        },
+        "g3_солдат": {
+          "s": 100,
+          "due": 1798125703000,
+          "iv": 60,
+          "n": 8,
+          "seen": 1792941703000,
+          "ok": 15,
+          "wrong": 1
+        },
+        "g3_четыре": {
+          "s": 100,
+          "due": 1797873266000,
+          "iv": 60,
+          "n": 10,
+          "seen": 1792689266000,
+          "ok": 12,
+          "wrong": 1
+        },
+        "g3_восемь": {
+          "s": 100,
+          "due": 1797873293000,
+          "iv": 60,
+          "n": 8,
+          "seen": 1792689293000,
+          "ok": 16,
+          "wrong": 2
+        },
+        "g3_грамм": {
+          "s": 100,
+          "due": 1797873324000,
+          "iv": 60,
+          "n": 7,
+          "seen": 1792689324000,
+          "ok": 16,
+          "wrong": 2
+        },
+        "g3_килограмм": {
+          "s": 100,
+          "due": 1797873346000,
+          "iv": 60,
+          "n": 7,
+          "seen": 1792689346000,
+          "ok": 15,
+          "wrong": 1
+        },
+        "g3_однажды": {
+          "s": 100,
+          "due": 1793728016000,
+          "iv": 8,
+          "n": 4,
+          "seen": 1793036816000,
+          "ok": 19,
+          "wrong": 2
+        },
+        "g3_потом": {
+          "s": 100,
+          "due": 1793031045000,
+          "iv": 2,
+          "n": 2,
+          "seen": 1792858245000,
+          "ok": 19,
+          "wrong": 3
+        },
+        "g3_вместе": {
+          "s": 100,
+          "due": 1793382385000,
+          "iv": 4,
+          "n": 3,
+          "seen": 1793036785000,
+          "ok": 19,
+          "wrong": 3
+        },
+        "g3_около": {
+          "s": 100,
+          "due": 1793380751000,
+          "iv": 8,
+          "n": 4,
+          "seen": 1792689551000,
+          "ok": 20,
+          "wrong": 3
+        },
+        "g3_вокруг": {
+          "s": 100,
+          "due": 1797873583000,
+          "iv": 60,
+          "n": 16,
+          "seen": 1792689583000,
+          "ok": 16,
+          "wrong": 0
+        },
+        "g3_погода": {
+          "s": 100,
+          "due": 1798307375000,
+          "iv": 60,
+          "n": 15,
+          "seen": 1793123375000,
+          "ok": 15,
+          "wrong": 0
+        },
+        "g3_заря": {
+          "s": 100,
+          "due": 1798307397000,
+          "iv": 60,
+          "n": 16,
+          "seen": 1793123397000,
+          "ok": 16,
+          "wrong": 0
+        },
+        "g3_пороша": {
+          "s": 100,
+          "due": 1798307417000,
+          "iv": 60,
+          "n": 11,
+          "seen": 1793123417000,
+          "ok": 17,
+          "wrong": 2
+        },
+        "g3_север": {
+          "s": 100,
+          "due": 1798307454000,
+          "iv": 60,
+          "n": 15,
+          "seen": 1793123454000,
+          "ok": 15,
+          "wrong": 1
+        },
+        "g3_восток": {
+          "s": 90,
+          "due": 1793209907000,
+          "iv": 1,
+          "n": 1,
+          "seen": 1793123507000,
+          "ok": 19,
+          "wrong": 3
+        },
+        "g3_берег": {
+          "s": 100,
+          "due": 1798307548000,
+          "iv": 60,
+          "n": 7,
+          "seen": 1793123548000,
+          "ok": 17,
+          "wrong": 2
+        },
+        "g3_песок": {
+          "s": 100,
+          "due": 1798307580000,
+          "iv": 60,
+          "n": 11,
+          "seen": 1793123580000,
+          "ok": 16,
+          "wrong": 1
+        },
+        "g3_животное": {
+          "s": 100,
+          "due": 1798307619000,
+          "iv": 60,
+          "n": 8,
+          "seen": 1793123619000,
+          "ok": 19,
+          "wrong": 3
+        },
+        "g3_пшеница": {
+          "s": 100,
+          "due": 1797783816000,
+          "iv": 60,
+          "n": 10,
+          "seen": 1792599816000,
+          "ok": 10,
+          "wrong": 0
+        },
+        "g3_овёс": {
+          "s": 100,
+          "due": 1797783850000,
+          "iv": 60,
+          "n": 10,
+          "seen": 1792599850000,
+          "ok": 10,
+          "wrong": 0
+        },
+        "g3_солома": {
+          "s": 100,
+          "due": 1797783870000,
+          "iv": 60,
+          "n": 10,
+          "seen": 1792599870000,
+          "ok": 10,
+          "wrong": 0
+        },
+        "g3_огород": {
+          "s": 100,
+          "due": 1797783895000,
+          "iv": 60,
+          "n": 9,
+          "seen": 1792599895000,
+          "ok": 13,
+          "wrong": 1
+        },
+        "g3_овощи": {
+          "s": 100,
+          "due": 1793814926000,
+          "iv": 8,
+          "n": 4,
+          "seen": 1793123726000,
+          "ok": 11,
+          "wrong": 1
+        },
+        "g3_картофель": {
+          "s": 100,
+          "due": 1797783956000,
+          "iv": 60,
+          "n": 10,
+          "seen": 1792599956000,
+          "ok": 10,
+          "wrong": 0
+        },
+        "g3_огурец": {
+          "s": 100,
+          "due": 1793296491000,
+          "iv": 2,
+          "n": 2,
+          "seen": 1793123691000,
+          "ok": 23,
+          "wrong": 3
+        },
+        "g3_помидор": {
+          "s": 100,
+          "due": 1798220625000,
+          "iv": 60,
+          "n": 17,
+          "seen": 1793036625000,
+          "ok": 20,
+          "wrong": 1
+        },
+        "g3_горох": {
+          "s": 100,
+          "due": 1798220652000,
+          "iv": 60,
+          "n": 20,
+          "seen": 1793036652000,
+          "ok": 20,
+          "wrong": 0
+        },
+        "g3_петрушка": {
+          "s": 100,
+          "due": 1793209484000,
+          "iv": 2,
+          "n": 2,
+          "seen": 1793036684000,
+          "ok": 22,
+          "wrong": 3
+        },
+        "g3_орех": {
+          "s": 100,
+          "due": 1798220718000,
+          "iv": 60,
+          "n": 12,
+          "seen": 1793036718000,
+          "ok": 20,
+          "wrong": 2
+        },
+        "g3_ромашка": {
+          "s": 15,
+          "due": 1793209528000,
+          "iv": 1,
+          "n": 1,
+          "seen": 1793123128000,
+          "ok": 1,
+          "wrong": 0
+        },
+        "g3_гвоздика": {
+          "s": 26,
+          "due": 1793296001000,
+          "iv": 2,
+          "n": 2,
+          "seen": 1793123201000,
+          "ok": 2,
+          "wrong": 0
+        },
+        "g3_сирень": {
+          "s": 15,
+          "due": 1793209627000,
+          "iv": 1,
+          "n": 1,
+          "seen": 1793123227000,
+          "ok": 1,
+          "wrong": 0
+        },
+        "g3_одуванчик": {
+          "s": 15,
+          "due": 1793209658000,
+          "iv": 1,
+          "n": 1,
+          "seen": 1793123258000,
+          "ok": 1,
+          "wrong": 0
+        },
+        "g3_рябина": {
+          "s": 26,
+          "due": 1793296113000,
+          "iv": 2,
+          "n": 2,
+          "seen": 1793123313000,
+          "ok": 2,
+          "wrong": 0
+        },
+        "g3_растение": {
+          "s": 15,
+          "due": 1793209733000,
+          "iv": 1,
+          "n": 1,
+          "seen": 1793123333000,
+          "ok": 1,
+          "wrong": 0
+        },
+        "g3_чёрный": {
+          "s": 15,
+          "due": 1793209751000,
+          "iv": 1,
+          "n": 1,
+          "seen": 1793123351000,
+          "ok": 1,
+          "wrong": 0
+        }
+      },
+      "lessons": {
+        "g3_week": {
+          "level": 5,
+          "best": 100,
+          "doneAt": 1792086341000,
+          "plays": 10
+        },
+        "g3_holiday": {
+          "level": 5,
+          "best": 100,
+          "doneAt": 1792941703000,
+          "plays": 12
+        },
+        "g3_numbers": {
+          "level": 5,
+          "best": 100,
+          "doneAt": 1792689346000,
+          "plays": 10
+        },
+        "g3_time": {
+          "level": 5,
+          "best": 100,
+          "doneAt": 1792689583000,
+          "plays": 14
+        },
+        "g3_weather": {
+          "level": 5,
+          "best": 100,
+          "doneAt": 1793123619000,
+          "plays": 14
+        },
+        "g3_field": {
+          "level": 5,
+          "best": 100,
+          "doneAt": 1792599956000,
+          "plays": 8
+        },
+        "g3_garden": {
+          "level": 5,
+          "best": 100,
+          "doneAt": 1793036718000,
+          "plays": 18
+        },
+        "g3_plants": {
+          "level": 1,
+          "best": 100,
+          "doneAt": 1793123351000,
+          "plays": 1
+        }
+      },
+      "errors": {
+        "g3_четверг": 1,
+        "g3_столица": 1,
+        "g3_север": 1,
+        "g3_животное": 3,
+        "g3_пороша": 2,
+        "g3_Красная площадь": 3,
+        "g3_четыре": 1,
+        "g3_огурец": 3,
+        "g3_петрушка": 3,
+        "g3_воскресенье": 4,
+        "g3_восемь": 2,
+        "g3_помидор": 1,
+        "g3_орех": 2,
+        "g3_восток": 3,
+        "g3_берег": 2,
+        "g3_грамм": 2,
+        "g3_песок": 1,
+        "g3_потом": 3,
+        "g3_килограмм": 1,
+        "g3_понедельник": 3,
+        "g3_вторник": 1,
+        "g3_среда": 2,
+        "g3_огород": 1,
+        "g3_герой": 1,
+        "g3_Московский Кремль": 1,
+        "g3_солдат": 1,
+        "g3_около": 3,
+        "g3_вместе": 3,
+        "g3_овощи": 1,
+        "g3_однажды": 2,
+        "g3_праздник": 1
+      },
+      "days": {
+        "2026-09-08": {
+          "xp": 529,
+          "correct": 40,
+          "wrong": 2,
+          "lessons": 3,
+          "flawless": 30,
+          "reviewCorrect": 6,
+          "reviewWords": [
+            "g3_вторник",
+            "g3_среда",
+            "g3_воскресенье",
+            "g3_Красная площадь",
+            "g3_герой",
+            "g3_понедельник"
+          ],
+          "activeSeconds": 1450,
+          "tasks": 42,
+          "errorWords": {
+            "g3_четверг": 1,
+            "g3_столица": 1
+          },
+          "recoveredWords": [
+            "g3_четверг",
+            "g3_столица"
+          ],
+          "streak": 30
+        },
+        "2026-09-09": {
+          "xp": 371,
+          "correct": 27,
+          "wrong": 2,
+          "lessons": 2,
+          "flawless": 21,
+          "reviewCorrect": 0,
+          "reviewWords": [],
+          "activeSeconds": 974,
+          "tasks": 29,
+          "errorWords": {
+            "g3_север": 1,
+            "g3_животное": 1
+          },
+          "recoveredWords": [
+            "g3_север",
+            "g3_животное"
+          ],
+          "streak": 21
+        },
+        "2026-09-10": {
+          "xp": 244,
+          "correct": 17,
+          "wrong": 4,
+          "lessons": 2,
+          "flawless": 11,
+          "reviewCorrect": 3,
+          "reviewWords": [
+            "g3_четверг",
+            "g3_четыре",
+            "g3_килограмм"
+          ],
+          "activeSeconds": 736,
+          "tasks": 21,
+          "errorWords": {
+            "g3_пороша": 1,
+            "g3_животное": 1,
+            "g3_Красная площадь": 1,
+            "g3_четыре": 1
+          },
+          "recoveredWords": [
+            "g3_пороша",
+            "g3_животное",
+            "g3_Красная площадь",
+            "g3_четыре"
+          ],
+          "streak": 11
+        },
+        "2026-09-11": {
+          "xp": 361,
+          "correct": 23,
+          "wrong": 0,
+          "lessons": 2,
+          "flawless": 20,
+          "reviewCorrect": 1,
+          "reviewWords": [
+            "g3_пятница"
+          ],
+          "activeSeconds": 834,
+          "tasks": 23,
+          "errorWords": {},
+          "recoveredWords": [],
+          "streak": 20
+        },
+        "2026-09-14": {
+          "xp": 274,
+          "correct": 17,
+          "wrong": 2,
+          "lessons": 2,
+          "flawless": 11,
+          "reviewCorrect": 6,
+          "reviewWords": [
+            "g3_пороша",
+            "g3_животное",
+            "g3_грамм",
+            "g3_потом",
+            "g3_однажды",
+            "g3_вокруг"
+          ],
+          "activeSeconds": 732,
+          "tasks": 19,
+          "errorWords": {
+            "g3_огурец": 1,
+            "g3_петрушка": 1
+          },
+          "recoveredWords": [
+            "g3_огурец",
+            "g3_петрушка"
+          ],
+          "streak": 11
+        },
+        "2026-09-15": {
+          "xp": 224,
+          "correct": 9,
+          "wrong": 0,
+          "lessons": 2,
+          "flawless": 7,
+          "reviewCorrect": 0,
+          "reviewWords": [],
+          "activeSeconds": 386,
+          "tasks": 9,
+          "errorWords": {},
+          "recoveredWords": [],
+          "streak": 7
+        },
+        "2026-09-16": {
+          "xp": 388,
+          "correct": 22,
+          "wrong": 1,
+          "lessons": 3,
+          "flawless": 19,
+          "reviewCorrect": 2,
+          "reviewWords": [
+            "g3_петрушка",
+            "g3_огурец"
+          ],
+          "activeSeconds": 819,
+          "tasks": 23,
+          "errorWords": {
+            "g3_воскресенье": 1
+          },
+          "recoveredWords": [
+            "g3_воскресенье"
+          ],
+          "streak": 19
+        },
+        "2026-09-17": {
+          "xp": 361,
+          "correct": 19,
+          "wrong": 2,
+          "lessons": 3,
+          "flawless": 16,
+          "reviewCorrect": 5,
+          "reviewWords": [
+            "g3_огурец",
+            "g3_помидор",
+            "g3_овощи",
+            "g3_горох",
+            "g3_овёс"
+          ],
+          "activeSeconds": 806,
+          "tasks": 21,
+          "errorWords": {
+            "g3_восемь": 1,
+            "g3_помидор": 1
+          },
+          "recoveredWords": [
+            "g3_восемь",
+            "g3_помидор"
+          ],
+          "streak": 16
+        },
+        "2026-09-18": {
+          "xp": 117,
+          "correct": 5,
+          "wrong": 0,
+          "lessons": 1,
+          "flawless": 5,
+          "reviewCorrect": 0,
+          "reviewWords": [],
+          "activeSeconds": 209,
+          "tasks": 5,
+          "errorWords": {},
+          "recoveredWords": [],
+          "streak": 5
+        },
+        "2026-09-20": {
+          "xp": 334,
+          "correct": 19,
+          "wrong": 3,
+          "lessons": 3,
+          "flawless": 13,
+          "reviewCorrect": 0,
+          "reviewWords": [],
+          "activeSeconds": 775,
+          "tasks": 22,
+          "errorWords": {
+            "g3_орех": 1,
+            "g3_восток": 1,
+            "g3_берег": 1
+          },
+          "recoveredWords": [
+            "g3_орех",
+            "g3_восток",
+            "g3_берег"
+          ],
+          "streak": 13
+        },
+        "2026-09-21": {
+          "xp": 354,
+          "correct": 21,
+          "wrong": 3,
+          "lessons": 3,
+          "flawless": 17,
+          "reviewCorrect": 4,
+          "reviewWords": [
+            "g3_пшеница",
+            "g3_огород",
+            "g3_картофель",
+            "g3_воскресенье"
+          ],
+          "activeSeconds": 827,
+          "tasks": 24,
+          "errorWords": {
+            "g3_грамм": 1,
+            "g3_пороша": 1,
+            "g3_песок": 1
+          },
+          "recoveredWords": [
+            "g3_грамм",
+            "g3_пороша",
+            "g3_песок"
+          ],
+          "streak": 17
+        },
+        "2026-09-22": {
+          "xp": 254,
+          "correct": 12,
+          "wrong": 0,
+          "lessons": 2,
+          "flawless": 10,
+          "reviewCorrect": 1,
+          "reviewWords": [
+            "g3_солома"
+          ],
+          "activeSeconds": 519,
+          "tasks": 12,
+          "errorWords": {},
+          "recoveredWords": [],
+          "streak": 10
+        },
+        "2026-09-24": {
+          "xp": 378,
+          "correct": 21,
+          "wrong": 1,
+          "lessons": 3,
+          "flawless": 16,
+          "reviewCorrect": 6,
+          "reviewWords": [
+            "g3_пороша",
+            "g3_песок",
+            "g3_Красная площадь",
+            "g3_восток",
+            "g3_грамм",
+            "g3_восемь"
+          ],
+          "activeSeconds": 828,
+          "tasks": 22,
+          "errorWords": {
+            "g3_потом": 1
+          },
+          "recoveredWords": [
+            "g3_потом"
+          ],
+          "streak": 16
+        },
+        "2026-09-25": {
+          "xp": 244,
+          "correct": 14,
+          "wrong": 1,
+          "lessons": 2,
+          "flawless": 13,
+          "reviewCorrect": 1,
+          "reviewWords": [
+            "g3_потом"
+          ],
+          "activeSeconds": 597,
+          "tasks": 15,
+          "errorWords": {
+            "g3_петрушка": 1
+          },
+          "recoveredWords": [
+            "g3_петрушка"
+          ],
+          "streak": 13
+        },
+        "2026-09-28": {
+          "xp": 317,
+          "correct": 17,
+          "wrong": 3,
+          "lessons": 3,
+          "flawless": 17,
+          "reviewCorrect": 1,
+          "reviewWords": [
+            "g3_петрушка"
+          ],
+          "activeSeconds": 752,
+          "tasks": 20,
+          "errorWords": {
+            "g3_восемь": 1,
+            "g3_грамм": 1,
+            "g3_килограмм": 1
+          },
+          "recoveredWords": [
+            "g3_восемь",
+            "g3_грамм",
+            "g3_килограмм"
+          ],
+          "streak": 17
+        },
+        "2026-09-29": {
+          "xp": 214,
+          "correct": 14,
+          "wrong": 2,
+          "lessons": 2,
+          "flawless": 14,
+          "reviewCorrect": 0,
+          "reviewWords": [],
+          "activeSeconds": 574,
+          "tasks": 16,
+          "errorWords": {
+            "g3_восток": 1,
+            "g3_воскресенье": 1
+          },
+          "recoveredWords": [
+            "g3_восток",
+            "g3_воскресенье"
+          ],
+          "streak": 14
+        },
+        "2026-09-30": {
+          "xp": 324,
+          "correct": 21,
+          "wrong": 5,
+          "lessons": 3,
+          "flawless": 19,
+          "reviewCorrect": 4,
+          "reviewWords": [
+            "g3_грамм",
+            "g3_килограмм",
+            "g3_восемь",
+            "g3_петрушка"
+          ],
+          "activeSeconds": 977,
+          "tasks": 26,
+          "errorWords": {
+            "g3_понедельник": 1,
+            "g3_вторник": 1,
+            "g3_среда": 1,
+            "g3_потом": 1,
+            "g3_огород": 1
+          },
+          "recoveredWords": [
+            "g3_понедельник",
+            "g3_вторник",
+            "g3_среда",
+            "g3_потом",
+            "g3_огород"
+          ],
+          "streak": 19
+        },
+        "2026-10-02": {
+          "xp": 238,
+          "correct": 17,
+          "wrong": 2,
+          "lessons": 2,
+          "flawless": 12,
+          "reviewCorrect": 5,
+          "reviewWords": [
+            "g3_огород",
+            "g3_потом",
+            "g3_среда",
+            "g3_понедельник",
+            "g3_грамм"
+          ],
+          "activeSeconds": 730,
+          "tasks": 19,
+          "errorWords": {
+            "g3_Красная площадь": 1,
+            "g3_герой": 1
+          },
+          "recoveredWords": [
+            "g3_Красная площадь",
+            "g3_герой"
+          ],
+          "streak": 12
+        },
+        "2026-10-04": {
+          "xp": 234,
+          "correct": 13,
+          "wrong": 1,
+          "lessons": 2,
+          "flawless": 12,
+          "reviewCorrect": 4,
+          "reviewWords": [
+            "g3_огород",
+            "g3_Красная площадь",
+            "g3_восток",
+            "g3_вторник"
+          ],
+          "activeSeconds": 527,
+          "tasks": 14,
+          "errorWords": {
+            "g3_орех": 1
+          },
+          "recoveredWords": [
+            "g3_орех"
+          ],
+          "streak": 12
+        },
+        "2026-10-05": {
+          "xp": 381,
+          "correct": 21,
+          "wrong": 3,
+          "lessons": 3,
+          "flawless": 17,
+          "reviewCorrect": 4,
+          "reviewWords": [
+            "g3_орех",
+            "g3_солдат",
+            "g3_воскресенье",
+            "g3_герой"
+          ],
+          "activeSeconds": 917,
+          "tasks": 24,
+          "errorWords": {
+            "g3_Московский Кремль": 1,
+            "g3_солдат": 1,
+            "g3_воскресенье": 1
+          },
+          "recoveredWords": [
+            "g3_Московский Кремль",
+            "g3_солдат",
+            "g3_воскресенье"
+          ],
+          "streak": 17
+        },
+        "2026-10-06": {
+          "xp": 344,
+          "correct": 17,
+          "wrong": 1,
+          "lessons": 3,
+          "flawless": 13,
+          "reviewCorrect": 1,
+          "reviewWords": [
+            "g3_Московский Кремль"
+          ],
+          "activeSeconds": 713,
+          "tasks": 18,
+          "errorWords": {
+            "g3_около": 1
+          },
+          "recoveredWords": [
+            "g3_около"
+          ],
+          "streak": 13
+        },
+        "2026-10-07": {
+          "xp": 320,
+          "correct": 18,
+          "wrong": 0,
+          "lessons": 2,
+          "flawless": 17,
+          "reviewCorrect": 4,
+          "reviewWords": [
+            "g3_около",
+            "g3_воскресенье",
+            "g3_солдат",
+            "g3_килограмм"
+          ],
+          "activeSeconds": 661,
+          "tasks": 18,
+          "errorWords": {},
+          "recoveredWords": [],
+          "streak": 17
+        },
+        "2026-10-08": {
+          "xp": 278,
+          "correct": 15,
+          "wrong": 0,
+          "lessons": 2,
+          "flawless": 11,
+          "reviewCorrect": 4,
+          "reviewWords": [
+            "g3_около",
+            "g3_восток",
+            "g3_Московский Кремль",
+            "g3_грамм"
+          ],
+          "activeSeconds": 564,
+          "tasks": 15,
+          "errorWords": {},
+          "recoveredWords": [],
+          "streak": 11
+        },
+        "2026-10-09": {
+          "xp": 210,
+          "correct": 10,
+          "wrong": 1,
+          "lessons": 2,
+          "flawless": 9,
+          "reviewCorrect": 0,
+          "reviewWords": [],
+          "activeSeconds": 374,
+          "tasks": 11,
+          "errorWords": {
+            "g3_около": 1
+          },
+          "recoveredWords": [
+            "g3_около"
+          ],
+          "streak": 9
+        },
+        "2026-10-10": {
+          "xp": 171,
+          "correct": 11,
+          "wrong": 1,
+          "lessons": 1,
+          "flawless": 10,
+          "reviewCorrect": 5,
+          "reviewWords": [
+            "g3_воскресенье",
+            "g3_огород",
+            "g3_понедельник",
+            "g3_среда",
+            "g3_восток"
+          ],
+          "activeSeconds": 437,
+          "tasks": 12,
+          "errorWords": {
+            "g3_понедельник": 1
+          },
+          "recoveredWords": [
+            "g3_понедельник"
+          ],
+          "streak": 10
+        },
+        "2026-10-12": {
+          "xp": 260,
+          "correct": 12,
+          "wrong": 0,
+          "lessons": 2,
+          "flawless": 9,
+          "reviewCorrect": 2,
+          "reviewWords": [
+            "g3_около",
+            "g3_понедельник"
+          ],
+          "activeSeconds": 524,
+          "tasks": 12,
+          "errorWords": {},
+          "recoveredWords": [],
+          "streak": 9
+        },
+        "2026-10-13": {
+          "xp": 251,
+          "correct": 18,
+          "wrong": 4,
+          "lessons": 2,
+          "flawless": 16,
+          "reviewCorrect": 4,
+          "reviewWords": [
+            "g3_воскресенье",
+            "g3_животное",
+            "g3_около",
+            "g3_килограмм"
+          ],
+          "activeSeconds": 778,
+          "tasks": 22,
+          "errorWords": {
+            "g3_среда": 1,
+            "g3_воскресенье": 1,
+            "g3_берег": 1,
+            "g3_животное": 1
+          },
+          "recoveredWords": [
+            "g3_среда",
+            "g3_воскресенье",
+            "g3_берег",
+            "g3_животное"
+          ],
+          "streak": 16
+        },
+        "2026-10-14": {
+          "xp": 137,
+          "correct": 7,
+          "wrong": 0,
+          "lessons": 1,
+          "flawless": 6,
+          "reviewCorrect": 1,
+          "reviewWords": [
+            "g3_восемь"
+          ],
+          "activeSeconds": 271,
+          "tasks": 7,
+          "errorWords": {},
+          "recoveredWords": [],
+          "streak": 6
+        },
+        "2026-10-15": {
+          "xp": 250,
+          "correct": 11,
+          "wrong": 0,
+          "lessons": 2,
+          "flawless": 8,
+          "reviewCorrect": 1,
+          "reviewWords": [
+            "g3_животное"
+          ],
+          "activeSeconds": 441,
+          "tasks": 11,
+          "errorWords": {},
+          "recoveredWords": [],
+          "streak": 8
+        },
+        "2026-10-17": {
+          "xp": 317,
+          "correct": 17,
+          "wrong": 2,
+          "lessons": 3,
+          "flawless": 12,
+          "reviewCorrect": 1,
+          "reviewWords": [
+            "g3_берег"
+          ],
+          "activeSeconds": 799,
+          "tasks": 19,
+          "errorWords": {
+            "g3_огурец": 1,
+            "g3_вместе": 1
+          },
+          "recoveredWords": [
+            "g3_огурец",
+            "g3_вместе"
+          ],
+          "streak": 12
+        },
+        "2026-10-18": {
+          "xp": 240,
+          "correct": 16,
+          "wrong": 4,
+          "lessons": 2,
+          "flawless": 13,
+          "reviewCorrect": 5,
+          "reviewWords": [
+            "g3_однажды",
+            "g3_около",
+            "g3_берег",
+            "g3_воскресенье",
+            "g3_вместе"
+          ],
+          "activeSeconds": 730,
+          "tasks": 20,
+          "errorWords": {
+            "g3_овощи": 1,
+            "g3_однажды": 1,
+            "g3_около": 1,
+            "g3_вместе": 1
+          },
+          "recoveredWords": [
+            "g3_овощи",
+            "g3_однажды",
+            "g3_около",
+            "g3_вместе"
+          ],
+          "streak": 13
+        },
+        "2026-10-19": {
+          "xp": 211,
+          "correct": 11,
+          "wrong": 1,
+          "lessons": 2,
+          "flawless": 9,
+          "reviewCorrect": 1,
+          "reviewWords": [
+            "g3_среда"
+          ],
+          "activeSeconds": 494,
+          "tasks": 12,
+          "errorWords": {
+            "g3_однажды": 1
+          },
+          "recoveredWords": [
+            "g3_однажды"
+          ],
+          "streak": 9
+        },
+        "2026-10-20": {
+          "xp": 344,
+          "correct": 21,
+          "wrong": 1,
+          "lessons": 2,
+          "flawless": 18,
+          "reviewCorrect": 7,
+          "reviewWords": [
+            "g3_огурец",
+            "g3_вместе",
+            "g3_среда",
+            "g3_понедельник",
+            "g3_воскресенье",
+            "g3_животное",
+            "g3_восемь"
+          ],
+          "activeSeconds": 786,
+          "tasks": 22,
+          "errorWords": {
+            "g3_понедельник": 1
+          },
+          "recoveredWords": [
+            "g3_понедельник"
+          ],
+          "streak": 18
+        },
+        "2026-10-21": {
+          "xp": 278,
+          "correct": 15,
+          "wrong": 0,
+          "lessons": 2,
+          "flawless": 14,
+          "reviewCorrect": 1,
+          "reviewWords": [
+            "g3_однажды"
+          ],
+          "activeSeconds": 558,
+          "tasks": 15,
+          "errorWords": {},
+          "recoveredWords": [],
+          "streak": 14
+        },
+        "2026-10-22": {
+          "xp": 210,
+          "correct": 10,
+          "wrong": 2,
+          "lessons": 2,
+          "flawless": 10,
+          "reviewCorrect": 1,
+          "reviewWords": [
+            "g3_понедельник"
+          ],
+          "activeSeconds": 502,
+          "tasks": 12,
+          "errorWords": {
+            "g3_потом": 1,
+            "g3_вместе": 1
+          },
+          "recoveredWords": [
+            "g3_потом",
+            "g3_вместе"
+          ],
+          "streak": 10
+        },
+        "2026-10-23": {
+          "xp": 387,
+          "correct": 18,
+          "wrong": 0,
+          "lessons": 3,
+          "flawless": 16,
+          "reviewCorrect": 0,
+          "reviewWords": [],
+          "activeSeconds": 687,
+          "tasks": 18,
+          "errorWords": {},
+          "recoveredWords": [],
+          "streak": 16
+        },
+        "2026-10-24": {
+          "xp": 147,
+          "correct": 8,
+          "wrong": 0,
+          "lessons": 1,
+          "flawless": 5,
+          "reviewCorrect": 2,
+          "reviewWords": [
+            "g3_потом",
+            "g3_вместе"
+          ],
+          "activeSeconds": 348,
+          "tasks": 8,
+          "errorWords": {},
+          "recoveredWords": [],
+          "streak": 5
+        },
+        "2026-10-25": {
+          "xp": 200,
+          "correct": 12,
+          "wrong": 3,
+          "lessons": 2,
+          "flawless": 8,
+          "reviewCorrect": 1,
+          "reviewWords": [
+            "g3_понедельник"
+          ],
+          "activeSeconds": 563,
+          "tasks": 15,
+          "errorWords": {
+            "g3_петрушка": 1,
+            "g3_праздник": 1,
+            "g3_Красная площадь": 1
+          },
+          "recoveredWords": [
+            "g3_петрушка",
+            "g3_праздник",
+            "g3_Красная площадь"
+          ],
+          "streak": 8
+        },
+        "2026-10-26": {
+          "xp": 117,
+          "correct": 8,
+          "wrong": 1,
+          "lessons": 1,
+          "flawless": 8,
+          "reviewCorrect": 3,
+          "reviewWords": [
+            "g3_праздник",
+            "g3_вместе",
+            "g3_однажды"
+          ],
+          "activeSeconds": 386,
+          "tasks": 9,
+          "errorWords": {
+            "g3_огурец": 1
+          },
+          "recoveredWords": [
+            "g3_огурец"
+          ],
+          "streak": 8
+        },
+        "2026-10-27": {
+          "xp": 304,
+          "correct": 20,
+          "wrong": 1,
+          "lessons": 2,
+          "flawless": 16,
+          "reviewCorrect": 3,
+          "reviewWords": [
+            "g3_Красная площадь",
+            "g3_огурец",
+            "g3_овощи"
+          ],
+          "activeSeconds": 761,
+          "tasks": 21,
+          "errorWords": {
+            "g3_восток": 1
+          },
+          "recoveredWords": [
+            "g3_восток"
+          ],
+          "streak": 16
+        }
+      },
+      "studySessions": [
+        {
+          "id": "study_mumy4800_ad7g",
+          "day": "2026-09-29",
+          "startedAt": 1790702640000,
+          "endedAt": 1790702965000,
+          "activeSeconds": 325,
+          "mode": "lesson",
+          "lessonId": "g3_weather",
+          "tasks": 9,
+          "correct": 8,
+          "wrong": 1,
+          "errorWords": {
+            "g3_восток": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g3_восток"
+          ],
+          "lastActivityAt": 1790702920000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mumya81s_juuo",
+          "day": "2026-09-29",
+          "startedAt": 1790702920000,
+          "endedAt": 1790703180000,
+          "activeSeconds": 260,
+          "mode": "lesson",
+          "lessonId": "g3_week",
+          "tasks": 7,
+          "correct": 6,
+          "wrong": 1,
+          "errorWords": {
+            "g3_воскресенье": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g3_воскресенье"
+          ],
+          "lastActivityAt": 1790703124000,
+          "status": "completed"
+        },
+        {
+          "id": "study_muoc4mtc_2o4a",
+          "day": "2026-09-30",
+          "startedAt": 1790786640000,
+          "endedAt": 1790786941000,
+          "activeSeconds": 301,
+          "mode": "lesson",
+          "lessonId": "g3_week",
+          "tasks": 9,
+          "correct": 6,
+          "wrong": 3,
+          "errorWords": {
+            "g3_понедельник": 1,
+            "g3_вторник": 1,
+            "g3_среда": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g3_понедельник",
+            "g3_вторник",
+            "g3_среда"
+          ],
+          "lastActivityAt": 1790786897000,
+          "status": "completed"
+        },
+        {
+          "id": "study_muoca548_5pls",
+          "day": "2026-09-30",
+          "startedAt": 1790786897000,
+          "endedAt": 1790787181000,
+          "activeSeconds": 284,
+          "mode": "lesson",
+          "lessonId": "g3_time",
+          "tasks": 6,
+          "correct": 5,
+          "wrong": 1,
+          "errorWords": {
+            "g3_потом": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g3_потом"
+          ],
+          "lastActivityAt": 1790787106000,
+          "status": "completed"
+        },
+        {
+          "id": "study_muocemds_iofq",
+          "day": "2026-09-30",
+          "startedAt": 1790787106000,
+          "endedAt": 1790787393000,
+          "activeSeconds": 287,
+          "mode": "lesson",
+          "lessonId": "g3_field",
+          "tasks": 7,
+          "correct": 6,
+          "wrong": 1,
+          "errorWords": {
+            "g3_огород": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g3_огород"
+          ],
+          "lastActivityAt": 1790787316000,
+          "status": "completed"
+        },
+        {
+          "id": "study_muocj4f4_eqjx",
+          "day": "2026-09-30",
+          "startedAt": 1790787316000,
+          "endedAt": 1790787486000,
+          "activeSeconds": 170,
+          "mode": "review",
+          "tasks": 4,
+          "correct": 4,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1790787437000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mur781xc_6ug4",
+          "day": "2026-10-02",
+          "startedAt": 1790959800000,
+          "endedAt": 1790960114000,
+          "activeSeconds": 314,
+          "mode": "lesson",
+          "lessonId": "g3_holiday",
+          "tasks": 7,
+          "correct": 6,
+          "wrong": 1,
+          "errorWords": {
+            "g3_Красная площадь": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g3_Красная площадь"
+          ],
+          "lastActivityAt": 1790960036000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mur7d40w_hmzl",
+          "day": "2026-10-02",
+          "startedAt": 1790960036000,
+          "endedAt": 1790960296000,
+          "activeSeconds": 260,
+          "mode": "lesson",
+          "lessonId": "g3_holiday",
+          "tasks": 7,
+          "correct": 6,
+          "wrong": 1,
+          "errorWords": {
+            "g3_герой": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g3_герой"
+          ],
+          "lastActivityAt": 1790960237000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mur7hf48_c7kf",
+          "day": "2026-10-02",
+          "startedAt": 1790960237000,
+          "endedAt": 1790960466000,
+          "activeSeconds": 229,
+          "mode": "review",
+          "tasks": 5,
+          "correct": 5,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1790960395000,
+          "status": "completed"
+        },
+        {
+          "id": "study_muu3fc80_cdi5",
+          "day": "2026-10-04",
+          "startedAt": 1791134820000,
+          "endedAt": 1791135027000,
+          "activeSeconds": 207,
+          "mode": "lesson",
+          "lessonId": "g3_numbers",
+          "tasks": 4,
+          "correct": 4,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791134953000,
+          "status": "completed"
+        },
+        {
+          "id": "study_muu3i6ug_h6cu",
+          "day": "2026-10-04",
+          "startedAt": 1791134953000,
+          "endedAt": 1791135202000,
+          "activeSeconds": 249,
+          "mode": "lesson",
+          "lessonId": "g3_garden",
+          "tasks": 6,
+          "correct": 5,
+          "wrong": 1,
+          "errorWords": {
+            "g3_орех": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g3_орех"
+          ],
+          "lastActivityAt": 1791135113000,
+          "status": "completed"
+        },
+        {
+          "id": "study_muu3lmaw_8o0v",
+          "day": "2026-10-04",
+          "startedAt": 1791135113000,
+          "endedAt": 1791135252000,
+          "activeSeconds": 139,
+          "mode": "review",
+          "tasks": 4,
+          "correct": 4,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791135212000,
+          "status": "completed"
+        },
+        {
+          "id": "study_muvh46dc_fegz",
+          "day": "2026-10-05",
+          "startedAt": 1791218280000,
+          "endedAt": 1791218495000,
+          "activeSeconds": 215,
+          "mode": "lesson",
+          "lessonId": "g3_time",
+          "tasks": 5,
+          "correct": 5,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791218453000,
+          "status": "completed"
+        },
+        {
+          "id": "study_muvh7vuw_6uu1",
+          "day": "2026-10-05",
+          "startedAt": 1791218453000,
+          "endedAt": 1791218760000,
+          "activeSeconds": 307,
+          "mode": "lesson",
+          "lessonId": "g3_holiday",
+          "tasks": 8,
+          "correct": 6,
+          "wrong": 2,
+          "errorWords": {
+            "g3_Московский Кремль": 1,
+            "g3_солдат": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g3_Московский Кремль",
+            "g3_солдат"
+          ],
+          "lastActivityAt": 1791218681000,
+          "status": "completed"
+        },
+        {
+          "id": "study_muvhcrs8_dst9",
+          "day": "2026-10-05",
+          "startedAt": 1791218681000,
+          "endedAt": 1791218907000,
+          "activeSeconds": 226,
+          "mode": "lesson",
+          "lessonId": "g3_week",
+          "tasks": 6,
+          "correct": 6,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791218858000,
+          "status": "completed"
+        },
+        {
+          "id": "study_muvhgkcw_eq4h",
+          "day": "2026-10-05",
+          "startedAt": 1791218858000,
+          "endedAt": 1791219079000,
+          "activeSeconds": 221,
+          "mode": "review",
+          "tasks": 5,
+          "correct": 4,
+          "wrong": 1,
+          "errorWords": {
+            "g3_воскресенье": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g3_воскресенье"
+          ],
+          "lastActivityAt": 1791219017000,
+          "status": "completed"
+        },
+        {
+          "id": "study_muwxqgtc_a29u",
+          "day": "2026-10-06",
+          "startedAt": 1791306660000,
+          "endedAt": 1791306921000,
+          "activeSeconds": 261,
+          "mode": "lesson",
+          "lessonId": "g3_week",
+          "tasks": 6,
+          "correct": 6,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791306832000,
+          "status": "completed"
+        },
+        {
+          "id": "study_muwxu5j4_giao",
+          "day": "2026-10-06",
+          "startedAt": 1791306832000,
+          "endedAt": 1791307039000,
+          "activeSeconds": 207,
+          "mode": "lesson",
+          "lessonId": "g3_time",
+          "tasks": 5,
+          "correct": 5,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791306988000,
+          "status": "completed"
+        },
+        {
+          "id": "study_muwxxhwg_54bn",
+          "day": "2026-10-06",
+          "startedAt": 1791306988000,
+          "endedAt": 1791307222000,
+          "activeSeconds": 234,
+          "mode": "lesson",
+          "lessonId": "g3_time",
+          "tasks": 6,
+          "correct": 5,
+          "wrong": 1,
+          "errorWords": {
+            "g3_около": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g3_около"
+          ],
+          "lastActivityAt": 1791307167000,
+          "status": "completed"
+        },
+        {
+          "id": "study_muwy1c0o_4v4d",
+          "day": "2026-10-06",
+          "startedAt": 1791307167000,
+          "endedAt": 1791307262000,
+          "activeSeconds": 95,
+          "mode": "review",
+          "tasks": 1,
+          "correct": 1,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791307193000,
+          "status": "completed"
+        },
+        {
+          "id": "study_muya8v6o_2ojx",
+          "day": "2026-10-07",
+          "startedAt": 1791388140000,
+          "endedAt": 1791388426000,
+          "activeSeconds": 286,
+          "mode": "lesson",
+          "lessonId": "g3_weather",
+          "tasks": 8,
+          "correct": 8,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791388364000,
+          "status": "completed"
+        },
+        {
+          "id": "study_muyado0w_jmfv",
+          "day": "2026-10-07",
+          "startedAt": 1791388364000,
+          "endedAt": 1791388625000,
+          "activeSeconds": 261,
+          "mode": "lesson",
+          "lessonId": "g3_field",
+          "tasks": 6,
+          "correct": 6,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791388551000,
+          "status": "completed"
+        },
+        {
+          "id": "study_muyahobc_2ra8",
+          "day": "2026-10-07",
+          "startedAt": 1791388551000,
+          "endedAt": 1791388740000,
+          "activeSeconds": 189,
+          "mode": "review",
+          "tasks": 4,
+          "correct": 4,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791388666000,
+          "status": "completed"
+        },
+        {
+          "id": "study_muzqjkyo_cnp6",
+          "day": "2026-10-08",
+          "startedAt": 1791475980000,
+          "endedAt": 1791476196000,
+          "activeSeconds": 216,
+          "mode": "lesson",
+          "lessonId": "g3_garden",
+          "tasks": 5,
+          "correct": 5,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791476122000,
+          "status": "completed"
+        },
+        {
+          "id": "study_muzqmmj4_5gc6",
+          "day": "2026-10-08",
+          "startedAt": 1791476122000,
+          "endedAt": 1791476393000,
+          "activeSeconds": 271,
+          "mode": "lesson",
+          "lessonId": "g3_holiday",
+          "tasks": 6,
+          "correct": 6,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791476318000,
+          "status": "completed"
+        },
+        {
+          "id": "study_muzqqtrk_gbgs",
+          "day": "2026-10-08",
+          "startedAt": 1791476318000,
+          "endedAt": 1791476449000,
+          "activeSeconds": 131,
+          "mode": "review",
+          "tasks": 4,
+          "correct": 4,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791476409000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mv14vkg0_9x3j",
+          "day": "2026-10-09",
+          "startedAt": 1791560520000,
+          "endedAt": 1791560772000,
+          "activeSeconds": 252,
+          "mode": "lesson",
+          "lessonId": "g3_time",
+          "tasks": 6,
+          "correct": 5,
+          "wrong": 1,
+          "errorWords": {
+            "g3_около": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g3_около"
+          ],
+          "lastActivityAt": 1791560682000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mv14z1g0_duuv",
+          "day": "2026-10-09",
+          "startedAt": 1791560682000,
+          "endedAt": 1791560884000,
+          "activeSeconds": 202,
+          "mode": "lesson",
+          "lessonId": "g3_garden",
+          "tasks": 5,
+          "correct": 5,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791560804000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mv2j7jxc_6lsd",
+          "day": "2026-10-10",
+          "startedAt": 1791645060000,
+          "endedAt": 1791645292000,
+          "activeSeconds": 232,
+          "mode": "lesson",
+          "lessonId": "g3_holiday",
+          "tasks": 6,
+          "correct": 6,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791645224000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mv2jb2gw_kp0d",
+          "day": "2026-10-10",
+          "startedAt": 1791645224000,
+          "endedAt": 1791645447000,
+          "activeSeconds": 223,
+          "mode": "review",
+          "tasks": 6,
+          "correct": 5,
+          "wrong": 1,
+          "errorWords": {
+            "g3_понедельник": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g3_понедельник"
+          ],
+          "lastActivityAt": 1791645407000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mv5esz6o_asto",
+          "day": "2026-10-12",
+          "startedAt": 1791819060000,
+          "endedAt": 1791819305000,
+          "activeSeconds": 245,
+          "mode": "lesson",
+          "lessonId": "g3_garden",
+          "tasks": 5,
+          "correct": 5,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791819227000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mv5ewk1k_cfko",
+          "day": "2026-10-12",
+          "startedAt": 1791819227000,
+          "endedAt": 1791819456000,
+          "activeSeconds": 229,
+          "mode": "lesson",
+          "lessonId": "g3_garden",
+          "tasks": 5,
+          "correct": 5,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791819400000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mv5f09j4_8kjc",
+          "day": "2026-10-12",
+          "startedAt": 1791819400000,
+          "endedAt": 1791819507000,
+          "activeSeconds": 107,
+          "mode": "review",
+          "tasks": 2,
+          "correct": 2,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791819449000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mv6xw02o_9o6y",
+          "day": "2026-10-13",
+          "startedAt": 1791911580000,
+          "endedAt": 1791911869000,
+          "activeSeconds": 289,
+          "mode": "lesson",
+          "lessonId": "g3_week",
+          "tasks": 8,
+          "correct": 6,
+          "wrong": 2,
+          "errorWords": {
+            "g3_среда": 1,
+            "g3_воскресенье": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g3_среда",
+            "g3_воскресенье"
+          ],
+          "lastActivityAt": 1791911797000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mv6y0nig_e4ed",
+          "day": "2026-10-13",
+          "startedAt": 1791911797000,
+          "endedAt": 1791912178000,
+          "activeSeconds": 381,
+          "mode": "lesson",
+          "lessonId": "g3_weather",
+          "tasks": 10,
+          "correct": 8,
+          "wrong": 2,
+          "errorWords": {
+            "g3_берег": 1,
+            "g3_животное": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g3_берег",
+            "g3_животное"
+          ],
+          "lastActivityAt": 1791912092000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mv6y6z4w_8k45",
+          "day": "2026-10-13",
+          "startedAt": 1791912092000,
+          "endedAt": 1791912280000,
+          "activeSeconds": 188,
+          "mode": "review",
+          "tasks": 4,
+          "correct": 4,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791912223000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mv8908w0_gmda",
+          "day": "2026-10-14",
+          "startedAt": 1791990720000,
+          "endedAt": 1791990947000,
+          "activeSeconds": 227,
+          "mode": "lesson",
+          "lessonId": "g3_field",
+          "tasks": 6,
+          "correct": 6,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791990870000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mv893gmo_kt39",
+          "day": "2026-10-14",
+          "startedAt": 1791990870000,
+          "endedAt": 1791990984000,
+          "activeSeconds": 114,
+          "mode": "review",
+          "tasks": 1,
+          "correct": 1,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1791990901000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mv9trppc_gn6j",
+          "day": "2026-10-15",
+          "startedAt": 1792086060000,
+          "endedAt": 1792086216000,
+          "activeSeconds": 156,
+          "mode": "lesson",
+          "lessonId": "g3_numbers",
+          "tasks": 4,
+          "correct": 4,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792086164000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mv9ttxy8_4smj",
+          "day": "2026-10-15",
+          "startedAt": 1792086164000,
+          "endedAt": 1792086430000,
+          "activeSeconds": 266,
+          "mode": "lesson",
+          "lessonId": "g3_week",
+          "tasks": 6,
+          "correct": 6,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792086341000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mv9txqiw_5t6o",
+          "day": "2026-10-15",
+          "startedAt": 1792086341000,
+          "endedAt": 1792086449000,
+          "activeSeconds": 108,
+          "mode": "review",
+          "tasks": 1,
+          "correct": 1,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792086366000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvckd3hc_8rhe",
+          "day": "2026-10-17",
+          "startedAt": 1792251660000,
+          "endedAt": 1792251889000,
+          "activeSeconds": 229,
+          "mode": "lesson",
+          "lessonId": "g3_holiday",
+          "tasks": 6,
+          "correct": 6,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792251848000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvckh4jk_8y0i",
+          "day": "2026-10-17",
+          "startedAt": 1792251848000,
+          "endedAt": 1792252125000,
+          "activeSeconds": 277,
+          "mode": "lesson",
+          "lessonId": "g3_garden",
+          "tasks": 6,
+          "correct": 5,
+          "wrong": 1,
+          "errorWords": {
+            "g3_огурец": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g3_огурец"
+          ],
+          "lastActivityAt": 1792252041000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvckl9go_59ps",
+          "day": "2026-10-17",
+          "startedAt": 1792252041000,
+          "endedAt": 1792252284000,
+          "activeSeconds": 243,
+          "mode": "lesson",
+          "lessonId": "g3_time",
+          "tasks": 6,
+          "correct": 5,
+          "wrong": 1,
+          "errorWords": {
+            "g3_вместе": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g3_вместе"
+          ],
+          "lastActivityAt": 1792252244000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvckpm3k_7ptm",
+          "day": "2026-10-17",
+          "startedAt": 1792252244000,
+          "endedAt": 1792252333000,
+          "activeSeconds": 89,
+          "mode": "review",
+          "tasks": 1,
+          "correct": 1,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792252279000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mve1ethc_ku82",
+          "day": "2026-10-18",
+          "startedAt": 1792340760000,
+          "endedAt": 1792341037000,
+          "activeSeconds": 277,
+          "mode": "lesson",
+          "lessonId": "g3_field",
+          "tasks": 7,
+          "correct": 6,
+          "wrong": 1,
+          "errorWords": {
+            "g3_овощи": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g3_овощи"
+          ],
+          "lastActivityAt": 1792340985000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mve1jn3c_kdkb",
+          "day": "2026-10-18",
+          "startedAt": 1792340985000,
+          "endedAt": 1792341274000,
+          "activeSeconds": 289,
+          "mode": "lesson",
+          "lessonId": "g3_time",
+          "tasks": 7,
+          "correct": 5,
+          "wrong": 2,
+          "errorWords": {
+            "g3_однажды": 1,
+            "g3_около": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g3_однажды",
+            "g3_около"
+          ],
+          "lastActivityAt": 1792341186000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mve1ny6o_g0hh",
+          "day": "2026-10-18",
+          "startedAt": 1792341186000,
+          "endedAt": 1792341433000,
+          "activeSeconds": 247,
+          "mode": "review",
+          "tasks": 6,
+          "correct": 5,
+          "wrong": 1,
+          "errorWords": {
+            "g3_вместе": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g3_вместе"
+          ],
+          "lastActivityAt": 1792341355000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvfepidc_5jcn",
+          "day": "2026-10-19",
+          "startedAt": 1792423560000,
+          "endedAt": 1792423752000,
+          "activeSeconds": 192,
+          "mode": "lesson",
+          "lessonId": "g3_garden",
+          "tasks": 5,
+          "correct": 5,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792423695000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvfesejc_gxab",
+          "day": "2026-10-19",
+          "startedAt": 1792423695000,
+          "endedAt": 1792423943000,
+          "activeSeconds": 248,
+          "mode": "lesson",
+          "lessonId": "g3_time",
+          "tasks": 6,
+          "correct": 5,
+          "wrong": 1,
+          "errorWords": {
+            "g3_однажды": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g3_однажды"
+          ],
+          "lastActivityAt": 1792423891000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvfewlrs_2m34",
+          "day": "2026-10-19",
+          "startedAt": 1792423891000,
+          "endedAt": 1792423998000,
+          "activeSeconds": 107,
+          "mode": "review",
+          "tasks": 1,
+          "correct": 1,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792423919000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvgwpydc_5p7b",
+          "day": "2026-10-20",
+          "startedAt": 1792514280000,
+          "endedAt": 1792514543000,
+          "activeSeconds": 263,
+          "mode": "lesson",
+          "lessonId": "g3_field",
+          "tasks": 6,
+          "correct": 6,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792514454000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvgwtomo_3wev",
+          "day": "2026-10-20",
+          "startedAt": 1792514454000,
+          "endedAt": 1792514720000,
+          "activeSeconds": 266,
+          "mode": "lesson",
+          "lessonId": "g3_weather",
+          "tasks": 8,
+          "correct": 8,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792514679000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvgwyi8o_duw6",
+          "day": "2026-10-20",
+          "startedAt": 1792514679000,
+          "endedAt": 1792515010000,
+          "activeSeconds": 331,
+          "mode": "review",
+          "tasks": 8,
+          "correct": 7,
+          "wrong": 1,
+          "errorWords": {
+            "g3_понедельник": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g3_понедельник"
+          ],
+          "lastActivityAt": 1792514931000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvibmilc_7b7s",
+          "day": "2026-10-21",
+          "startedAt": 1792599780000,
+          "endedAt": 1792600009000,
+          "activeSeconds": 229,
+          "mode": "lesson",
+          "lessonId": "g3_field",
+          "tasks": 6,
+          "correct": 6,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792599956000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvibqae8_411l",
+          "day": "2026-10-21",
+          "startedAt": 1792599956000,
+          "endedAt": 1792600255000,
+          "activeSeconds": 299,
+          "mode": "lesson",
+          "lessonId": "g3_weather",
+          "tasks": 8,
+          "correct": 8,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792600173000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvibuxu0_h3uk",
+          "day": "2026-10-21",
+          "startedAt": 1792600173000,
+          "endedAt": 1792600279000,
+          "activeSeconds": 106,
+          "mode": "review",
+          "tasks": 1,
+          "correct": 1,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792600203000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvjsvydc_jnah",
+          "day": "2026-10-22",
+          "startedAt": 1792689240000,
+          "endedAt": 1792689433000,
+          "activeSeconds": 193,
+          "mode": "lesson",
+          "lessonId": "g3_numbers",
+          "tasks": 4,
+          "correct": 4,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792689346000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvjsy85s_7rw3",
+          "day": "2026-10-22",
+          "startedAt": 1792689346000,
+          "endedAt": 1792689623000,
+          "activeSeconds": 277,
+          "mode": "lesson",
+          "lessonId": "g3_time",
+          "tasks": 7,
+          "correct": 5,
+          "wrong": 2,
+          "errorWords": {
+            "g3_потом": 1,
+            "g3_вместе": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g3_потом",
+            "g3_вместе"
+          ],
+          "lastActivityAt": 1792689583000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvjt3b14_f3jq",
+          "day": "2026-10-22",
+          "startedAt": 1792689583000,
+          "endedAt": 1792689665000,
+          "activeSeconds": 82,
+          "mode": "review",
+          "tasks": 1,
+          "correct": 1,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792689607000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvl4d25c_30f6",
+          "day": "2026-10-23",
+          "startedAt": 1792768980000,
+          "endedAt": 1792769207000,
+          "activeSeconds": 227,
+          "mode": "lesson",
+          "lessonId": "g3_garden",
+          "tasks": 5,
+          "correct": 5,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792769146000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvl4gm8g_6sum",
+          "day": "2026-10-23",
+          "startedAt": 1792769146000,
+          "endedAt": 1792769466000,
+          "activeSeconds": 320,
+          "mode": "lesson",
+          "lessonId": "g3_weather",
+          "tasks": 8,
+          "correct": 8,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792769380000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvl4lmsg_ah89",
+          "day": "2026-10-23",
+          "startedAt": 1792769380000,
+          "endedAt": 1792769590000,
+          "activeSeconds": 210,
+          "mode": "lesson",
+          "lessonId": "g3_garden",
+          "tasks": 5,
+          "correct": 5,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792769532000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvmldhuo_dt7n",
+          "day": "2026-10-24",
+          "startedAt": 1792858020000,
+          "endedAt": 1792858286000,
+          "activeSeconds": 266,
+          "mode": "lesson",
+          "lessonId": "g3_holiday",
+          "tasks": 6,
+          "correct": 6,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792858216000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvmlhp34_5ray",
+          "day": "2026-10-24",
+          "startedAt": 1792858216000,
+          "endedAt": 1792858354000,
+          "activeSeconds": 138,
+          "mode": "review",
+          "tasks": 2,
+          "correct": 2,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792858278000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvnyyh40_7m80",
+          "day": "2026-10-25",
+          "startedAt": 1792941300000,
+          "endedAt": 1792941551000,
+          "activeSeconds": 251,
+          "mode": "lesson",
+          "lessonId": "g3_garden",
+          "tasks": 6,
+          "correct": 5,
+          "wrong": 1,
+          "errorWords": {
+            "g3_петрушка": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g3_петрушка"
+          ],
+          "lastActivityAt": 1792941478000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvnz2agg_bdx6",
+          "day": "2026-10-25",
+          "startedAt": 1792941478000,
+          "endedAt": 1792941745000,
+          "activeSeconds": 267,
+          "mode": "lesson",
+          "lessonId": "g3_holiday",
+          "tasks": 8,
+          "correct": 6,
+          "wrong": 2,
+          "errorWords": {
+            "g3_праздник": 1,
+            "g3_Красная площадь": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g3_праздник",
+            "g3_Красная площадь"
+          ],
+          "lastActivityAt": 1792941703000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvnz742g_l3ki",
+          "day": "2026-10-25",
+          "startedAt": 1792941703000,
+          "endedAt": 1792941785000,
+          "activeSeconds": 82,
+          "mode": "review",
+          "tasks": 1,
+          "correct": 1,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1792941728000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvpjndc0_jbra",
+          "day": "2026-10-26",
+          "startedAt": 1793036520000,
+          "endedAt": 1793036776000,
+          "activeSeconds": 256,
+          "mode": "lesson",
+          "lessonId": "g3_garden",
+          "tasks": 6,
+          "correct": 5,
+          "wrong": 1,
+          "errorWords": {
+            "g3_огурец": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g3_огурец"
+          ],
+          "lastActivityAt": 1793036718000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvpjrm40_j95o",
+          "day": "2026-10-26",
+          "startedAt": 1793036718000,
+          "endedAt": 1793036871000,
+          "activeSeconds": 153,
+          "mode": "review",
+          "tasks": 3,
+          "correct": 3,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1793036816000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvqz72w0_2xd2",
+          "day": "2026-10-27",
+          "startedAt": 1793123100000,
+          "endedAt": 1793123422000,
+          "activeSeconds": 322,
+          "mode": "lesson",
+          "lessonId": "g3_plants",
+          "tasks": 9,
+          "correct": 9,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1793123351000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvqzcgk8_ismj",
+          "day": "2026-10-27",
+          "startedAt": 1793123351000,
+          "endedAt": 1793123685000,
+          "activeSeconds": 334,
+          "mode": "lesson",
+          "lessonId": "g3_weather",
+          "tasks": 9,
+          "correct": 8,
+          "wrong": 1,
+          "errorWords": {
+            "g3_восток": 1
+          },
+          "taskKindErrors": {},
+          "recoveredWords": [
+            "g3_восток"
+          ],
+          "lastActivityAt": 1793123619000,
+          "status": "completed"
+        },
+        {
+          "id": "study_mvqzi7co_72vj",
+          "day": "2026-10-27",
+          "startedAt": 1793123619000,
+          "endedAt": 1793123801000,
+          "activeSeconds": 182,
+          "mode": "review",
+          "tasks": 3,
+          "correct": 3,
+          "wrong": 0,
+          "errorWords": {},
+          "taskKindErrors": {},
+          "recoveredWords": [],
+          "lastActivityAt": 1793123726000,
+          "status": "completed"
+        }
+      ],
+      "achievements": [
+        "first",
+        "streak3",
+        "streak7",
+        "words25",
+        "perfect",
+        "xp500"
+      ],
+      "lessonSize": "short",
+      "activeClass": 3,
+      "daily": {
+        "day": "2026-10-28",
+        "claimed": [],
+        "chestsToday": 0,
+        "bonusChestsClaimed": 0,
+        "chestsTotal": 101,
+        "plan": [
+          {
+            "kind": "lessons",
+            "target": 2
+          },
+          {
+            "kind": "review",
+            "target": 5
+          },
+          {
+            "kind": "correct",
+            "target": 12
+          }
+        ]
+      },
+      "weekly": {
+        "week": "2026-10-26",
+        "claimed": []
+      },
+      "shop": {
+        "owned": [
+          "clips-stars",
+          "food-icecream",
+          "cap",
+          "bow",
+          "choker",
+          "badge-cat",
+          "hair-ponytail",
+          "wreath",
+          "phone-smart",
+          "sport-ball",
+          "phone-flip",
+          "car-racer",
+          "car-jeep",
+          "pet-bunny",
+          "car-taxi",
+          "car-mercedes",
+          "ship-paper",
+          "phone-retro",
+          "plane-swift"
+        ],
+        "equipped": {
+          "head": "wreath",
+          "toy": "car-mercedes",
+          "neck": "choker",
+          "badge": "badge-cat"
+        },
+        "crystalCostumesOwned": [
+          "lady-bug"
+        ],
+        "musicOwned": [
+          "carefree",
+          "easy-lemon",
+          "happy-alley",
+          "fluffing-a-duck"
+        ],
+        "musicTrack": "fluffing-a-duck",
+        "soundOwned": [
+          "classic",
+          "xylophone"
+        ],
+        "soundPack": "xylophone",
+        "tuning": {
+          "current": {
+            "clips-stars": "pink",
+            "food-icecream": "mint"
+          },
+          "unlocked": {
+            "clips-stars": [
+              "pink"
+            ],
+            "food-icecream": [
+              "mint"
+            ]
+          }
+        },
+        "wishlist": [
+          "grad",
+          "car-lambo",
+          "plane-moon-base"
+        ],
+        "world": [
+          "car-mercedes",
+          "pet-bunny",
+          "dark-lord"
+        ],
+        "buildingsOwned": [
+          "electron-base"
+        ],
+        "worldBase": "electron-base",
+        "activeBuilding": "electron-base"
+      },
+      "puzzle": {
+        "pieces": {
+          "dark-lord": 9,
+          "snow-guard": 9,
+          "steel-keeper": 9,
+          "light-master": 9,
+          "star-ranger": 9,
+          "fighter-pilot": 9,
+          "brave-droid": 9,
+          "star-commander": 9,
+          "shadow-initiate": 9,
+          "forest-sage": 6
+        },
+        "collecting": "forest-sage",
+        "assembled": [
+          "dark-lord",
+          "snow-guard",
+          "steel-keeper",
+          "light-master",
+          "star-ranger",
+          "fighter-pilot",
+          "brave-droid",
+          "star-commander",
+          "shadow-initiate"
+        ],
+        "worn": "shadow-initiate"
+      },
+      "chestSkin": "flower",
+      "chestSkins": [
+        "travel",
+        "sky",
+        "ice",
+        "star",
+        "flower"
+      ]
+    }
+  ],
+  "activeId": "p_demo_sonya",
+  "settings": {
+    "sound": true,
+    "music": true,
+    "musicVolume": 0.5,
+    "haptics": true,
+    "dailyGoal": 120,
+    "theme": "auto",
+    "themeStyle": "classic",
+    "mascot": "on",
+    "lessonHelp": "socratic"
+  }
+}
