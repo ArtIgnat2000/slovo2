@@ -13,6 +13,7 @@ import './chest-skins.test';
 // Тюнинг цвета купленных вещей: цена оттенка, бесплатное переключение, санитизация.
 import './shop-tuning.test';
 import './world.test';
+import './rating.test';
 // Магазин фаза 2: герой витрины (closestItem / resolveHero) и Мечты (Wishlist 🤍).
 import './shop-phase2.test';
 // Музыкальная коллекция: оригинальные лупы, выбор и санитизация сохранения.

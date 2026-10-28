@@ -8488,3 +8488,22 @@ p {
 .world-pick-art { display: grid; place-items: center; min-height: 64px; }
 .world-pick-title { line-height: 1.2; text-align: center; }
 @media (max-width: 360px) { .building-plot-caption { padding-inline: 11px; } .shop-boutique .building-item .shop-case { height: 118px; } .building-card-art { height: 84px; } }
+
+/* ── Рейтинг с воображаемыми соперниками (0.73.0) ─────────────────────────── */
+.rating-hero { display: flex; gap: 12px; align-items: center; padding: 14px; margin-bottom: 14px; border: 2px solid var(--line); border-radius: 16px; background: var(--card); }
+.rating-hero-place { font-size: 34px; line-height: 1; min-width: 48px; text-align: center; }
+.rating-hero-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.rating-hero-title { font-weight: 800; line-height: 1.25; }
+.rating-list { display: flex; flex-direction: column; gap: 8px; }
+.rating-row { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border: 2px solid var(--line); border-radius: 14px; background: var(--bg); }
+.rating-row.is-player { border-color: var(--primary); background: var(--primary-soft); }
+.rating-place { min-width: 30px; text-align: center; font-weight: 800; font-size: 18px; }
+.rating-avatar { font-size: 26px; line-height: 1; }
+.rating-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.rating-name { font-weight: 700; line-height: 1.2; overflow-wrap: anywhere; }
+.rating-you { color: var(--primary); }
+.rating-bar { height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.rating-bar > span { display: block; height: 100%; border-radius: inherit; background: var(--primary); }
+.rating-side { text-align: right; min-width: 86px; }
+.rating-xp { font-weight: 800; }
+@media (max-width: 360px) { .rating-side { min-width: 74px; } .rating-hero-place { font-size: 28px; min-width: 40px; } }
