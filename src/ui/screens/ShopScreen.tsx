@@ -31,6 +31,7 @@ import { RarityChip, RarityLabel } from '../RarityChip';
 import { Mascot } from '../Mascot';
 import { ToyArt } from '../ToyArt';
 import { CarTour, CAR_TOUR_IDS } from '../CarTour';
+import { hasProductPhoto } from '../ProductPhoto';
 import { isRotatingPhone } from '../ElectronicsArt';
 import { carAlt, carKind, carNote, hasCarArt } from '../CarArt';
 import { hasShipArt, shipAlt, shipKind, shipNote } from '../ShipArt';
@@ -46,7 +47,7 @@ import {
   normalizePuzzle,
   type Costume,
 } from '../../engine/puzzles';
-import { TINT_PRICE, type TintOption } from '../../engine/tints';
+import { TINT_PALETTES, TINT_PRICE, type TintOption } from '../../engine/tints';
 import { TintPicker } from '../TintPicker';
 import { ConfirmDialog } from '../Bits';
 import { previewSoundCue, sfx } from '../../platform/sound';
@@ -132,6 +133,16 @@ type Detail =
   | { kind: 'sound'; pack: SoundPack };
 
 /** «3:25» — длительность записи на карточке. */
+/**
+ * Можно ли перекрасить вещь. Фото товара — уже готовая сцена со своим фоном:
+ * накладывать на него «цветной карандаш» нельзя (закрасится весь снимок),
+ * поэтому у фотографий палитра не показывается. Векторные вещи красятся,
+ * как раньше. Правило одно на весь магазин.
+ */
+function supportsTint(id: string): boolean {
+  return !!TINT_PALETTES[id] && !hasProductPhoto(id);
+}
+
 /** Все витрины показывают более доступные покупки раньше дорогих. */
 function byPriceAscending<T extends { price?: number }>(a: T, b: T): number {
   return (a.price ?? 0) - (b.price ?? 0);
@@ -153,6 +164,14 @@ interface TintTarget {
  * Единый макет карточки товара — один на все типы.
  * Состояние читается плашкой-ценником и подписью кнопки, не только цветом
  * (WCAG 1.4.1); тап по карточке открывает подробный sheet.
+ *
+ * 0.76.0 — вёрстка переделана вокруг картинки:
+ *  • фото/рисунок занимает всю ширину карточки и нишу, ничего не обрезается:
+ *    раньше машина упиралась в 126 px, потому что ниша была 126 px высотой;
+ *  • название, редкость, описание и кнопка собраны в этикетку под картинкой,
+ *    описание — максимум две строки, поэтому карточки в ряду одной высоты;
+ *  • ценник и сердечко «в мечты» лежат на картинке, а не отнимают строку;
+ *  • сколько карточек в ряду, решает сетка (2 на телефоне, 3 на планшете).
  */
 function ShopCard(props: {
   badge?: string;
@@ -166,6 +185,8 @@ function ShopCard(props: {
   extra?: ReactNode;
   priceLabel?: ReactNode;
   afford?: boolean;
+  /** У товара студийное фото: снимок занимает нишу целиком */
+  photo?: boolean;
   actionLabel: ReactNode;
   actionTone: 'primary' | 'green' | 'ghost';
   actionDisabled?: boolean;
@@ -185,43 +206,45 @@ function ShopCard(props: {
         if (e.target === e.currentTarget && e.key === 'Enter') props.onOpen();
       }}
     >
-      {props.badge && <span className="shop-badge">{props.badge}</span>}
-      {/* Ниша витрины: лампа, вещь на подиуме (0.19.0) */}
-      <div className="shop-case">
-        <span className="shop-case-lamp" aria-hidden="true" />
+      {/* Ниша витрины: товар крупно, ценник и мечты — поверх снимка. */}
+      <div className={`shop-case${props.photo ? ' shop-case-photo' : ''}`}>
         <div className="shop-icon">{props.art}</div>
-        <span className="shop-case-podium" aria-hidden="true" />
+        {props.badge && <span className="shop-badge">{props.badge}</span>}
+        {props.priceLabel && (
+          <span className={`shop-price${props.afford ? ' afford' : ''}`}>{props.priceLabel}</span>
+        )}
+        {props.onWish && (
+          <button
+            type="button"
+            className={`shop-heart${props.wished ? ' on' : ''}`}
+            aria-label={props.wished ? `Убрать «${props.title}» из мечт` : `Добавить «${props.title}» в мечты`}
+            onClick={(e) => {
+              e.stopPropagation();
+              props.onWish!();
+            }}
+          >
+            {props.wished ? '💜' : '🤍'}
+          </button>
+        )}
       </div>
-      <div className="shop-title">{props.title}</div>
-      {props.rarity && <RarityLabel rarity={props.rarity} className="shop-rarity" />}
-      {props.desc && <div className="tiny shop-desc">{props.desc}</div>}
-      {props.extra}
-      {props.priceLabel && (
-        <span className={`shop-price${props.afford ? ' afford' : ''}`}>{props.priceLabel}</span>
-      )}
-      <button
-        className={`btn sm wide ${props.actionTone}`}
-        disabled={props.actionDisabled}
-        onClick={(e) => {
-          e.stopPropagation();
-          props.onAction();
-        }}
-      >
-        {props.actionLabel}
-      </button>
-      {props.onWish && (
+      <div className="shop-body">
+        <div className="shop-title-row">
+          <div className="shop-title">{props.title}</div>
+          {props.rarity && <RarityLabel rarity={props.rarity} className="rarity-chip-mini" />}
+        </div>
+        {props.desc && <div className="tiny shop-desc">{props.desc}</div>}
+        {props.extra}
         <button
-          type="button"
-          className={`shop-heart${props.wished ? ' on' : ''}`}
-          aria-label={props.wished ? `Убрать «${props.title}» из мечт` : `Добавить «${props.title}» в мечты`}
+          className={`btn sm wide ${props.actionTone}`}
+          disabled={props.actionDisabled}
           onClick={(e) => {
             e.stopPropagation();
-            props.onWish!();
+            props.onAction();
           }}
         >
-          {props.wished ? '💜' : '🤍'}
+          {props.actionLabel}
         </button>
-      )}
+      </div>
     </article>
   );
 }
@@ -648,11 +671,12 @@ export function ShopScreen({
     return (
       <ShopCard
         key={item.id}
+        photo={hasProductPhoto(item.id)}
         art={
           toy ? (
-            <ToyArt id={item.id} interactive size={82} tuning={profile.shop?.tuning} />
+            <ToyArt id={item.id} interactive size={148} tuning={profile.shop?.tuning} alt="" />
           ) : (
-            <Mascot mood="idle" look={{ [item.slot]: item.id }} stage={growth.index} size={64} />
+            <Mascot mood="idle" look={{ [item.slot]: item.id }} stage={growth.index} size={96} />
           )
         }
         title={item.title}
@@ -714,7 +738,7 @@ export function ShopScreen({
           // Несобранный костюм помечен классом pz-locked, но рисуется В ЦВЕТЕ:
           // раньше он был серым силуэтом, и ребёнку было не выбрать «тот самый».
           <div className={done ? '' : 'pz-locked'}>
-            <Mascot mood={wearing ? 'happy' : 'idle'} costumeId={c.id} size={64} stage={growth.index} />
+            <Mascot mood={wearing ? 'happy' : 'idle'} costumeId={c.id} size={104} stage={growth.index} />
           </div>
         }
         title={c.title}
@@ -766,7 +790,7 @@ export function ShopScreen({
         cardCls={`crystal-costume-card${wearing ? ' on' : owned_ ? ' owned' : ''}`}
         wished={wished}
         onWish={!owned_ ? () => tapWish(c.id, c.title) : undefined}
-        art={<Mascot mood={wearing ? 'happy' : 'idle'} costumeId={c.id} size={64} stage={growth.index} />}
+        art={<Mascot mood={wearing ? 'happy' : 'idle'} costumeId={c.id} size={104} stage={growth.index} />}
         title={c.title}
         desc={c.desc}
         priceLabel={owned_ ? 'Твой ✓' : <Gem value={price} size={18} />}
@@ -1074,7 +1098,7 @@ export function ShopScreen({
               {isWished(wishlist, item.id) ? '💜 В мечтах — убрать' : '🤍 В мечты'}
             </button>
           )}
-          {owned_ && (
+          {owned_ && supportsTint(item.id) && (
             <>
               <button
                 className="btn lg wide ghost mb"

@@ -2882,24 +2882,31 @@ p {
 .shop-mascot .mascot.dance {
   animation: dance 0.6s ease-in-out 3;
 }
+/* 0.76.0: сетка сама решает, сколько карточек в ряду. Раньше ряды
+   нарезались по две карточки в разметке, и на планшете/десктопе
+   половина ширины витрины простаивала. */
 .shop-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 12px;
+}
+@media (min-width: 480px) {
+  .shop-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 /* Единый макет карточки товара: плашка состояния в углу, арт,
    название, ценник и ОДНО действие. Тап по карточке — подробный sheet. */
 .shop-item {
   position: relative;
+  overflow: hidden;
   border: 2px solid var(--line);
   border-radius: var(--r-md);
   background: var(--bg-2);
-  padding: 10px;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  text-align: center;
+  align-items: stretch;
+  text-align: left;
   cursor: pointer;
   transition: transform 0.12s ease;
 }
@@ -2921,8 +2928,8 @@ p {
 }
 .shop-badge {
   position: absolute;
-  top: 6px;
-  left: 6px;
+  top: 8px;
+  left: 8px;
   z-index: 1;
   padding: 2px 8px;
   border-radius: var(--r-pill);
@@ -3046,12 +3053,38 @@ p {
 .tech-tag > .car-art,
 .tech-tag > .ship-art,
 .tech-tag > .electronics-art { width: 26px; }
+/* Этикетка под картинкой: название и редкость в одной строке, описание
+   в две строки, действие — внизу карточки одной линией. */
+.shop-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+  min-width: 0;
+  padding: 9px 10px 10px;
+}
+.shop-body > .btn { margin-top: auto; }
+.shop-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
 .shop-title {
+  flex: 1;
+  min-width: 0;
   font-weight: 800;
   font-size: var(--fs-sm);
+  line-height: 1.2;
 }
 .shop-desc {
-  min-height: 32px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 0;
+  line-height: 1.3;
 }
 /* Ценник — плашка, а не кнопка: «сколько стоит» читается отдельно
    от «что делать». Доступное — акцентом, дорогущее — тихо. */
@@ -3063,6 +3096,19 @@ p {
   color: var(--ink-2);
   font-size: var(--fs-xs);
   font-weight: 800;
+}
+/* Ценник лежит на картинке: так он не отнимает у неё отдельную строку. */
+.shop-case > .shop-price {
+  position: absolute;
+  right: 7px;
+  bottom: 7px;
+  z-index: 2;
+  padding: 3px 9px;
+  border-color: color-mix(in srgb, var(--ink) 14%, transparent);
+  background: color-mix(in srgb, var(--card) 86%, transparent);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--ink) 14%, transparent);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
 }
 .shop-price.afford {
   border-color: var(--primary-ink);
@@ -3097,10 +3143,9 @@ p {
 /* Карточка-витрина: ниша сверху, этикетка снизу. */
 .shop-boutique .shop-item {
   height: 100%;
-  padding: 8px 8px 10px;
-  gap: 3px;
+  padding: 0;
   border: 2px solid var(--case-line);
-  border-radius: 22px;
+  border-radius: 20px;
   background: var(--case-card);
   box-shadow:
     0 3px 0 color-mix(in srgb, var(--primary) 16%, transparent),
@@ -3113,59 +3158,73 @@ p {
   background: var(--case-card-on);
 }
 
-/* Арочная ниша: подсветка, тёплый блик лампы, подиум под вещью. */
+/* Витрина товара (0.76.0). Раньше это была арочная ниша 126 px высотой:
+   половину карточки занимали лампа, подиум и рамка, а рисунок машины
+   упирался в 126 px по ширине — отсюда и «обрезанные» автомобили.
+   Теперь это квадратная фотоплощадка во всю ширину карточки: товар
+   вписывается целиком (object-fit: contain), ничего не режется. */
 .shop-case {
   position: relative;
   display: grid;
   place-items: center;
   width: 100%;
-  height: 126px;
-  border-radius: 46px 46px 16px 16px;
+  aspect-ratio: 4 / 3;
+  border-radius: 18px 18px 0 0;
   background:
-    radial-gradient(54% 34% at 50% 4%, var(--case-lamp-glow), transparent 74%),
+    radial-gradient(72% 56% at 50% 30%, var(--case-lamp-glow), transparent 78%),
     linear-gradient(180deg, var(--case-arch-top), var(--case-arch-bottom));
   overflow: hidden;
 }
+/* Тонкая рамка-паспарту: держит взгляд на товаре, но не отнимает место. */
 .shop-case::before {
   content: '';
   position: absolute;
-  inset: 6px 8px 8px;
-  border: 2px solid var(--case-line-soft);
-  border-radius: inherit;
+  inset: 0;
+  border-bottom: 1.5px solid var(--case-line-soft);
   pointer-events: none;
 }
-.shop-case-lamp {
-  position: absolute;
-  top: 7px;
-  left: 50%;
-  z-index: 1;
-  width: 34px;
-  height: 6px;
-  transform: translateX(-50%);
-  border-radius: 50%;
-  background: var(--case-lamp);
-  box-shadow: 0 0 16px 6px var(--case-lamp-glow);
-}
+.shop-case-lamp,
+.shop-case-podium { display: none; }
 .shop-case .shop-icon {
-  position: relative;
+  position: absolute;
+  inset: 0;
   z-index: 1;
-  width: 100%;
-  height: 86px;
-  margin-bottom: 12px;
+  display: grid;
+  place-items: center;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 11% 9%;
   background: none;
 }
-.shop-case-podium {
-  position: absolute;
-  bottom: 7px;
-  left: 50%;
-  z-index: 0;
-  width: 64%;
-  height: 22px;
-  transform: translateX(-50%);
-  border-radius: 50%;
-  background: linear-gradient(180deg, var(--case-plinth-top), var(--case-plinth-bottom));
-  box-shadow: 0 7px 12px color-mix(in srgb, var(--ink) 20%, transparent);
+.shop-case .shop-icon > * {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
 }
+.shop-case .shop-icon > .pz-locked {
+  display: grid;
+  place-items: center;
+}
+.shop-case .shop-icon img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 0;
+}
+.shop-case .shop-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+}
+/* Фотография — уже готовая сцена со своим фоном: показываем её в обрез
+   по площади ниши, как в каталоге товаров. */
+.shop-case-photo .shop-icon { padding: 0; }
+.shop-case-photo .shop-icon img { object-fit: cover; }
 /* Цвет ниши по подполке: телефоны — лаванда, машины — мята, корабли — небо. */
 .shop-boutique-mint .shop-case {
   background:

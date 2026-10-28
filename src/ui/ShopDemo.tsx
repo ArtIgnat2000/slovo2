@@ -235,26 +235,30 @@ function Card(props: {
         <span className="shop-case-lamp" aria-hidden="true" />
         <div className="mz-art shop-icon">{props.art}</div>
         <span className="shop-case-podium" aria-hidden="true" />
+        {props.priceLabel && (
+          <span className={`shop-price${props.afford ? ' afford' : ''}`}>{props.priceLabel}</span>
+        )}
+        <button
+          className={`shop-heart mz-heart${props.wished ? ' on' : ''}`}
+          aria-label={props.wished ? 'Убрать из мечт' : 'В мечты'}
+          aria-pressed={props.wished}
+          onClick={(e) => { e.stopPropagation(); props.onWish(); }}
+        >
+          {props.wished ? '💜' : '🤍'}
+        </button>
       </div>
-      <button
-        className={`mz-heart${props.wished ? ' on' : ''}`}
-        aria-label={props.wished ? 'Убрать из мечт' : 'В мечты'}
-        aria-pressed={props.wished}
-        onClick={(e) => { e.stopPropagation(); props.onWish(); }}
-      >
-        {props.wished ? '💜' : '🤍'}
-      </button>
-      <div className="shop-title">{props.title}</div>
-      {props.desc && <div className="tiny shop-desc">{props.desc}</div>}
-      {props.priceLabel && (
-        <span className={`shop-price${props.afford ? ' afford' : ''}`}>{props.priceLabel}</span>
-      )}
-      <button
-        className={`btn sm wide${props.state === 'worn' ? ' green' : props.state === 'buy' ? ' primary' : props.state === 'collect' ? ' primary' : ' ghost'}`}
-        onClick={(e) => { e.stopPropagation(); props.onAction(); }}
-      >
-        {props.actionLabel}
-      </button>
+      <div className="shop-body">
+        <div className="shop-title-row">
+          <div className="shop-title">{props.title}</div>
+        </div>
+        {props.desc && <div className="tiny shop-desc">{props.desc}</div>}
+        <button
+          className={`btn sm wide${props.state === 'worn' ? ' green' : props.state === 'buy' ? ' primary' : props.state === 'collect' ? ' primary' : ' ghost'}`}
+          onClick={(e) => { e.stopPropagation(); props.onAction(); }}
+        >
+          {props.actionLabel}
+        </button>
+      </div>
     </article>
   );
 }

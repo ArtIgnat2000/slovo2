@@ -17,6 +17,7 @@ import { runParentUiChecks } from './parent-ui.test';
 import { runListsChecks } from './lists-ui.test';
 import { runPretestAuditChecks } from './pretest-audit.test';
 import { runPuzzleUiChecks } from './puzzles-ui.test';
+import { runShopCardChecks } from './cards-ui.test';
 import { runDiagnosticsRouteChecks } from './diagnostics-ui.test';
 import { runUpdateCheckUiChecks } from './update-check-ui.test';
 import { runQuickSoundChecks } from './quick-sound-ui.test';
@@ -1701,6 +1702,9 @@ async function main() {
   // Классы 1–4: смена класса не сбрасывает опыт, товары и награды; путь,
   // герой и урок берутся из программы активного класса (0.27.0).
   await runClassChecks();
+
+  // Карточка товара: крупная картинка без обрезки и этикетка под ней (0.76.0).
+  await runShopCardChecks();
 
   // «Мой мир»: ставится только полученное, БУК в костюме стоит, а не летает.
   await runWorldUiChecks();
