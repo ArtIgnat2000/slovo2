@@ -804,29 +804,29 @@ export function airliner({ s = 1.22 } = {}) {
     discX(x0, y0, z, r, fill) +
     discX(x1, y0, z, r, fill);
 
-  const eng = (k, tone = '#D3DBE6') => {
+  const eng = (k, tone = '#C4CFDD') => {
     const z = k * 118;
     const y0 = yw - 26;
     return (
       // дальняя часть гондолы
-      nac(30, 120, y0 - 5, 20, z - k * 28, shade(tone, -24)) +
+      nac(34, 112, y0 - 5, 18, z - k * 26, shade(tone, -30)) +
       // пилон
       poly(
         [
-          [56, yw + 10, z],
-          [102, yw + 10, z],
-          [102, y0 + 14, z],
-          [56, y0 + 14, z],
+          [50, yw + 12, z],
+          [96, yw + 12, z],
+          [96, y0 + 12, z],
+          [50, y0 + 12, z],
         ],
-        shade(tone, -18),
+        shade(tone, -22),
       ) +
       // ближняя часть
-      nac(30, 120, y0, 22, z, tone) +
-      line([38, y0 - 12, z + 0.4], [114, y0 - 11, z + 0.4], shade(tone, -26), 8, 'opacity="0.5"') +
+      nac(34, 112, y0, 20, z, tone) +
+      line([40, y0 - 11, z + 0.4], [106, y0 - 10, z + 0.4], shade(tone, -34), 7, 'opacity="0.55"') +
       // воздухозаборник — торец по ходу, поэтому круг в плоскости z–y
-      discZ(120, y0, z, 22, shade(tone, -30)) +
-      discZ(120.4, y0, z, 17, '#26303C') +
-      discZ(120.8, y0, z, 8, RIM)
+      discZ(112, y0, z, 20, shade(tone, -34)) +
+      discZ(112.4, y0, z, 15, '#26303C') +
+      discZ(112.8, y0, z, 7, RIM)
     );
   };
 
