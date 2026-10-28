@@ -51,37 +51,43 @@ export const PHOTOS = {
   'plane-livery': {
     crop: [200, 151, 1031, 654],
     pad: 26,
-    mark: { x: 0.9, y: 0.29, w: 0.075, ink: 'cream' },
+    // знак на киле: тёмное поле, кремовая краска
+    mark: { x: 0.9, y: 0.22, w: 0.045, ink: 'cream' },
     tint: { saturation: 0.94, brightness: 1.02 },
   },
   'bus-city': {
     crop: [142, 200, 1100, 684],
     pad: 24,
-    mark: { x: 0.2, y: 0.66, w: 0.1, ink: 'navy' },
+    // кремовый знак по синему борту между дверями
+    mark: { x: 0.235, y: 0.69, w: 0.085, ink: 'cream' },
     tint: { saturation: 0.96, brightness: 1.0 },
   },
   'tram-nn': {
     crop: [250, 74, 1073, 751],
     pad: 24,
-    mark: { x: 0.27, y: 0.5, w: 0.07, ink: 'navy' },
+    // по красному борту под окнами — тот же кремовый, что и лента
+    mark: { x: 0.6, y: 0.7, w: 0.058, ink: 'cream' },
     tint: { saturation: 0.97, brightness: 1.0 },
   },
   'race-car': {
     crop: [131, 220, 1156, 730],
     pad: 24,
-    mark: { x: 0.455, y: 0.63, w: 0.058, ink: 'cream' },
+    // на кремовом круге носа — тёмная краска, как номер у старой формулы
+    mark: { x: 0.174, y: 0.355, w: 0.048, ink: 'navy' },
     tint: { saturation: 0.99, brightness: 1.0 },
   },
   scooter: {
     crop: [305, 69, 926, 803],
     pad: 26,
-    mark: { x: 0.5, y: 0.795, w: 0.11, ink: 'cream' },
+    // на деку, как трафарет
+    mark: { x: 0.385, y: 0.782, w: 0.058, ink: 'cream' },
     tint: { saturation: 0.97, brightness: 1.0 },
   },
   'bike-frame': {
     crop: [3, 135, 1155, 844],
     pad: 20,
-    mark: { x: 0.405, y: 0.555, w: 0.032, ink: 'cream' },
+    // на нижнюю трубу, вдоль неё: так печатают на рамах
+    mark: { x: 0.6, y: 0.45, w: 0.055, ink: 'cream', rotate: -34 },
     tint: { saturation: 0.96, brightness: 1.02 },
   },
 };
@@ -221,13 +227,17 @@ export async function photoCard({ id, name, sub, tag = null, palette = [], w = 9
   const ink = cfg.mark.ink === 'cream' ? '#F2EBDC' : C.navy;
   const markH = Math.round(markW * (MARK_BOX.h / MARK_BOX.w));
   const SS = 4;
+  const rot = cfg.mark.rotate ?? 0;
+  const boxW = Math.round(markW * 1.35);
+  const boxH = Math.round(markH * 1.35);
   const markSvg =
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${markW * SS}" height="${markH * SS}">` +
-    `<g transform="scale(${(k * SS).toFixed(5)})">` +
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${boxW * SS}" height="${boxH * SS}">` +
+    `<g transform="translate(${((boxW * SS) / 2).toFixed(1)} ${((boxH * SS) / 2).toFixed(1)}) rotate(${rot}) ` +
+    `translate(${((-markW * SS) / 2).toFixed(1)} ${((-markH * SS) / 2).toFixed(1)}) scale(${(k * SS).toFixed(5)})">` +
     mark({ scale: 1, color: false, mono: ink, rule: false }) +
     `</g></svg>`;
   const decal = await sharp(Buffer.from(markSvg))
-    .resize({ width: markW, height: markH, fit: 'fill', kernel: 'lanczos3' })
+    .resize({ width: boxW, height: boxH, fit: 'fill', kernel: 'lanczos3' })
     // краска ложится по поверхности: чуть размываем и оставляем зерно
     .blur(Math.max(0.3, markW * 0.006))
     .png()
