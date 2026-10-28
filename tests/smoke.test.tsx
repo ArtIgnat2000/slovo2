@@ -55,19 +55,30 @@ import { runStudyEngineChecks } from './study.test';
 // её же использует блок интеграционных проверок адаптации.
 
 /**
- * Проверяет, что товарные карточки стоят по возрастанию цены.
+ * Проверяет, что товарные карточки внутри витрины стоят по возрастанию цены.
  *
- * В «Нарядах» рядом с покупками стоят карточки костюмов-пазлов, у которых на
- * месте цены прогресс («0/9 🧩»): это не цена, и раньше из-за них проверка
- * сравнивала 0 и 75 и падала на живом порядке. Считаем только карточки с
- * настоящей ценой — число целиком в `.shop-price`.
+ * У карточек костюмов-пазлов на месте цены прогресс («0/9 🧩»): это не цена,
+ * поэтому в сравнение идут только числа целиком. Иначе «0» вставал в середину
+ * списка и полка выглядела неотсортированной.
  */
-function pricesAscending(selector: string): boolean {
-  const prices = Array.from(document.querySelectorAll(selector))
+function pricesAscending(selector: string, root: ParentNode = document): boolean {
+  const prices = Array.from(root.querySelectorAll(selector))
     .map((card) => (card.querySelector('.shop-price')?.textContent ?? '').trim())
     .filter((text) => /^\d+$/.test(text))
     .map(Number);
   return prices.length > 0 && prices.every((price, index) => index === 0 || prices[index - 1] <= price);
+}
+
+/** Витрины полки в порядке появления — у объединённой полки их несколько. */
+function shopGrids(shelf: string): Element[] {
+  return Array.from(document.querySelectorAll(`section[aria-label="${shelf}"] .shop-boutique`));
+}
+
+/** Кнопка-чип полки магазина по названию. */
+function shopChip(title: string): HTMLButtonElement | undefined {
+  return Array.from(document.querySelectorAll('.shop-cats .chip')).find((chip) =>
+    (chip.textContent ?? '').includes(title),
+  ) as HTMLButtonElement | undefined;
 }
 
 /** Полоска прогресса именно урока (в шапке), а не уровня на главной. */
@@ -544,7 +555,14 @@ async function main() {
     Array.from(document.querySelectorAll('.shop-seg button')).map((b) => b.textContent).join(' | '),
   );
   check('витрина по умолчанию — полка нарядов', has('Наряды БУКа'), '');
-  check('наряды в витрине идут от меньшей цены к большей', pricesAscending('.shop-item'), Array.from(document.querySelectorAll('.shop-item .shop-title')).map((el) => el.textContent).join(' → '));
+  // 0.75.2: полки нарядов и костюмов объединены (PR #141), поэтому цену сверяем
+  // отдельно в витрине нарядов и отдельно в витрине «Костюмы за кристаллы».
+  const outfitShelves = shopGrids('Наряды');
+  check(
+    'наряды в витрине идут от меньшей цены к большей',
+    pricesAscending('.shop-item', outfitShelves[0]),
+    Array.from(outfitShelves[0]?.querySelectorAll('.shop-title') ?? []).map((el) => el.textContent).join(' → '),
+  );
   check(
     'полки — чипами, «Звуки» уже открыты',
     has('Костюмы') && has('Музыка') && !!Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Звуки') && !c.hasAttribute('disabled')) && !has('скоро'),
@@ -650,13 +668,18 @@ async function main() {
   if (toyShelf) click(toyShelf);
   await sleep(30);
   const toyTabs = () => Array.from(document.querySelectorAll('.shop-toy-cats [role="tab"]'));
-  // С 0.7x питомцы, спорт и вкусняшки — свои полки в общем списке категорий,
-  // а ряд вкладок внутри «Техники» отвечает только за авто/самолёты/корабли/телефоны.
-  check('разделы авто, кораблей и телефонов доступны отдельными вкладками', ['Авто', 'Самолёты', 'Корабли', 'Телефоны'].every((title) => toyTabs().some((tab) => (tab.textContent ?? '').includes(title))) && toyTabs().length === 4, toyTabs().map((tab) => tab.textContent).join(' | '));
-  {
-    const cats = Array.from(document.querySelectorAll('.shop-cats .chip')).map((chip) => chip.textContent ?? '');
-    check('питомцы, спорт и вкусняшки живут отдельными полками', ['Питомцы', 'Спорт', 'Вкусняшки'].every((title) => cats.some((text) => text.includes(title))), cats.join(' | '));
-  }
+  check(
+    'разделы авто, кораблей и телефонов доступны отдельными вкладками',
+    ['Авто', 'Самолёты', 'Корабли', 'Телефоны'].every((title) => toyTabs().some((tab) => (tab.textContent ?? '').includes(title))),
+    toyTabs().map((tab) => tab.textContent).join(' | '),
+  );
+  // 0.75.2: питомцы, спорт и вкусняшки больше не делят полку с техникой —
+  // у них собственные разделы магазина (PR #141).
+  check(
+    'питомцы, спорт и вкусняшки вынесены из техники в отдельные полки',
+    ['Питомцы', 'Спорт', 'Вкусняшки'].every((title) => shopChip(title)) && !toyTabs().some((tab) => /Питомцы|Спорт|Вкусняшки/.test(tab.textContent ?? '')),
+    toyTabs().map((tab) => tab.textContent).join(' | '),
+  );
   check('«Авто» открывается первым и не смешивается с другими товарами', document.querySelectorAll('.shop-item.toy-item').length === 19 && has('Болид') && !has('Морская яхта') && !has('iPhone Air'), '');
   check('авто внутри полки идут от меньшей цены к большей', pricesAscending('.shop-item.toy-item'));
   check(
@@ -742,6 +765,34 @@ async function main() {
   const closePhoneSheet = document.querySelector('.shop-sheet-veil');
   if (closePhoneSheet) click(closePhoneSheet);
   await sleep(20);
+
+  // ── Отдельные полки «Питомцы», «Спорт» и «Вкусняшки» (0.75.2, PR #141) ───
+  // Раньше они жили вкладками внутри «Техники»; теперь у каждой своя полка,
+  // и товары не перемешиваются с авто, кораблями и телефонами.
+  for (const [chipTitle, kind] of [['Питомцы', 'pet'], ['Спорт', 'sport'], ['Вкусняшки', 'food']] as const) {
+    const chip = shopChip(chipTitle);
+    if (chip) click(chip);
+    await sleep(40);
+    const expected = TOY_ITEMS.filter((item) => item.toy === kind);
+    const cards = Array.from(document.querySelectorAll('.shop-item.toy-item'));
+    check(
+      `полка «${chipTitle}» открывается отдельным разделом`,
+      !!document.querySelector(`section[aria-label="${chipTitle}"]`) && !document.querySelector('.shop-toy-cats'),
+      document.querySelectorAll('.screen section').length.toString(),
+    );
+    check(
+      `полка «${chipTitle}»: только свои товары (${expected.length})`,
+      cards.length === expected.length && expected.every((item) => has(item.title)) && !has('Болид'),
+      `карточек: ${cards.length}`,
+    );
+    check(`${chipTitle.toLowerCase()} внутри полки идут от меньшей цены к большей`, pricesAscending('.shop-item.toy-item'));
+  }
+  // Возвращаемся на «Технику»: следующие проверки покупают машину с полки «Авто».
+  click(shopChip('Техника')!);
+  await sleep(40);
+  const backToCars = toyTabs().find((tab) => (tab.textContent ?? '').includes('Авто'));
+  if (backToCars) click(backToCars);
+  await sleep(30);
 
   // Покупка вещи кладёт её в слот `toy` — с 0.22.0 это «любимая вещь на
   // главном подиуме ангара»; на БУКе техника больше не рисуется.
