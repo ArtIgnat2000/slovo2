@@ -130,7 +130,7 @@ export default defineConfig(({ command }) => ({
          *   /docs/word-cards/cards-demo.html
          *   /docs/shop-concept/shop-demo.html
          * Каталог мерча (docs/merch) в сборку приложения не входит намеренно:
-         * 48 картинок ~1 МБ не нужны ребёнку офлайн, а precache PWA должен
+         * 49 картинок ~1 МБ не нужны ребёнку офлайн, а precache PWA должен
          * оставаться маленьким. Страница живёт отдельным статическим сайтом:
          * `npm run merch:preview`.
          */
