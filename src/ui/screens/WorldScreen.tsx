@@ -1,247 +1,310 @@
-import { type CSSProperties, useState } from 'react';
-import { BUILDING_BY_ID, WORLD_BASES } from '../../engine/buildings';
-import { growthStage, rarityOf, RARITY_ORDER, SHOP_ITEMS, type ItemRarity, type ShopItem } from '../../engine/shop';
-import { ALL_COSTUMES, type Costume } from '../../engine/puzzles';
-import { isWorldPlaceable, normalizeWorld, WORLD_SLOTS } from '../../engine/world';
-import { haptic } from '../../platform/haptics';
-import { sfx } from '../../platform/sound';
-import { masteredCount, useActiveProfile, useApp } from '../../state/store';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { toBlob } from 'html-to-image';
+import { BUILDINGS, type BuildingItem } from '../../engine/buildings';
+import { ALL_COSTUMES, normalizePuzzle, type Costume } from '../../engine/puzzles';
+import { SHOP_ITEMS, type ShopItem } from '../../engine/shop';
+import { MUSIC_BY_ID, MUSIC_TRACKS, type MusicTrack } from '../../engine/music';
+import { hasSoundPack, SOUND_PACKS, type SoundPack } from '../../engine/sounds';
+import { THEME_STYLES, type ThemeStyleOption } from '../../engine/theme-styles';
+import { plural } from '../../engine/quests';
+import { useActiveProfile, useApp, useLook } from '../../state/store';
 import { Mascot } from '../Mascot';
-import { BayDecor } from '../TechScene';
 import { ToyArt } from '../ToyArt';
-import { RarityLabel } from '../RarityChip';
-import { BuildingArt, buildingArtUrl } from '../BuildingArt';
+import { BuildingArt } from '../BuildingArt';
+import { playMusic } from '../../platform/music';
+import { previewSoundCue, sfx } from '../../platform/sound';
+import type { ShopTuning } from '../../types';
 
-type WorldThing = { id: string; title: string; rarity: ItemRarity; item?: ShopItem; costume?: Costume };
+type CollectionAreaId = 'looks' | 'tech' | 'bases' | 'music' | 'sounds' | 'style';
+type CollectionKind = 'shop-item' | 'costume' | 'building' | 'music' | 'sound' | 'theme';
 
-/**
- * «Мой мир»: купленная научная база задаёт пейзаж и фон вкладки, а три слота
- * остаются для выбранных ребёнком вещей. Техника стоит в своей сцене, наряды —
- * на мягком фоне. Базы и обычные вещи выбираются в одном окне настройки мира.
- */
-export function WorldScreen() {
+type CollectionItem = {
+  id: string;
+  title: string;
+  kind: CollectionKind;
+  item?: ShopItem;
+  costume?: Costume;
+  building?: BuildingItem;
+  track?: MusicTrack;
+  sound?: SoundPack;
+  theme?: ThemeStyleOption;
+};
+
+type CollectionArea = { id: CollectionAreaId; title: string; emoji: string; items: CollectionItem[] };
+
+function collectionPrice(entry: CollectionItem): number {
+  switch (entry.kind) {
+    case 'shop-item': return entry.item?.price ?? 0;
+    case 'costume': return entry.costume?.price ?? 0;
+    case 'building': return entry.building?.price ?? 0;
+    case 'music': return entry.track?.price ?? 0;
+    case 'sound': return entry.sound?.price ?? 0;
+    case 'theme': return 0;
+  }
+}
+
+function CollectionArt({ entry, size = 64, tuning }: { entry: CollectionItem; size?: number; tuning?: ShopTuning }) {
+  if (entry.kind === 'shop-item' && entry.item) {
+    if (entry.item.kind === 'toy') return <ToyArt id={entry.item.id} size={size} tuning={tuning} />;
+    return <Mascot mood="idle" look={{ [entry.item.slot]: entry.item.id }} size={size} />;
+  }
+  if (entry.kind === 'costume' && entry.costume) return <Mascot mood="idle" costumeId={entry.costume.id} size={size} />;
+  if (entry.kind === 'building' && entry.building) {
+    return <BuildingArt id={entry.building.id} className="collection-building-art" decorative />;
+  }
+  if (entry.kind === 'theme' && entry.theme) {
+    const { preview, emoji } = entry.theme;
+    return (
+      <span className="collection-theme-art" style={{ background: `linear-gradient(145deg, ${preview.light}, ${preview.accent})` }} aria-hidden="true">
+        {emoji}
+      </span>
+    );
+  }
+  if (entry.kind === 'music' && entry.track) {
+    return <span className="collection-sound-art music" aria-hidden="true">{entry.track.emoji}</span>;
+  }
+  if (entry.kind === 'sound' && entry.sound) {
+    return <span className="collection-sound-art" aria-hidden="true">{entry.sound.emoji}</span>;
+  }
+  return null;
+}
+
+function collectionAreas(profile: NonNullable<ReturnType<typeof useActiveProfile>>): CollectionArea[] {
+  const shop = profile.shop;
+  const puzzle = normalizePuzzle(profile.puzzle);
+  const costumesOwned = [...puzzle.assembled, ...(shop?.crystalCostumesOwned ?? [])];
+  const ownedItems = SHOP_ITEMS.filter((item) => (shop?.owned ?? []).includes(item.id));
+  const looks: CollectionItem[] = [
+    ...ownedItems.filter((item) => item.kind !== 'toy').map((item) => ({ id: item.id, title: item.title, kind: 'shop-item' as const, item })),
+    ...ALL_COSTUMES.filter((costume) => costumesOwned.includes(costume.id)).map((costume) => ({ id: costume.id, title: costume.title, kind: 'costume' as const, costume })),
+  ];
+  const tech = ownedItems.filter((item) => item.kind === 'toy').map((item) => ({ id: item.id, title: item.title, kind: 'shop-item' as const, item }));
+  const bases = BUILDINGS.filter((building) => (shop?.buildingsOwned ?? []).includes(building.id)).map((building) => ({ id: building.id, title: building.title, kind: 'building' as const, building }));
+  const music = MUSIC_TRACKS.filter((track) => (shop?.musicOwned ?? []).includes(track.id)).map((track) => ({ id: track.id, title: track.title, kind: 'music' as const, track }));
+  const sounds = SOUND_PACKS.filter((sound) => hasSoundPack(shop?.soundOwned, sound.id)).map((sound) => ({ id: sound.id, title: sound.title, kind: 'sound' as const, sound }));
+  // Оформления бесплатны, но доступны и выбираются как личные варианты; включаем
+  // весь каталог в коллекцию, а отмеченное оформление остаётся видимым в деталях.
+  const style = THEME_STYLES.map((theme) => ({ id: theme.id, title: theme.title, kind: 'theme' as const, theme }));
+  const allAreas: CollectionArea[] = [
+    { id: 'looks', title: 'Образы', emoji: '🎩', items: looks },
+    { id: 'tech', title: 'Техника', emoji: '🚗', items: tech },
+    { id: 'bases', title: 'Базы', emoji: '🏙️', items: bases },
+    { id: 'music', title: 'Музыка', emoji: '🎵', items: music },
+    { id: 'sounds', title: 'Звуки', emoji: '🔊', items: sounds },
+    { id: 'style', title: 'Оформление', emoji: '🖼️', items: style },
+  ];
+  return allAreas
+    .filter((area) => area.items.length > 0)
+    .map((area) => ({ ...area, items: area.items.slice().sort((a, b) => collectionPrice(a) - collectionPrice(b)) }));
+}
+
+/** Полная визуальная коллекция: обзор областей → область → отдельная вещь. */
+export function WorldScreen({ onBack }: { onBack: () => void }) {
   const profile = useActiveProfile();
-  const toggleWorld = useApp((s) => s.toggleWorld);
-  const chooseWorldBase = useApp((s) => s.chooseWorldBase);
+  const currentLook = useLook();
+  const settings = useApp((s) => s.settings);
+  const setSettings = useApp((s) => s.setSettings);
   const showToast = useApp((s) => s.showToast);
-  const [picking, setPicking] = useState(false);
+  const [areaId, setAreaId] = useState<CollectionAreaId | null>(null);
+  const [itemId, setItemId] = useState<string | null>(null);
+  const [previewingTrack, setPreviewingTrack] = useState<string | null>(null);
+  const [sharing, setSharing] = useState(false);
+  const mapRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    if (!previewingTrack) return;
+    return () => {
+      const selected = profile?.shop?.musicTrack ?? null;
+      playMusic(selected ? MUSIC_BY_ID[selected] ?? null : null);
+    };
+  }, [previewingTrack, profile?.shop?.musicTrack]);
+
+  const areas = useMemo(() => (profile ? collectionAreas(profile) : []), [profile]);
   if (!profile) return null;
 
-  const owned = profile.shop?.owned ?? [];
-  const buildingsOwned = profile.shop?.buildingsOwned ?? [];
-  const puzzle = profile.puzzle;
-  const ownedCostumes = [...(puzzle?.assembled ?? []), ...(profile.shop?.crystalCostumesOwned ?? [])];
-  const world = normalizeWorld(profile.shop?.world, owned, ownedCostumes);
-  const worldBaseId = profile.shop?.worldBase ?? null;
-  const worldBase = worldBaseId ? BUILDING_BY_ID[worldBaseId] : undefined;
-  const ownedBases = WORLD_BASES.filter((base) => buildingsOwned.includes(base.id));
-  const tuning = profile.shop?.tuning;
-  const growth = growthStage(masteredCount(profile));
-  // Общий список предметов и костюмов для трёх мест мира.
-  // В выбор попадают только полученные вещи и костюмы (0.71.1): неполученное
-  // в «Мой мир» не поставить — его здесь просто нет, а движок на чужой id
-  // отвечает 'locked' (engine/world.ts, isWorldPlaceable).
-  const ownedThings: WorldThing[] = [
-    ...SHOP_ITEMS.filter((item) => isWorldPlaceable(item.id, owned, ownedCostumes)).map((item) => ({ id: item.id, title: item.title, rarity: rarityOf(item), item })),
-    ...ALL_COSTUMES.filter((costume) => isWorldPlaceable(costume.id, owned, ownedCostumes)).map((costume) => ({ id: costume.id, title: costume.title, rarity: costume.rarity ?? 'common' as ItemRarity, costume })),
-  ];
-  const thingById = new Map(ownedThings.map((thing) => [thing.id, thing]));
-  const compareThings = (a: WorldThing, b: WorldThing) => RARITY_ORDER.indexOf(a.rarity) - RARITY_ORDER.indexOf(b.rarity)
-    || (a.item?.price ?? a.costume?.price ?? 0) - (b.item?.price ?? b.costume?.price ?? 0);
-  // Типы идут по возрастанию: обычный → крутой → легендарный → ТОПОВЫЙ.
-  const shown = world.map((id) => thingById.get(id)).filter((thing): thing is WorldThing => Boolean(thing)).sort(compareThings);
-  ownedThings.sort(compareThings);
-  const backdropStyle = worldBase
-    ? ({ '--world-base-image': `url("${buildingArtUrl(worldBase.id)}")` } as CSSProperties)
-    : undefined;
+  const area = areas.find((candidate) => candidate.id === areaId) ?? null;
+  const entry = area?.items.find((candidate) => candidate.id === itemId) ?? null;
+  const total = areas.reduce((sum, candidate) => sum + candidate.items.length, 0);
+  const backOneLevel = () => {
+    if (entry) setItemId(null);
+    else if (area) setAreaId(null);
+    else onBack();
+  };
 
-  const tap = (id: string) => {
-    sfx.tap();
-    haptic.tap();
-    const result = toggleWorld(id);
-    if (result === 'full') {
-      showToast({ emoji: '🌍', title: 'Мест нет', text: `В «Моём мире» уже ${WORLD_SLOTS} вещи. Уберите одну` });
-    } else if (result === 'locked') {
-      showToast({ emoji: '🔒', title: 'Сначала купите вещь', text: 'В «Мой мир» ставим только купленное' });
+  const shareSnapshot = async () => {
+    if (!mapRef.current || sharing) return;
+    setSharing(true);
+    try {
+      const blob = await toBlob(mapRef.current, {
+        pixelRatio: 2,
+        backgroundColor: '#fffaf1',
+        cacheBust: true,
+        filter: (node) => !(node instanceof HTMLElement && node.dataset.snapshotIgnore === 'true'),
+      });
+      if (!blob) throw new Error('Не удалось подготовить изображение');
+      const file = new File([blob], 'мой-мир.png', { type: 'image/png' });
+      const shareData = { title: 'Моя коллекция', text: 'Посмотри мою коллекцию!', files: [file] };
+      if (typeof navigator.share === 'function' && typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
+        await navigator.share(shareData);
+        showToast({ emoji: '📤', title: 'Снимок отправлен' });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'мой-мир.png';
+        link.click();
+        URL.revokeObjectURL(url);
+        showToast({ emoji: '🖼️', title: 'Снимок сохранён', text: 'Теперь его можно отправить друзьям' });
+      }
+    } catch (error) {
+      const name = (error as { name?: string })?.name;
+      if (name !== 'AbortError') showToast({ emoji: '⚠️', title: 'Не получилось сделать снимок', text: 'Попробуй ещё раз' });
+    } finally {
+      setSharing(false);
     }
   };
 
-  const setWorldBase = (id: string | null) => {
-    if (!chooseWorldBase(id)) {
-      showToast({ emoji: '🔒', title: 'Сначала купите базу', text: 'В фон мира можно поставить только свою базу из БУКа' });
-      return;
+  const chooseMusic = (track: MusicTrack) => {
+    if (previewingTrack === track.id) {
+      const selectedId = profile.shop?.musicTrack ?? null;
+      playMusic(selectedId ? MUSIC_BY_ID[selectedId] ?? null : null);
+      setPreviewingTrack(null);
+    } else {
+      playMusic(track);
+      setPreviewingTrack(track.id);
     }
+  };
+
+  const chooseSoundPreview = (sound: SoundPack) => {
+    previewSoundCue(sound.id, 'correct');
     sfx.tap();
-    haptic.tap();
   };
-
-  /** Картинка вещи: техника — ToyArt, наряд — маскот БУКа в этом наряде. */
-  const art = (thing: WorldThing, size: number) => {
-    if (thing.costume) return <Mascot mood="idle" costumeId={thing.costume.id} stage={growth.index} size={size} />;
-    const item = thing.item!;
-    return item.kind === 'toy'
-      ? <ToyArt id={item.id} size={size} tuning={tuning} />
-      : <Mascot mood="idle" look={{ [item.slot]: item.id }} stage={growth.index} size={size} />;
-  };
-
-  /** Категория сцены: техника по типу, наряды — отдельный мягкий фон. */
-  const toneOf = (thing: WorldThing): 'car' | 'plane' | 'ship' | 'phone' | 'pet' | 'sport' | 'food' | 'outfit' => thing.item?.toy ?? 'outfit';
 
   return (
-    <div
-      className={`screen world-screen${worldBase ? ' has-world-base' : ''}`}
-      style={backdropStyle}
-    >
-      <h2 className="mb">🌍 Мой мир</h2>
-      <p className="tiny muted mb">База меняет пейзаж мира, а в трёх местах можно расставить любимые вещи.</p>
-
-      <section className={`world-base-current${worldBase ? ' selected' : ''}`} aria-label="База и фон Моего мира">
-        <div className="world-base-current-art">
-          {worldBase ? (
-            <BuildingArt id={worldBase.id} className="world-base-preview-art" loading="eager" decorative />
-          ) : (
-            <span aria-hidden="true">🏗️</span>
-          )}
-        </div>
-        <div className="world-base-current-copy">
-          <span className="world-base-kicker">🌄 ОСНОВА МИРА</span>
-          <b>{worldBase?.title ?? 'База пока не выбрана'}</b>
-          {worldBase && <RarityLabel rarity={worldBase.rarity} className="rarity-chip-mini" />}
-          <small>
-            {worldBase
-              ? 'Пейзаж выбранной базы теперь задаёт фон этой вкладки.'
-              : 'Выбери купленную базу — и фон мира изменится вместе с ней.'}
-          </small>
-          <div className="world-base-actions">
-            <button type="button" className="btn sm" onClick={() => setPicking(true)}>
-              {worldBase ? 'Сменить базу' : 'Выбрать базу'}
-            </button>
-            {worldBase && (
-              <button type="button" className="btn sm ghost" onClick={() => setWorldBase(null)}>
-                Убрать базу
-              </button>
-            )}
-          </div>
-        </div>
-      </section>
-
-      <div className="world-slots">
-        {Array.from({ length: WORLD_SLOTS }, (_, index) => {
-          const thing = shown[index];
-          const id = thing?.id;
-          if (!id || !thing) {
-            return (
-              <button
-                key={`empty-${index}`}
-                type="button"
-                className="world-slot empty"
-                aria-label={`Пустое место ${index + 1}. Выбрать вещь`}
-                onClick={() => setPicking(true)}
-              >
-                <span className="world-slot-plus" aria-hidden="true">＋</span>
-                <small>Пустое место {index + 1}</small>
-              </button>
-            );
-          }
-          const tone = toneOf(thing);
-          return (
-            <div key={id} className={`world-slot world-tone-${tone} tier-${thing.rarity}`}>
-              <span className={`hangar-panel ${tone === 'outfit' ? 'world-panel-outfit' : `hangar-panel-${tone}`}`} aria-hidden="true">
-                {tone !== 'outfit' && <BayDecor tone={tone} />}
-              </span>
-              <span className="world-slot-halo" aria-hidden="true" />
-              <div className="world-slot-art">{art(thing, 132)}</div>
-              <span className="world-slot-plinth" aria-hidden="true" />
-              <div className="world-slot-foot">
-                <b className="world-slot-title">{thing.title}</b>
-                <RarityLabel rarity={thing.rarity} className="rarity-chip-mini" />
-                <button type="button" className="btn sm ghost" onClick={() => tap(id)}>
-                  Убрать
-                </button>
-              </div>
-            </div>
-          );
-        })}
+    <div className="my-world">
+      <div className="my-world-toolbar">
+        <button type="button" className="btn sm ghost" onClick={backOneLevel} data-snapshot-ignore="true">
+          ← {entry ? 'К области' : area ? 'К карте' : 'Назад в БУК'}
+        </button>
+        <button type="button" className="btn sm" onClick={shareSnapshot} disabled={sharing} data-snapshot-ignore="true">
+          {sharing ? 'Готовим снимок…' : '📸 Снимок'}
+        </button>
       </div>
 
-      {!picking && (
-        <button type="button" className="btn sm ghost wide" onClick={() => setPicking(true)}>
-          Выбрать вещи ({world.length}/{WORLD_SLOTS})
-        </button>
+      {!area && (
+        <div className="collection-map" ref={mapRef}>
+          <div className="collection-map-heading">
+            <span aria-hidden="true">🌍</span>
+            <div>
+              <h2>Мой мир</h2>
+              <p>Вся твоя коллекция · {total} {plural(total, 'вещь', 'вещи', 'вещей')}</p>
+            </div>
+          </div>
+          {areas.length === 0 ? (
+            <div className="card collection-empty">
+              <span aria-hidden="true">🧭</span>
+              <b>Твоя коллекция пока ждёт первую находку</b>
+              <p>Когда появятся покупки и награды, они будут собираться здесь.</p>
+            </div>
+          ) : (
+            <div className="collection-map-areas">
+              {areas.map((candidate) => (
+                <button
+                  key={candidate.id}
+                  type="button"
+                  className={`collection-area area-${candidate.id}`}
+                  onClick={() => { setAreaId(candidate.id); setItemId(null); }}
+                  aria-label={`${candidate.title}: ${candidate.items.length}. Увеличить область`}
+                >
+                  <span className="sr-only">{candidate.items.map((thing) => thing.title).join(', ')}</span>
+                  <span className="collection-area-head">
+                    <span className="collection-area-icon" aria-hidden="true">{candidate.emoji}</span>
+                    <span className="collection-area-name">{candidate.title}</span>
+                    <span className="collection-area-count">{candidate.items.length}</span>
+                    <span className="collection-area-zoom" aria-hidden="true">↗</span>
+                  </span>
+                  <span className="collection-map-thumbs" aria-hidden="true">
+                    {candidate.items.map((thing) => (
+                      <span className="collection-map-thumb" key={thing.id}>
+                        <CollectionArt entry={thing} size={36} tuning={profile.shop?.tuning} />
+                      </span>
+                    ))}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+          <p className="collection-map-hint">Нажми на область, чтобы рассмотреть её крупнее.</p>
+        </div>
       )}
 
-      {picking && (
-        <section className="card world-picker" aria-label="Выбор для Моего мира">
-          <div className="row mb">
-            <b className="grow">Настройте мир · вещей {world.length}/{WORLD_SLOTS}</b>
-            <button type="button" className="btn sm" onClick={() => setPicking(false)}>
-              Готово
-            </button>
+      {area && !entry && (
+        <section className="collection-zoom" ref={mapRef}>
+          <div className="collection-zoom-heading">
+            <span aria-hidden="true">{area.emoji}</span>
+            <div>
+              <h2>{area.title}</h2>
+              <p>{area.items.length} {plural(area.items.length, 'предмет', 'предмета', 'предметов')} · нажми на вещь, чтобы увеличить</p>
+            </div>
           </div>
+          <div className="collection-items-grid">
+            {area.items.map((thing) => (
+              <button
+                type="button"
+                className="collection-item-card"
+                key={thing.id}
+                onClick={() => setItemId(thing.id)}
+                aria-label={`Увеличить: ${thing.title}`}
+              >
+                <span className="collection-item-art"><CollectionArt entry={thing} size={72} tuning={profile.shop?.tuning} /></span>
+                <span className="collection-item-title">{thing.title}</span>
+                <span className="collection-item-zoom" aria-hidden="true">＋</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
-          <section className="world-base-picker-group" aria-label="Выбор базы и фона мира">
-            <div className="world-picker-heading">
-              <b>База задаёт фон</b>
-              <small>Выбери одну из купленных научных баз.</small>
-            </div>
-            {ownedBases.length === 0 ? (
-              <p className="tiny muted">Купи базу на полке «Здания» в магазине БУКа, чтобы поставить её в «Мой мир».</p>
-            ) : (
-              <div className="world-base-pick-grid">
-                {ownedBases.map((base) => {
-                  const on = worldBase?.id === base.id;
-                  return (
-                    <button
-                      key={base.id}
-                      type="button"
-                      className={`world-base-pick-item${on ? ' on' : ''}`}
-                      aria-pressed={on}
-                      aria-label={`${base.title}${on ? ' — фон мира выбран' : '. Поставить фоном мира'}`}
-                      onClick={() => setWorldBase(base.id)}
-                    >
-                      <BuildingArt id={base.id} className="world-base-pick-art" decorative />
-                      <span>{base.title}</span>
-                      <RarityLabel rarity={base.rarity} className="rarity-chip-mini" />
-                      <small>{on ? 'Фон выбран ✓' : 'Поставить фоном'}</small>
-                    </button>
-                  );
-                })}
-              </div>
+      {entry && area && (
+        <section className="collection-detail" ref={mapRef}>
+          <div className={`collection-detail-art kind-${entry.kind}`}>
+            <CollectionArt entry={entry} size={210} tuning={profile.shop?.tuning} />
+          </div>
+          <div className="collection-detail-copy">
+            <span className="collection-detail-kicker">{area.emoji} {area.title}</span>
+            <h2>{entry.title}</h2>
+            {entry.kind === 'shop-item' && entry.item && <p>{entry.item.desc}</p>}
+            {entry.kind === 'costume' && entry.costume && <p>{entry.costume.desc}</p>}
+            {entry.kind === 'building' && entry.building && <p>{entry.building.desc}</p>}
+            {entry.kind === 'music' && entry.track && <p>{entry.track.originalTitle}</p>}
+            {entry.kind === 'sound' && entry.sound && <p>{entry.sound.desc}</p>}
+            {entry.kind === 'theme' && entry.theme && <p>{entry.theme.description}</p>}
+            <div className="collection-detail-status">Есть в твоей коллекции ✓</div>
+            {entry.kind === 'shop-item' && entry.item && entry.item.kind !== 'toy' && (
+              <div className="collection-detail-status">{currentLook[entry.item.slot] === entry.item.id ? 'Сейчас надето на Буке ✓' : 'Можно надеть в БУКе'}</div>
             )}
-          </section>
-
-          <section className="world-items-picker-group" aria-label="Выбор вещей мира">
-            <div className="world-picker-heading">
-              <b>Вещи на сцене · до {WORLD_SLOTS}</b>
-              <small>База не занимает одно из трёх мест.</small>
-            </div>
-            {ownedThings.length === 0 ? (
-              <p className="tiny muted">Пока пусто. Купите вещь в БУКе, и она появится здесь.</p>
-            ) : (
-              <div className="world-pick">
-                {ownedThings.map((thing) => {
-                  const on = world.includes(thing.id);
-                  const tone = toneOf(thing);
-                  return (
-                    <button
-                      key={thing.id}
-                      type="button"
-                      className={`world-pick-item world-tone-${tone} tier-${thing.rarity}${on ? ' on' : ''}`}
-                      aria-pressed={on}
-                      aria-label={`${thing.title}${on ? ' — в Моём мире. Убрать' : '. Поставить в Мой мир'}`}
-                      onClick={() => tap(thing.id)}
-                    >
-                      <span className="world-pick-art">{art(thing, 84)}</span>
-                      <span className="world-pick-title">{thing.title}</span>
-                      <RarityLabel rarity={thing.rarity} className="rarity-chip-mini" />
-                      {on && <i aria-hidden="true">✓</i>}
-                    </button>
-                  );
-                })}
-              </div>
+            {entry.kind === 'building' && entry.building && (
+              <div className="collection-detail-status">Часть твоей коллекции ✓</div>
             )}
-          </section>
+            {entry.kind === 'theme' && entry.theme && (
+              <div className="collection-detail-status">{settings.themeStyle === entry.theme.id ? 'Сейчас выбрано ✓' : 'Твоё оформление'}</div>
+            )}
+            {entry.kind === 'music' && entry.track && (
+              <button type="button" className="btn primary lg" onClick={() => chooseMusic(entry.track!)} data-snapshot-ignore="true">
+                {previewingTrack === entry.track.id ? '⏸ Остановить' : '▶ Послушать'}
+              </button>
+            )}
+            {entry.kind === 'sound' && entry.sound && (
+              <button type="button" className="btn primary lg" onClick={() => chooseSoundPreview(entry.sound!)} data-snapshot-ignore="true">
+                ▶ Послушать звук
+              </button>
+            )}
+            {entry.kind === 'theme' && entry.theme && settings.themeStyle !== entry.theme.id && (
+              <button type="button" className="btn primary lg" onClick={() => setSettings({ themeStyle: entry.theme!.id })} data-snapshot-ignore="true">
+                Выбрать оформление
+              </button>
+            )}
+          </div>
         </section>
       )}
     </div>

@@ -11,7 +11,6 @@ import { ParentScreen } from './ui/screens/ParentScreen';
 import { ProfilesScreen } from './ui/screens/ProfilesScreen';
 import { LessonScreen } from './ui/screens/LessonScreen';
 import { ShopScreen } from './ui/screens/ShopScreen';
-import { WorldScreen } from './ui/screens/WorldScreen';
 import { RatingScreen } from './ui/screens/RatingScreen';
 import { VlabsScreen } from './ui/screens/VlabsScreen';
 import { DiagnosticsScreen } from './ui/DiagnosticsScreen';
@@ -30,7 +29,7 @@ import {
 import { QUIET_MS, QuickSound } from './ui/QuickSound';
 import { applyTheme, applyThemeStyle, writeThemeMirror, writeThemeStyleMirror } from './platform/theme';
 
-type Tab = 'home' | 'words' | 'shop' | 'world' | 'rating' | 'parent';
+type Tab = 'home' | 'words' | 'shop' | 'rating' | 'parent';
 
 function diagnosticsRequested(): boolean {
   return typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('diag') === '1';
@@ -110,13 +109,9 @@ export default function App() {
   /** Версия, до которой обновились автоматически: показываем плашку один раз. */
   const [justUpdated] = useState(() => takeAppliedVersion());
 
-  // Куда откроется БУК: меню ☰ на главной ведёт прямо в «Мои покупки» или
-  // «Ангар» (0.33.0). Состояние должно стоять до ранних return'ов — иначе
-  // число хуков меняется между рендерами.
-  const [shopEntry, setShopEntry] = useState<{ view: 'vitrina' | 'wardrobe'; hangar: boolean }>({
-    view: 'vitrina',
-    hangar: false,
-  });
+  // Куда откроется БУК из меню главной; состояние выше ранних return'ов,
+  // чтобы число хуков не менялось между рендерами.
+  const [shopEntry, setShopEntry] = useState<{ view: 'vitrina' | 'wardrobe' | 'world' }>({ view: 'vitrina' });
 
   useEffect(() => {
     const apply = () => {
@@ -307,16 +302,9 @@ export default function App() {
     setTab(next);
   };
 
-  /**
-   * Куда открыть БУК из меню на главной (0.33.0).
-   *
-   * Меню — единственный прямой путь к «Моим покупкам» и «Ангару»: и то и другое
-   * иначе лежит на два-три тапа внутри вкладки БУК. Вкладка внизу по-прежнему
-   * открывает витрину: тап по ней сбрасывает вход, чтобы ребёнок не попадал
-   * в «покупки» неожиданно.
-   */
-  const openShop = (view: 'vitrina' | 'wardrobe', hangar = false) => {
-    setShopEntry({ view, hangar });
+  /** Быстрый вход в нужную часть БУКа из меню главной. */
+  const openShop = (view: 'vitrina' | 'wardrobe' | 'world') => {
+    setShopEntry({ view });
     setProfilesOpen(false);
     setTab('shop');
   };
@@ -372,19 +360,15 @@ export default function App() {
         />
       ) : tab === 'words' ? (
         <WordsScreen />
-      ) : tab === 'world' ? (
-        <WorldScreen />
       ) : tab === 'rating' ? (
         <RatingScreen />
       ) : tab === 'shop' ? (
         <ShopScreen
-          onOpenWorld={() => switchTab('world')}
           // Ключ пересоздаёт экран, когда меняется точка входа: иначе тап по
           // нижней вкладке «БУК» из «Моих покупок» не вернул бы витрину —
           // useState(initialView) читается только при монтировании.
-          key={`${shopEntry.view}-${shopEntry.hangar}`}
+          key={shopEntry.view}
           initialView={shopEntry.view}
-          initialHangar={shopEntry.hangar}
         />
       ) : (
         <ParentScreen
@@ -484,7 +468,7 @@ export default function App() {
           className={`tab ${!profilesOpen && tab === 'shop' ? 'on' : ''}`}
           onClick={() => {
             // Вкладка всегда открывает витрину, а не то, куда завёл меню.
-            setShopEntry({ view: 'vitrina', hangar: false });
+            setShopEntry({ view: 'vitrina' });
             switchTab('shop');
           }}
         >
