@@ -33,10 +33,15 @@ async function sharp() {
   return sharpMod;
 }
 
-/** SVG-строка → WebP. width — итоговая ширина (рендер 2× для резкости). */
-export async function shot(name, markup, width, { quality = 84, svgCopy = false } = {}) {
+/** SVG-строка (или готовый PNG) → WebP. width — итоговая ширина. */
+export async function shot(name, markup, width, { quality = 84, svgCopy = false, raster = false } = {}) {
   const s = await sharp();
   const file = path.join(OUT, `${name}.webp`);
+  // Растровый кадр уже собран в нужном размере — его только упаковываем в webp.
+  if (raster) {
+    await s(markup).webp({ quality: quality + 4, effort: 6 }).toFile(file);
+    return file;
+  }
   await s(Buffer.from(markup)).resize({ width }).webp({ quality, effort: 5 }).toFile(file);
   if (svgCopy) writeFileSync(path.join(OUT, `${name}.svg`), markup);
   return file;

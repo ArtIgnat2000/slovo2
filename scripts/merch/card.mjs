@@ -15,6 +15,15 @@ export function productCard({
   tint = C.paper,
   note = null,
 }) {
+  return svgDoc(w, h, paper(w, h, tint) + art + cardChrome({ w, h, name, sub, tag, palette, note }));
+}
+
+/**
+ * Только «обвязка» карточки — метка, палитра, линейка, название и подпись.
+ * Нужна, когда предмет собран не вектором, а растром (фотография): тогда
+ * бумага и фото склеиваются в sharp, а этот слой кладётся сверху.
+ */
+export function cardChrome({ w = 900, h = 1120, name, sub, tag = null, palette = [], note = null }) {
   const labelY = h - 96;
   const tagSvg = tag
     ? `<g transform="translate(56 56)">` +
@@ -32,17 +41,13 @@ export function productCard({
         .join('') +
       `</g>`
     : '';
-  return svgDoc(
-    w,
-    h,
-    paper(w, h, tint) +
-      art +
-      tagSvg +
-      paletteSvg +
-      `<path d="M56 ${labelY - 62} H${w - 56}" stroke="rgba(20,26,36,.10)" stroke-width="1.5"/>` +
-      text(w / 2, labelY, name, { size: 34, color: C.ink, anchor: 'middle', spacing: 0.2 }) +
-      (sub ? text(w / 2, labelY + 44, sub, { size: 25, weight: 500, color: '#7B7566', anchor: 'middle' }) : '') +
-      (note ? text(w / 2, labelY + 82, note, { size: 20, weight: 500, color: '#9A9384', anchor: 'middle' }) : ''),
+  return (
+    tagSvg +
+    paletteSvg +
+    `<path d="M56 ${labelY - 62} H${w - 56}" stroke="rgba(20,26,36,.10)" stroke-width="1.5"/>` +
+    text(w / 2, labelY, name, { size: 34, color: C.ink, anchor: 'middle', spacing: 0.2 }) +
+    (sub ? text(w / 2, labelY + 44, sub, { size: 25, weight: 500, color: '#7B7566', anchor: 'middle' }) : '') +
+    (note ? text(w / 2, labelY + 82, note, { size: 20, weight: 500, color: '#9A9384', anchor: 'middle' }) : '')
   );
 }
 

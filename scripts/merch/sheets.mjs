@@ -12,6 +12,7 @@ import path from 'node:path';
 
 import { C, mark, lockupV, lockupH, seal, paper, svgDoc, text, MARK_BOX, fonts } from './brand.mjs';
 import { productCard, sectionCard } from './card.mjs';
+import { photoCard, PHOTO_IDS } from './photos.mjs';
 import { ITEMS, SECTIONS } from './catalog.mjs';
 import { markSheets } from './sheets-mark.mjs';
 import { tee, tote, hoodie } from './garments.mjs';
@@ -79,17 +80,30 @@ async function fitArt(art) {
 async function goods(shot) {
   const made = [];
   for (const item of ITEMS) {
-    await shot(
-      item.id,
-      productCard({
-        art: await fitArt(item.art),
+    // Полка ливреи — фотографии предметов, а не вектор: у неё свой слой
+    // сборки (см. scripts/merch/photos.mjs). Остальные — вектор, как раньше.
+    if (PHOTO_IDS.includes(item.id)) {
+      const png = await photoCard({
+        id: item.id,
         name: item.name,
         sub: item.sub,
         tag: item.tag,
         palette: item.palette,
-      }),
-      760,
-    );
+      });
+      await shot(item.id, png, 760, { raster: true });
+    } else {
+      await shot(
+        item.id,
+        productCard({
+          art: await fitArt(item.art),
+          name: item.name,
+          sub: item.sub,
+          tag: item.tag,
+          palette: item.palette,
+        }),
+        760,
+      );
+    }
     made.push(item.id);
   }
   return made;
