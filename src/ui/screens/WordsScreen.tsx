@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import {
   AVAILABLE_CLASSES,
   CLASS_META,
-  LESSONS_BY_GRADE,
   WORDS_BY_GRADE,
   WORD_BY_ID,
   availableClass,
@@ -34,18 +33,24 @@ const DONUT_STROKE: Record<WordBucket, string> = {
  * Кольцевая круговая диаграмма словарика.
  *
  * Почему кольцо, а не сплошной «пирог»:
- *  • в центре сразу стоит главный ответ ребёнка — сколько слов уже в «Знаю» из всех;
+ *  • в центре по умолчанию «Знаю», при наведении/фокусе — число слов в группе;
+ *  • тап по дуге показывает слова группы, повторный тап возвращает все слова;
  *  • дуги показывают доли всех 4 цветов по часовой стрелке от 12 часов;
  *  • без дроби со слэшем («18/94» запрещено решением №3 в PLAN.md): крупно число,
  *    ниже спокойно «из 94».
  */
-function MasteryDonut({ summary }: { summary: DictionarySummary }) {
+function MasteryDonut({
+  summary, selected, onSelect,
+}: { summary: DictionarySummary; selected: WordBucket | 'all'; onSelect: (bucket: WordBucket) => void }) {
+  const [preview, setPreview] = useState<WordBucket | null>(null);
+  const shown = preview ?? (selected === 'all' ? null : selected);
+  const shownCount = shown ? summary.counts[shown] : summary.mastered;
   const R = 40;
   const C = 2 * Math.PI * R;
   const segments = buildDonutSegments(summary.counts, summary.total);
   const gap = segments.length > 1 ? 2.4 : 0;
   const allDone = summary.total > 0 && summary.mastered === summary.total;
-  const mainText = String(summary.mastered);
+  const mainText = String(shownCount);
   const mainFs = mainText.length >= 3 ? 20 : 24;
 
   const aria =
@@ -53,8 +58,8 @@ function MasteryDonut({ summary }: { summary: DictionarySummary }) {
     `учу ${summary.counts.mid}, трудные ${summary.counts.weak}, новые ${summary.counts.new}`;
 
   return (
-    <div className={`dict-donut ${allDone ? 'done' : ''}`} role="img" aria-label={aria}>
-      <svg viewBox="0 0 104 104" width={100} height={100}>
+    <div className={`dict-donut ${allDone ? 'done' : ''}`}>
+      <svg viewBox="0 0 104 104" width={100} height={100} role="group" aria-label={aria}>
         <circle
           cx="52"
           cy="52"
@@ -68,7 +73,7 @@ function MasteryDonut({ summary }: { summary: DictionarySummary }) {
           return (
             <circle
               key={seg.bucket}
-              className="dict-donut-arc"
+              className={`dict-donut-arc ${shown && shown !== seg.bucket ? 'dimmed' : ''}`}
               data-donut-arc={seg.bucket}
               cx="52"
               cy="52"
@@ -83,6 +88,32 @@ function MasteryDonut({ summary }: { summary: DictionarySummary }) {
             />
           );
         })}
+        {segments.map((seg) => {
+          const len = segments.length === 1 ? C : Math.max(2, seg.fraction * C - gap);
+          return (
+            <circle
+              key={`hit-${seg.bucket}`}
+              className="dict-donut-hit"
+              data-donut-hit={seg.bucket}
+              role="button"
+              tabIndex={0}
+              aria-label={`${BUCKET_META[seg.bucket].title}: ${seg.count} ${plural(seg.count, 'слово', 'слова', 'слов')}. ${selected === seg.bucket ? 'Показать все слова' : 'Показать слова этой группы'}`}
+              aria-pressed={selected === seg.bucket}
+              cx="52" cy="52" r={R} fill="none" stroke="transparent" strokeWidth="24"
+              strokeDasharray={`${len} ${Math.max(0, C - len)}`}
+              strokeDashoffset={-seg.startFraction * C}
+              transform="rotate(-90 52 52)"
+              onPointerEnter={(e) => { if (e.pointerType === 'mouse' || e.pointerType === 'pen') setPreview(seg.bucket); }}
+              onPointerLeave={() => setPreview(null)}
+              onFocus={() => setPreview(seg.bucket)}
+              onBlur={() => setPreview(null)}
+              onClick={() => { setPreview(null); onSelect(seg.bucket); }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(seg.bucket); }
+              }}
+            />
+          );
+        })}
         <text
           x="52"
           y="45"
@@ -90,7 +121,7 @@ function MasteryDonut({ summary }: { summary: DictionarySummary }) {
           dominantBaseline="central"
           fontSize={mainFs}
           fontWeight={800}
-          fill={summary.mastered > 0 ? 'var(--good-ink)' : 'var(--ink)'}
+          fill={shown ? 'var(--ink)' : summary.mastered > 0 ? 'var(--good-ink)' : 'var(--ink)'}
           style={{ fontVariantNumeric: 'tabular-nums' }}
         >
           {mainText}
@@ -105,7 +136,7 @@ function MasteryDonut({ summary }: { summary: DictionarySummary }) {
           fill="var(--ink-2)"
           style={{ fontVariantNumeric: 'tabular-nums' }}
         >
-          из {summary.total}
+          {shown ? BUCKET_META[shown].title : `из ${summary.total}`}
         </text>
       </svg>
       {allDone && (
@@ -120,10 +151,7 @@ function MasteryDonut({ summary }: { summary: DictionarySummary }) {
 /**
  * Словарик: всё, что учим, структурировано по цветам и степени владения словом.
  *
- * Два ряда фильтров сверху: класс → урок. По умолчанию открыт активный класс;
- * смена класса здесь — это только просмотр словаря, программу она не переключает.
- * Список урока берём из `wordIds`, а не из `theme`: у слова может быть два
- * урока в разных классах, и тема — не источник правды.
+ * Компактный выбор класса меняет только просмотр словаря, не программу профиля.
  *
  * Ниже:
  *  1) сводка с круговой диаграммой — сколько слов ребёнок уже знает и сколько осталось;
@@ -135,7 +163,6 @@ export function WordsScreen() {
   const profile = useActiveProfile();
   const active = availableClass(profile?.activeClass ?? 2);
   const [grade, setGrade] = useState<ClassId>(active);
-  const [lessonFilter, setLessonFilter] = useState<string>('all');
   const [bucketFilter, setBucketFilter] = useState<'all' | WordBucket>('all');
   const [query, setQuery] = useState<string>('');
   const [expandedCols, setExpandedCols] = useState<Partial<Record<WordBucket, boolean>>>({});
@@ -150,12 +177,7 @@ export function WordsScreen() {
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
 
-  const lessons = LESSONS_BY_GRADE[grade];
-  const gradeWords = WORDS_BY_GRADE[grade];
-  const lesson = lessons.find((l) => l.id === lessonFilter);
-  const scopeWords = lesson
-    ? lesson.wordIds.map((id) => WORD_BY_ID[id]).filter(Boolean)
-    : gradeWords;
+  const scopeWords = WORDS_BY_GRADE[grade];
   const word = open ? WORD_BY_ID[open] : null;
 
   const scopeSummary = buildDictionarySummary(scopeWords, profile?.words);
@@ -173,24 +195,16 @@ export function WordsScreen() {
 
   const pickGrade = (next: ClassId) => {
     setGrade(next);
-    setLessonFilter('all');
     setBucketFilter('all');
     setExpandedCols({});
     setOpen(null);
-  };
-
-  const pickLesson = (next: string) => {
-    setLessonFilter(next);
-    setExpandedCols({});
   };
 
   const toggleBucket = (b: WordBucket) => {
     setBucketFilter((prev) => (prev === b ? 'all' : b));
   };
 
-  const scopeTitle = lesson
-    ? `${lesson.emoji} ${lesson.title}`
-    : `${CLASS_META[grade].emoji} ${CLASS_META[grade].title}`;
+  const scopeTitle = `${CLASS_META[grade].emoji} ${CLASS_META[grade].title}`;
 
   const allMastered = scopeSummary.total > 0 && scopeSummary.remaining === 0;
   const openState = word ? profile?.words[word.id] : undefined;
@@ -199,49 +213,26 @@ export function WordsScreen() {
   return (
     <div className="screen words-screen">
       <div className="dict-top">
-        <h1 className="mb">Словарик 📖</h1>
-
-        {AVAILABLE_CLASSES.length > 1 && (
-          <div className="row mb dict-scroll-row" role="group" aria-label="Выбор класса">
-            {AVAILABLE_CLASSES.map((g) => (
-              <button
-                key={g}
-                type="button"
-                className={`chip ${grade === g ? 'on' : ''}`}
-                aria-pressed={grade === g}
-                onClick={() => pickGrade(g)}
+        <div className="dict-header mb">
+          <h1>Словарик 📖</h1>
+          {AVAILABLE_CLASSES.length > 1 && (
+            <label className="dict-grade-picker">
+              <select
+                value={grade}
+                aria-label="Класс словарика (не меняет программу обучения)"
+                onChange={(e) => pickGrade(Number(e.target.value) as ClassId)}
               >
-                {CLASS_META[g].emoji} {CLASS_META[g].title}
-              </button>
-            ))}
-          </div>
-        )}
-
-        <div className="row mb dict-scroll-row" role="group" aria-label="Фильтр по теме урока">
-          <button
-            type="button"
-            className={`chip ${lessonFilter === 'all' ? 'on' : ''}`}
-            aria-pressed={lessonFilter === 'all'}
-            onClick={() => pickLesson('all')}
-          >
-            Все темы
-          </button>
-          {lessons.map((l) => (
-            <button
-              key={l.id}
-              type="button"
-              className={`chip ${lessonFilter === l.id ? 'on' : ''}`}
-              aria-pressed={lessonFilter === l.id}
-              onClick={() => pickLesson(l.id)}
-            >
-              {l.emoji} {l.title}
-            </button>
-          ))}
+                {AVAILABLE_CLASSES.map((g) => (
+                  <option key={g} value={g}>{g} класс</option>
+                ))}
+              </select>
+            </label>
+          )}
         </div>
 
         {/* Главный блок для ребёнка: круговая диаграмма + ясно сколько уже знает и сколько ещё нет */}
         <section className="card dict-hero mb" data-dict-summary aria-label="Твой прогресс по словам">
-          <MasteryDonut summary={scopeSummary} />
+          <MasteryDonut summary={scopeSummary} selected={bucketFilter} onSelect={toggleBucket} />
           <div className="dict-hero-body">
             <div className="dict-scope-label">
               {scopeTitle} · {scopeSummary.total}{' '}
@@ -306,7 +297,7 @@ export function WordsScreen() {
                 Все 4 колонки
               </button>
             ) : (
-              <span className="tiny">нажми на цвет, чтобы выбрать группу</span>
+              <span className="tiny">нажми на цвет или часть круга</span>
             )}
           </div>
 
