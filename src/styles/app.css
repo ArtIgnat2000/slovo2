@@ -8342,59 +8342,10 @@ p {
   margin: 14px 0 0;
   color: var(--ink-3);
 }
-/* One side at a time: both textures share an aligned silhouette and rotate as
-   a rigid card. Backface visibility prevents the reverse side bleeding through. */
-.phone-view {
-  aspect-ratio: 1;
-  perspective: 900px;
-}
-.phone-rotate {
-  padding: 0;
-  border: 0;
-  border-radius: 16px;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-}
-.phone-rotate:focus-visible {
-  outline: 3px solid var(--accent, #8065c9);
-  outline-offset: 3px;
-}
-.phone-turntable {
-  position: relative;
-  display: block;
-  width: 100%;
-  aspect-ratio: 1;
-  transform-style: preserve-3d;
-  transition: transform 650ms cubic-bezier(.2,.7,.25,1);
-}
-.phone-turntable.is-front { transform: rotateY(180deg); }
-.phone-face {
-  display: block;
-  position: absolute;
-  inset: 0;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
-.phone-face-front { transform: rotateY(180deg); }
-.phone-face > img { display: block; width: 100%; height: auto; user-select: none; }
-.phone-tint {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: var(--phone-tint);
-  mix-blend-mode: color;
-  opacity: .72;
-  mask: var(--phone-mask) center / 100% 100% no-repeat;
-  -webkit-mask: var(--phone-mask) center / 100% 100% no-repeat;
-}
-.phone-rotate-hint { text-align: center; margin: 4px 0 12px; }
-@media (prefers-reduced-motion: reduce) {
-  .phone-turntable { transition: none; }
-}
+/* 0.83.0: телефоны сняты студийными фотографиями, поворот ушёл вместе с
+   3D-спинками — кадр один, крутить нечего. Здесь осталась только подпись
+   под артом («нажми на машину — рассмотри кузов ближе»). */
+.art-hint { text-align: center; margin: 4px 0 12px; }
 
 /* ── Быстрый звук (0.29.0) ────────────────────────────────────────────────
    Тап — вкл/выкл музыки, долгое нажатие — тишина на 15 минут.

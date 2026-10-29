@@ -157,15 +157,15 @@ export const SHOP_ITEMS: ShopItem[] = [
   { id: 'school-scarf', slot: 'neck', kind: 'outfit', series: 'naash', title: 'Шарф в триколоре', desc: 'Полоса в цветах знака, с бахромой', price: 30 },
   { id: 'school-hoodie', slot: 'body', kind: 'outfit', series: 'naash', title: 'Худи школы', desc: 'Футер цвета знака, знак на груди', price: 45 },
   // ── Техника (полка «Техника»): телефоны ─────────────────────────────────
-  { id: 'phone-smart', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone Air', desc: 'Тонкий серебристый корпус и одна камера. Нажми на телефон, чтобы увидеть экран', price: 25 },
-  { id: 'phone-flip', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone 17', desc: 'Лавандовое стекло и две камеры. Нажми на телефон, чтобы повернуть', price: 30 },
-  { id: 'phone-retro', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone 17 Pro Max', desc: 'Оранжевый корпус и три объектива. Поверни и рассмотри с другой стороны', price: 55 },
+  { id: 'phone-smart', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone Air', desc: 'Тонкий серебристый корпус, полированные грани и одна камера', price: 25 },
+  { id: 'phone-flip', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone 17', desc: 'Лавандовое стекло, сатиновые грани и две камеры', price: 30 },
+  { id: 'phone-retro', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone 17 Pro Max', desc: 'Оранжевый корпус, титановые грани и три объектива', price: 55 },
   // Современная электроника остаётся на полке «Телефоны».
-  { id: 'phone-pro', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone 17 Pro', desc: 'Глубокий синий металл и три камеры. Нажми на телефон, чтобы повернуть', price: 75 },
+  { id: 'phone-pro', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone 17 Pro', desc: 'Глубокий синий металл и три камеры в квадратном блоке', price: 75 },
   // ── 0.72.0: линейка iPhone 18 ────────────────────────────────────────────
-  { id: 'phone-18', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone 18', desc: 'Новая бордовая линейка: глянцевое стекло и две камеры. Нажми, чтобы повернуть', price: 85 },
+  { id: 'phone-18', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone 18', desc: 'Новая бордовая линейка: глянцевое стекло и две камеры', price: 85 },
   { id: 'phone-18-air', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone 18 Air', desc: 'Самый тонкий в линейке: светло-бордовый корпус и одна камера', price: 95 },
-  { id: 'phone-18-pro', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone 18 Pro', desc: 'Бордовый титановый корпус и три камеры. Нажми, чтобы повернуть', price: 120 },
+  { id: 'phone-18-pro', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone 18 Pro', desc: 'Бордовый титановый корпус и три камеры', price: 120 },
   { id: 'phone-18-max', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone 18 Pro Max', desc: 'Как настоящий Pro Max: широкое плато камер на всю спинку, алюминиевый корпус и стеклянное окошко. Тёмно-бордовый, самый большой в линейке', price: 140 },
   { id: 'laptop-air', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '💻', title: 'Невесомый Air', desc: 'Тонкий серебристый ноутбук: настоящие клавиши, большой трекпад и яркий экран', price: 110 },
   { id: 'tv-cinema', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📺', title: 'Домашний кинотеатр', desc: 'Большой телевизор с тонкой рамкой: горное озеро на экране как живое', price: 95 },

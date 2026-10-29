@@ -47,6 +47,7 @@ import { idbStorage } from '../src/platform/storage';
 import { MAIN_KEY } from '../src/platform/vault';
 import { questTitle } from '../src/engine/quests';
 import { ITEM_BY_ID, SHOP_ITEMS, TOY_ITEMS, growthStage, sellPrice } from '../src/engine/shop';
+import { hasProductPhoto } from '../src/ui/ProductPhoto';
 import { TINT_PALETTES, TINT_PRICE } from '../src/engine/tints';
 import { THEME_STYLES } from '../src/engine/theme-styles';
 import { masteredCount } from '../src/state/store';
@@ -691,12 +692,31 @@ async function main() {
   // Каждая машина — отдельный цветной карандашный рисунок (public/cars/*.webp).
   {
     const carTitles = /Звезда|Стрела|Кубик|Адмирал|Лорд|Бык|Молния|Болид|Скалолаз|Жёлтый кэб|Квант|Импульс|Полярник|Луноход|Огнедышащий|Розовая машина|Розовая звезда|Тесла/;
-    const carArt = Array.from(document.querySelectorAll('.shop-item.toy-item'))
-      .filter((el) => carTitles.test(el.textContent ?? ''))
-      .map((el) => el.querySelector('img')?.getAttribute('src') ?? '');
-    check('«Авто»: у каждой машины свой карандашный рисунок', carArt.length === 18 && new Set(carArt).size === carArt.length && carArt.every((src) => /\/cars\/car-[a-z-]+\.webp$/.test(src)), `уникальных рисунков: ${new Set(carArt).size}/${carArt.length}`);
+    const carCards = Array.from(document.querySelectorAll('.shop-item.toy-item')).filter((el) => carTitles.test(el.textContent ?? ''));
+    const carArt = carCards.map((el) => el.querySelector('img')?.getAttribute('src') ?? '');
+    // 0.80.0: машины переводятся на студийные снимки партиями — рисунок
+    // остаётся только у тех, кого ещё не пересняли, и это видно по адресу.
+    check(
+      '«Авто»: у каждой машины своя картинка, без повторов',
+      carArt.length === 18 &&
+        new Set(carArt).size === carArt.length &&
+        carArt.every((src) => /\/(cars|products)\/car-[a-z-]+\.webp$/.test(src)),
+      `уникальных: ${new Set(carArt).size}/${carArt.length}`,
+    );
+    check(
+      '«Авто»: переснятые машины показывают студийный снимок',
+      carCards.every((el) => {
+        const src = el.querySelector('img')?.getAttribute('src') ?? '';
+        return !src.includes('/products/') || !!el.querySelector('.shop-icon > img.product-photo');
+      }),
+      carArt.join(', ').slice(0, 160),
+    );
     const tankCard = Array.from(document.querySelectorAll('.shop-item.toy-item')).find((el) => (el.textContent ?? '').includes('Розовый танк'));
-    check('«Авто»: розовый танк нарисован векторным рисунком', !!tankCard?.querySelector('svg'), '');
+    check(
+      '«Авто»: розовый танк — либо снимок, либо рисунок, но не пустая ниша',
+      !!tankCard?.querySelector('.shop-icon img') || !!tankCard?.querySelector('.shop-icon svg'),
+      tankCard?.querySelector('.shop-icon')?.innerHTML.slice(0, 60) ?? 'нет карточки',
+    );
   }
   check('«Авто»: витрина-бутик показывает отдельные карточки машин', document.querySelectorAll('.shop-boutique').length === 1 && !!document.querySelector('.shop-boutique-mint'), '');
 
@@ -742,43 +762,51 @@ async function main() {
   if (phoneTab) click(phoneTab);
   await sleep(30);
   const phoneCard = Array.from(document.querySelectorAll('.shop-item.toy-item')).find((el) => (el.textContent ?? '').includes('iPhone Air'));
-  check('телефоны и электроника остаются отдельным разделом', document.querySelectorAll('.shop-item.toy-item').length === 11 && document.querySelectorAll('.shop-item.toy-item .electronics-art').length === 11 && !!phoneCard?.querySelector('.phone-rotate'), '');
+  // 0.82.0: телефоны пересняты студийными снимками, поэтому полка считается
+  // как «арт + фото = 11» и не ломается на каждой новой фотографии.
+  const electronicsCards = Array.from(document.querySelectorAll('.shop-item.toy-item'));
+  const expectedPhotos = TOY_ITEMS.filter((item) => item.toy === 'phone' && hasProductPhoto(item.id)).length;
+  const electronicsPhotos = electronicsCards.filter((el) => !!el.querySelector('img.product-photo')).length;
+  check(
+    'телефоны и электроника остаются отдельным разделом',
+    electronicsCards.length === 11 &&
+      electronicsPhotos === expectedPhotos &&
+      document.querySelectorAll('.shop-item.toy-item .electronics-art').length === 11 - electronicsPhotos,
+    `карточек=${electronicsCards.length} фото=${electronicsPhotos} ожидалось=${expectedPhotos}`,
+  );
   check('телефоны внутри полки идут от меньшей цены к большей', pricesAscending('.shop-item.toy-item'));
-  const rotatingPhone = phoneCard?.querySelector('.phone-rotate');
-  click(rotatingPhone);
-  await sleep(30);
-  check('тап по телефону поворачивает его, не открывая карточку', rotatingPhone?.getAttribute('aria-pressed') === 'true' && !!rotatingPhone.querySelector('.is-front') && !document.querySelector('.shop-sheet'), '');
-  click(rotatingPhone);
-  await sleep(30);
-  check('повторный тап возвращает заднюю панель', rotatingPhone?.getAttribute('aria-pressed') === 'false', '');
+  check(
+    'телефон со снимком показывает фотографию, а не 3D-арт',
+    !!phoneCard?.querySelector('img.product-photo') && !phoneCard?.querySelector('.electronics-art'),
+    '',
+  );
+
+  // 0.83.0: поворот телефонов убран вместе с 3D-спинками — кадр один.
+  check(
+    'телефон больше не притворяется поворотным',
+    !document.querySelector('.shop-item.toy-item .phone-rotate') &&
+      !document.querySelector('.shop-item.toy-item .phone-turntable'),
+    '',
+  );
+
   click(phoneCard?.querySelector('.shop-title'));
   await sleep(30);
-  const detailPhone = document.querySelector('.shop-sheet .phone-rotate');
-  check('подробная карточка показывает телефон, а не сову', !!detailPhone && !document.querySelector('.shop-sheet .shop-bigart .mascot'), '');
-  click(detailPhone);
-  await sleep(30);
-  check('телефон поворачивается и в подробной карточке', detailPhone?.getAttribute('aria-pressed') === 'true', '');
-  click(document.querySelector('.shop-sheet-veil'));
-  await sleep(30);
-  check('ближайшая покупка соответствует открытому разделу', has('Ближайшая покупка') && hasGem(25), gemAmounts().join(' / '));
-  // Подробный просмотр техники — про сам товар: крупный рисунок телефона,
-  // БУКа на примерке нет (технику он не носит).
-  if (phoneCard) click(phoneCard);
-  await sleep(20);
   {
     const phoneSheet = document.querySelector('.shop-sheet');
-    const phoneArt = phoneSheet?.querySelector('.shop-bigart-toy > .phone-rotate.shop-bigart-toy-art');
+    const phonePhoto = phoneSheet?.querySelector('.shop-bigart-toy img.product-photo');
     check(
-      'в подробной карточке телефона — сам телефон крупно и без БУКа',
-      !!phoneArt &&
-        (phoneArt.getAttribute('aria-label') ?? '').includes('iPhone Air') &&
+      'подробная карточка показывает снимок телефона, а не сову',
+      !!phonePhoto &&
+        phonePhoto.getAttribute('src') === '/products/phone-smart.webp' &&
         !phoneSheet?.querySelector('.mascot'),
       phoneSheet?.innerHTML.slice(0, 200) ?? 'карточка не открылась',
     );
+    check('у телефона со снимком нет подсказки про поворот', !phoneSheet?.querySelector('.art-hint'), '');
   }
   const closePhoneSheet = document.querySelector('.shop-sheet-veil');
   if (closePhoneSheet) click(closePhoneSheet);
   await sleep(20);
+  check('ближайшая покупка соответствует открытому разделу', has('Ближайшая покупка') && hasGem(25), gemAmounts().join(' / '));
 
   // ── Отдельные полки «Питомцы», «Спорт» и «Вкусняшки» (0.75.2, PR #141) ───
   // Раньше они жили вкладками внутри «Техники»; теперь у каждой своя полка,

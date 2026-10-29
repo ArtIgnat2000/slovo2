@@ -116,7 +116,8 @@ await new Promise((r) => setTimeout(r, 100));
 expect('iPhone Air', 'карточка смартфона');
 if (text().includes('Пароход')) problems.push('в новой витрине остался устаревший детский кораблик');
 if (document.querySelectorAll('.shop-item.toy-item').length !== 7) problems.push('раздел телефонов должен показывать четыре телефона и три устройства');
-if (document.querySelectorAll('.shop-item.toy-item .phone-rotate').length !== 4) problems.push('четыре телефона должны поддерживать поворот');
+// 0.83.0: телефоны сняты фотографиями, поворот убран — проверяем сами снимки.
+if (document.querySelectorAll('.shop-item.toy-item img.product-photo').length !== 4) problems.push('у телефонов витрины должны быть студийные снимки');
 
 // Подробная карточка техники: крупный арт и честная подпись
 tap('iPhone 17');
