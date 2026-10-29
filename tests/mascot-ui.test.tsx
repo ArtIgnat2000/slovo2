@@ -156,6 +156,114 @@ export async function runFloatingMascotChecks(): Promise<void> {
   // ── Автоскрытие при прокрутке в jsdom выключено (AUTO_HIDE=false) ───────────
   check('БУК: в тестовой среде автоскрытие не включается', !owl()?.classList.contains('hidden'), owl()?.className ?? '');
 
+  // ── Живой SVG (0.85.0): глаза следят за указателем, веки моргают ──────────
+  pev('pointermove', window.innerWidth - 60, 60, window);
+  await sleep(40);
+  const pupils = document.querySelector('.app > .mascot .buk-pupils') as SVGGElement | null;
+  check(
+    'БУК: зрачки поворачиваются за указателем',
+    !!pupils && /translate\(-?\d/.test(pupils.style.transform),
+    pupils?.style.transform ?? 'группы нет',
+  );
+  check(
+    'БУК: развёрнутый плавающий БУК живой (.buk-stage.alive)',
+    !!document.querySelector('.app > .mascot .buk-stage.alive'),
+    '',
+  );
+  check('БУК: у живого БУКа включены веки-моргание', !!document.querySelector('.app > .mascot .buk-lid.on'), '');
+
+  // ── Навигатор (0.85.0): кнопка 🧭 открывает дугу из пяти дверей ────────────
+  const hubBtn = document.querySelector('.app > .mascot .mascot-hub') as HTMLButtonElement | null;
+  check(
+    'БУК: есть кнопка навигатора «Куда полетим»',
+    !!hubBtn && hubBtn.getAttribute('aria-expanded') === 'false',
+    hubBtn?.outerHTML.slice(0, 70) ?? 'кнопки нет',
+  );
+  if (hubBtn) click(hubBtn);
+  await sleep(40);
+  const doorCount = document.querySelectorAll('.app > .mascot .buk-door').length;
+  check('БУК: навигатор открывает дугу из пяти дверей', doorCount === 5, `дверей: ${doorCount}`);
+  check('БУК: под дугой есть подложка для тапа мимо', !!document.querySelector('.app > .mascot .buk-hub-veil'), '');
+  check('БУК: кнопка навигатора помечена раскрытой', document.querySelector('.mascot-hub')?.getAttribute('aria-expanded') === 'true', '');
+
+  // Escape закрывает дугу — как любой лист в приложении.
+  window.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape' }));
+  await sleep(40);
+  check('БУК: Escape закрывает навигатор', !document.querySelector('.buk-hub'), 'дуга осталась');
+
+  // Тап мимо дверей (подложка) тоже закрывает.
+  if (hubBtn) click(hubBtn);
+  await sleep(40);
+  const veil = document.querySelector('.app > .mascot .buk-hub-veil');
+  check('БУК: дуга открылась повторно', !!veil && !!document.querySelector('.buk-hub'), '');
+  if (veil) click(veil);
+  await sleep(40);
+  check('БУК: тап по подложке закрывает навигатор', !document.querySelector('.buk-hub'), '');
+
+  // ── Дверь «🎁 Задания»: разовая команда главной открывает лист заданий ─────
+  if (hubBtn) click(hubBtn);
+  await sleep(40);
+  const questsDoor = Array.from(document.querySelectorAll('.buk-door')).find((d) =>
+    (d.textContent ?? '').includes('Задания'),
+  );
+  check('БУК: дверь «Задания» есть в дуге', !!questsDoor, '');
+  if (questsDoor) click(questsDoor);
+  await sleep(60);
+  check('БУК: дверь «Задания» открыла лист заданий', !!document.querySelector('.rewards-sheet'), 'листа нет');
+  check('БУК: после выбора двери навигатор закрыт', !document.querySelector('.buk-hub'), '');
+  window.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape' }));
+  await sleep(40);
+  check('БУК: лист заданий закрывается Escape', !document.querySelector('.rewards-sheet'), '');
+
+  // ── Дверь «🎵 Музыка»: витрина сразу на полке «Музыка» ─────────────────────
+  if (hubBtn) click(hubBtn);
+  await sleep(40);
+  const musicDoor = Array.from(document.querySelectorAll('.buk-door')).find((d) =>
+    (d.textContent ?? '').includes('Музыка'),
+  );
+  check('БУК: дверь «Музыка» есть в дуге', !!musicDoor, '');
+  if (musicDoor) click(musicDoor);
+  await sleep(60);
+  const musicTab = Array.from(document.querySelectorAll('.shop-cats [role="tab"]')).find((b) =>
+    (b.textContent ?? '').includes('Музыка'),
+  );
+  check(
+    'БУК: витрина открылась сразу на полке «Музыка»',
+    musicTab?.getAttribute('aria-selected') === 'true',
+    musicTab ? `aria-selected=${musicTab.getAttribute('aria-selected')}` : 'вкладки нет',
+  );
+
+  // Возвращаемся на главную: дальше дуга проверяется дверью «Мой мир».
+  const toHome = () =>
+    Array.from(document.querySelectorAll('.tabs .tab')).find((b) => (b.textContent ?? '').includes('Уроки')) as
+      | HTMLButtonElement
+      | undefined;
+  const homeTab1 = toHome();
+  if (homeTab1) click(homeTab1);
+  await sleep(60);
+  check('БУК: после «Музыки» вернулись на «Уроки»', !!document.querySelector('.app > .mascot'), '');
+
+  // ── Дверь «🌍 Мой мир»: мир открывается из дуги ─────────────────────────────
+  const hubBtn2 = document.querySelector('.app > .mascot .mascot-hub') as HTMLButtonElement | null;
+  if (hubBtn2) click(hubBtn2);
+  await sleep(40);
+  const worldDoor = Array.from(document.querySelectorAll('.buk-door')).find((d) =>
+    (d.textContent ?? '').includes('Мой мир'),
+  );
+  check('БУК: дверь «Мой мир» есть в дуге', !!worldDoor, '');
+  if (worldDoor) click(worldDoor);
+  await sleep(60);
+  check('БУК: дверь «Мой мир» открыла мир', !!document.querySelector('.my-world'), 'мира нет');
+  check('БУК: после перехода из дуги навигатор закрыт', !document.querySelector('.buk-hub'), '');
+  const homeTab2 = toHome();
+  if (homeTab2) click(homeTab2);
+  await sleep(60);
+  check(
+    'БУК: из мира вернулись на «Уроки» — порядок блоков сохранён',
+    !document.querySelector('.my-world') && !!document.querySelector('.app > .mascot'),
+    '',
+  );
+
   // ── БУК не мешает остальным экранам: во время карточек урока его нет.
   // (проверка pretest-audit «во время карточек урока плавающий БУК скрыт»)
 

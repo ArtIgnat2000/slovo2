@@ -102,7 +102,8 @@ const MUSIC_SHELVES: { shelf: MusicShelf; title: string }[] = [
 type View = 'vitrina' | 'wardrobe' | 'world';
 
 /** Полки витрины — по типу товара, не по слоту совы. */
-type Cat = 'naash' | 'outfits' | 'toys' | 'buildings' | 'pets' | 'sport' | 'food' | 'sets' | 'music' | 'sounds' | 'backgrounds';
+/** Полка магазина. Экспортируется (0.85.0): навигатор БУКа входит витрину сразу на «Музыке». */
+export type Cat = 'naash' | 'outfits' | 'toys' | 'buildings' | 'pets' | 'sport' | 'food' | 'sets' | 'music' | 'sounds' | 'backgrounds';
 
 // 0.54.0: у полок магазина — те же иконки набора, что в остальном интерфейсе.
 // У «Техники», «Музыки» и «Фонов» своей иконки в наборе 20 пока нет — остаются
@@ -290,8 +291,11 @@ function Sheet(props: { onClose: () => void; children: React.ReactNode }) {
  */
 export function ShopScreen({
   initialView = 'vitrina',
+  initialCat = 'outfits',
 }: {
   initialView?: 'vitrina' | 'wardrobe' | 'world';
+  /** С какой полки открывать витрину — вход двери «🎵 Музыка» (0.85.0). */
+  initialCat?: Cat;
 } = {}) {
   const profile = useActiveProfile();
   const look = useLook();
@@ -313,7 +317,7 @@ export function ShopScreen({
   const themeStyle = useApp((s) => s.settings.themeStyle);
   const setSettings = useApp((s) => s.setSettings);
   const [view, setView] = useState<View>(initialView);
-  const [cat, setCat] = useState<Cat>('outfits');
+  const [cat, setCat] = useState<Cat>(initialCat);
   const [toyShelf, setToyShelf] = useState<ToyKind>('car');
   // Подробная карточка и её палитра (палитра — только в sheet)
   const [sheet, setSheet] = useState<Detail | null>(null);

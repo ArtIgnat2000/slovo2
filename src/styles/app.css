@@ -5544,15 +5544,19 @@ img.product-photo {
 .mascot.raised {
   bottom: calc(148px + var(--safe-b));
 }
-/* Кнопки БУКа — столбиком у правого края, над пузырём и совой */
+/* Кнопки БУКа — столбиком у правого края, над пузырём и совой.
+   z-index: выше дуги навигатора — «свернуть» доступно, пока дуга открыта. */
 .mascot-actions {
   align-self: flex-end;
+  position: relative;
+  z-index: 2;
   display: flex;
   gap: 6px;
   margin-bottom: 4px;
 }
 .mascot-fold,
-.mascot-home {
+.mascot-home,
+.mascot-hub {
   position: relative;
   width: 28px;
   height: 28px;
@@ -5571,14 +5575,16 @@ img.product-photo {
 }
 /* Кнопки растянуты до 44 px в касании (WCAG 2.5.5): сам кружок остаётся 28 px */
 .mascot-fold::after,
-.mascot-home::after {
+.mascot-home::after,
+.mascot-hub::after {
   content: '';
   position: absolute;
   inset: -8px;
   border-radius: 50%;
 }
 .mascot-fold:active,
-.mascot-home:active {
+.mascot-home:active,
+.mascot-hub:active {
   transform: scale(0.94);
 }
 .mascot-home {
@@ -9096,6 +9102,125 @@ img.product-photo {
 }
 
 
+/* ── Живой БУК: взгляд, моргание и навигатор-дуга (0.85.0) ─────────────────
+   «Живой» — только плавающий экземпляр и только развёрнутый: в магазине,
+   церемонии и на карточках сова остаётся спокойной картинкой. Зрачки и наклон
+   записывает ui/FloatingMascot (тут — сглаживание), моргание — чистая CSS-
+   анимация век; при prefers-reduced-motion всё выключается, глаза открыты. */
+.buk-stage {
+  position: relative;
+  line-height: 0;
+}
+.buk-stage.alive > svg {
+  transition: transform 0.35s ease-out;
+}
+.buk-pupils {
+  transition: transform 0.22s ease-out;
+}
+.buk-lid {
+  opacity: 0;
+}
+.buk-lid.on {
+  /* Задержка фиксирована (без Math.random — см. детерминизм смоука). */
+  animation: bukBlink 4.8s 0.4s infinite;
+}
+@keyframes bukBlink {
+  0%,
+  95%,
+  100% {
+    opacity: 0;
+  }
+  96%,
+  97.5% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .buk-lid.on {
+    animation: none;
+  }
+  .buk-stage.alive > svg,
+  .buk-pupils {
+    transition: none;
+  }
+}
+
+/* Дуга навигатора: подложка-«всеобщий тап мимо» лежит под совой и дверями,
+   но выше страницы — z-index: -1 внутри stacking context `.mascot` (z: 25). */
+.buk-hub-veil {
+  position: absolute;
+  inset: -200vh -200vw;
+  z-index: -1;
+  background: rgb(0 0 0 / 0.16);
+}
+.buk-hub {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+}
+/* Кнопка-дверь позиционируется трансформацией от центра совы: поворот,
+   сдвиг по нормали и обратный поворот, чтобы подпись осталась горизонтальной. */
+.buk-door {
+  position: absolute;
+  left: -30px;
+  top: -30px;
+  width: 60px;
+  min-height: 60px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  transform: rotate(calc(var(--a, 0) * 1deg)) translateY(-112px) rotate(calc(var(--a, 0) * -1deg));
+}
+.buk-door-face {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  animation: bukDoorIn 0.24s cubic-bezier(0.2, 1.3, 0.4, 1) backwards;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+@keyframes bukDoorIn {
+  from {
+    opacity: 0;
+    transform: scale(0.45);
+  }
+}
+.buk-door-emoji {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  background: var(--card);
+  font-size: 22px;
+  line-height: 1;
+  box-shadow: var(--shadow);
+}
+.buk-door-label {
+  max-width: 60px;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--ink-2);
+  text-align: center;
+}
+.buk-door:active .buk-door-emoji {
+  transform: scale(0.92);
+}
+.buk-door:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 14px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .buk-door-face {
+    animation: none;
+  }
+}
 /* Карточка открывается поверх родительского обзора, не меняя раздел. */
 .parent-word-dialog {
   width: min(420px, calc(100% - 32px));
