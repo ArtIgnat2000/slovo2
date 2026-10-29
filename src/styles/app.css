@@ -9102,6 +9102,33 @@ img.product-photo {
 }
 
 
+/* Поддержка доступна взрослым сразу, но не прерывает занятия и не просит внимания. */
+.support-developer {
+  margin: 12px 0 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--card);
+}
+.support-developer summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  list-style: none;
+}
+.support-developer summary::-webkit-details-marker { display: none; }
+.support-developer summary:focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; border-radius: 16px; }
+.support-developer-heart { color: var(--primary-ink); font-size: 28px; line-height: 1; }
+.support-developer-label { display: grid; gap: 2px; flex: 1; }
+.support-developer-label span, .support-developer-hint { color: var(--ink-2); font-size: 0.85rem; }
+.support-developer-arrow { color: var(--ink-2); font-size: 22px; }
+.support-developer[open] .support-developer-arrow { transform: rotate(180deg); }
+.support-developer-content { padding: 0 16px 16px; line-height: 1.5; }
+.support-developer-content p { margin: 0 0 12px; }
+.support-developer-qr { display: block; width: min(220px, 100%); height: auto; margin: 12px auto; padding: 12px; background: #fff; }
+.support-developer-link { display: inline-flex; margin-bottom: 12px; text-decoration: none; }
+.support-developer-content p:last-child { margin-bottom: 0; }
 /* ── Живой БУК: взгляд, моргание и навигатор-дуга (0.85.0) ─────────────────
    «Живой» — только плавающий экземпляр и только развёрнутый: в магазине,
    церемонии и на карточках сова остаётся спокойной картинкой. Зрачки и наклон

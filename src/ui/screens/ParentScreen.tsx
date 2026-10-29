@@ -4,6 +4,7 @@ import { OverviewTab } from '../parent/OverviewTab';
 import { ProgressTab } from '../parent/ProgressTab';
 import { SettingsTab } from '../parent/SettingsTab';
 import { AppTab } from '../parent/AppTab';
+import { SupportDeveloper } from '../SupportDeveloper';
 import { ListsTab } from '../parent/ListsTab';
 import { PARENT_TABS, ParentPanel, ParentTabs, type ParentTabId } from '../parent/ParentBits';
 
@@ -71,6 +72,8 @@ export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs, 
         </div>
         <div className="parent-child-name grow">{profile.name}</div>
       </div>
+
+      <SupportDeveloper />
 
       <ParentTabs items={PARENT_TABS} value={tab} onChange={setTab} />
 
