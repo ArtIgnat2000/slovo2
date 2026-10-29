@@ -5,12 +5,16 @@ import { StorageBanner, StorageScreen } from './ui/StorageScreen';
 import { ThemeBanner } from './ui/ThemeBanner';
 import { onExternalChange } from './platform/vault';
 import { FloatingMascot } from './ui/FloatingMascot';
+import type { HubDoor } from './ui/BukHub';
+import { nextStartAction } from './engine/next-start';
+import { useHomeIntent } from './state/home-intent';
 import { HomeScreen } from './ui/screens/HomeScreen';
 import { WordsScreen } from './ui/screens/WordsScreen';
 import { ParentScreen } from './ui/screens/ParentScreen';
 import { ProfilesScreen } from './ui/screens/ProfilesScreen';
 import { LessonScreen } from './ui/screens/LessonScreen';
 import { ShopScreen } from './ui/screens/ShopScreen';
+import type { Cat as ShopCat } from './ui/screens/ShopScreen';
 import { RatingScreen } from './ui/screens/RatingScreen';
 import { VlabsScreen } from './ui/screens/VlabsScreen';
 import { DiagnosticsScreen } from './ui/DiagnosticsScreen';
@@ -110,8 +114,11 @@ export default function App() {
   const [justUpdated] = useState(() => takeAppliedVersion());
 
   // Куда откроется БУК из меню главной; состояние выше ранних return'ов,
-  // чтобы число хуков не менялось между рендерами.
-  const [shopEntry, setShopEntry] = useState<{ view: 'vitrina' | 'wardrobe' | 'world' }>({ view: 'vitrina' });
+  // чтобы число хуков не менялось между рендерами. `cat` — сразу на нужную
+  // полку витрины (дверь «🎵 Музыка» навигатора, 0.85.0).
+  const [shopEntry, setShopEntry] = useState<{ view: 'vitrina' | 'wardrobe' | 'world'; cat?: ShopCat }>({
+    view: 'vitrina',
+  });
 
   useEffect(() => {
     const apply = () => {
@@ -302,12 +309,47 @@ export default function App() {
     setTab(next);
   };
 
-  /** Быстрый вход в нужную часть БУКа из меню главной. */
-  const openShop = (view: 'vitrina' | 'wardrobe' | 'world') => {
-    setShopEntry({ view });
+  /** Быстрый вход в нужную часть БУКа из меню главной и из навигатора БУКа. */
+  const openShop = (view: 'vitrina' | 'wardrobe' | 'world', cat?: ShopCat) => {
+    setShopEntry(cat ? { view, cat } : { view });
     setProfilesOpen(false);
     setTab('shop');
   };
+
+  /**
+   * Навигатор БУКа (0.85.0): пять дверей — те же разделы, что в меню ☰
+   * главной, только в один тап от совы. Порядок как в меню: сначала учёба,
+   * потом мир, задания и наряды, музыка последней.
+   */
+  const hubDoors: HubDoor[] = [
+    {
+      id: 'lesson',
+      emoji: '📖',
+      label: 'Урок',
+      run: () => {
+        // «Пора повторить» важнее нового урока — то же правило, что у героя
+        // главной (engine/next-start, его же использует HomeScreen).
+        const next = nextStartAction(profile);
+        if (next.reviewDue) startLesson('review');
+        else if (next.lessonId) startLesson(next.lessonId);
+      },
+    },
+    { id: 'world', emoji: '🌍', label: 'Мой мир', run: () => openShop('world') },
+    {
+      id: 'quests',
+      emoji: '🎁',
+      label: 'Задания',
+      run: () => {
+        // Лист заданий живёт на главной: переключаемся и даём HomeScreen
+        // разовую команду открыться (state/home-intent).
+        setProfilesOpen(false);
+        setTab('home');
+        useHomeIntent.getState().fire('rewards');
+      },
+    },
+    { id: 'wardrobe', emoji: '🎩', label: 'Наряды', run: () => openShop('wardrobe') },
+    { id: 'music', emoji: '🎵', label: 'Музыка', run: () => openShop('vitrina', 'music') },
+  ];
 
   if (lessonId) {
     return (
@@ -367,8 +409,9 @@ export default function App() {
           // Ключ пересоздаёт экран, когда меняется точка входа: иначе тап по
           // нижней вкладке «БУК» из «Моих покупок» не вернул бы витрину —
           // useState(initialView) читается только при монтировании.
-          key={shopEntry.view}
+          key={`${shopEntry.view}${shopEntry.cat ?? ''}`}
           initialView={shopEntry.view}
+          initialCat={shopEntry.cat}
         />
       ) : (
         <ParentScreen
@@ -396,7 +439,7 @@ export default function App() {
         tab !== 'shop' &&
         settings.mascot !== 'off' &&
         (settings.mascot !== 'home' || tab === 'home') && (
-          <FloatingMascot raised={updateReady || installHint} />
+          <FloatingMascot raised={updateReady || installHint} hub={hubDoors} />
         )}
       <Toast />
 
