@@ -17,7 +17,8 @@ import { Icon, Gem } from '../Icon';
 import { InviteFriend } from '../InviteFriend';
 import { WeeklyRewards } from '../WeeklyRewards';
 import { classProgress, nextClass } from '../../engine/classes';
-import { pickReviewWords } from '../../engine/srs';
+import { nextStartAction } from '../../engine/next-start';
+import { useHomeIntent } from '../../state/home-intent';
 import {
   allQuestsDone,
   bonusChestsReady,
@@ -66,6 +67,18 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
   const profile = useActiveProfile();
   const setActiveClass = useApp((s) => s.setActiveClass);
   const [rewardsOpen, setRewardsOpen] = useState(false);
+  /**
+   * Разовая команда навигатора БУКа (0.85.0): дверь «🎁 Задания» переключила
+   * вкладку на главную и просила открыть лист заданий. Команда гаснет сразу,
+   * чтобы не открываться заново при каждой перерисовке экрана.
+   */
+  const intent = useHomeIntent((s) => s.intent);
+  const intentNonce = useHomeIntent((s) => s.nonce);
+  useEffect(() => {
+    if (intent !== 'rewards') return;
+    setRewardsOpen(true);
+    useHomeIntent.getState().clear();
+  }, [intentNonce, intent]);
   /** «Позови друга» — 0.32.1: ссылка должна быть в один тап с первого экрана. */
   const [inviteOpen, setInviteOpen] = useState(false);
   /** Меню ☰ (0.33.0) — заменяет 🎁 в шапке: награды, покупки, мир, друг, профиль. */
@@ -124,22 +137,14 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
   const previewLessons = classLessons.slice(previewFrom, previewFrom + 3);
   const visibleLessons = pathOpen ? classLessons : previewLessons;
 
-  // «Пора повторить» считает слова тем же правилом, что и сам урок повторения:
-  // раньше блок обещал слова, которых урок не показывал, и открывалось «Повторять нечего!».
-  // Повторение — по всем изученным словам 1–4, а не только активного класса:
-  // иначе при переходе 2 → 3 слова 2 класса перестают приходить в повтор,
-  // а задание дня «Повтори N слов» становится невыполнимым.
-  const review = pickReviewWords(
-    WORDS,
-    profile.words,
-    new Set(),
-    12,
-    new Set(profile.days[dayKey()]?.reviewWords ?? []),
-  );
-  const reviews = review.words;
-  const reviewDue = reviews.length > 0 && review.kind === 'due';
   const currentDone = current.wordIds.filter((id) => (profile.words[id]?.s ?? 0) > 0).length;
   const rewards = rewardsCount(profile);
+  // «Пора повторить» и ближайший урок считает движок (engine/next-start):
+  // созревшие повторения первыми, иначе — первый непройденный урок класса.
+  // Тот же расчёт стоит у двери «📖 Урок» навигатора БУКа, чтобы кнопки
+  // «Начать» на главной и в дуге никогда не разъезжались.
+  const next = nextStartAction(profile);
+  const reviewDue = next.reviewDue;
 
   /** Escape закрывает меню, как любой лист в приложении. */
   useEffect(() => {
@@ -158,7 +163,7 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
 
   const startHero = () => {
     if (reviewDue) onStartReview();
-    else onStartLesson(current.id);
+    else onStartLesson(next.lessonId ?? current.id);
   };
 
   return (
@@ -317,7 +322,7 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
               <span className="home-hero-title">{reviewDue ? 'Пора повторить' : current.title}</span>
               <span className="home-hero-meta">
                 {reviewDue
-                  ? `${reviews.length} ${plural(reviews.length, 'слово готово', 'слова готовы', 'слов готовы')} забыться`
+                  ? `${next.reviewCount} ${plural(next.reviewCount, 'слово готово', 'слова готовы', 'слов готовы')} забыться`
                   : `${currentDone} из ${current.wordIds.length} слов`}
               </span>
             </span>
