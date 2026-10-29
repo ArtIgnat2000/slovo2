@@ -596,10 +596,10 @@ p {
 .btn.primary {
   background: var(--primary);
   color: var(--on-primary);
-  box-shadow: 0 5px 0 #5b3ede;
+  box-shadow: 0 5px 0 var(--primary-depth);
 }
 .btn.primary:active {
-  box-shadow: 0 2px 0 #5b3ede;
+  box-shadow: 0 2px 0 var(--primary-depth);
   transform: translateY(3px);
 }
 .btn.green {
@@ -1345,13 +1345,13 @@ p {
   min-height: 52px;
   border-radius: var(--r-md);
   background: var(--primary);
-  color: #fff;
+  color: var(--on-primary);
   font-size: var(--fs-md);
   font-weight: 800;
-  box-shadow: 0 4px 0 #5b3ede;
+  box-shadow: 0 4px 0 var(--primary-depth);
 }
 .home-hero:active .home-hero-cta {
-  box-shadow: 0 2px 0 #5b3ede;
+  box-shadow: 0 2px 0 var(--primary-depth);
 }
 
 .home-goal .streak-days {
@@ -6435,7 +6435,7 @@ img.product-photo {
   place-items: center;
   font-size: 22px;
   background: var(--primary);
-  color: #fff;
+  color: var(--on-primary);
   flex: none;
 }
 .vlabs-promo-title {
@@ -6459,7 +6459,7 @@ img.product-photo {
   padding: 6px 12px;
   border-radius: var(--r-pill);
   background: var(--primary);
-  color: #fff;
+  color: var(--on-primary);
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.02em;
@@ -6647,7 +6647,7 @@ img.product-photo {
   padding: 3px 5px;
   border-radius: 10px;
   background: var(--primary-soft);
-  border: 1px solid rgba(124, 92, 255, 0.28);
+  border: 1px solid color-mix(in srgb, var(--primary) 28%, transparent);
   /* тень отделяет плашку от разноцветного костюма под ней */
   box-shadow: 0 1px 3px rgba(36, 31, 54, 0.2);
 }
@@ -6719,14 +6719,14 @@ img.product-photo {
   height: 10px;
   border-radius: 3px;
   background: var(--primary-soft);
-  border: 1px solid rgba(124, 92, 255, 0.28);
+  border: 1px solid color-mix(in srgb, var(--primary) 28%, transparent);
 }
 .pz-dot.on {
   background: var(--primary);
   border-color: var(--primary);
 }
 .puzzle-win {
-  border: 2px dashed rgba(124, 92, 255, 0.45);
+  border: 2px dashed color-mix(in srgb, var(--primary) 45%, transparent);
   text-align: center;
 }
 .puzzle-win .row {
