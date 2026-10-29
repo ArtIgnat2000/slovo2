@@ -9233,13 +9233,13 @@ img.product-photo {
   overscroll-behavior: contain;
 }
 .parent-word-dialog::backdrop { background: rgba(20, 16, 32, 0.5); }
-/* Три истории техники: предмет → новый ракурс → свой мир. Кадр листается тапом,
-   сценка движется тихо и уважает системное «Уменьшить движение». */
+/* Photo-only gallery: every frame keeps the neutral, premium studio treatment.
+   No drawn scene is allowed beside a photographic product. */
 .shop-bigart-toy:has(.tech-tour) {
   padding: 12px 12px 10px;
   overflow: hidden;
-  background: radial-gradient(ellipse at 50% 36%, #304c72 0%, #18253e 57%, #101a2e 100%);
-  box-shadow: inset 0 0 0 1px rgba(185, 219, 255, .22), 0 14px 30px rgba(10, 22, 43, .22);
+  background: linear-gradient(145deg, #d8d4ce, #bcb7b0 58%, #d2cec8);
+  box-shadow: inset 0 0 0 1px rgba(65, 57, 48, .12), 0 12px 26px rgba(25, 22, 18, .16);
 }
 .shop-bigart-toy:has(.tech-tour)::before,
 .shop-bigart-toy:has(.tech-tour)::after { display: none; }
@@ -9253,68 +9253,36 @@ img.product-photo {
   aspect-ratio: 4 / 3;
   overflow: hidden;
   padding: 0;
-  border: 0;
+  border: 1px solid rgba(76, 68, 59, .12);
   border-radius: 14px;
-  background: radial-gradient(ellipse, rgba(255,255,255,.16), rgba(255,255,255,0) 70%);
+  background: linear-gradient(145deg, #c9c4bd, #aaa49c 62%, #c7c2bb);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
-.tech-tour-stage:focus-visible { outline: 3px solid #ffe08a; outline-offset: -4px; }
-.tech-tour-stage > .product-photo.tech-tour-photo {
+.tech-tour-stage:focus-visible { outline: 3px solid #0f4ca0; outline-offset: -4px; }
+.tech-tour-stage > .tech-tour-photo {
   display: block;
   width: 100%;
   height: 100%;
   max-height: min(58dvh, 520px);
   object-fit: contain;
   border-radius: 12px;
-  animation: tech-shot-arrive .42s cubic-bezier(.2,.8,.25,1) both;
+  animation: tech-photo-reveal .36s cubic-bezier(.2,.8,.25,1) both;
 }
-.tech-tour-stage > .electronics-art.tech-tour-electronics {
-  display: block;
-  width: min(74%, 350px);
-  max-width: 100%;
-  max-height: 100%;
-  margin: 0;
-  filter: drop-shadow(0 18px 18px rgba(0,0,0,.32));
-  animation: tech-shot-arrive .42s cubic-bezier(.2,.8,.25,1) both;
+.tech-tour-stage > .tech-tour-alt-photo.is-cutout {
+  width: 94%;
+  height: 88%;
+  object-fit: contain;
+  filter: drop-shadow(0 9px 9px rgba(25, 22, 18, .2));
 }
-.tech-tour-electronics > img { max-height: min(50dvh, 440px); object-fit: contain; }
-.tech-tour-cutout { display: grid; place-items: center; width: 100%; height: 100%; padding: 8%; animation: tech-shot-arrive .42s cubic-bezier(.2,.8,.25,1) both; }
-.tech-tour-cutout > .airplane-art { width: min(94%, 530px); }
-.tech-tour-cutout > .ship-art { width: min(100%, 560px); filter: drop-shadow(0 14px 12px rgba(0,0,0,.28)); }
-.tech-tour-titanic { width: 100%; height: 100%; max-height: min(58dvh, 520px); animation: tech-shot-arrive .42s cubic-bezier(.2,.8,.25,1) both; }
-.tech-tour-caption { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 2px 1px; color: #e9f3ff; font-size: 12px; font-weight: 750; letter-spacing: .01em; }
-.tech-tour-count { color: #a9c2e3; font-variant-numeric: tabular-nums; font-size: 11px; }
-.tech-tour-progress { height: 3px; overflow: hidden; border-radius: 99px; background: rgba(217,235,255,.17); }
-.tech-tour-progress > i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #7ce8e4, #ffe08a); transition: width .28s ease; }
-@keyframes tech-shot-arrive { from { opacity: .4; transform: scale(.965) translateY(4px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-
-.phone-dream { position: relative; display: grid; place-items: center; width: 100%; height: 100%; overflow: hidden; border-radius: inherit; background: radial-gradient(ellipse at 50% 54%, #755fc5, #28386f 50%, #111d3a 100%); }
-.phone-dream-glow { position: absolute; width: 68%; aspect-ratio: 1; border-radius: 50%; background: #ffd783; opacity: .25; filter: blur(34px); animation: dream-glow 3.2s ease-in-out infinite alternate; }
-.phone-dream-device { position: relative; z-index: 1; height: min(94%, 470px); aspect-ratio: 260 / 480; padding: 4px; border: 3px solid rgba(255,255,255,.82); border-radius: 37px; background: linear-gradient(135deg, #f3f4f8, #777b91 42%, #e9ecf3); box-shadow: 0 20px 45px rgba(4,10,36,.52), 0 0 0 2px rgba(255,255,255,.18); animation: phone-float 2.8s ease-in-out infinite; }
-.phone-dream-device svg { display: block; width: 100%; height: 100%; border-radius: 31px; }
-.phone-dream-spark { position: absolute; z-index: 2; color: #fff1ad; filter: drop-shadow(0 0 8px #ffe08a); animation: spark-pop 1.9s ease-in-out infinite alternate; }
-.phone-dream-spark-a { top: 18%; left: 25%; font-size: 24px; }
-.phone-dream-spark-b { top: 33%; right: 19%; font-size: 31px; animation-delay: .6s; }
-.phone-dream-spark-c { bottom: 17%; left: 25%; font-size: 18px; animation-delay: 1s; }
-.adventure-scene { display: block; width: 100%; height: 100%; border-radius: inherit; animation: tech-shot-arrive .42s ease-out both; }
-.adventure-cloud-one { animation: cloud-drift 8s ease-in-out infinite alternate; }
-.adventure-cloud-two { animation: cloud-drift 10s ease-in-out infinite alternate-reverse; }
-.adventure-vehicle-plane { transform-origin: 480px 270px; animation: plane-glide 3.4s ease-in-out infinite; }
-.adventure-vehicle-ship { transform-origin: 480px 330px; animation: ship-sail 4.4s ease-in-out infinite; }
-.adventure-wave { animation: wave-slide 5s linear infinite; }
-.adventure-wave-two { animation-duration: 7s; animation-direction: reverse; }
-@keyframes dream-glow { from { transform: scale(.82); opacity: .18; } to { transform: scale(1.14); opacity: .4; } }
-@keyframes phone-float { 0%,100% { transform: translateY(3px) rotate(-1.3deg); } 50% { transform: translateY(-5px) rotate(1.3deg); } }
-@keyframes spark-pop { from { opacity: .4; transform: scale(.72) rotate(-12deg); } to { opacity: 1; transform: scale(1.16) rotate(12deg); } }
-@keyframes cloud-drift { from { transform: translateX(-18px); } to { transform: translateX(24px); } }
-@keyframes plane-glide { 0%,100% { transform: translate(0, 3px) rotate(-1deg); } 50% { transform: translate(10px, -11px) rotate(1deg); } }
-@keyframes ship-sail { 0%,100% { transform: translateY(2px) rotate(-.6deg); } 50% { transform: translateY(-5px) rotate(.6deg); } }
-@keyframes wave-slide { from { transform: translateX(0); } to { transform: translateX(38px); } }
+.tech-tour-caption { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 2px 1px; color: #25231f; font-size: 12px; font-weight: 750; letter-spacing: .01em; }
+.tech-tour-count { color: #5f5a52; font-variant-numeric: tabular-nums; font-size: 11px; }
+.tech-tour-progress { height: 3px; overflow: hidden; border-radius: 99px; background: rgba(45, 39, 32, .14); }
+.tech-tour-progress > i { display: block; height: 100%; border-radius: inherit; background: #0f4ca0; transition: width .24s ease; }
+@keyframes tech-photo-reveal { from { opacity: .65; transform: scale(.985); } to { opacity: 1; transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) {
-  .tech-tour-stage *, .phone-dream-glow, .phone-dream-device, .phone-dream-spark,
-  .adventure-cloud-one, .adventure-cloud-two, .adventure-vehicle, .adventure-wave,
-  .tech-tour-progress > i { animation: none !important; transition: none !important; }
+  .tech-tour-stage > .tech-tour-photo { animation: none !important; }
+  .tech-tour-progress > i { transition: none !important; }
 }
 @media (max-width: 420px) {
   .tech-tour-stage { min-height: 190px; }

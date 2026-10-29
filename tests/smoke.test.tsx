@@ -722,7 +722,7 @@ async function main() {
   check('«Авто»: витрина-бутик показывает отдельные карточки машин', document.querySelectorAll('.shop-boutique').length === 1 && !!document.querySelector('.shop-boutique-mint'), '');
   const galleryItems = TOY_ITEMS.filter((item) => (item.toy === 'phone' && item.id.startsWith('phone-')) || item.toy === 'ship' || item.toy === 'plane');
   check(
-    'три кадра назначены всем телефонам, кораблям и самолётам',
+    'фотогалерея назначена всем 19 телефонам, кораблям и самолётам',
     galleryItems.length === 19 && galleryItems.every((item) => isTechTourItem(item.id)),
     `покрыто ${galleryItems.filter((item) => isTechTourItem(item.id)).length} из ${galleryItems.length}`,
   );
@@ -753,10 +753,11 @@ async function main() {
   const yachtDetail = document.querySelector('.shop-sheet');
   const yachtGallery = yachtDetail?.querySelector('.tech-tour');
   check(
-    'корабль: три кадра — снимок, другой ракурс и морская сцена',
-    !!yachtGallery?.querySelector('.tech-tour-photo') && yachtGallery.querySelector('.tech-tour-count')?.textContent === '1 / 3',
+    'корабль: два согласованных фотографических кадра',
+    !!yachtGallery?.querySelector('.tech-tour-photo') && yachtGallery.querySelector('.tech-tour-count')?.textContent === '1 / 2',
     yachtGallery?.textContent ?? 'галерея не открылась',
   );
+  check('товарная галерея не смешивает фотографии с рисунками', !yachtGallery?.querySelector('svg, .ship-art, .airplane-art, .phone-dream, .adventure-scene'), '');
   const yachtImage = yachtDetail?.querySelector('.shop-bigart-toy img.product-photo');
   check(
     'подробная карточка судна показывает крупный снимок без подписи про карандаш',
@@ -770,10 +771,14 @@ async function main() {
   const yachtGalleryStage = yachtGallery?.querySelector('.tech-tour-stage');
   if (yachtGalleryStage) click(yachtGalleryStage);
   await sleep(10);
-  check('корабль: второй кадр — отдельная иллюстрация модели', !!yachtGallery?.querySelector('.ship-art') && yachtGallery.querySelector('.tech-tour-count')?.textContent === '2 / 3', '');
+  check(
+    'корабль: второй кадр — студийное фото того же судна',
+    yachtGallery?.querySelector('.tech-tour-alt-photo')?.getAttribute('src') === '/products/gallery/ship-paper-alt.webp' && yachtGallery.querySelector('.tech-tour-count')?.textContent === '2 / 2',
+    '',
+  );
   if (yachtGalleryStage) click(yachtGalleryStage);
   await sleep(10);
-  check('корабль: третий кадр оживляет судно в морском приключении', !!yachtGallery?.querySelector('.adventure-scene-ship') && yachtGallery.querySelector('.tech-tour-count')?.textContent === '3 / 3', '');
+  check('корабль: тапом можно вернуться к общему виду', yachtGallery?.querySelector('.tech-tour-count')?.textContent === '1 / 2', '');
   const closeShipSheet = document.querySelector('.shop-sheet-veil');
   if (closeShipSheet) click(closeShipSheet);
   await sleep(20);
@@ -785,14 +790,15 @@ async function main() {
   if (planeCard) click(planeCard);
   await sleep(20);
   const planeGallery = document.querySelector('.shop-sheet .tech-tour');
-  check('самолёт: есть три кадра и живая сцена полёта', !!planeGallery?.querySelector('.tech-tour-photo') && !!planeGallery.querySelector('.tech-tour-count'), '');
+  check('самолёт: два кадра без рисованной подмены фото', !!planeGallery?.querySelector('.tech-tour-photo') && !!planeGallery.querySelector('.tech-tour-count'), '');
   const planeGalleryStage = planeGallery?.querySelector('.tech-tour-stage');
   if (planeGalleryStage) click(planeGalleryStage);
   await sleep(10);
-  check('самолёт: второй кадр — иллюстрация того же самолёта', !!planeGallery?.querySelector('.airplane-art') && planeGallery.querySelector('.tech-tour-count')?.textContent === '2 / 3', '');
-  if (planeGalleryStage) click(planeGalleryStage);
-  await sleep(10);
-  check('самолёт: третий кадр — полётная сцена', !!planeGallery?.querySelector('.adventure-scene-plane') && planeGallery.querySelector('.tech-tour-count')?.textContent === '3 / 3', '');
+  check(
+    'самолёт: второй кадр остаётся студийной фотографией',
+    planeGallery?.querySelector('.tech-tour-alt-photo')?.getAttribute('src') === '/products/gallery/plane-swift-alt.webp' && planeGallery.querySelector('.tech-tour-count')?.textContent === '2 / 2',
+    '',
+  );
   const closePlaneSheet = document.querySelector('.shop-sheet-veil');
   if (closePlaneSheet) click(closePlaneSheet);
   await sleep(20);
@@ -820,7 +826,7 @@ async function main() {
     '',
   );
 
-  // 0.83.0: поворот телефонов убран вместе с 3D-спинками — кадр один.
+  // Телефоны не имитируют 3D-поворот: в карточке доступны настоящие фото сторон.
   check(
     'телефон больше не притворяется поворотным',
     !document.querySelector('.shop-item.toy-item .phone-rotate') &&
@@ -841,14 +847,15 @@ async function main() {
       phoneSheet?.innerHTML.slice(0, 200) ?? 'карточка не открылась',
     );
     const phoneGallery = phoneSheet?.querySelector('.tech-tour');
-    check('телефон: три кадра — спинка, другой ракурс и экран', !!phoneGallery?.querySelector('.tech-tour-count') && !!phoneGallery.querySelector('.tech-tour-photo'), '');
+    check('телефон: спинка и второй студийный кадр', !!phoneGallery?.querySelector('.tech-tour-count') && !!phoneGallery.querySelector('.tech-tour-photo'), '');
     const phoneGalleryStage = phoneGallery?.querySelector('.tech-tour-stage');
     if (phoneGalleryStage) click(phoneGalleryStage);
     await sleep(10);
-    check('телефон: второй кадр — другой студийный ракурс', !!phoneGallery?.querySelector('.tech-tour-electronics') && phoneGallery.querySelector('.tech-tour-count')?.textContent === '2 / 3', '');
-    if (phoneGalleryStage) click(phoneGalleryStage);
-    await sleep(10);
-    check('телефон: третий кадр — свой космический экран', !!phoneGallery?.querySelector('.phone-dream') && phoneGallery.querySelector('.tech-tour-count')?.textContent === '3 / 3', '');
+    check(
+      'телефон: второй кадр — настоящая фотография экрана',
+      phoneGallery?.querySelector('.tech-tour-alt-photo')?.getAttribute('src') === '/products/gallery/phone-smart-front.webp' && phoneGallery.querySelector('.tech-tour-count')?.textContent === '2 / 2',
+      '',
+    );
     check('у телефона со снимком нет подсказки про поворот', !phoneSheet?.querySelector('.art-hint'), '');
   }
   const closePhoneSheet = document.querySelector('.shop-sheet-veil');
