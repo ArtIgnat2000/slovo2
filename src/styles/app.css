@@ -8512,8 +8512,8 @@ p {
 .building-plot-kicker { font-size: 10px; font-weight: 800; letter-spacing: .06em; color: var(--primary); }
 .building-plot-count { padding: 0 14px 12px; font-size: 11px; color: var(--ink-2); }
 .building-art { display: block; max-width: 100%; }
-.shop-boutique .building-item .shop-case { height: 132px; }
-.shop-boutique .building-item .shop-icon { height: 100px; display: grid; place-items: center; }
+/* 0.79.0: у баз та же ниша 4:3, что у остальных товаров, — фотореалистичный
+   рендер городка не должен получать свою, укороченную площадку. */
 .building-card-art { width: 100%; height: 96px; border-radius: 10px; object-fit: cover; }
 .building-detail-art { padding: 8px; background: radial-gradient(65% 36% at 50% 0%, var(--case-lamp-glow), transparent 76%), linear-gradient(145deg, var(--case-sky-top), var(--case-sky-bottom)); }
 .building-detail-art > .building-art { width: min(100%, 420px); aspect-ratio: 4/3; border-radius: 18px; object-fit: cover; box-shadow: 0 7px 18px rgba(36,31,54,.16); }
@@ -8568,7 +8568,7 @@ p {
 .world-pick-item > i { position: absolute; top: 5px; right: 8px; font-style: normal; color: var(--primary); font-weight: 800; }
 .world-pick-art { display: grid; place-items: center; min-height: 64px; }
 .world-pick-title { line-height: 1.2; text-align: center; }
-@media (max-width: 360px) { .building-plot-caption { padding-inline: 11px; } .shop-boutique .building-item .shop-case { height: 118px; } .building-card-art { height: 84px; } }
+@media (max-width: 360px) { .building-plot-caption { padding-inline: 11px; } .building-card-art { height: 84px; } }
 
 /* ── Рейтинг с воображаемыми соперниками (0.73.0) ─────────────────────────── */
 .rating-hero { display: flex; gap: 12px; align-items: center; padding: 14px; margin-bottom: 14px; border: 2px solid var(--line); border-radius: 16px; background: var(--card); }

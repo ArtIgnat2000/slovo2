@@ -58,6 +58,18 @@ export const PRODUCT_PHOTOS: readonly string[] = [
   'plane-moon-base',
   'plane-atomic-base',
   'plane-steam-base',
+  // Корабли
+  'ship-paper',
+  'ship-sail',
+  'ship-steam',
+  'ship-carrier',
+  'ship-titanic',
+  // Базы (фасады: те же фото показывает и первая точка экскурсии)
+  'atomic-base',
+  'electron-base',
+  'arctic-base',
+  'moon-base',
+  'steam-base',
 ];
 
 const PHOTOS = new Set(PRODUCT_PHOTOS);
