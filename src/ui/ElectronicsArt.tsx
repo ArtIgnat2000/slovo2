@@ -1,5 +1,6 @@
 import { useState, type CSSProperties } from 'react';
 import { ITEM_BY_ID } from '../engine/shop';
+import { hasProductPhoto } from './ProductPhoto';
 
 /** Stable legacy IDs preserve purchased phones and their place in the hangar. */
 export const ELECTRONICS_ART: Record<string, string> = {
@@ -22,8 +23,13 @@ export function hasElectronicsArt(id: string): boolean {
   return Object.prototype.hasOwnProperty.call(ELECTRONICS_ART, id);
 }
 
+/**
+ * 0.81.0: телефон крутится, только пока у него 3D-арт с обеими сторонами.
+ * Как только модель снята фотографией (один кадр), подсказка «нажми —
+ * повернётся» врала бы: вращать нечего.
+ */
 export function isRotatingPhone(id: string): boolean {
-  return hasElectronicsArt(id) && id.startsWith('phone-');
+  return hasElectronicsArt(id) && id.startsWith('phone-') && !hasProductPhoto(id);
 }
 
 /** Interactive only where explicitly enabled: never nest a button in a hangar button. */

@@ -64,7 +64,7 @@ export const PRODUCT_PHOTOS: readonly string[] = [
   'ship-steam',
   'ship-carrier',
   'ship-titanic',
-  // Авто (студийные снимки вместо карандашных рисунков; первая партия)
+  // Авто (студийные снимки вместо карандашных рисунков; 0.80.0 — первая десятка)
   'car-racer',
   'car-jeep',
   'car-taxi',
@@ -75,6 +75,15 @@ export const PRODUCT_PHOTOS: readonly string[] = [
   'car-rolls',
   'car-lambo',
   'car-bugatti',
+  // 0.81.0: вторая десятка — Тесла, розовый кабриолет и техника баз
+  'car-tesla',
+  'car-pink-cabrio',
+  'car-atomic-base',
+  'car-electron-base',
+  'car-arctic-base',
+  'car-steam-base',
+  // Электроника (0.81.0: первый снимок; остальные пока 3D-арт)
+  'laptop-air',
   // Базы (фасады: те же фото показывает и первая точка экскурсии)
   'atomic-base',
   'electron-base',

@@ -1,7 +1,8 @@
 import { strict as assert } from 'node:assert';
 import { existsSync, statSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { ELECTRONICS_ART, ElectronicsArt, hasElectronicsArt } from '../src/ui/ElectronicsArt';
+import { ELECTRONICS_ART, ElectronicsArt, hasElectronicsArt, isRotatingPhone } from '../src/ui/ElectronicsArt';
+import { hasProductPhoto } from '../src/ui/ProductPhoto';
 import { ToyArt } from '../src/ui/ToyArt';
 import { ITEM_BY_ID, toysByShelf } from '../src/engine/shop';
 
@@ -14,6 +15,16 @@ for (const [id, file] of Object.entries(ELECTRONICS_ART)) {
   assert.ok(existsSync(path), path);
   assert.ok(statSync(path).size < 400_000, 'Illustrations stay small for offline use');
   const markup = renderToStaticMarkup(<ToyArt id={id} className="test-art" />);
+  if (hasProductPhoto(id)) {
+    // 0.81.0: у модели есть студийный снимок — он и показывается, 3D-арт ждёт
+    // в public/electronics на случай отката. Снимок один, поэтому телефон
+    // с фотографией не притворяется поворотным.
+    assert.ok(markup.includes('product-photo test-art'), `${id}: снимок вместо 3D-арта`);
+    assert.ok(markup.includes(`${import.meta.env.BASE_URL}products/${id}.webp`));
+    assert.ok(existsSync(`public/products/${id}.webp`), `public/products/${id}.webp`);
+    assert.equal(isRotatingPhone(id), false, `${id}: один кадр не вращается`);
+    continue;
+  }
   assert.ok(markup.includes('electronics-art test-art'));
   assert.ok(markup.includes(`${import.meta.env.BASE_URL}electronics/${file}.webp`));
   assert.ok(!markup.includes('<svg'), 'New electronics must not fall back to retro phone SVG');

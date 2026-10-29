@@ -761,7 +761,18 @@ async function main() {
   if (phoneTab) click(phoneTab);
   await sleep(30);
   const phoneCard = Array.from(document.querySelectorAll('.shop-item.toy-item')).find((el) => (el.textContent ?? '').includes('iPhone Air'));
-  check('телефоны и электроника остаются отдельным разделом', document.querySelectorAll('.shop-item.toy-item').length === 11 && document.querySelectorAll('.shop-item.toy-item .electronics-art').length === 11 && !!phoneCard?.querySelector('.phone-rotate'), '');
+  // 0.81.0: у моделей постепенно появляются студийные снимки, поэтому полка
+  // считается «арт + фото = 11»: иначе каждая новая фотография ломала бы чек.
+  const electronicsCards = Array.from(document.querySelectorAll('.shop-item.toy-item'));
+  const electronicsPhotos = electronicsCards.filter((el) => !!el.querySelector('img.product-photo')).length;
+  check(
+    'телефоны и электроника остаются отдельным разделом',
+    electronicsCards.length === 11 &&
+      electronicsPhotos === 1 &&
+      document.querySelectorAll('.shop-item.toy-item .electronics-art').length === 11 - electronicsPhotos &&
+      !!phoneCard?.querySelector('.phone-rotate'),
+    `карточек=${electronicsCards.length} фото=${electronicsPhotos}`,
+  );
   check('телефоны внутри полки идут от меньшей цены к большей', pricesAscending('.shop-item.toy-item'));
   const rotatingPhone = phoneCard?.querySelector('.phone-rotate');
   click(rotatingPhone);
