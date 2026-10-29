@@ -58,6 +58,54 @@ export const PRODUCT_PHOTOS: readonly string[] = [
   'plane-moon-base',
   'plane-atomic-base',
   'plane-steam-base',
+  // Корабли
+  'ship-paper',
+  'ship-sail',
+  'ship-steam',
+  'ship-carrier',
+  'ship-titanic',
+  // Авто (студийные снимки вместо карандашных рисунков; 0.80.0 — первая десятка)
+  'car-racer',
+  'car-jeep',
+  'car-taxi',
+  'car-mercedes',
+  'car-bmw',
+  'car-brabus',
+  'car-maybach',
+  'car-rolls',
+  'car-lambo',
+  'car-bugatti',
+  // 0.81.0: вторая десятка — Тесла, розовый кабриолет и техника баз
+  'car-tesla',
+  'car-pink-cabrio',
+  'car-atomic-base',
+  'car-electron-base',
+  'car-arctic-base',
+  'car-steam-base',
+  // 0.82.0: переснятая техника баз — розовая звезда, розовый танк, луноход
+  'car-pink-star',
+  'car-pink-tank',
+  'car-moon-base',
+  // Электроника (0.81.0: первый снимок; остальные пока 3D-арт)
+  'laptop-air',
+  // 0.82.0: телефоны — снимки спинки; поворот остался только у 18 Pro Max
+  'phone-smart',
+  'phone-flip',
+  'phone-retro',
+  'phone-pro',
+  'phone-18',
+  'phone-18-air',
+  'phone-18-pro',
+  // 0.83.0: последние три позиции раздела — Pro Max, кинотеатр и наушники
+  'phone-18-max',
+  'tv-cinema',
+  'headphones-max',
+  // Базы (фасады: те же фото показывает и первая точка экскурсии)
+  'atomic-base',
+  'electron-base',
+  'arctic-base',
+  'moon-base',
+  'steam-base',
 ];
 
 const PHOTOS = new Set(PRODUCT_PHOTOS);
