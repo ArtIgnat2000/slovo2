@@ -84,6 +84,40 @@ export async function runParentUiChecks(): Promise<void> {
     gradeSelect.dispatchEvent(new window.Event('change', { bubbles: true }));
     await sleep(20);
   }
+  // Карточка проблемного слова не выводит из родительского раздела.
+  const selected = WORDS_BY_GRADE[1][0];
+  const activeProfile = store().profiles.find((p) => p.id === store().activeId)!;
+  const savedErrors = activeProfile.errors;
+  useApp.setState((state) => ({ profiles: state.profiles.map((p) => p.id === state.activeId
+    ? { ...p, errors: { ...p.errors, [selected.id]: 3 } } : p) }));
+  if (gradeSelect) {
+    gradeSelect.value = '1';
+    gradeSelect.dispatchEvent(new window.Event('change', { bubbles: true }));
+  }
+  await sleep(30);
+  const proto = window.HTMLDialogElement.prototype;
+  const oldShowModal = proto.showModal;
+  const oldClose = proto.close;
+  proto.showModal = function () { this.setAttribute('open', ''); };
+  proto.close = function () { this.removeAttribute('open'); this.dispatchEvent(new window.Event('close')); };
+  const problem = document.querySelector('.parent-summary-errors button.word-chip') as HTMLButtonElement | null;
+  check('проблемное слово открывается кнопкой, перехода в словарик нет', !!problem && !btnText('Открыть словарик'));
+  click(problem);
+  await sleep(30);
+  check('карточка открыта поверх родительского обзора',
+    !!document.querySelector(`dialog[open][aria-label="Карточка слова ${selected.text}"]`) && has('Прогресс по словам'));
+  click(document.querySelector('.parent-word-dialog button.btn'));
+  await sleep(30);
+  check('после закрытия остаются выбранный класс и родительский раздел',
+    !document.querySelector('.parent-word-dialog') && gradeSelect?.value === '1' && has('Прогресс по словам') && !has('Раздел для взрослых'));
+  proto.showModal = oldShowModal;
+  proto.close = oldClose;
+  useApp.setState((state) => ({ profiles: state.profiles.map((p) => p.id === state.activeId ? { ...p, errors: savedErrors } : p) }));
+  if (gradeSelect) {
+    gradeSelect.value = String(originalGrade);
+    gradeSelect.dispatchEvent(new window.Event('change', { bubbles: true }));
+  }
+  await sleep(20);
   click(btnText('Статистика занятий'));
   await sleep(30);
 

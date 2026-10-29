@@ -9095,3 +9095,16 @@ img.product-photo {
   }
 }
 
+
+/* Карточка открывается поверх родительского обзора, не меняя раздел. */
+.parent-word-dialog {
+  width: min(420px, calc(100% - 32px));
+  max-height: calc(100% - 32px);
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-card, 24px);
+  background: transparent;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.parent-word-dialog::backdrop { background: rgba(20, 16, 32, 0.5); }
