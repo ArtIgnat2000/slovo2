@@ -6,6 +6,7 @@
 // плюс стражи от отката в CSS.
 import { existsSync, readFileSync } from 'node:fs';
 import { TOY_ITEMS } from '../src/engine/shop';
+import { BUILDING_BY_ID } from '../src/engine/buildings';
 import { PRODUCT_PHOTOS, hasProductPhoto, productPhotoUrl } from '../src/ui/ProductPhoto';
 import { useApp } from '../src/state/store';
 import { body, buttons, check, click, has, sleep } from './ui-helpers';
@@ -37,9 +38,10 @@ export async function runShopCardChecks() {
     productPhotoUrl('pet-cat').endsWith('/products/pet-cat.webp'),
     productPhotoUrl('pet-cat'),
   );
-  // Пока фото переведены не для всех полок (0.76.0 — питомцы), проверяем
-  // правило: товар с фото рисуется снимком, товар без фото — прежним артом.
-  const photographed = TOY_ITEMS.filter((item) => hasProductPhoto(item.id));
+  // В списке фото обязаны быть только настоящие товары каталога: техника
+  // (`TOY_ITEMS`) и базы (`BUILDING_BY_ID`). Опечатка в id иначе дала бы
+  // снимок, который никто никогда не увидит.
+  const photographed = PRODUCT_PHOTOS.filter((id) => TOY_ITEMS.some((item) => item.id === id) || id in BUILDING_BY_ID);
   check(
     'фото товаров: в списке фото только настоящие товары магазина',
     photographed.length === PRODUCT_PHOTOS.length,
@@ -53,6 +55,7 @@ export async function runShopCardChecks() {
     ['Спорт', 'sport'],
     ['Вкусняшки', 'food'],
     ['Самолёты', 'plane'],
+    ['Корабли', 'ship'],
   ];
   let photoCards: (Element | undefined)[] = [];
   for (const [title, kind] of shelves) {
@@ -89,12 +92,34 @@ export async function runShopCardChecks() {
   // сокращается с каждой партией. Если кто-то вернёт рисунок вместо готового
   // снимка, проверка упадёт и напомнит, что полка уже переехала в студию.
   const stillDrawn = TOY_ITEMS.filter(
-    (item) => ['pet', 'sport', 'food'].includes(item.toy ?? '') && !hasProductPhoto(item.id),
+    (item) => ['pet', 'sport', 'food', 'plane', 'ship'].includes(item.toy ?? '') && !hasProductPhoto(item.id),
   ).map((item) => item.id);
   check(
-    'фото товаров: без снимков остались только запланированные товары',
+    'фото товаров: у всех зверей, спорта, вкусняшек, самолётов и кораблей есть снимок',
     stillDrawn.join(',') === '',
     stillDrawn.join(', ') || 'ни одного',
+  );
+
+  // ── Базы: у каждой фотореалистичный рендер, и он же — фасад экскурсии ────
+  await goBuk();
+  click(shelf('Базы')!);
+  await sleep(60);
+  const baseCards = Array.from(document.querySelectorAll('.building-item'));
+  check(
+    'базы: на полке пять баз, у каждой рендер вместо иллюстрации',
+    baseCards.length === 5 && baseCards.every((card) => !!card.querySelector('img.product-photo')),
+    `карточек ${baseCards.length}, с фото ${baseCards.filter((card) => card.querySelector('img.product-photo')).length}`,
+  );
+  check(
+    'базы: рендер берётся из папки продуктов, а не из старых иллюстраций',
+    baseCards.every((card) => (card.querySelector('img.product-photo')?.getAttribute('src') ?? '').includes('/products/')),
+    baseCards.map((card) => card.querySelector('img')?.getAttribute('src')).join(', ').slice(0, 140),
+  );
+  const baseNiche = baseCards[0]?.querySelector('.shop-case');
+  check(
+    'базы: у базы та же ниша 4:3, что у остальных товаров',
+    !!baseNiche?.classList.contains('shop-case-photo'),
+    baseNiche?.className ?? 'нет ниши',
   );
   check(
     'карточка: у снимка адрес из папки продуктов',

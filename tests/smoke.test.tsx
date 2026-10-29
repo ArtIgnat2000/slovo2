@@ -707,19 +707,32 @@ async function main() {
   check('корабли внутри полки идут от меньшей цены к большей', pricesAscending('.shop-item.toy-item'));
   {
     const shipArt = Array.from(document.querySelectorAll('.shop-item.toy-item img')).map((img) => img.getAttribute('src') ?? '');
-    check('у яхты, контейнеровоза, танкера и авианосца — свои цветные иллюстрации', shipArt.length === 4 && new Set(shipArt).size === 4 && shipArt.every((src) => /\/ships\/ship-(yacht|container|tanker|carrier)\.webp$/.test(src)), `рисунков: ${shipArt.join(', ')}`);
+    // 0.79.0: у всех пяти судов — фотореалистичные студийные снимки моделей.
+    check(
+      'у каждого судна свой фотореалистичный снимок из папки продуктов',
+      shipArt.length === 5 && new Set(shipArt).size === 5 && shipArt.every((src) => /\/products\/ship-[a-z]+\.webp$/.test(src)),
+      `снимков: ${shipArt.join(', ')}`,
+    );
     const titanicCard = Array.from(document.querySelectorAll('.shop-item.toy-item')).find((el) => (el.textContent ?? '').includes('Титаник'));
-    check('«Титаник» нарисован векторным рисунком с четырьмя трубами', !!titanicCard?.querySelector('svg'), '');
+    check(
+      '«Титаник» снят с четырьмя трубами, а не нарисован схемой',
+      !!titanicCard?.querySelector('.shop-icon > img.product-photo') && !titanicCard.querySelector('.shop-icon svg'),
+      '',
+    );
   }
   const yachtCard = Array.from(document.querySelectorAll('.shop-item.toy-item')).find((el) => (el.textContent ?? '').includes('Морская яхта'));
   if (yachtCard) click(yachtCard);
   await sleep(20);
   const yachtDetail = document.querySelector('.shop-sheet');
-  const yachtImage = yachtDetail?.querySelector('.shop-bigart-toy .ship-art img');
+  const yachtImage = yachtDetail?.querySelector('.shop-bigart-toy img.product-photo');
   check(
-    'подробная карточка судна показывает крупное изображение без подписи про карандаш',
-    has('Морская яхта') && !!yachtImage && yachtImage.getAttribute('alt') === 'Морская яхта — морская яхта' && !yachtDetail?.textContent?.includes('карандаш'),
-    yachtDetail?.textContent ?? 'карточка не открылась',
+    'подробная карточка судна показывает крупный снимок без подписи про карандаш',
+    has('Морская яхта') &&
+      !!yachtImage &&
+      yachtImage.getAttribute('src') === '/products/ship-paper.webp' &&
+      yachtImage.getAttribute('alt') === 'Морская яхта — морская яхта' &&
+      !yachtDetail?.textContent?.includes('карандаш'),
+    yachtDetail?.textContent?.slice(0, 120) ?? 'карточка не открылась',
   );
   const closeShipSheet = document.querySelector('.shop-sheet-veil');
   if (closeShipSheet) click(closeShipSheet);

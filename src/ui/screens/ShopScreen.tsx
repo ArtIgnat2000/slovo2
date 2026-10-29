@@ -818,6 +818,7 @@ export function ShopScreen({
         key={building.id}
         rarity={building.rarity}
         cardCls={`building-item${owned_ ? ' owned' : ''}`}
+        photo={hasProductPhoto(building.id)}
         art={<BuildingArt id={building.id} className="building-card-art" />}
         title={building.title}
         desc={building.desc}
