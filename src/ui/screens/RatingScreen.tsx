@@ -18,20 +18,10 @@ export function RatingScreen() {
   const player = table.entries[table.playerRank - 1];
   const medal = (rank: number) => (rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `${rank}`);
   const trend = (value: number) => (value > 0 ? `▲${value}` : value < 0 ? `▼${-value}` : '•');
-  const message =
-    table.playerRank === 1
-      ? 'Ты первый! Соперники уже наступают на пятки — не останавливайся.'
-      : table.playerRank <= 3
-        ? 'Ты на пьедестале! Ещё чуть-чуть — и будет первое место.'
-        : `До следующего соперника — ${table.toNext} XP. Один хороший урок может всё изменить!`;
-
   return (
     <div className="screen rating-screen">
       <h2 className="mb">🏆 Рейтинг</h2>
-      <div className="tiny muted mb">
-        Соперники — воображаемые друзья: они занимаются каждый день, как и ты. Это игра, а не настоящие дети.
-        Место считается по твоему настоящему XP.
-      </div>
+      <div className="tiny muted mb">Соперники выдуманы. Твои XP настоящие.</div>
 
       <section className="rating-hero" aria-label="Твоё место">
         <div className="rating-hero-place">{medal(table.playerRank)}</div>
@@ -40,9 +30,8 @@ export function RatingScreen() {
             {profile.avatar} {profile.name} — место {table.playerRank} из {table.entries.length}
           </div>
           <div className="tiny muted">
-            {player.xp} XP · сегодня +{todayXp} XP{table.toNext ? ` · до следующего соперника ${table.toNext} XP` : ' · ты лидируешь!'}
+            {player.xp} XP · сегодня +{todayXp} XP{table.toNext ? ` · до следующего ${table.toNext} XP` : ' · лидер'}
           </div>
-          <div className="tiny">{message}</div>
         </div>
       </section>
 
@@ -73,9 +62,6 @@ export function RatingScreen() {
         })}
       </section>
 
-      <div className="tiny muted mt">
-        ▲ — место выросло за день, ▼ — соперники обогнали. Занимайся каждый день, чтобы подниматься!
-      </div>
     </div>
   );
 }

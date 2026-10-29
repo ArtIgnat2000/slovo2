@@ -258,7 +258,7 @@ export default function App() {
   const showToast = useApp((s) => s.showToast);
   useEffect(() => {
     if (!justUpdated) return;
-    showToast({ emoji: '✨', title: `Обновили до v${justUpdated}`, text: 'Всё новое уже здесь' });
+    showToast({ emoji: '✨', title: `Обновлено до v${justUpdated}` });
   }, [justUpdated, showToast]);
 
   // Урок закончился — выполняем отложенную во время урока синхронизацию.
@@ -431,7 +431,6 @@ export default function App() {
             setParentUnlocked(false);
             setVlabsOpen(true);
           }}
-          onOpenWords={() => switchTab('words')}
         />
       )}
 
@@ -483,18 +482,18 @@ export default function App() {
           setQuietUntil(null);
           showToast(
             next
-              ? { emoji: '🔊', title: 'Музыка включена', text: 'Звуки ответов звучат как раньше' }
-              : { emoji: '🔇', title: 'Музыка выключена', text: 'Звуки ответов остались' },
+              ? { emoji: '🔊', title: 'Музыка включена' }
+              : { emoji: '🔇', title: 'Музыка выключена' },
           );
         }}
         onQuiet={() => {
           setQuietUntil(Date.now() + QUIET_MS);
-          showToast({ emoji: '🌙', title: 'Тишина на 15 минут', text: 'Музыка вернётся сама — нажимать ничего не надо' });
+          showToast({ emoji: '🌙', title: 'Тишина на 15 минут' });
         }}
         onCancelQuiet={() => {
           setQuietUntil(null);
           setNow(Date.now());
-          showToast({ emoji: '🔊', title: 'Музыка вернулась', text: 'Тишина отменена' });
+          showToast({ emoji: '🔊', title: 'Музыка включена' });
         }}
       />
 

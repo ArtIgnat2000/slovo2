@@ -48,6 +48,7 @@ import { MAIN_KEY } from '../src/platform/vault';
 import { questTitle } from '../src/engine/quests';
 import { ITEM_BY_ID, SHOP_ITEMS, TOY_ITEMS, growthStage, sellPrice } from '../src/engine/shop';
 import { hasProductPhoto } from '../src/ui/ProductPhoto';
+import { isTechTourItem } from '../src/ui/TechTour';
 import { TINT_PALETTES, TINT_PRICE } from '../src/engine/tints';
 import { THEME_STYLES } from '../src/engine/theme-styles';
 import { masteredCount } from '../src/state/store';
@@ -354,12 +355,12 @@ async function main() {
   check('диалог «Выйти из урока?» показан, урок продолжился', run.sawDialog, '');
   check('экрана результатов достигли', run.reachedResults, `ответов с вердиктом: ${run.verdicts}`);
   check('на экране результатов виден плавающий БУК', document.querySelectorAll('.app > .mascot').length === 1, '');
-  check('склонение слов на экране результатов («1 слово»)', has('1 слово'), body().slice(0, 220));
+  check('склонение ошибок на экране результатов («1 ошибка»)', has('1 ошибка'), body().slice(0, 220));
   check('ошибка в уроке засчитана (вердикт «Ошибка» видели)', run.madeMistake, `вердиктов: ${run.verdicts}`);
   check('задания-отработки после ошибок встречались', run.repairBadges > 0, '');
   check('на отработке счётчик уступает место пометке «ещё раз»', run.counterHiddenOnRepair, '');
   check('результаты показывают цель дня', has('цель 120') && has('Цель дня'), body().slice(0, 300));
-  check('видно, что урок принёс опыт', /Урок принёс|Тренировка дала|Прогресс есть/.test(body()), '');
+  check('опыт показан один раз без пояснения-дубля', has('Опыт за урок') && !/Урок принёс|Тренировка дала|Прогресс есть/.test(body()), '');
   click(btnText('К урокам')!);
   await sleep(80);
 
@@ -719,6 +720,12 @@ async function main() {
     );
   }
   check('«Авто»: витрина-бутик показывает отдельные карточки машин', document.querySelectorAll('.shop-boutique').length === 1 && !!document.querySelector('.shop-boutique-mint'), '');
+  const galleryItems = TOY_ITEMS.filter((item) => (item.toy === 'phone' && item.id.startsWith('phone-')) || item.toy === 'ship' || item.toy === 'plane');
+  check(
+    'три кадра назначены всем телефонам, кораблям и самолётам',
+    galleryItems.length === 19 && galleryItems.every((item) => isTechTourItem(item.id)),
+    `покрыто ${galleryItems.filter((item) => isTechTourItem(item.id)).length} из ${galleryItems.length}`,
+  );
 
   const shipTab = toyTabs().find((tab) => (tab.textContent ?? '').includes('Корабли'));
   if (shipTab) click(shipTab);
@@ -744,6 +751,12 @@ async function main() {
   if (yachtCard) click(yachtCard);
   await sleep(20);
   const yachtDetail = document.querySelector('.shop-sheet');
+  const yachtGallery = yachtDetail?.querySelector('.tech-tour');
+  check(
+    'корабль: три кадра — снимок, другой ракурс и морская сцена',
+    !!yachtGallery?.querySelector('.tech-tour-photo') && yachtGallery.querySelector('.tech-tour-count')?.textContent === '1 / 3',
+    yachtGallery?.textContent ?? 'галерея не открылась',
+  );
   const yachtImage = yachtDetail?.querySelector('.shop-bigart-toy img.product-photo');
   check(
     'подробная карточка судна показывает крупный снимок без подписи про карандаш',
@@ -754,8 +767,34 @@ async function main() {
       !yachtDetail?.textContent?.includes('карандаш'),
     yachtDetail?.textContent?.slice(0, 120) ?? 'карточка не открылась',
   );
+  const yachtGalleryStage = yachtGallery?.querySelector('.tech-tour-stage');
+  if (yachtGalleryStage) click(yachtGalleryStage);
+  await sleep(10);
+  check('корабль: второй кадр — отдельная иллюстрация модели', !!yachtGallery?.querySelector('.ship-art') && yachtGallery.querySelector('.tech-tour-count')?.textContent === '2 / 3', '');
+  if (yachtGalleryStage) click(yachtGalleryStage);
+  await sleep(10);
+  check('корабль: третий кадр оживляет судно в морском приключении', !!yachtGallery?.querySelector('.adventure-scene-ship') && yachtGallery.querySelector('.tech-tour-count')?.textContent === '3 / 3', '');
   const closeShipSheet = document.querySelector('.shop-sheet-veil');
   if (closeShipSheet) click(closeShipSheet);
+  await sleep(20);
+
+  const planeTab = toyTabs().find((tab) => (tab.textContent ?? '').includes('Самолёты'));
+  if (planeTab) click(planeTab);
+  await sleep(20);
+  const planeCard = Array.from(document.querySelectorAll('.shop-item.toy-item')).find((el) => (el.textContent ?? '').includes('Стриж'));
+  if (planeCard) click(planeCard);
+  await sleep(20);
+  const planeGallery = document.querySelector('.shop-sheet .tech-tour');
+  check('самолёт: есть три кадра и живая сцена полёта', !!planeGallery?.querySelector('.tech-tour-photo') && !!planeGallery.querySelector('.tech-tour-count'), '');
+  const planeGalleryStage = planeGallery?.querySelector('.tech-tour-stage');
+  if (planeGalleryStage) click(planeGalleryStage);
+  await sleep(10);
+  check('самолёт: второй кадр — иллюстрация того же самолёта', !!planeGallery?.querySelector('.airplane-art') && planeGallery.querySelector('.tech-tour-count')?.textContent === '2 / 3', '');
+  if (planeGalleryStage) click(planeGalleryStage);
+  await sleep(10);
+  check('самолёт: третий кадр — полётная сцена', !!planeGallery?.querySelector('.adventure-scene-plane') && planeGallery.querySelector('.tech-tour-count')?.textContent === '3 / 3', '');
+  const closePlaneSheet = document.querySelector('.shop-sheet-veil');
+  if (closePlaneSheet) click(closePlaneSheet);
   await sleep(20);
 
   const phoneTab = toyTabs().find((tab) => (tab.textContent ?? '').includes('Телефоны'));
@@ -801,6 +840,15 @@ async function main() {
         !phoneSheet?.querySelector('.mascot'),
       phoneSheet?.innerHTML.slice(0, 200) ?? 'карточка не открылась',
     );
+    const phoneGallery = phoneSheet?.querySelector('.tech-tour');
+    check('телефон: три кадра — спинка, другой ракурс и экран', !!phoneGallery?.querySelector('.tech-tour-count') && !!phoneGallery.querySelector('.tech-tour-photo'), '');
+    const phoneGalleryStage = phoneGallery?.querySelector('.tech-tour-stage');
+    if (phoneGalleryStage) click(phoneGalleryStage);
+    await sleep(10);
+    check('телефон: второй кадр — другой студийный ракурс', !!phoneGallery?.querySelector('.tech-tour-electronics') && phoneGallery.querySelector('.tech-tour-count')?.textContent === '2 / 3', '');
+    if (phoneGalleryStage) click(phoneGalleryStage);
+    await sleep(10);
+    check('телефон: третий кадр — свой космический экран', !!phoneGallery?.querySelector('.phone-dream') && phoneGallery.querySelector('.tech-tour-count')?.textContent === '3 / 3', '');
     check('у телефона со снимком нет подсказки про поворот', !phoneSheet?.querySelector('.art-hint'), '');
   }
   const closePhoneSheet = document.querySelector('.shop-sheet-veil');
@@ -900,12 +948,12 @@ async function main() {
   await sleep(30);
   check('в музыкальном магазине все мелодии каталога', document.querySelectorAll('.music-item').length === MUSIC_TRACKS.length, String(document.querySelectorAll('.music-item').length));
   check('полки «Спокойный фон» и «Коллекция» разведены', has('Спокойный фон') && has('Коллекция и награды'), '');
-  check('магазин честно называет лицензию', has('CC BY 4.0') && has('Kevin MacLeod'), '');
-  // Раздел «Авторы и лицензии» доступен прямо из приложения
+  // Лицензия не загромождает полку, но доступна по запросу.
   const creditsBtn = buttons().find((b) => (b.textContent ?? '').includes('Авторы и лицензии'));
-  check('кнопка «Авторы и лицензии» видна в магазине', !!creditsBtn, '');
+  check('лицензия скрыта за подписанной кнопкой', !!creditsBtn && !has('CC BY 4.0'), '');
   if (creditsBtn) click(creditsBtn);
   await sleep(30);
+  check('магазин честно называет лицензию после раскрытия', has('CC BY 4.0') && has('Kevin MacLeod'), '');
   check(
     'раздел лицензий показывает оригинальные названия и источник',
     has('Carefree') && has('incompetech.com') && has('creativecommons.org') && has('Изменения аудио'),
@@ -1036,7 +1084,11 @@ async function main() {
   click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Мои покупки'))!);
   await sleep(30);
   check('покупки: примерочная с БУком', has('мой наряд'), '');
-  check('покупки: честная пустота, когда ничего не куплено', has('Пока без обновок'), '');
+  check(
+    'покупки: примерочная не дублирует состояние коллекции текстом',
+    !(document.querySelector('.shop-stage')?.textContent ?? '').includes('Пока без обновок'),
+    document.querySelector('.shop-stage')?.textContent ?? '',
+  );
   // 0.32.1: пустые секции не рисуются — вместо четырёх «Пока пусто» у новичка
   // одно приглашение в витрину. Проверяем на честно пустом профиле: временно
   // снимаем стартовые мелодии и звуки, потом возвращаем.
@@ -1356,22 +1408,19 @@ async function main() {
     document.querySelector('.topbar')?.innerHTML.slice(0, 120) ?? '',
   );
 
-  // Меню ☰: один уровень, всё вторичное — награды, покупки, ангар, друг,
-  // смена ученика. Сверху расшифровка счётчиков: у 🔥 и 💎 есть слова.
+  // Меню ☰: один уровень; статусы названы без повторного объяснения механики.
   click(document.querySelector('[data-menu-trigger]'));
   await sleep(60);
   const menu = document.querySelector('.home-menu');
   check('☰ открывает меню', !!menu, body().slice(0, 200));
   check(
-    'в меню объяснена серия дней',
-    (menu?.textContent ?? '').includes('Серия') &&
-      (menu?.textContent ?? '').includes('подряд') &&
-      (menu?.textContent ?? '').includes('занимаешься'),
+    'статус серии назван без пояснения очевидной механики',
+    (menu?.textContent ?? '').includes('Серия') && !(menu?.textContent ?? '').includes('занимаешься'),
     menu?.querySelector('.menu-status')?.textContent ?? '',
   );
   check(
-    'в меню объяснены кристаллы',
-    (menu?.textContent ?? '').includes('Кристаллы') && (menu?.textContent ?? '').includes('Тратятся в БУКе'),
+    'статус кристаллов назван без пояснения-дубля',
+    (menu?.textContent ?? '').includes('Кристаллы') && !(menu?.textContent ?? '').includes('Тратятся в БУКе'),
     menu?.querySelector('.menu-status')?.textContent ?? '',
   );
   check(
@@ -1519,7 +1568,7 @@ async function main() {
   click(document.querySelector('.topbar .profile-btn') as HTMLButtonElement);
   await sleep(60);
   const inviteBtn = btn((b) => (b.textContent ?? '').includes('Позови друга'));
-  check('на экране «Кто будет учиться?» есть «🤝 Позови друга»', !!inviteBtn, '');
+  check('экран профилей не дублирует «Позови друга» с главной', !inviteBtn, '');
   check(
     'экран профилей открывается без формы нового ученика',
     !Array.from(document.querySelectorAll('h3')).some((h) => (h.textContent ?? '').includes('Новый ученик')),
@@ -1536,12 +1585,9 @@ async function main() {
   await sleep(60);
   const newStudentForm = Array.from(document.querySelectorAll('h3')).find((h) => (h.textContent ?? '').includes('Новый ученик'));
   check('«+ Новый ученик» раскрывает форму', !!newStudentForm, body().slice(0, 200));
-  const inviteInFormState = btn((b) => (b.textContent ?? '').includes('Позови друга'));
   check(
-    'кнопка «Позови друга» стоит выше формы нового ученика',
-    !!inviteInFormState &&
-      !!newStudentForm &&
-      (inviteInFormState.compareDocumentPosition(newStudentForm) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0,
+    'форма нового ученика не добавляет повторную кнопку приглашения',
+    !btn((b) => (b.textContent ?? '').includes('Позови друга')),
     '',
   );
   check(
@@ -1564,18 +1610,6 @@ async function main() {
       !!continueBtn,
     body().slice(0, 200),
   );
-  if (inviteBtn) {
-    click(inviteBtn);
-    await sleep(60);
-    check(
-      'лист «Позови друга» открывается с QR-кодом и ссылкой',
-      has('Позови друга') && !!document.querySelector('.invite-qr-art') && !!document.querySelector('.invite-link'),
-      body().slice(0, 200),
-    );
-    click(btn((b) => (b.getAttribute('aria-label') ?? '') === 'Закрыть'));
-    await sleep(40);
-    check('лист «Позови друга» закрывается', !document.querySelector('.invite-sheet'), '');
-  }
   // Карандаш у профиля — тот самый путь «поменять класс текущему ученику».
   // Он открывает «Изменить профиль» и не предлагает создать ещё одного.
   click(document.querySelector('.profile-card .profile-card-edit'));
@@ -1635,7 +1669,7 @@ async function main() {
     await sleep(60);
   }
   // Разделы разложены по вкладкам: занятия и вид — в «Настройках».
-  check('родительский раздел открывается кратким анализом обучения', has('Как идёт обучение') && has('освоено'), body().slice(0, 160));
+  check('родительский раздел открывается кратким прогрессом', has('Прогресс по словам') && has('освоено'), body().slice(0, 160));
   await openParentSection('Настройки');
   check('родителям видны режимы размера урока', has('Размер урока') && has('Короткий · 12') && has('Обычный · 16') && has('Полный · 20'), '');
   // Настройка «Сова БУК»: проверяем, что «не показывать» убирает плавающего БУКа

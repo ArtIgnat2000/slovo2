@@ -20,7 +20,6 @@ import {
   SELL_RATE,
   sellPrice,
   toysByShelf,
-  wardrobeValue,
   rarityOf,
   type ToyKind,
 } from '../../engine/shop';
@@ -32,6 +31,7 @@ import { RarityChip, RarityLabel } from '../RarityChip';
 import { Mascot } from '../Mascot';
 import { ToyArt } from '../ToyArt';
 import { CarTour, CAR_TOUR_IDS, warmCarTour } from '../CarTour';
+import { TechTour, isTechTourItem, warmTechTour } from '../TechTour';
 import { hasProductPhoto, warmProductPhoto } from '../ProductPhoto';
 import { carAlt, carKind, carNote, hasCarArt } from '../CarArt';
 import { hasShipArt, shipAlt, shipKind, shipNote } from '../ShipArt';
@@ -445,6 +445,7 @@ export function ShopScreen({
     if (detail.kind === 'item') {
       warmProductPhoto(detail.item.id);
       warmCarTour(detail.item.id);
+      warmTechTour(detail.item.id);
     } else if (detail.kind === 'building') {
       warmBaseTour(detail.building.id);
     }
@@ -1052,10 +1053,10 @@ export function ShopScreen({
         <>
           <div className={`shop-bigart${toy ? ' shop-bigart-toy' : ''}`}>
             {toy ? (
-              // Техника в подробной карточке — сам товар крупным планом
-              // (машина/судно — карандашный лист, телефон — поворотный WebP). БУКа здесь
-              // нет: ребёнок пришёл посмотреть вещь, а не примерку на сове.
-              CAR_TOUR_IDS.has(item.id) ? <CarTour key={item.id} id={item.id} tuning={profile.shop?.tuning} alt={artAlt} /> : <ToyArt
+              // Техника в подробной карточке — сам товар крупным планом.
+              // Машины листаются в CarTour, телефоны/корабли/самолёты — в TechTour;
+              // БУКа здесь нет: ребёнок пришёл рассмотреть вещь, а не сову.
+              CAR_TOUR_IDS.has(item.id) ? <CarTour key={item.id} id={item.id} tuning={profile.shop?.tuning} alt={artAlt} /> : isTechTourItem(item.id) ? <TechTour key={item.id} id={item.id} alt={artAlt} /> : <ToyArt
                 key={item.id}
                 id={item.id}
                 interactive
@@ -1779,7 +1780,6 @@ export function ShopScreen({
 
           <div className="mb">
             <h2 className="mb">Наряды БУКа</h2>
-            <div className="tiny muted">Купленное сразу надевается · тап по карточке — подробнее</div>
           </div>
           <ShowcaseGrid>{CATALOG_OUTFITS.slice().sort(byPriceAscending).map(itemCard)}</ShowcaseGrid>
         </section>
@@ -1790,7 +1790,6 @@ export function ShopScreen({
         <section className="mt" aria-label={cat === 'toys' ? 'Техника' : cat === 'pets' ? 'Питомцы' : cat === 'sport' ? 'Спорт' : 'Вкусняшки'}>
           <div className="mb">
             <h2 className="mb">{cat === 'toys' ? 'Техника БУКа' : cat === 'pets' ? 'Питомцы' : cat === 'sport' ? 'Спорт' : 'Вкусняшки'}</h2>
-            <div className="tiny muted">Всё купленное видно в «Моём мире».</div>
           </div>
           {cat === 'toys' && <div className="shop-cats shop-toy-cats" role="tablist" aria-label="Разделы техники">
             {TOY_SHELVES.filter(({ id }) => !['pet', 'sport', 'food'].includes(id)).map(({ id, title, emoji }) => (
@@ -1856,8 +1855,7 @@ export function ShopScreen({
       {view === 'vitrina' && cat === 'buildings' && (
         <section className="mt building-section" aria-label="Базы">
           <div className="mb">
-            <h2 className="mb">Базы в коллекцию</h2>
-            <div className="tiny muted">Купленные базы будут видны на карте «Моего мира» вместе со всеми твоими вещами.</div>
+            <h2 className="mb">Базы</h2>
           </div>
           <ShowcaseGrid tone="sky">{BUILDINGS.slice().sort(byPriceAscending).map(buildingCard)}</ShowcaseGrid>
         </section>
@@ -1917,12 +1915,8 @@ export function ShopScreen({
           <div className="between mb">
             <div>
               <h2 style={{ margin: 0 }}>Музыка БУКа 🎵</h2>
-              <div className="tiny muted">{MUSIC_TRACKS.length} мелодий Kevin MacLeod · слушай перед покупкой</div>
+              <div className="tiny muted">{MUSIC_TRACKS.length} мелодий · можно послушать</div>
             </div>
-          </div>
-          <div className="music-store-note">
-            🎧 Настоящие записи Kevin MacLeod — они работают офлайн и используются по лицензии CC BY 4.0
-            (автор указан в разделе «Авторы и лицензии»).
           </div>
           <div className="mb"><MusicCreditsToggle /></div>
           {/* Полки: спокойный фон отдельно — у каждого своё место в игре */}
@@ -1939,13 +1933,7 @@ export function ShopScreen({
         <section className="mt" aria-label="Звуки">
           <div className="mb">
             <h2 style={{ margin: 0 }}>Звуки БУКа 🔊</h2>
-            <div className="tiny muted">
-              {SOUND_PACKS.length} наборов · мелодия за правильный ответ ✓ и за ошибку ✗ · слушай перед покупкой
-            </div>
-          </div>
-          <div className="music-store-note">
-            🎶 Выбранный набор звучит в уроках, заданиях и квестах. Мелодия ошибки всегда мягкая и короткая:
-            это подсказка «попробуй иначе», а не наказание.
+            <div className="tiny muted">{SOUND_PACKS.length} наборов · можно послушать</div>
           </div>
           <ShowcaseGrid>{SOUND_PACKS.slice().sort(byPriceAscending).map(soundCard)}</ShowcaseGrid>
         </section>
@@ -1955,9 +1943,6 @@ export function ShopScreen({
         <section className="mt" aria-label="Фоны приложения">
           <div className="mb">
             <h2 className="mb">Фоны и оформление</h2>
-            <p className="tiny muted">
-              Выбирай настроение приложения. Каждый стиль доступен бесплатно и подходит для светлой и тёмной схемы.
-            </p>
           </div>
           <div role="group" aria-label="Выбор оформления приложения">
             <ShowcaseGrid>
@@ -1985,14 +1970,9 @@ export function ShopScreen({
               <div style={{ fontWeight: 800 }}>
                 {growth.title} · мой наряд
               </div>
-              <div className="tiny">{growth.desc}</div>
               <div className="tiny" style={{ marginTop: 4 }}>
-                {growth.nextAt
-                  ? `Освоено ${mastered} ${plural(mastered, 'слово', 'слова', 'слов')} · до ступени выше ${growth.nextAt - mastered}`
-                  : `Освоено ${mastered} ${plural(mastered, 'слово', 'слова', 'слов')} — самая высокая ступень ✨`}
-              </div>
-              <div className="tiny" style={{ marginTop: 4 }}>
-                {owned.length ? `Коллекция собрана на ${wardrobeValue(owned)} 💎` : 'Пока без обновок — витрина ➜'}
+                Освоено {mastered} {plural(mastered, 'слово', 'слова', 'слов')}
+                {growth.nextAt ? ` · до роста ${growth.nextAt - mastered}` : ' · высшая ступень ✨'}
               </div>
             </div>
           </div>
@@ -2003,9 +1983,7 @@ export function ShopScreen({
             <div className="card shop-empty mb">
               <div className="shop-empty-emoji" aria-hidden="true">🛍️</div>
               <div className="shop-empty-title">Пока ничего не куплено</div>
-              <div className="tiny muted">
-                В витрине ждут наряды, техника, костюмы и музыка. Купленное сразу появится здесь.
-              </div>
+              <div className="tiny muted">Покупки появятся здесь.</div>
               <button type="button" className="btn primary wide mt" onClick={() => setView('vitrina')}>
                 В витрину ➜
               </button>
@@ -2167,23 +2145,18 @@ export function ShopScreen({
                 {selectedSound === pack.id && <span aria-label="Выбрано">✓</span>}
               </button>
             ))}
-            <p className="tiny muted">Больше наборов — витрина ➜ полка «Звуки».</p>
+
           </section>
 
-          {/* Мечты 🤍: список желаний с прогрессом накопления */}
+          {/* Пустую полку не показываем: «Мечты» нужны только после выбора вещи. */}
+          {wishlist.length > 0 && (
           <section className="mb" aria-label="Мечты">
             <div className="between mb">
               <div>
                 <h2 style={{ margin: 0 }}>Мечты 🤍</h2>
-                <div className="tiny muted">Отмечай сердцем — видно, к чему копить</div>
               </div>
             </div>
-            {wishlist.length === 0 ? (
-              <div className="card tiny mb" style={{ textAlign: 'center' }}>
-                Пока ничего не отложено. Нажми 🤍 на карточке в витрине — и вещь появится здесь с прогрессом накопления ✨
-              </div>
-            ) : (
-              <div className="wishlist-grid">
+            <div className="wishlist-grid">
                 {wishlist.map((id) => {
                   const item = ITEM_BY_ID[id];
                   const track = MUSIC_BY_ID[id];
@@ -2365,16 +2338,11 @@ export function ShopScreen({
                   return null;
                 })}
               </div>
-            )}
           </section>
+          )}
         </>
       )}
 
-      <p className="tiny center">
-        Кристаллы 💎 дают за задания дня и сундук — загляни на главную.
-        <br />
-        БУК растёт, когда ты осваиваешь слова: сейчас — {growth.title.toLowerCase()}.
-      </p>
 
       {/* ── Подробная карточка (sheet снизу) ───────────────────────────── */}
       {sheet && (

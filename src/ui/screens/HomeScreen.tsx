@@ -442,9 +442,6 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
                 </span>
                 <div className="grow">
                   <div className="menu-status-title">Кристаллы: {profile.gems}</div>
-                  <div className="tiny muted">
-                    Копятся за уроки и задания. Тратятся в БУКе — на наряды, технику и музыку.
-                  </div>
                 </div>
               </div>
               <div className="menu-status-row">
@@ -457,11 +454,7 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
                       ? `${profile.streak} ${plural(profile.streak, 'день', 'дня', 'дней')} подряд`
                       : 'пока нет'}
                   </div>
-                  <div className="tiny muted">
-                    {profile.streak > 0
-                      ? 'Столько дней подряд ты занимаешься. Пропустишь день — счёт начнётся заново.'
-                      : 'Позанимайся сегодня — и серия начнётся. День за днём она растёт.'}
-                  </div>
+
                 </div>
               </div>
             </div>
@@ -504,7 +497,6 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
                 <span className="menu-row-emoji" aria-hidden="true">🎒</span>
                 <span className="grow">
                   <span className="menu-row-title">Мои покупки</span>
-                  <span className="tiny muted">Наряды, техника, костюмы и музыка</span>
                 </span>
                 <span className="menu-row-arrow" aria-hidden="true">›</span>
               </button>
@@ -518,7 +510,6 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
                 <span className="menu-row-emoji" aria-hidden="true">🌍</span>
                 <span className="grow">
                   <span className="menu-row-title">Мой мир</span>
-                  <span className="tiny muted">Вся твоя коллекция</span>
                 </span>
                 <span className="menu-row-arrow" aria-hidden="true">›</span>
               </button>
@@ -552,7 +543,6 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
                 <span className="menu-row-emoji" aria-hidden="true">👤</span>
                 <span className="grow">
                   <span className="menu-row-title">Сменить ученика</span>
-                  <span className="tiny muted">Профили и новый ученик</span>
                 </span>
                 <span className="menu-row-arrow" aria-hidden="true">›</span>
               </button>

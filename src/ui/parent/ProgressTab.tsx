@@ -1,10 +1,5 @@
-// «Прогресс» — раздел про сохранность: файл выгрузки, здоровье записи, копии,
-// корзина, журнал и сброс. Появился после случая «у ребёнка пропал прогресс»:
-// родителю нужен не только отчёт, но и способ вернуть всё назад.
-//
-// Раскладка сделана так, чтобы разрушительное действие было последним и
-// отдельным: «Сбросить» живёт в конце, под предупреждением, и требует
-// подтверждения. Всё считается локально — наружу ничего не уходит.
+// Данные профиля: резервная копия и состояние сохранения видны сразу.
+// Восстановление, журнал и сброс раскрываются только по запросу.
 
 import { useRef, useState } from 'react';
 import type { Profile } from '../../types';
@@ -15,8 +10,8 @@ import { download, requestPersistence } from '../../platform/storage';
 import { GroupTitle } from './ParentBits';
 
 export function ProgressTab({ profile }: { profile: Profile }) {
-  const settings = useApp((s) => s.settings);
-  const vault = useApp((s) => s.vault);
+  const settings = useApp((state) => state.settings);
+  const vault = useApp((state) => state.vault);
   const {
     replaceAll,
     resetGems,
@@ -27,11 +22,10 @@ export function ProgressTab({ profile }: { profile: Profile }) {
     restoreTrashed,
     dropTrashed,
   } = useApp();
-  // Подписка на поля по отдельности: иначе карточка перерисовывалась бы на каждую запись.
-  const kind = useStorageHealth((s) => s.kind);
-  const lastWriteAt = useStorageHealth((s) => s.lastWriteAt);
-  const persisted = useStorageHealth((s) => s.persisted);
-  const patchHealth = useStorageHealth((s) => s.patch);
+  const kind = useStorageHealth((state) => state.kind);
+  const lastWriteAt = useStorageHealth((state) => state.lastWriteAt);
+  const persisted = useStorageHealth((state) => state.persisted);
+  const patchHealth = useStorageHealth((state) => state.patch);
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
 
@@ -49,18 +43,14 @@ export function ProgressTab({ profile }: { profile: Profile }) {
     try {
       const parsed = JSON.parse(await file.text());
       if (!Array.isArray(parsed.profiles)) throw new Error('Нет профилей');
-      const was = useApp.getState().profiles.length;
-      if (
-        !confirm(
-          `Заменить текущий прогресс (профилей: ${was}) загруженным (${parsed.profiles.length})? ` +
-            `Нынешние профили останутся в корзине на 30 дней.`,
-        )
-      ) {
-        return;
-      }
+      const currentCount = useApp.getState().profiles.length;
+      if (!confirm(
+        `Заменить текущие профили (${currentCount}) профилями из файла (${parsed.profiles.length})? ` +
+        'Текущие профили останутся в корзине на 30 дней.',
+      )) return;
       replaceAll(parsed);
-    } catch (e) {
-      alert('Не удалось загрузить файл: ' + (e as Error).message);
+    } catch (error) {
+      alert('Не удалось загрузить файл: ' + (error as Error).message);
     }
   };
 
@@ -74,104 +64,41 @@ export function ProgressTab({ profile }: { profile: Profile }) {
   const trash = [...vault.trash].sort((a, b) => b.at - a.at);
   const journal = [...vault.log].slice(-12).reverse();
   const exportOverdue = !vault.lastExportAt || Date.now() - vault.lastExportAt > EXPORT_REMINDER_MS;
-  const saveState = kind === 'ok' ? 'работает' : kind === 'write-error' ? 'не сохраняется' : 'не открыто';
+  const saveState = kind === 'ok' ? 'работает' : kind === 'write-error' ? 'ошибка' : 'не проверено';
+  const hasRecovery = !!purchase || snapshots.length > 0 || trash.length > 0 || journal.length > 0;
 
   return (
     <div className="parent-stack">
       <div className="card">
-        <GroupTitle
-          title="Защита накоплений"
-          hint="Режим максимальной защиты. Включён всегда и не выключается: отключаемая защита не защищает."
-        />
-        <div className="kv">
-          <span>Режим</span>
-          <b>максимальный</b>
-        </div>
-        <ul className="setting-hint" style={{ margin: '6px 0 0 18px', padding: 0 }}>
-          <li>перед каждой покупкой сохраняется копия записи — с кристаллами, но без покупки;</li>
-          <li>после покупки приложение проверяет, что она правда сохранилась;</li>
-          <li>если запись не удалась, покупка отменяется, а кристаллы возвращаются;</li>
-          <li>копию можно вернуть здесь, не дожидаясь сбоя.</li>
-        </ul>
-        {purchase ? (
-          <div className="kv mt">
-            <span>
-              Копия перед покупкой «{purchase.label}»
-              <span className="setting-hint">
-                {' · '}
-                {agoLabel(purchase.at)} · 💎 {purchase.gemsBefore} → {purchase.gemsAfter}
-              </span>
-            </span>
-            <button
-              className="btn ghost sm"
-              disabled={busy}
-              onClick={() => {
-                if (
-                  !confirm(
-                    `Вернуть состояние до покупки «${purchase.label}»? ` +
-                      `Кристаллы вернутся (${purchase.gemsBefore} 💎), вещи из этой покупки не будет. ` +
-                      `Нынешнее состояние останется в копиях.`,
-                  )
-                ) {
-                  return;
-                }
-                setBusy(true);
-                void restorePurchaseArchive().then((ok) => {
-                  setBusy(false);
-                  if (!ok) alert('Копия не читается');
-                });
-              }}
-            >
-              Вернуть
-            </button>
-          </div>
-        ) : (
-          <p className="setting-hint mt">Копия появится, как только ребёнок что-нибудь купит.</p>
-        )}
-      </div>
-
-      <div className="card">
-        <GroupTitle
-          title="Копия прогресса"
-          hint="Файл можно сохранить и перенести на другой телефон или вернуть через него всё назад."
-        />
+        <GroupTitle title="Резервная копия" />
         <div className="row">
-          <button className="btn ghost grow" onClick={exportData}>
-            ⬇️ Сохранить файл
-          </button>
-          <button className="btn ghost grow" onClick={() => fileRef.current?.click()}>
-            ⬆️ Загрузить файл
-          </button>
+          <button className="btn ghost grow" onClick={exportData}>⬇️ Сохранить файл</button>
+          <button className="btn ghost grow" onClick={() => fileRef.current?.click()}>⬆️ Загрузить файл</button>
         </div>
         <input
           ref={fileRef}
           type="file"
           accept="application/json"
           style={{ display: 'none' }}
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) void importData(f);
-            e.target.value = '';
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (file) void importData(file);
+            event.target.value = '';
           }}
         />
         <div className="kv mt">
           <span>Последняя копия</span>
-          <span className="setting-hint">
-            {vault.lastExportAt ? agoLabel(vault.lastExportAt) : 'ни разу не делали'}
-          </span>
+          <span className="setting-hint">{vault.lastExportAt ? agoLabel(vault.lastExportAt) : 'не делали'}</span>
         </div>
         {exportOverdue && (
-          <div className="banner mt">
-            💾 <b>Сделайте копию прогресса.</b> Прогресс живёт только в этом телефоне: без файла
-            восстановить будет нечего.
-          </div>
+          <div className="banner mt">💾 Сохраните файл: прогресс хранится на этом устройстве.</div>
         )}
       </div>
 
       <div className="card">
-        <GroupTitle title="Сохранность" hint="Проверяем, что запись действительно идёт, и просим браузер её не чистить." />
+        <GroupTitle title="Сохранение" />
         <div className="kv">
-          <span>Сохранение</span>
+          <span>Запись прогресса</span>
           <b className={kind === 'ok' ? '' : 'warn'}>{saveState}</b>
         </div>
         <div className="kv">
@@ -183,150 +110,176 @@ export function ProgressTab({ profile }: { profile: Profile }) {
           {persisted === true ? (
             <b>включена</b>
           ) : (
-            <button className="btn ghost sm" onClick={() => void enablePersistence()}>
-              Включить
-            </button>
+            <button className="btn ghost sm" onClick={() => void enablePersistence()}>Включить</button>
           )}
         </div>
         {persisted !== true && (
-          <p className="setting-hint">
-            Браузер вправе вычистить данные телефона (на iPhone — если приложение не добавлено на экран).
-            Добавьте «СЛОВО» на главный экран и нажмите «Включить».
-          </p>
+          <p className="setting-hint">Добавьте приложение на главный экран и включите защиту.</p>
         )}
       </div>
 
-      {snapshots.length > 0 && (
-        <div className="card">
-          <GroupTitle title="Вернуть как было" hint="Автоматические копии: три последних состояния записи." />
-          {snapshots.map((s) => (
-            <div className="kv" key={s.slot}>
-              <span>
-                {agoLabel(s.at)}
-                <span className="setting-hint">
-                  {' · '}
-                  {s.profiles === null ? 'копия нечитаемой записи' : `профилей: ${s.profiles}`}
-                </span>
-              </span>
-              <button
-                className="btn ghost sm"
-                disabled={busy}
-                onClick={() => {
-                  if (!confirm('Вернуть состояние из этой копии? Нынешнее останется в копиях.')) return;
-                  setBusy(true);
-                  void restoreSnapshot(s.slot).then((ok) => {
-                    setBusy(false);
-                    if (!ok) alert('Копия не читается');
-                  });
-                }}
-              >
-                Вернуть
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
+      <details className="card parent-data-details">
+        <summary className="parent-summary">Восстановление</summary>
+        <div className="parent-data-body mt">
+          {!hasRecovery && <p className="setting-hint">Копии появятся после изменений и покупок.</p>}
 
-      {trash.length > 0 && (
-        <div className="card">
-          <GroupTitle title="Удалённые профили и копии" hint="До 30 дней здесь хранятся последние пять копий. Возвращается профиль целиком — со словами, кристаллами и серией." />
-          {/* Ключ с индексом: два профиля могут попасть в корзину в одну миллисекунду,
-              и тогда одинаковые ключи в списке ломали бы перерисовку. */}
-          {trash.map((t, index) => (
-            <div className="kv" key={`${t.at}-${index}`}>
-              <span>
-                {t.profile.avatar} {t.profile.name}
-                <span className="setting-hint">
-                  {' · '}
-                  {agoLabel(t.at)}{t.reason === 'gems-reset' ? ' · до обнуления кристаллов' : ''} · ⚡ {t.profile.xp} · 💎 {t.profile.gems}
-                </span>
-              </span>
-              <span className="row">
+          {purchase && (
+            <div className="parent-data-group">
+              <div className="setting-title">До покупки «{purchase.label}»</div>
+              <div className="kv">
+                <span className="setting-hint">{agoLabel(purchase.at)} · 💎 {purchase.gemsBefore} → {purchase.gemsAfter}</span>
                 <button
                   className="btn ghost sm"
+                  disabled={busy}
                   onClick={() => {
-                    if (
-                      t.reason === 'gems-reset' &&
-                      !confirm(`Вернуть профиль «${t.profile.name}» целиком к состоянию до обнуления кристаллов? Текущий прогресс этого профиля будет заменён.`)
-                    ) return;
-                    restoreTrashed(t.at);
+                    if (!confirm(
+                      `Вернуть состояние до покупки «${purchase.label}»? ` +
+                      `Вернутся ${purchase.gemsBefore} 💎, а покупка исчезнет.`,
+                    )) return;
+                    setBusy(true);
+                    void restorePurchaseArchive().then((ok) => {
+                      setBusy(false);
+                      if (!ok) alert('Копия не читается');
+                    });
                   }}
                 >
                   Вернуть
                 </button>
-                <button
-                  className="chip"
-                  aria-label={`Удалить копию профиля ${t.profile.name} окончательно`}
-                  onClick={() => {
-                    if (confirm(`Удалить копию профиля «${t.profile.name}» окончательно?`)) dropTrashed(t.at);
-                  }}
-                >
-                  🗑
-                </button>
-              </span>
+              </div>
             </div>
-          ))}
-        </div>
-      )}
+          )}
 
-      {journal.length > 0 && (
-        <div className="card">
-          <details>
-            <summary className="parent-summary">Журнал: что происходило с прогрессом</summary>
-            <div className="mt">
-              {journal.map((e, i) => (
-                <div className="kv" key={`${e.at}-${i}`}>
-                  <span className="setting-hint">{new Date(e.at).toLocaleString('ru-RU')}</span>
-                  <span className="setting-hint">
-                    {LOG_LABEL[e.kind] ?? e.kind}
-                    {e.note ? ` · ${e.note}` : ''}
+          {snapshots.length > 0 && (
+            <div className="parent-data-group">
+              <div className="setting-title">Автоматические копии</div>
+              {snapshots.map((snapshot) => (
+                <div className="kv" key={snapshot.slot}>
+                  <span>
+                    {agoLabel(snapshot.at)}
+                    <span className="setting-hint">
+                      {' · '}{snapshot.profiles === null ? 'не читается' : `${snapshot.profiles} проф.`}
+                    </span>
+                  </span>
+                  <button
+                    className="btn ghost sm"
+                    disabled={busy}
+                    onClick={() => {
+                      if (!confirm('Вернуть эту копию? Текущее состояние тоже сохранится.')) return;
+                      setBusy(true);
+                      void restoreSnapshot(snapshot.slot).then((ok) => {
+                        setBusy(false);
+                        if (!ok) alert('Копия не читается');
+                      });
+                    }}
+                  >
+                    Вернуть
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {trash.length > 0 && (
+            <div className="parent-data-group">
+              <div className="setting-title">Корзина</div>
+              {trash.map((item, index) => (
+                <div className="kv" key={`${item.at}-${index}`}>
+                  <span>
+                    {item.profile.avatar} {item.profile.name}
+                    <span className="setting-hint">
+                      {' · '}{agoLabel(item.at)}{item.reason === 'gems-reset' ? ' · до обнуления кристаллов' : ''}
+                    </span>
+                  </span>
+                  <span className="row">
+                    <button
+                      className="btn ghost sm"
+                      onClick={() => {
+                        if (
+                          item.reason === 'gems-reset' &&
+                          !confirm(
+                            `Вернуть профиль «${item.profile.name}» к состоянию до обнуления кристаллов? ` +
+                            'Текущий прогресс этого профиля будет заменён.',
+                          )
+                        ) return;
+                        restoreTrashed(item.at);
+                      }}
+                    >
+                      Вернуть
+                    </button>
+                    <button
+                      className="chip"
+                      aria-label={`Удалить копию профиля ${item.profile.name} окончательно`}
+                      onClick={() => {
+                        if (confirm(`Удалить копию профиля «${item.profile.name}» окончательно?`)) dropTrashed(item.at);
+                      }}
+                    >
+                      🗑
+                    </button>
                   </span>
                 </div>
               ))}
             </div>
-          </details>
+          )}
+
+          {journal.length > 0 && (
+            <details>
+              <summary className="parent-summary">Журнал</summary>
+              <div className="mt">
+                {journal.map((entry, index) => (
+                  <div className="kv" key={`${entry.at}-${index}`}>
+                    <span className="setting-hint">{new Date(entry.at).toLocaleString('ru-RU')}</span>
+                    <span className="setting-hint">
+                      {LOG_LABEL[entry.kind] ?? entry.kind}{entry.note ? ` · ${entry.note}` : ''}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
         </div>
-      )}
+      </details>
 
-      <div className="card danger-zone">
-        <GroupTitle
-          title="Кристаллы"
-          hint={`Баланс профиля «${profile.name}»: ${profile.gems} 💎. Обнулится только баланс; слова, XP, серия и покупки сохранятся. Копию профиля можно вернуть из корзины выше.`}
-        />
-        <button
-          className="btn danger wide"
-          disabled={profile.gems === 0}
-          onClick={() => {
-            if (
-              confirm(
-                `Обнулить кристаллы профиля «${profile.name}» (${profile.gems} 💎)? ` +
-                  `Слова, XP, серия и покупки сохранятся. Копию профиля можно вернуть из корзины.`,
-              )
-            ) {
-              resetGems(profile.id);
-            }
-          }}
-        >
-          Обнулить кристаллы
-        </button>
-      </div>
+      <details className="card danger-zone parent-data-details">
+        <summary className="parent-summary">Сброс данных</summary>
+        <div className="parent-data-body mt">
+          <div className="parent-data-group">
+            <div className="setting-title">Кристаллы · {profile.gems} 💎</div>
+            <p className="setting-hint">слова, XP, серия и покупки сохранятся.</p>
+            <button
+              className="btn danger wide"
+              disabled={profile.gems === 0}
+              onClick={() => {
+                if (confirm(
+                  `Обнулить ${profile.gems} 💎 у профиля «${profile.name}»? ` +
+                  'Слова, XP, серия и покупки сохранятся.',
+                )) {
+                  resetGems(profile.id);
+                }
+              }}
+            >
+              Обнулить кристаллы
+            </button>
+          </div>
 
-      <div className="card danger-zone">
-        <GroupTitle
-          title="Начать заново"
-          hint={`Сброс прогресса ${profile.name}: слова, XP, кристаллы, серия и покупки обнулятся. Профиль останется в корзине 30 дней — его можно вернуть в разделе выше.`}
-        />
-        <button
-          className="btn danger wide"
-          onClick={() => {
-            if (confirm(`Сбросить весь прогресс ${profile.name}, включая кристаллы и покупки? Прежний профиль останется в корзине на 30 дней.`)) {
-              resetProfile(profile.id);
-            }
-          }}
-        >
-          Сбросить прогресс
-        </button>
-      </div>
+          <div className="parent-data-group">
+            <div className="setting-title">Начать заново</div>
+            <p className="setting-hint">
+              Слова, XP, кристаллы, серия и покупки обнулятся. Профиль останется в корзине 30 дней.
+            </p>
+            <button
+              className="btn danger wide"
+              onClick={() => {
+                if (confirm(
+                  `Сбросить весь прогресс профиля «${profile.name}», включая кристаллы и покупки? ` +
+                  'Прежняя версия останется в корзине на 30 дней.',
+                )) resetProfile(profile.id);
+              }}
+            >
+              Сбросить прогресс
+            </button>
+          </div>
+        </div>
+      </details>
     </div>
   );
 }

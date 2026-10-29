@@ -15,8 +15,6 @@ interface Props {
   onOpenDiagnostics: (section: ParentTabId) => void;
   /** Вернуться в тот же раздел после диагностики, открытой из ярлыка. */
   initialTab?: ParentTabId;
-  /** Открыть вкладку «Слова» (из обзора — «посмотреть все слова») */
-  onOpenWords: () => void;
   /** Списки к контрольной (0.58.0): тренировка, контроль, ошибки. */
   onStartList: (listId: string, mode?: 'train' | 'check' | 'errors') => void;
 }
@@ -40,18 +38,10 @@ interface Props {
  * стал честнее: ошибка показывается на месте, ответ не стирается, Enter
  * отправляет форму.
  */
-export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs, onOpenDiagnostics, initialTab = 'overview', onOpenWords, onStartList }: Props) {
+export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs, onOpenDiagnostics, initialTab = 'overview', onStartList }: Props) {
   const profile = useActiveProfile();
   const [tab, setTab] = useState<ParentTabId>(initialTab === 'app' || initialTab === 'progress' ? 'more' : initialTab);
   const [moreSection, setMoreSection] = useState<'progress' | 'app'>(initialTab === 'app' ? 'app' : 'progress');
-  const openSection = (id: 'lists' | 'progress' | 'app') => {
-    if (id === 'lists') {
-      setTab('lists');
-      return;
-    }
-    setMoreSection(id);
-    setTab('more');
-  };
   const moveMoreSection = (delta: number) => {
     const next = moreSection === 'progress'
       ? delta > 0 ? 'app' : 'progress'
@@ -69,10 +59,7 @@ export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs, 
   return (
     <div className="screen parent-screen">
       <div className="parent-head">
-        <div>
-          <h1>Родителям</h1>
-          <div className="setting-hint">Здесь всё про занятия, сохранность и настройки</div>
-        </div>
+        <h1>Родителям</h1>
         <button className="btn ghost sm" onClick={onOpenProfiles}>
           👨‍👩‍👧 Дети
         </button>
@@ -82,19 +69,14 @@ export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs, 
         <div className="avatar" style={{ cursor: 'default' }}>
           {profile.avatar}
         </div>
-        <div className="grow">
-          <div className="parent-child-name">{profile.name}</div>
-          <div className="setting-hint">
-            Прогресс этого профиля · с {new Date(profile.createdAt).toLocaleDateString('ru-RU')}
-          </div>
-        </div>
+        <div className="parent-child-name grow">{profile.name}</div>
       </div>
 
       <ParentTabs items={PARENT_TABS} value={tab} onChange={setTab} />
 
       {tab === 'overview' && (
         <ParentPanel id="overview">
-          <OverviewTab profile={profile} onOpenWords={onOpenWords} onOpenSection={openSection} />
+          <OverviewTab profile={profile} />
         </ParentPanel>
       )}
       {tab === 'lists' && (
@@ -158,7 +140,7 @@ function UnlockGate({ onUnlock }: { onUnlock: () => void }) {
     <div className="screen center">
       <div className="big-emoji">🔐</div>
       <h1>Раздел для взрослых</h1>
-      <p className="muted">Решите пример, чтобы войти: здесь настройки и данные о прогрессе.</p>
+      <p className="muted">Решите пример, чтобы войти.</p>
       <div className="unlock-task">
         {a} × {b} = ?
       </div>
@@ -180,7 +162,7 @@ function UnlockGate({ onUnlock }: { onUnlock: () => void }) {
       />
       {error && (
         <div className="unlock-error" role="alert">
-          Не подходит — попробуйте ещё раз{misses >= 2 ? ' (подсказка: умножьте столбиком)' : ''}
+          Неверно. Попробуйте ещё раз{misses >= 2 ? ' или посчитайте столбиком' : ''}
         </div>
       )}
       <button className="btn primary wide lg mt" disabled={!answer} onClick={submit}>

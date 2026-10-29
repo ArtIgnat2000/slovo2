@@ -27,12 +27,12 @@ export function SettingsTab({ profile, onOpenDiagnostics }: { profile: Profile; 
   return (
     <div className="parent-stack">
       <div className="card">
-        <GroupTitle title="Занятия" hint="Что и как часто делает ребёнок" />
+        <GroupTitle title="Занятия" />
 
         {AVAILABLE_CLASSES.length > 1 && (
           <SettingRow
             title="Класс"
-            hint="Какую программу проходит ребёнок. Меняется только набор слов: опыт, кристаллы, серия, награды и покупки остаются."
+            hint="Меняется набор слов. Прогресс и покупки сохраняются."
           >
             <Choice
               label="Класс программы"
@@ -49,7 +49,7 @@ export function SettingsTab({ profile, onOpenDiagnostics }: { profile: Profile; 
 
         <SettingRow
           title="Размер урока"
-          hint="Сколько карточек в одном уроке. Отработка ошибок добавляется сверху и не пропадает. Меняется со следующего урока."
+          hint="Применится со следующего урока."
         >
           <Choice
             label="Размер урока"
@@ -65,7 +65,7 @@ export function SettingsTab({ profile, onOpenDiagnostics }: { profile: Profile; 
 
         <SettingRow
           title="Подсказки в уроке"
-          hint="Что делает сова БУК, если ребёнок просит помощи или долго думает."
+          hint="Как БУК помогает в задании."
         >
           <Choice
             label="Подсказки в уроке"
@@ -86,10 +86,9 @@ export function SettingsTab({ profile, onOpenDiagnostics }: { profile: Profile; 
 
       <details className="card parent-advanced-settings">
         <summary className="setting-title">Расширенные настройки</summary>
-        <p className="setting-hint">Редко меняемые параметры приложения. Музыку ребёнок включает и выключает сам кнопкой звука.</p>
         <SettingRow
           title="Цель дня"
-          hint="Сколько опыта (XP) считается выполненной нормой дня. Ребёнок видит прогресс в кольце на главной."
+          hint="Дневная норма XP на главной."
         >
           <Choice
             label="Цель дня в XP"
@@ -105,14 +104,14 @@ export function SettingsTab({ profile, onOpenDiagnostics }: { profile: Profile; 
 
       <div className="card">
         <GroupTitle title="Звук и отклик" />
-        <SettingRow title="Звук" hint="Звуковые эффекты: правильный ответ, ошибка, награда и сундук. Мелодии ответа ребёнок выбирает в БУКе → «Витрина» → «Звуки».">
+        <SettingRow title="Звук" hint="Эффекты ответов и наград.">
           <Switch
             label="Звук"
             checked={settings.sound}
             onChange={(sound) => setSettings({ sound })}
           />
         </SettingRow>
-        <SettingRow title="Вибрация" hint="Короткий отклик на верные и неверные ответы (если телефон это умеет).">
+        <SettingRow title="Вибрация" hint="Отклик телефона на ответы.">
           <Switch
             label="Вибрация"
             checked={settings.haptics}
@@ -127,7 +126,7 @@ export function SettingsTab({ profile, onOpenDiagnostics }: { profile: Profile; 
 
       <div className="card">
         <GroupTitle title="Вид" />
-        <SettingRow title="Цветовая схема" hint="Светлая, тёмная или как в телефоне. Стиль оформления выбирается в БУКе → «Витрина» → «Фоны».">
+        <SettingRow title="Цветовая схема" hint="Светлая, тёмная или как в телефоне.">
           <Choice
             label="Цветовая схема"
             value={settings.theme}
@@ -143,7 +142,7 @@ export function SettingsTab({ profile, onOpenDiagnostics }: { profile: Profile; 
 
         <SettingRow
           title="Сова БУК"
-          hint="Плавающий помощник на экранах. Его можно оставить везде, только на главной или убрать совсем."
+          hint="Где показывать помощника."
         >
           <Choice
             label="Сова БУК"
@@ -160,9 +159,6 @@ export function SettingsTab({ profile, onOpenDiagnostics }: { profile: Profile; 
 
       </details>
 
-      <p className="setting-hint center">
-        Настройки применяются сразу и хранятся в этом телефоне вместе с прогрессом.
-      </p>
     </div>
   );
 }
