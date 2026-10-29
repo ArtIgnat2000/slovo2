@@ -49,6 +49,15 @@ export const PRODUCT_PHOTOS: readonly string[] = [
   // Вкусняшки
   'food-donut',
   'food-kulich',
+  'food-icecream',
+  'food-cake',
+  // Самолёты
+  'plane-swift',
+  'plane-electron-base',
+  'plane-arctic-base',
+  'plane-moon-base',
+  'plane-atomic-base',
+  'plane-steam-base',
 ];
 
 const PHOTOS = new Set(PRODUCT_PHOTOS);

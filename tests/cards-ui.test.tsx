@@ -52,11 +52,23 @@ export async function runShopCardChecks() {
     ['Питомцы', 'pet'],
     ['Спорт', 'sport'],
     ['Вкусняшки', 'food'],
+    ['Самолёты', 'plane'],
   ];
   let photoCards: (Element | undefined)[] = [];
   for (const [title, kind] of shelves) {
     await goBuk();
-    click(shelf(title)!);
+    // Самолёты, корабли и телефоны живут вкладками внутри полки «Техника»,
+    // а питомцы/спорт/вкусняшки — отдельными полками. Открываем и так, и так.
+    if (!shelf(title)) {
+      click(shelf('Техника')!);
+      await sleep(60);
+      const tab = Array.from(document.querySelectorAll('.shop-toy-cats [role="tab"]')).find((el) =>
+        (el.textContent ?? '').includes(title),
+      ) as HTMLButtonElement | undefined;
+      click(tab);
+    } else {
+      click(shelf(title)!);
+    }
     await sleep(60);
     const cards = Array.from(document.querySelectorAll('.shop-item.toy-item'));
     const inShelf = PRODUCT_PHOTOS.filter((id) => TOY_ITEMS.find((item) => item.id === id)?.toy === kind);
@@ -73,7 +85,6 @@ export async function runShopCardChecks() {
     );
     photoCards = photoCards.concat(withPhoto);
   }
-
   // Перевод на фото идёт полками, и это видно в тесте: список ожидания
   // сокращается с каждой партией. Если кто-то вернёт рисунок вместо готового
   // снимка, проверка упадёт и напомнит, что полка уже переехала в студию.
@@ -82,7 +93,7 @@ export async function runShopCardChecks() {
   ).map((item) => item.id);
   check(
     'фото товаров: без снимков остались только запланированные товары',
-    stillDrawn.join(',') === 'food-icecream,food-cake',
+    stillDrawn.join(',') === '',
     stillDrawn.join(', ') || 'ни одного',
   );
   check(
