@@ -781,16 +781,13 @@ async function main() {
     '',
   );
 
-  // Поворот остался только у модели, которую ещё не пересняли.
-  const rotatingCard = electronicsCards.find((el) => (el.textContent ?? '').includes('iPhone 18 Pro Max'));
-  const rotatingPhone = rotatingCard?.querySelector('.phone-rotate');
-  check('у модели без снимка телефон по-прежнему поворачивается', !!rotatingPhone, '');
-  click(rotatingPhone);
-  await sleep(30);
-  check('тап по телефону поворачивает его, не открывая карточку', rotatingPhone?.getAttribute('aria-pressed') === 'true' && !!rotatingPhone.querySelector('.is-front') && !document.querySelector('.shop-sheet'), '');
-  click(rotatingPhone);
-  await sleep(30);
-  check('повторный тап возвращает заднюю панель', rotatingPhone?.getAttribute('aria-pressed') === 'false', '');
+  // 0.83.0: поворот телефонов убран вместе с 3D-спинками — кадр один.
+  check(
+    'телефон больше не притворяется поворотным',
+    !document.querySelector('.shop-item.toy-item .phone-rotate') &&
+      !document.querySelector('.shop-item.toy-item .phone-turntable'),
+    '',
+  );
 
   click(phoneCard?.querySelector('.shop-title'));
   await sleep(30);
@@ -804,7 +801,7 @@ async function main() {
         !phoneSheet?.querySelector('.mascot'),
       phoneSheet?.innerHTML.slice(0, 200) ?? 'карточка не открылась',
     );
-    check('у телефона со снимком нет подсказки про поворот', !phoneSheet?.querySelector('.phone-rotate-hint'), '');
+    check('у телефона со снимком нет подсказки про поворот', !phoneSheet?.querySelector('.art-hint'), '');
   }
   const closePhoneSheet = document.querySelector('.shop-sheet-veil');
   if (closePhoneSheet) click(closePhoneSheet);

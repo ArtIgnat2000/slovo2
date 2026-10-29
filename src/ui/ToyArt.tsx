@@ -575,7 +575,7 @@ export function ToyArt({
     return <AirplaneArt key={id} id={id} size={size} className={className} alt={alt} colors={accessoryColors(id, tuning)} />;
   }
   if (hasElectronicsArt(id)) {
-    return <ElectronicsArt key={id} id={id} className={className} alt={alt} interactive={interactive} tint={artPencilTint(id, tuning)} />;
+    return <ElectronicsArt key={id} id={id} className={className} alt={alt} />;
   }
   if (hasCarArt(id)) {
     return <CarArt id={id} tint={artPencilTint(id, tuning)} className={className} alt={alt ?? ''} interactive={interactive} />;

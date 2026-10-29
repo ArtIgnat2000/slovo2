@@ -41,7 +41,7 @@ const RATIO = W / H;
  * вписывается целиком на продолженный задник, а режем мы только те снимки,
  * где предмет заведомо компактнее окна.
  */
-const CROP = new Set(['car-arctic-base', 'laptop-air']);
+const CROP = new Set(['car-arctic-base', 'laptop-air', 'headphones-max']);
 
 /**
  * 0.82.0: телефоны сняты в широком кадре, а сам аппарат стоит по центру
@@ -51,7 +51,7 @@ const CROP = new Set(['car-arctic-base', 'laptop-air']);
  */
 const STRIP = new Set([
   'phone-smart', 'phone-flip', 'phone-retro', 'phone-pro',
-  'phone-18', 'phone-18-air', 'phone-18-pro',
+  'phone-18', 'phone-18-air', 'phone-18-pro', 'phone-18-max',
 ]);
 const STRIP_WIDTH = 0.42;
 

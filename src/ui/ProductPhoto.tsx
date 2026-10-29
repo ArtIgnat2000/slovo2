@@ -96,6 +96,10 @@ export const PRODUCT_PHOTOS: readonly string[] = [
   'phone-18',
   'phone-18-air',
   'phone-18-pro',
+  // 0.83.0: последние три позиции раздела — Pro Max, кинотеатр и наушники
+  'phone-18-max',
+  'tv-cinema',
+  'headphones-max',
   // Базы (фасады: те же фото показывает и первая точка экскурсии)
   'atomic-base',
   'electron-base',
