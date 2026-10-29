@@ -82,8 +82,20 @@ export const PRODUCT_PHOTOS: readonly string[] = [
   'car-electron-base',
   'car-arctic-base',
   'car-steam-base',
+  // 0.82.0: переснятая техника баз — розовая звезда, розовый танк, луноход
+  'car-pink-star',
+  'car-pink-tank',
+  'car-moon-base',
   // Электроника (0.81.0: первый снимок; остальные пока 3D-арт)
   'laptop-air',
+  // 0.82.0: телефоны — снимки спинки; поворот остался только у 18 Pro Max
+  'phone-smart',
+  'phone-flip',
+  'phone-retro',
+  'phone-pro',
+  'phone-18',
+  'phone-18-air',
+  'phone-18-pro',
   // Базы (фасады: те же фото показывает и первая точка экскурсии)
   'atomic-base',
   'electron-base',

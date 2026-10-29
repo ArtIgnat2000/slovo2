@@ -29,14 +29,20 @@ for (const [id, file] of Object.entries(ELECTRONICS_ART)) {
   assert.ok(markup.includes(`${import.meta.env.BASE_URL}electronics/${file}.webp`));
   assert.ok(!markup.includes('<svg'), 'New electronics must not fall back to retro phone SVG');
 }
+// 0.82.0: старые покупки остаются валидными, но показываются уже снимком —
+// поворотный 3D-арт у них остался только запасным вариантом.
 for (const id of ['phone-smart', 'phone-flip', 'phone-retro']) {
   assert.ok(shelf.some(item => item.id === id), 'Existing purchases remain valid');
-  assert.ok(renderToStaticMarkup(<ToyArt id={id} />).includes('phone-face-back'));
-  const interactive = renderToStaticMarkup(<ToyArt id={id} interactive />);
-  assert.ok(interactive.includes('aria-pressed="false"'));
-  assert.ok(interactive.includes('phone-front.webp'));
-  assert.ok(existsSync('public/electronics/phone-front.webp'));
+  const markup = renderToStaticMarkup(<ToyArt id={id} />);
+  assert.ok(markup.includes(hasProductPhoto(id) ? 'product-photo' : 'phone-face-back'), id);
 }
+// Вращение живо только у моделей без снимка.
+const rotatingId = Object.keys(ELECTRONICS_ART).find(id => isRotatingPhone(id));
+assert.ok(rotatingId, 'последний поворотный телефон ещё не переснят');
+const interactive = renderToStaticMarkup(<ToyArt id={rotatingId} interactive />);
+assert.ok(interactive.includes('aria-pressed="false"'));
+assert.ok(interactive.includes('phone-front.webp'));
+assert.ok(existsSync('public/electronics/phone-front.webp'));
 assert.equal(hasElectronicsArt('toString'), false);
 assert.equal(renderToStaticMarkup(<ElectronicsArt id="missing" />), '');
 console.log('Electronics: catalog, assets, base URL, shared rendering and legacy phones OK');

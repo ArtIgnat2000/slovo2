@@ -7,6 +7,9 @@
 //
 //   • широкий кадр из списка CROP — центральный кроп по ширине: там машина
 //     стоит по центру, а по бокам только задник, поэтому кроп безопасен;
+//   • кадр из списка STRIP (телефоны) — сначала берём центральную полосу:
+//     вытянутый предмет в широком кадре занимает десятую часть ширины, и в
+//     витрине от него остаётся былинка;
 //   • любой другой кадр (в том числе широкий, но не проверенный) — вписываем
 //     целиком на размытый задник из того же снимка: никаких серых полей и
 //     никакой обрезки. Раньше резали все широкие кадры подряд, и у розового
@@ -40,6 +43,18 @@ const RATIO = W / H;
  */
 const CROP = new Set(['car-arctic-base', 'laptop-air']);
 
+/**
+ * 0.82.0: телефоны сняты в широком кадре, а сам аппарат стоит по центру
+ * узкой вертикальной полосой. Прежде чем вписывать, срезаем по бокам всё,
+ * кроме этой полосы: иначе телефон занимает десятую часть карточки, а
+ * задник — остальные девять десятых.
+ */
+const STRIP = new Set([
+  'phone-smart', 'phone-flip', 'phone-retro', 'phone-pro',
+  'phone-18', 'phone-18-air', 'phone-18-pro',
+]);
+const STRIP_WIDTH = 0.42;
+
 mkdirSync(out, { recursive: true });
 
 const files = readdirSync(src).filter((name) => name.toLowerCase().endsWith('.png'));
@@ -59,7 +74,28 @@ function fitOnBackdrop(from, to, id) {
   const fg = path.join(out, `.${id}-fg.png`);
   execFileSync('convert', [from, '-auto-orient', '-resize', '8x6!', '-resize', `${W}x${H}!`, '-blur', '0x60', bg]);
   execFileSync('convert', [from, '-auto-orient', '-resize', `${W}x${H}`, fg]);
-  execFileSync('convert', [bg, fg, '-gravity', 'center', '-composite', '-quality', '82', '-define', 'webp:method=6', to]);
+  const { w: fw } = size(fg);
+  if (fw < W) {
+    // 0.82.0: снимок уже холста — края растворяем в заднике. Без этого
+    // на стыке резкого кадра и размытой студии видна вертикальная линейка,
+    // и карточка выглядит склейкой из двух картинок.
+    const feather = Math.max(24, Math.round(W * 0.05));
+    const mask = path.join(out, `.${id}-mask.png`);
+    const alpha = path.join(out, `.${id}-alpha.png`);
+    execFileSync('convert', [
+      '-size', `${feather}x1`, 'gradient:black-white',
+      '-size', `${Math.max(1, fw - feather * 2)}x1`, 'xc:white',
+      '-size', `${feather}x1`, 'gradient:white-black',
+      '+append', '-resize', `${fw}x${H}!`,
+      mask,
+    ]);
+    execFileSync('convert', [fg, mask, '-alpha', 'off', '-compose', 'CopyOpacity', '-composite', alpha]);
+    execFileSync('convert', [bg, alpha, '-geometry', '+0+0', '-composite', '-quality', '82', '-define', 'webp:method=6', to]);
+    rmSync(mask, { force: true });
+    rmSync(alpha, { force: true });
+  } else {
+    execFileSync('convert', [bg, fg, '-gravity', 'center', '-composite', '-quality', '82', '-define', 'webp:method=6', to]);
+  }
   rmSync(bg, { force: true });
   rmSync(fg, { force: true });
 }
@@ -70,7 +106,18 @@ for (const name of files) {
   const to = path.join(out, `${id}.webp`);
   const { w, h } = size(from);
 
-  if (w / h >= RATIO && CROP.has(id)) {
+  if (STRIP.has(id)) {
+    const strip = path.join(out, `.${id}-strip.png`);
+    execFileSync('convert', [
+      from, '-auto-orient',
+      '-gravity', 'center',
+      '-crop', `${Math.round(w * STRIP_WIDTH)}x${h}+0+0`,
+      '+repage',
+      strip,
+    ]);
+    fitOnBackdrop(strip, to, id);
+    rmSync(strip, { force: true });
+  } else if (w / h >= RATIO && CROP.has(id)) {
     execFileSync('convert', [
       from, '-auto-orient',
       '-gravity', 'center',
