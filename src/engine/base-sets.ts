@@ -15,7 +15,8 @@ export interface BaseSet {
   rarity: ItemRarity;
 }
 
-export const BASE_SET_PRICE_MULTIPLIER = 3;
+/** Набор выгоднее покупки по частям: скидка 25% от суммы недостающих частей. */
+export const BASE_SET_PRICE_MULTIPLIER = 0.75;
 
 export const BASE_SETS: BaseSet[] = [
   { id: 'atomic-set', baseId: 'atomic-base', carId: 'car-atomic-base', planeId: 'plane-atomic-base', costumeId: 'atomic-suit', title: 'Набор «Атом»', desc: 'Ядерная база, машина «Квант», самолёт «Атомный дозор» и костюм Хранителя атома', emoji: '⚛️', rarity: 'top' },
@@ -25,7 +26,7 @@ export const BASE_SETS: BaseSet[] = [
   { id: 'steam-set', baseId: 'steam-base', carId: 'car-steam-base', planeId: 'plane-steam-base', costumeId: 'steam-suit', title: 'Набор «Пар»', desc: 'База паровозов, паровоз «Огнедышащий», биплан «Паролёт» и костюм Машиниста пара', emoji: '🚂', rarity: 'legendary' },
 ];
 
-/** Sets are premium purchases: charge three times the cost of any missing components. */
+/** Sets are bundles: charge 75% of the combined cost of any missing components. */
 export function baseSetPrice(
   set: BaseSet,
   ownedItems: string[],
@@ -39,7 +40,7 @@ export function baseSetPrice(
     !assembledCostumes.includes(set.costumeId) ? COSTUME_BY_ID[set.costumeId]?.price ?? 0 : 0,
   ];
   const total = missingPrices.reduce((sum, price) => sum + price, 0);
-  return total * BASE_SET_PRICE_MULTIPLIER;
+  return total > 0 ? Math.max(1, Math.round(total * BASE_SET_PRICE_MULTIPLIER)) : 0;
 }
 
 export function baseSetRarityIndex(set: BaseSet): number {

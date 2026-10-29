@@ -1363,7 +1363,7 @@ export function ShopScreen({
               <span className={`shop-price${affordable ? ' afford' : ''}`}>{complete ? 'Набор собран ✓' : `💎 ${price}`}</span>
               <span className="sheet-balance">{complete ? 'Всё уже у тебя' : `У тебя ${gems} 💎`}</span>
             </div>
-            {!complete && <p className="sheet-fine">Цена — за недостающие части ×3.</p>}
+            {!complete && <p className="sheet-fine">Цена — за недостающие части со скидкой 25%.</p>}
           </div>
           {!complete && (
             <div className="row mb">
@@ -1863,7 +1863,7 @@ export function ShopScreen({
         <section className="mt" aria-label="Наборы баз">
           <div className="mb">
             <h2 className="mb">Наборы научных баз 🎁</h2>
-            <div className="tiny muted">База, её машина, её самолёт и её костюм — одним набором. Цена — за недостающие части ×3.</div>
+            <div className="tiny muted">База, её машина, её самолёт и её костюм — одним набором. Цена — за недостающие части со скидкой 25%.</div>
           </div>
           <ShowcaseGrid tone="sky">{BASE_SETS.slice().sort((a, b) => priceForSet(a) - priceForSet(b)).map(baseSetCard)}</ShowcaseGrid>
         </section>
