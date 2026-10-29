@@ -4,10 +4,12 @@
 // класса и какие слова повторно вызывают ошибки. Активность по дням и отдельные
 // занятия раскрываются по запросу — они не конкурируют с главным выводом.
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CLASS_META, LESSON_BY_ID, WORDS_BY_GRADE, WORD_BY_ID, availableClass } from '../../content/words';
 import { lastDays } from '../../engine/day';
 import { plural } from '../../engine/quests';
+import { dangerSummary } from '../../engine/word-facts';
+import { Sentence, WordCard } from '../WordView';
 import { dayKey, todayStat } from '../../state/store';
 import { Bar } from '../Bits';
 import { GroupTitle, StatTile } from './ParentBits';
@@ -15,7 +17,6 @@ import type { ClassId, Profile, StudySession, TaskKind, Word } from '../../types
 
 interface Props {
   profile: Profile;
-  onOpenWords: () => void;
 }
 
 const WEEKDAY_SHORT = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
@@ -92,10 +93,40 @@ function SessionDetails({ session, customWords }: { session: StudySession; custo
   );
 }
 
-export function OverviewTab({ profile, onOpenWords }: Props) {
+function ParentWordDialog({ word, onClose }: { word: Word; onClose: () => void }) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const element = dialog.current;
+    element?.showModal();
+    return () => { if (element?.open) element.close(); };
+  }, []);
+
+  return (
+    <dialog ref={dialog} className="parent-word-dialog" aria-label={`Карточка слова ${word.text}`}
+      onClose={onClose} onClick={(event) => {
+        if (event.target === event.currentTarget) {
+          const rect = event.currentTarget.getBoundingClientRect();
+          if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) event.currentTarget.close();
+        }
+      }}>
+      <WordCard word={word} className="wcard-modal">
+        <div className="row wrap-center">
+          {word.syllables.map((syllable, index) => <span className="chip" key={index}>{syllable}</span>)}
+        </div>
+        <Sentence word={word} hidden={false} />
+        {word.mnemonic && <div className="banner">💡 {word.mnemonic}</div>}
+        <p className="tiny center">{dangerSummary(word)}</p>
+        <button type="button" className="btn ghost wide" onClick={() => dialog.current?.close()}>Закрыть</button>
+      </WordCard>
+    </dialog>
+  );
+}
+
+export function OverviewTab({ profile }: Props) {
   const wordText = (id: string) => wordTextOf(id, profile.customWords);
   const [grade, setGrade] = useState(availableClass(profile.activeClass ?? 2));
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [selectedWord, setSelectedWord] = useState<Word | null>(null);
   const gradeWords = WORDS_BY_GRADE[grade];
   const mastered = gradeWords.filter((word) => (profile.words[word.id]?.s ?? 0) >= 90).length;
   const started = gradeWords.filter((word) => {
@@ -107,7 +138,6 @@ export function OverviewTab({ profile, onOpenWords }: Props) {
   const repeatedErrors = Object.entries(profile.errors)
     .filter(([id, count]) => count >= 2 && gradeWords.some((word) => word.id === id))
     .sort((a, b) => b[1] - a[1]);
-  const isActiveGrade = grade === availableClass(profile.activeClass ?? 2);
 
   const today = todayStat(profile);
   const todaySessions = (profile.studySessions ?? [])
@@ -125,6 +155,7 @@ export function OverviewTab({ profile, onOpenWords }: Props) {
 
   return (
     <div className="parent-stack">
+      {selectedWord && <ParentWordDialog word={selectedWord} onClose={() => setSelectedWord(null)} />}
       <div className="card parent-learning-summary">
         <GroupTitle title="Прогресс по словам" />
         <label className="setting-row" htmlFor="parent-learning-grade">
@@ -153,16 +184,15 @@ export function OverviewTab({ profile, onOpenWords }: Props) {
         <div className="parent-summary-errors">
           <div className="setting-title">Повторные ошибки</div>
           {repeatedErrors.length > 0 ? (
-            <>
-              <div className="wordlist">
-                {repeatedErrors.slice(0, 6).map(([id, count]) => (
-                  <span className="word-chip weak" key={id}>{wordText(id)} · {count}</span>
-                ))}
-              </div>
-              {isActiveGrade && (
-                <button className="btn ghost sm mt" onClick={onOpenWords}>Открыть словарик</button>
-              )}
-            </>
+            <div className="wordlist">
+              {repeatedErrors.slice(0, 6).map(([id, count]) => (
+                <button type="button" className="word-chip weak" key={id}
+                  aria-label={`${wordText(id)}: ${count} ${plural(count, 'ошибка', 'ошибки', 'ошибок')}, открыть карточку`}
+                  onClick={() => setSelectedWord(gradeWords.find((word) => word.id === id) ?? null)}>
+                  {wordText(id)} · {count}
+                </button>
+              ))}
+            </div>
           ) : (
             <p className="setting-hint">Нет</p>
           )}
