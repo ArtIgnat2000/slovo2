@@ -31,6 +31,7 @@ import { RarityChip, RarityLabel } from '../RarityChip';
 import { Mascot } from '../Mascot';
 import { ToyArt } from '../ToyArt';
 import { CarTour, CAR_TOUR_IDS, warmCarTour } from '../CarTour';
+import { TechTour, isTechTourItem, warmTechTour } from '../TechTour';
 import { hasProductPhoto, warmProductPhoto } from '../ProductPhoto';
 import { carAlt, carKind, carNote, hasCarArt } from '../CarArt';
 import { hasShipArt, shipAlt, shipKind, shipNote } from '../ShipArt';
@@ -440,6 +441,7 @@ export function ShopScreen({
     if (detail.kind === 'item') {
       warmProductPhoto(detail.item.id);
       warmCarTour(detail.item.id);
+      warmTechTour(detail.item.id);
     } else if (detail.kind === 'building') {
       warmBaseTour(detail.building.id);
     }
@@ -1047,10 +1049,10 @@ export function ShopScreen({
         <>
           <div className={`shop-bigart${toy ? ' shop-bigart-toy' : ''}`}>
             {toy ? (
-              // Техника в подробной карточке — сам товар крупным планом
-              // (машина/судно — карандашный лист, телефон — поворотный WebP). БУКа здесь
-              // нет: ребёнок пришёл посмотреть вещь, а не примерку на сове.
-              CAR_TOUR_IDS.has(item.id) ? <CarTour key={item.id} id={item.id} tuning={profile.shop?.tuning} alt={artAlt} /> : <ToyArt
+              // Техника в подробной карточке — сам товар крупным планом.
+              // Машины листаются в CarTour, телефоны/корабли/самолёты — в TechTour;
+              // БУКа здесь нет: ребёнок пришёл рассмотреть вещь, а не сову.
+              CAR_TOUR_IDS.has(item.id) ? <CarTour key={item.id} id={item.id} tuning={profile.shop?.tuning} alt={artAlt} /> : isTechTourItem(item.id) ? <TechTour key={item.id} id={item.id} alt={artAlt} /> : <ToyArt
                 key={item.id}
                 id={item.id}
                 interactive
