@@ -1100,6 +1100,7 @@ export function ShopScreen({
               {isWished(wishlist, item.id) ? '💜 В мечтах — убрать' : '🤍 В мечты'}
             </button>
           )}
+          {/* Перекраска — только там, где её есть к чему применить. */}
           {owned_ && supportsTint(item.id) && (
             <>
               <button
@@ -1121,17 +1122,22 @@ export function ShopScreen({
                   onPick={(tint, unlocked) => tapTint({ id: item.id, title: item.title }, tint, unlocked)}
                 />
               )}
-              <button
-                type="button"
-                className="btn lg wide ghost mb"
-                onClick={() => {
-                  sfx.tap();
-                  setAskSell(item);
-                }}
-              >
-                Сдать обратно · +{sellPrice(item)} 💎
-              </button>
             </>
+          )}
+          {/* Сдать обратно можно ЛЮБУЮ купленную вещь — в том числе снимок,
+              который не перекрашивается (0.80.0: кнопка случайно оказалась
+              внутри блока перекраски и пропадала у фототоваров). */}
+          {owned_ && (
+            <button
+              type="button"
+              className="btn lg wide ghost mb"
+              onClick={() => {
+                sfx.tap();
+                setAskSell(item);
+              }}
+            >
+              Сдать обратно · +{sellPrice(item)} 💎
+            </button>
           )}
         </>
       );

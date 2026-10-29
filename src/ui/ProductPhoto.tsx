@@ -64,6 +64,17 @@ export const PRODUCT_PHOTOS: readonly string[] = [
   'ship-steam',
   'ship-carrier',
   'ship-titanic',
+  // Авто (студийные снимки вместо карандашных рисунков; первая партия)
+  'car-racer',
+  'car-jeep',
+  'car-taxi',
+  'car-mercedes',
+  'car-bmw',
+  'car-brabus',
+  'car-maybach',
+  'car-rolls',
+  'car-lambo',
+  'car-bugatti',
   // Базы (фасады: те же фото показывает и первая точка экскурсии)
   'atomic-base',
   'electron-base',

@@ -691,12 +691,31 @@ async function main() {
   // Каждая машина — отдельный цветной карандашный рисунок (public/cars/*.webp).
   {
     const carTitles = /Звезда|Стрела|Кубик|Адмирал|Лорд|Бык|Молния|Болид|Скалолаз|Жёлтый кэб|Квант|Импульс|Полярник|Луноход|Огнедышащий|Розовая машина|Розовая звезда|Тесла/;
-    const carArt = Array.from(document.querySelectorAll('.shop-item.toy-item'))
-      .filter((el) => carTitles.test(el.textContent ?? ''))
-      .map((el) => el.querySelector('img')?.getAttribute('src') ?? '');
-    check('«Авто»: у каждой машины свой карандашный рисунок', carArt.length === 18 && new Set(carArt).size === carArt.length && carArt.every((src) => /\/cars\/car-[a-z-]+\.webp$/.test(src)), `уникальных рисунков: ${new Set(carArt).size}/${carArt.length}`);
+    const carCards = Array.from(document.querySelectorAll('.shop-item.toy-item')).filter((el) => carTitles.test(el.textContent ?? ''));
+    const carArt = carCards.map((el) => el.querySelector('img')?.getAttribute('src') ?? '');
+    // 0.80.0: машины переводятся на студийные снимки партиями — рисунок
+    // остаётся только у тех, кого ещё не пересняли, и это видно по адресу.
+    check(
+      '«Авто»: у каждой машины своя картинка, без повторов',
+      carArt.length === 18 &&
+        new Set(carArt).size === carArt.length &&
+        carArt.every((src) => /\/(cars|products)\/car-[a-z-]+\.webp$/.test(src)),
+      `уникальных: ${new Set(carArt).size}/${carArt.length}`,
+    );
+    check(
+      '«Авто»: переснятые машины показывают студийный снимок',
+      carCards.every((el) => {
+        const src = el.querySelector('img')?.getAttribute('src') ?? '';
+        return !src.includes('/products/') || !!el.querySelector('.shop-icon > img.product-photo');
+      }),
+      carArt.join(', ').slice(0, 160),
+    );
     const tankCard = Array.from(document.querySelectorAll('.shop-item.toy-item')).find((el) => (el.textContent ?? '').includes('Розовый танк'));
-    check('«Авто»: розовый танк нарисован векторным рисунком', !!tankCard?.querySelector('svg'), '');
+    check(
+      '«Авто»: розовый танк — либо снимок, либо рисунок, но не пустая ниша',
+      !!tankCard?.querySelector('.shop-icon img') || !!tankCard?.querySelector('.shop-icon svg'),
+      tankCard?.querySelector('.shop-icon')?.innerHTML.slice(0, 60) ?? 'нет карточки',
+    );
   }
   check('«Авто»: витрина-бутик показывает отдельные карточки машин', document.querySelectorAll('.shop-boutique').length === 1 && !!document.querySelector('.shop-boutique-mint'), '');
 
