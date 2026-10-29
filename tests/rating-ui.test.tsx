@@ -20,7 +20,7 @@ export async function runRatingUiChecks() {
 
   await goTab('Рейтинг');
   check('рейтинг: вкладка открылась', has('Рейтинг') && !!document.querySelector('.rating-screen'), document.body.textContent?.slice(0, 160) ?? '');
-  check('рейтинг: честно сказано, что соперники воображаемые', has('воображаемые'), '');
+  check('рейтинг: честно сказано, что соперники выдуманы', has('Соперники выдуманы'), '');
   check('рейтинг: игрок видит своё место', has('место') && has('Тест рейтинга'), document.body.textContent?.slice(0, 200) ?? '');
   check('рейтинг: в таблице игрок и десять соперников', document.querySelectorAll('.rating-row').length === 11, `строк: ${document.querySelectorAll('.rating-row').length}`);
   check('рейтинг: строка игрока подсвечена', !!document.querySelector('.rating-row.is-player'), '');

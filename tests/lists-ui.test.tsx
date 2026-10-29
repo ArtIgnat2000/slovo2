@@ -442,17 +442,17 @@ export async function runListsChecks(): Promise<void> {
     'нет подстановки своих слов в отчёт',
   );
 
-  // ── 4d. Находимость: вход в списки видно из «Обзора», диагностика отвечает ──
+  // ── 4d. Находимость: отдельной вкладки достаточно, обзор её не дублирует ──
   const overviewSrc = readFileSync('src/ui/parent/OverviewTab.tsx', 'utf8');
   check(
-    'списки: вход «Списки к контрольной» есть в «Обзоре» родителя',
-    /data-overview-add-list/.test(overviewSrc) && /onOpenSection\('lists'\)/.test(overviewSrc),
-    'в обзоре нет карточки-входа в списки',
+    'списки: обзор родителя не дублирует вход из отдельной вкладки',
+    !/data-overview-add-list/.test(overviewSrc) && !/onOpenSection\('lists'\)/.test(overviewSrc),
+    'в обзоре осталась повторная карточка-вход',
   );
   check(
-    'списки: обзор честно говорит, что карточки на «Уроках» нет, пока нет списка',
-    /Поэтому на «Уроках» карточки «Контрольная» нет|поэтому на «Уроках» карточки «Контрольная» нет/i.test(overviewSrc),
-    'нет объяснения пустого состояния',
+    'списки: обзор не объясняет отсутствие ещё не созданной карточки',
+    !/на «Уроках» карточки «Контрольная» нет/i.test(overviewSrc),
+    'осталось объяснение пустого состояния',
   );
   const diagSrc = readFileSync('src/ui/DiagnosticsScreen.tsx', 'utf8');
   check(
@@ -620,16 +620,15 @@ export async function runListsChecks(): Promise<void> {
   );
 
   // ── 6c. Белый экран на результатах контрольной (баг 2026-10-25) ───────────
-  // Раньше Results брал lesson.emoji/lesson.title из LESSON_BY_ID, а у урока
-  // списка там нет записи → TypeError → белый экран. Теперь заголовок берётся
-  // из списка, а к нему — запасное значение.
+  // Урока-списка нет в LESSON_BY_ID. Компактный экран результатов больше не
+  // повторяет его заголовок и потому не обращается к отсутствующей записи.
   {
     const src = readFileSync('src/ui/screens/LessonScreen.tsx', 'utf8');
+    const resultsSrc = src.slice(src.indexOf('function Results('), src.indexOf('/** Итог класса'));
     check(
-      'результаты: экран не падает на уроке-списке (заголовок из списка)',
-      /const headingEmoji = isCheck \? '📋' : listTitle \? '🏫' : lesson\?\.emoji/.test(src) &&
-        /headingTitle = listTitle \?\? lesson\?\.title/.test(src),
-      'Results всё ещё берёт lesson.emoji/lesson.title напрямую',
+      'результаты: экран списка не обращается к отсутствующему lesson',
+      resultsSrc.includes('function Results(') && !/\blesson(?:\?\.|\.)/.test(resultsSrc),
+      'Results всё ещё берёт данные lesson напрямую',
     );
     check(
       'результаты: отчёт по словам есть в разметке',

@@ -10,7 +10,7 @@
 import { readFileSync } from 'node:fs';
 import { body, btnText, buttons, check, click, has, openParentSection, sleep } from './ui-helpers';
 import { dayKey, useApp } from '../src/state/store';
-import { CLASS_META, WORDS, WORDS_BY_GRADE } from '../src/content/words';
+import { WORDS, WORDS_BY_GRADE } from '../src/content/words';
 import { runGemResetUiChecks } from './gem-reset-ui.test';
 
 const store = () => useApp.getState();
@@ -64,9 +64,11 @@ export async function runParentUiChecks(): Promise<void> {
   // 2. Верный ответ открывает раздел — и сразу на «Обзор», а не на настройки.
   const opened = await unlockWith((a, b) => a * b);
   check('верный ответ открывает раздел родителей', opened, body().slice(0, 120));
-  check('раздел открывается кратким анализом обучения', has('Как идёт обучение') && has('освоено'), body().slice(0, 160));
-  check('подробный отчёт закрыт по умолчанию', document.querySelector('.parent-learning-summary button')?.textContent === 'Подробный отчёт');
-  check('срок освоения не прогнозируется без подходящей истории', document.querySelector('.parent-metric-help')?.textContent?.includes('Срок освоения пока не оцениваем') === true);
+  check('раздел открывается кратким прогрессом по словам', has('Прогресс по словам') && has('освоено'), body().slice(0, 160));
+  check('статистика занятий закрыта по умолчанию', btnText('Статистика занятий')?.getAttribute('aria-expanded') === 'false');
+  check('обзор не отвлекает необязательными блоками',
+    !has('Достижения') && !has('Общее') && !has('Списки к контрольной') && !has('Сегодня'));
+  check('объяснение метрики спрятано за раскрытием', document.querySelector('.parent-metric-help')?.hasAttribute('open') === false);
   const gradeSelect = document.querySelector('#parent-learning-grade') as HTMLSelectElement | null;
   const originalGrade = store().profiles.find((p) => p.id === store().activeId)?.activeClass ?? 2;
   if (gradeSelect) {
@@ -82,7 +84,7 @@ export async function runParentUiChecks(): Promise<void> {
     gradeSelect.dispatchEvent(new window.Event('change', { bubbles: true }));
     await sleep(20);
   }
-  click(btnText('Подробный отчёт'));
+  click(btnText('Статистика занятий'));
   await sleep(30);
 
   // 3. Четыре раздела-вкладки с корректной семантикой (aria) — и ровно один на экране.
@@ -132,7 +134,7 @@ export async function runParentUiChecks(): Promise<void> {
   click(document.querySelector('#parent-more-tab-app'));
   await sleep(30);
   check('вложенная вкладка открывает приложение, не показывая карточки данных',
-    has('Передать приложение') && !has('Копия прогресса'));
+    has('Передать приложение') && !has('Резервная копия'));
   await openParentSection('Ещё');
   check(
     'фокус в наборе вкладок один (roving tabindex)',
@@ -153,9 +155,9 @@ export async function runParentUiChecks(): Promise<void> {
     body().slice(0, 200),
   );
   check(
-    'у каждой настройки есть объяснение последствий',
-    has('Сколько опыта (XP) считается выполненной нормой дня') &&
-      has('Что делает сова БУК, если ребёнок просит помощи'),
+    'настройки объяснены коротко',
+    has('Дневная норма XP на главной') && has('Как БУК помогает в задании') &&
+      !has('Сколько опыта (XP) считается выполненной нормой дня'),
     document.querySelector('.parent-panel')?.textContent?.slice(0, 200) ?? '',
   );
 
@@ -228,8 +230,9 @@ export async function runParentUiChecks(): Promise<void> {
     body().slice(0, 200),
   );
   check(
-    'в «Прогрессе» есть копия, сохранность и корзина',
-    has('Копия прогресса') && has('Сохранность') && has('Сохранить файл'),
+    'в «Данных» сразу видны только копия и состояние сохранения',
+    has('Резервная копия') && has('Сохранение') && has('Сохранить файл') &&
+      document.querySelector('.parent-data-details')?.hasAttribute('open') === false,
     body().slice(0, 200),
   );
   await runGemResetUiChecks(async () => {
@@ -240,48 +243,31 @@ export async function runParentUiChecks(): Promise<void> {
     await openParentSection('Данные');
   });
 
-  // 7. «Приложение» — про приложение, а не про ребёнка: ссылка, версия, V-labs.
+  // 7. «Приложение»: передача, установка и обновления; техническое — закрыто.
   await openParentSection('Приложение');
   check(
-    'в «Приложении» есть передача ссылки, версия сборки и карточка V-labs',
-    has('Передать приложение') && has('Версия') && has('Слово2 сделали в V-labs'),
+    'в «Приложении» сразу видны только основные действия',
+    has('Передать приложение') && has('Установка') && has('Обновления') &&
+      document.querySelector('.parent-app-about')?.hasAttribute('open') === false,
     body().slice(0, 240),
   );
-  click(btnText('Диагностика приложения'));
+  click(document.querySelector('.parent-app-about summary'));
+  click(btnText('Диагностика'));
   await sleep(60);
-  check('диагностика доступна также из вкладки «Приложение»', !!document.querySelector('.diag-screen'));
+  check('диагностика доступна из технического раздела', !!document.querySelector('.diag-screen'));
   click(document.querySelector('.diag-screen button'));
   await sleep(60);
   check('после проверки вкладка «Приложение» остаётся открытой',
     document.querySelector('#parent-tab-more[aria-selected="true"]') !== null &&
       document.querySelector('#parent-more-tab-app[aria-selected="true"]') !== null);
   await openParentSection('Обучение');
-  click(btnText('Подробный отчёт'));
+  click(btnText('Статистика занятий'));
   await sleep(30);
   check(
-    'обзор не показывает рекламу школы — она не отвлекает от отчёта',
-    has('XP за сегодня') && !has('Слово2 сделали в V-labs'),
+    'подробности ограничены активностью, без игровых и рекламных блоков',
+    has('Сегодня') && has('Последние 7 дней') && !has('Достижения') &&
+      !has('Классы 1–4') && !has('Слово2 сделали в V-labs'),
     body().slice(0, 200),
-  );
-
-  // 7.5. Таблица классов 1–4 (0.31.0): весь путь виден, текущий класс отмечен.
-  const classRows = Array.from(document.querySelectorAll('.class-table-row'));
-  check(
-    'в обзоре есть таблица классов 1–4 — по строке на класс',
-    classRows.length === 4 && has('Классы 1–4'),
-    `строк: ${classRows.length}; текст: ${body().slice(0, 160)}`,
-  );
-  check(
-    'в таблице классов у каждой строки есть слова и уроки',
-    classRows.every((row) => /\d+ \/ \d+ слов/.test(row.textContent ?? '') && /\d+ из \d+/.test(row.textContent ?? '')),
-    classRows.map((row) => row.textContent).join(' | ').slice(0, 220),
-  );
-  check(
-    'в таблице классов ровно один текущий класс, и он подсвечен',
-    classRows.filter((row) => row.className.includes('on')).length === 1 &&
-      has('сейчас') &&
-      (document.querySelector('.class-table-row.on')?.textContent ?? '').includes(CLASS_META[store().profiles.find((p) => p.id === store().activeId)?.activeClass ?? 2].title),
-    document.querySelector('.class-table-row.on')?.textContent ?? 'нет активной строки',
   );
 
   // 8. Отчёт «сегодня»: отдельная запись сессии и ошибки в конкретном слове.
@@ -301,8 +287,8 @@ export async function runParentUiChecks(): Promise<void> {
     store().addStudyTime(sessionId, 132);
     store().finishStudySession(sessionId, 'completed');
     await sleep(60);
-    check('сегодняшний отчёт показывает оценку активного времени и сессии', has('2 мин') && has('Занятия сегодня'), body().slice(0, 300));
-    check('разбор показывает слово с ошибкой и успешный повтор', has(word.text) && has('После ошибки верно повторил'), body().slice(0, 400));
+    check('сегодняшний отчёт показывает активное время и занятия', has('2 мин') && has('Занятия ·'), body().slice(0, 300));
+    check('разбор показывает слово с ошибкой и успешный повтор', has(word.text) && has('Исправлено повтором'), body().slice(0, 400));
     check('сессия показывает результат и вид задания, без записи ответа ребёнка', has('1 верно · 1 ошибка') && has('напиши слово'), body().slice(0, 500));
     useApp.setState((s) => ({
       profiles: s.profiles.map((p) => p.id === profileId ? originalProfile : p),

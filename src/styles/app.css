@@ -59,6 +59,14 @@ button {
   padding-top: 8px;
   border-top: 1px dashed var(--line);
 }
+.list-history > summary {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+}
+.list-history-body {
+  padding-top: 6px;
+}
 .list-history-head {
   display: flex;
   align-items: center;
@@ -6461,25 +6469,6 @@ img.product-photo {
   margin: 0;
   line-height: 1.2;
 }
-.vlabs-proof-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
-}
-.vlabs-proof {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border-radius: var(--r-pill);
-  background: var(--card);
-  border: 2px solid var(--line);
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--ink-2);
-}
-
 .vlabs-scratch {
   background:
     radial-gradient(130% 80% at 100% 0%, var(--scratch-glow) 0%, transparent 55%),
@@ -7260,6 +7249,31 @@ img.product-photo {
 }
 .parent-metric-help p:last-child {
   margin-bottom: 0;
+}
+.parent-summary-errors {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.parent-summary-errors .wordlist {
+  margin-top: 8px;
+}
+.parent-summary-errors > .setting-hint {
+  margin: 6px 0 0;
+}
+.parent-data-details > summary,
+.parent-app-about > summary {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+}
+.parent-data-group + .parent-data-group {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.parent-data-group > .setting-title {
+  margin-bottom: 6px;
 }
 
 /* Крупные цифры: сначала главное, потом пояснение. */

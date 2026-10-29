@@ -7,7 +7,6 @@ import {
   WORD_BUCKETS,
   buildDictionarySummary,
   buildDonutSegments,
-  columnTotalLabel,
   matchesWordQuery,
   safePct,
   wordBucket,
@@ -191,9 +190,9 @@ export async function runDictionaryUiChecks(): Promise<void> {
 
   const heroText = hero?.textContent ?? '';
   check(
-    'UI словарика: ребёнку прямо написано и сколько знает, и сколько осталось выучить',
-    heroText.includes('Уже знаю: 2') &&
-      heroText.includes(`Осталось выучить: ${g2Words.length - 2}`),
+    'UI словарика: сводка показывает три непересекающихся статуса без повторов',
+    heroText.includes('Знаю: 2') && heroText.includes('Учу: 3') &&
+      heroText.includes(`Новые: ${g2Words.length - 5}`) && !heroText.includes('Осталось выучить'),
     heroText.slice(0, 180),
   );
 
@@ -228,13 +227,13 @@ export async function runDictionaryUiChecks(): Promise<void> {
     weak: 1,
     new: g2Words.length - 5,
   };
-  for (const b of WORD_BUCKETS) {
-    const foot = document.querySelector(`[data-col-total="${b}"]`);
-    const want = columnTotalLabel(expectedCounts[b]);
+  for (const bucket of WORD_BUCKETS) {
+    const column = document.querySelector(`[data-word-column="${bucket}"]`);
+    const count = column?.querySelector('.dict-col-count')?.textContent ?? '';
     check(
-      `UI словарика: внизу колонки «${b}» подведён точный итог (${want})`,
-      !!foot && (foot.textContent ?? '').includes(want),
-      foot?.textContent ?? 'нет футера',
+      `UI словарика: число слов в колонке «${bucket}» показано один раз в заголовке`,
+      count === String(expectedCounts[bucket]) && !column?.querySelector('[data-col-total]'),
+      count,
     );
   }
 

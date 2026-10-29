@@ -103,13 +103,9 @@ export function ClassSheet({ profile, onClose }: { profile: Profile; onClose: ()
         </div>
 
         {activeInfo.complete && next && (
-          <p className="class-sheet-next">
-            🎉 {meta.title} пройден — можно перейти в {CLASS_META[next].title}: прогресс, покупки и награды останутся.
-          </p>
+          <p className="class-sheet-next">🎉 {meta.title} пройден — можно перейти в {CLASS_META[next].title}.</p>
         )}
-        <p className="tiny center" style={{ marginTop: 12 }}>
-          Меняется только набор слов. Опыт, кристаллы, серия, награды и покупки остаются.
-        </p>
+        <p className="tiny center" style={{ marginTop: 12 }}>Прогресс и покупки сохраняются.</p>
       </div>
     </div>
   );

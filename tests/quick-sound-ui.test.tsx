@@ -44,7 +44,7 @@ export async function runQuickSoundChecks(): Promise<void> {
   check('тап по кнопке выключает музыку', useApp.getState().settings.music === false, String(useApp.getState().settings.music));
   check('звуки ответов при этом не тронуты', useApp.getState().settings.sound === true, String(useApp.getState().settings.sound));
   check('после выключения видно иконку «тихо»', (soundButton()?.textContent ?? '').includes('🔇'), soundButton()?.textContent ?? '');
-  check('ребёнку сказано, что звуки остались', has('Звуки ответов остались'), document.body.textContent?.slice(0, 160) ?? '');
+  check('тост коротко подтверждает выключение музыки', has('Музыка выключена') && !has('Звуки ответов остались'), document.body.textContent?.slice(0, 160) ?? '');
 
   // 2. Тап ещё раз — обратно.
   click(soundButton()!);
@@ -58,7 +58,7 @@ export async function runQuickSoundChecks(): Promise<void> {
   check('долгое нажатие включает тишину', btn.classList.contains('quiet'), btn.className);
   check('тишина не меняет настройку «Музыка»', useApp.getState().settings.music === true, String(useApp.getState().settings.music));
   check('на кнопке видно остаток тишины', /мин|с/.test(btn.textContent ?? ''), btn.textContent ?? '');
-  check('ребёнку обещано, что музыка вернётся сама', has('вернётся сама'), document.body.textContent?.slice(0, 200) ?? '');
+  check('тост коротко называет срок тишины', has('Тишина на 15 минут') && !has('вернётся сама'), document.body.textContent?.slice(0, 200) ?? '');
   check('QUIET_MS — это 15 минут', QUIET_MS === 15 * 60 * 1000, String(QUIET_MS));
 
   // 4. Тап во время тишины возвращает музыку сразу и не переключает настройку.

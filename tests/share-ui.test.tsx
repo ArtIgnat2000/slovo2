@@ -126,7 +126,7 @@ export async function runShareAppChecks(): Promise<void> {
     click(buttons().find((b) => (b.textContent ?? '').trim() === 'Войти'));
     await sleep(60);
   }
-  check('раздел «Родителям» открыт на кратком анализе обучения', has('Как идёт обучение'), document.body.textContent?.slice(0, 160) ?? '');
+  check('раздел «Родителям» открыт на кратком прогрессе', has('Прогресс по словам'), document.body.textContent?.slice(0, 160) ?? '');
   // Ссылка для нового ученика — про приложение, поэтому живёт в разделе «Приложение».
   await openParentSection('Приложение');
   check('в «Родителям» есть карточка «Передать приложение»', !!shareCard(), document.body.textContent?.slice(0, 200) ?? '');
@@ -143,8 +143,8 @@ export async function runShareAppChecks(): Promise<void> {
     (qrArt?.getAttribute('src') ?? '').slice(0, 40),
   );
   check(
-    'в карточке есть пошаговая инструкция для второго телефона',
-    has('Добавить на экран') && has('Наведи камеру'),
+    'передача не дублирует инструкцию по установке',
+    has('Установка') && document.querySelector('.share-steps') === null,
     document.body.textContent?.slice(0, 200) ?? '',
   );
 
@@ -173,31 +173,15 @@ export async function runShareAppChecks(): Promise<void> {
     check('ссылка в ручном поле совпадает с адресом приложения', manualInput.value === linkText(), manualInput.value);
   }
 
-  // Экран «Кто будет учиться?» — вторая точка, где ищут ссылку для нового ученика.
-  // Идём туда через «Дети» в родительском разделе (это тот же экран профилей).
+  // Экран профилей не дублирует передачу ссылки: она уже есть на главной и у родителей.
   click(buttons().find((b) => (b.textContent ?? '').includes('Дети') && !b.className.includes('tab')));
   await sleep(80);
-  // 0.32.0: сюда переехал 🤝 из шапки главной (docs/proposals/home-header.md) —
-  // «позвать друга» и «ещё один ученик» это один и тот же экран. Карточку
-  // «Передать приложение» сюда не дублируем: её место — «Родителям».
   const inviteBtn = buttons().find((b) => (b.textContent ?? '').includes('Позови друга'));
   check(
-    'на экране «Кто будет учиться?» ссылку передают кнопкой «🤝 Позови друга»',
-    has('Кто будет учиться') && !!inviteBtn && !shareCard(),
+    'на экране профилей нет третьего входа «Позови друга»',
+    has('Кто будет учиться') && !inviteBtn && !shareCard(),
     document.body.textContent?.slice(0, 200) ?? '',
   );
-  if (inviteBtn) {
-    click(inviteBtn);
-    await sleep(60);
-    check(
-      'кнопка открывает тот же лист с QR-кодом и ссылкой',
-      !!document.querySelector('.invite-qr-art') && !!document.querySelector('.invite-link'),
-      document.body.textContent?.slice(0, 200) ?? '',
-    );
-    click(buttons().find((b) => (b.getAttribute('aria-label') ?? '') === 'Закрыть'));
-    await sleep(40);
-    check('лист «Позови друга» закрывается', !document.querySelector('.invite-sheet'), '');
-  }
   const closeProfiles = buttons().find((b) => (b.textContent ?? '').trim() === 'Закрыть');
   if (closeProfiles) {
     click(closeProfiles);

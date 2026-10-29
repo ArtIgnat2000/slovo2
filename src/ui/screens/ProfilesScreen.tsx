@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useApp } from '../../state/store';
 import { AVAILABLE_CLASSES, CLASS_META, WORDS_BY_GRADE, availableClass } from '../../content/words';
 import { ConfirmDialog } from '../Bits';
-import { InviteFriend } from '../InviteFriend';
 import type { ClassId } from '../../types';
 
 const AVATARS = ['🦊', '🐱', '🐼', '🦉', '🐸', '🦄', '🐨', '🐯', '🐙', '🦖'];
@@ -38,8 +37,6 @@ export function ProfilesScreen({ onClose, manage = false }: { onClose?: () => vo
   const [classId, setClassId] = useState<ClassId | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
-  /** Лист «Позови друга» — с 0.32.0 вход живёт здесь, а не значком 🤝 в шапке. */
-  const [inviteOpen, setInviteOpen] = useState(false);
   /** Форма нового ученика раскрыта по «+ Новый ученик» (0.33.0). */
   const [formOpen, setFormOpen] = useState(profiles.length === 0);
 
@@ -147,9 +144,7 @@ export function ProfilesScreen({ onClose, manage = false }: { onClose?: () => vo
             );
           })}
         </div>
-      ) : (
-        <p className="muted mb">Пока нет ни одного ученика — создайте первый профиль.</p>
-      )}
+      ) : null}
 
       {/* Одна главная кнопка на экране: пока форма закрыта — это «Продолжить»,
           и она запускает уроки выбранного ученика. Внутри формы главной
@@ -166,11 +161,6 @@ export function ProfilesScreen({ onClose, manage = false }: { onClose?: () => vo
         </button>
       )}
 
-      {/* 0.32.1: ссылка на приложение — выше формы нового ученика, чтобы её
-          было видно без прокрутки на телефоне. */}
-      <button type="button" className="btn ghost wide mb" onClick={() => setInviteOpen(true)}>
-        🤝 Позови друга
-      </button>
 
       {showForm && (
         <div className="card">
@@ -248,7 +238,6 @@ export function ProfilesScreen({ onClose, manage = false }: { onClose?: () => vo
         </div>
       )}
 
-      {inviteOpen && <InviteFriend onClose={() => setInviteOpen(false)} />}
 
       {onClose && profiles.length > 0 && (
         <button className="btn ghost wide mt" onClick={onClose}>

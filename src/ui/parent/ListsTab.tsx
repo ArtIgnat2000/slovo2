@@ -55,20 +55,16 @@ function ListHistory({
   onTrainErrors: () => void;
 }) {
   const runs = runHistory(list, 10);
-  if (!runs.length) {
-    return (
-      <p className="setting-hint" style={{ margin: '2px 0 0' }}>
-        Результатов пока нет: после первой тренировки здесь появится история и динамика.
-      </p>
-    );
-  }
+  if (!runs.length) return null;
   const trend = trendOf(list);
   const hard = hardWords(list, 5);
   const byId = new Map(listWords(list, customWords).map((w) => [w.id, w]));
   const label = (mode: string) => (mode === 'check' ? 'контрольная' : mode === 'errors' ? 'ошибки' : 'тренировка');
 
   return (
-    <div className="list-history" data-list-history={list.id}>
+    <details className="list-history" data-list-history={list.id}>
+      <summary className="parent-summary">История</summary>
+      <div className="list-history-body">
       <div className="list-history-head">
         <span className="setting-title">Результаты заходов</span>
         {trend && (
@@ -118,7 +114,8 @@ function ListHistory({
           </button>
         </div>
       )}
-    </div>
+      </div>
+    </details>
   );
 }
 
@@ -201,7 +198,7 @@ export function ListsTab({ profile, onTrain }: Props) {
       <div className="card">
         <GroupTitle
           title="Списки к контрольной"
-          hint="Вставьте слова, которые задали в школе, — ребёнок потренирует именно их. Списки у каждого ученика свои."
+          hint="Вставьте слова, которые задали в школе."
         />
 
         {/* 0.63.0: отдельный параметр — сколько слов брать в одну тренировку.
@@ -224,16 +221,12 @@ export function ListsTab({ profile, onTrain }: Props) {
             ))}
           </div>
           <div className="setting-hint">
-            {LIST_DRILL_SIZES.find((o) => o.id === drill)?.hint ?? 'легко начать'}.
-            {' '}Полный контроль всегда проходит все слова списка — он для проверки.
+            {LIST_DRILL_SIZES.find((option) => option.id === drill)?.hint ?? 'легко начать'}.
           </div>
         </div>
 
         {lists.length === 0 && !editing && (
-          <p className="setting-hint">
-            Пока пусто. Список создаётся из текста: подойдёт сообщение из чата класса, даже с лишними запятыми
-            и заглавными буквами.
-          </p>
+          <p className="setting-hint">Списков пока нет.</p>
         )}
 
         {lists.map((list) => {
@@ -363,9 +356,7 @@ export function ListsTab({ profile, onTrain }: Props) {
                 }}
                 data-list-input
               />
-              <span className="setting-hint">
-                По одному слову в строке или через запятую. Регистр и «ё» не важны: «Береза» найдётся как «берёза».
-              </span>
+              <span className="setting-hint">По одному слову в строке или через запятую.</span>
               {/* Один тап вместо выделения текста: читаем буфер обмена, если браузер разрешает. */}
               <button
                 type="button"
@@ -530,7 +521,7 @@ export function ListsTab({ profile, onTrain }: Props) {
             })}
             {addedPreset && (
               <p className="setting-hint" data-preset-added>
-                Готово: список добавлен, он уже виден ребёнку на «Уроках» в карточке «🏫 Контрольная».
+                Список добавлен и уже виден на экране «Уроки».
               </p>
             )}
             </div>
@@ -555,22 +546,10 @@ export function ListsTab({ profile, onTrain }: Props) {
         )}
       </div>
 
-      <div className="card">
-        <GroupTitle
-          title="Как это считается"
-          hint="Тренировка списка — это опыт и прогресс по словам, но не урок программы."
-        />
-        <ul className="setting-hint" style={{ margin: 0, paddingLeft: 18 }}>
-          <li>задания те же, что в уроках: подсказки, выбор буквы, сборка, письмо;</li>
-          <li>XP начисляется, кристаллы — нет: иначе список выгодно перезапускать;</li>
-          <li>прогресс по словам идёт в общий словарик и дневной отчёт;</li>
-          <li>свои слова не попадают в программу класса — только в свой список.</li>
-        </ul>
-      </div>
 
       {customWords && Object.keys(customWords).length > 0 && (
         <div className="card">
-          <GroupTitle title="Свои слова" hint="Слова из списков, которых нет в школьном словарике. Ударение можно поправить." />
+          <GroupTitle title="Свои слова" hint="Нажмите на слог, чтобы изменить ударение." />
           <ul className="list-custom-words">
             {Object.values(customWords).map((word) => {
               const stressLetter = word.text[word.stress]?.toUpperCase() ?? '';
