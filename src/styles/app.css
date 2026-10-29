@@ -2837,9 +2837,13 @@ p {
   font-size: var(--fs-sm);
   cursor: pointer;
 }
+/* Активный раздел верхнего меню — тот же материал, что у кнопок «Купить»
+   на карточках (жалоба 2026-10-29: «вверху фиолетовый, а правильно синий
+   из карточки»): --lux-cta, сапфир в светлой теме, обсидиан в тёмной. */
 .shop-seg button.on {
-  background: var(--primary);
-  color: var(--on-primary);
+  background: var(--lux-cta);
+  color: var(--lux-cta-ink);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 /* Полки витрины: горизонтальный скролл, «скоро» — приглушено. */
 .shop-cats {
@@ -3065,12 +3069,18 @@ p {
   padding: 9px 10px 10px;
 }
 .shop-body > .btn { margin-top: auto; }
+/* Заголовок и редкость — по вертикали, как в листе (единый стиль, 2026-10-29):
+   в узкой карточке длинное слово («Электронная») вылезало из колонки под
+   пилюлю, и «Легендарная» налезала на заголовок. Колонка исключает наложение
+   физически: редкость всегда строкой ниже. */
 .shop-title-row {
   display: flex;
-  align-items: center;
-  gap: 6px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
   min-width: 0;
 }
+.shop-title-row .rarity-chip-mini { margin-top: 0; }
 .shop-title {
   flex: 1;
   min-width: 0;
@@ -3086,33 +3096,37 @@ p {
   min-height: 0;
   line-height: 1.3;
 }
-/* Ценник — плашка, а не кнопка: «сколько стоит» читается отдельно
-   от «что делать». Доступное — акцентом, дорогущее — тихо. */
+/* Цена — чистая типографика, без пилюли (жалоба 2026-10-29: «не факт что
+   стоимость нужно помещать в пилюлю»; тяжёлые бренды показывают цену цифрой).
+   Доступное — сапфир/шампань (--lux-plaque-ink), дорогущее — тихо. На арте
+   ценник остаётся плашкой — только там читаемость требует подложки. */
 .shop-price {
-  padding: 2px 10px;
-  border-radius: var(--r-pill);
-  border: 1.5px solid var(--line);
-  background: var(--bg);
+  padding: 0;
+  border: none;
+  background: transparent;
   color: var(--ink-2);
-  font-size: var(--fs-xs);
+  font-size: var(--fs-sm);
   font-weight: 800;
+  letter-spacing: -0.01em;
 }
-/* Ценник лежит на картинке: так он не отнимает у неё отдельную строку. */
+/* Ценник лежит на картинке: плашка с подложкой — иначе цифры тонут в арте. */
 .shop-case > .shop-price {
   position: absolute;
   right: 7px;
   bottom: 7px;
   z-index: 2;
   padding: 3px 9px;
-  border-color: color-mix(in srgb, var(--ink) 14%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--ink) 14%, transparent);
+  border-radius: var(--r-pill);
   background: color-mix(in srgb, var(--card) 86%, transparent);
+  color: var(--ink);
+  font-size: 12px;
   box-shadow: 0 2px 8px color-mix(in srgb, var(--ink) 14%, transparent);
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
 }
 .shop-price.afford {
-  border-color: var(--primary-ink);
-  color: var(--primary-ink);
+  color: var(--lux-plaque-ink);
 }
 
 /* ── Витрина-бутик (0.19.0) ────────────────────────────────────────────────
@@ -3196,6 +3210,17 @@ p {
   margin: 0;
   padding: 11% 9%;
   background: none;
+}
+/* Фото товара везде, кроме витринных карточек (те задают размер сами): база для
+   крупного листа, плашки «Ближайшая покупка», строк гардероба, «Мечт» и мира.
+   Без неё <img> нёс бы атрибутные 1200×900 px и вылезал за рамки — именно так
+   «фото ближайшей покупки» и фото в листе вылезали за границы (жалоба 2026-10-29). */
+img.product-photo {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
 }
 .shop-case .shop-icon > * {
   width: 100%;
@@ -3891,9 +3916,14 @@ p {
   width: 64px;
   line-height: 1;
 }
-/* Рисунок товара в плашке «Ближайшая покупка» — как на витрине, а не эмодзи */
+/* Рисунок товара в плашке «Ближайшая покупка» — как на витрине, а не эмодзи.
+   Фото сюда тоже попадает (самолёты и питомцы — первая ветка ToyArt): 64 px по
+   ширине, высота по кадру — иначе атрибутные 1200×900 вылезали за рамку (жалоба 2026-10-29). */
 .shop-tech-goal-icon > .car-art,
-.shop-tech-goal-icon > .ship-art { width: 64px; }
+.shop-tech-goal-icon > .ship-art,
+.shop-tech-goal-icon > .airplane-art,
+.shop-tech-goal-icon > .electronics-art { width: 64px; }
+.shop-tech-goal-icon > img.product-photo { width: 64px; height: auto; border-radius: 8px; }
 .shop-tech-goal-icon > svg { width: 48px; height: 48px; }
 .shop-tech-goal b { display: block; font-size: var(--fs-sm); }
 .shop-tech-goal .tiny { display: block; }
@@ -4105,6 +4135,19 @@ p {
   border-radius: 3px;
   background: var(--line);
 }
+/* ── Типографика листа товара (жалоба 2026-10-29) ────────────────────────
+   Витринный ритм вместо «школьной» россыпи: заголовок → строка «тип ·
+   редкость» → один абзац → смета за волосяной линией → сноска мелким.
+   Баланс прижат вправа (раньше слипался с ценником слева), отступы — по
+   4 px, линия — var(--line), то есть живёт в обеих темах. */
+.sheet-title { margin: 0; letter-spacing: -0.01em; }
+.sheet-headline { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; margin-top: 7px; }
+.sheet-headline .rarity-chip-detail { margin: 0; }
+.sheet-kind { font-size: 11px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; color: var(--ink-3); }
+.sheet-lead { margin: 10px 0 0; font-size: var(--fs-sm); line-height: 1.55; color: var(--ink-2); }
+.sheet-facts { margin: 14px 0 16px; padding-top: 12px; border-top: 1px solid var(--line); }
+.sheet-balance { margin-left: auto; align-self: center; text-align: right; font-size: var(--fs-xs); color: var(--ink-2); }
+.sheet-fine { margin: 6px 0 0; font-size: 12.5px; line-height: 1.4; color: var(--ink-2); }
 .shop-bigart {
   display: grid;
   place-items: center;
@@ -4155,6 +4198,22 @@ p {
 .shop-bigart-toy > .car-art,
 .shop-bigart-toy > .ship-art,
 .shop-bigart-toy > .electronics-art { position: relative; z-index: 1; }
+/* Фото товара в листе — крупно и без витринных декораций: лампа и подиум под
+   студийным снимком не нужны (как в нишах карточек), рамка остаётся. Без этого
+   правила снимок нёс атрибутные 1200×900 px и вылезал за границы листа — так
+   выглядели фото в подробной карточке (жалоба 2026-10-29). */
+.shop-bigart-toy > img.product-photo {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: auto;
+  max-height: min(58dvh, 520px);
+  object-fit: contain;
+  border-radius: 14px;
+}
+.shop-bigart-toy:has(> .product-photo) { padding-bottom: 14px; }
+.shop-bigart-toy:has(> .product-photo)::before,
+.shop-bigart-toy:has(> .product-photo)::after { display: none; }
 /* Телефон — тоже сам товар крупным планом: высокий корпус на подиуме,
    рисунок тянется по ширине карточки и не липнет к лампе. */
 .shop-bigart-toy > svg.shop-bigart-toy-art {
@@ -8342,10 +8401,9 @@ p {
   margin: 14px 0 0;
   color: var(--ink-3);
 }
-/* 0.83.0: телефоны сняты студийными фотографиями, поворот ушёл вместе с
-   3D-спинками — кадр один, крутить нечего. Здесь осталась только подпись
-   под артом («нажми на машину — рассмотри кузов ближе»). */
-.art-hint { text-align: center; margin: 4px 0 12px; }
+/* 3D-вертушка телефона и подсказки под артом удалены (0.82–0.83 main +
+   ревизия витрины 2026-10-29): телефоны — студийный кадр, текст под фото
+   больше не нужен; класс .art-hint и .phone-* никем не рендерятся. */
 
 /* ── Быстрый звук (0.29.0) ────────────────────────────────────────────────
    Тап — вкл/выкл музыки, долгое нажатие — тишина на 15 минут.
@@ -8741,13 +8799,13 @@ p {
 .shop-bigart-toy:has(.lord-tour) { padding: 18px 12px 14px; background: linear-gradient(150deg, #151e1b, #31463a 65%, #1a231d); box-shadow: inset 0 0 0 1px #987b55; }
 .shop-bigart-toy:has(.lord-tour)::before, .shop-bigart-toy:has(.lord-tour)::after { display: none; }
 .lord-tour { width: 100%; position: relative; z-index: 2; }
+/* Лист — максимум места под снимок: кнопок-ракурсов, подписей и точек-пагинации
+   больше нет (просьбы 2026-10-29), ракурсы листаются тапом по снимку — стандартная
+   карусель без хрома на кадре. */
 .lord-tour-stage { display: grid; place-items: center; width: 100%; min-height: 190px; padding: 0; border: 0; background: transparent; cursor: pointer; border-radius: 12px; overflow: hidden; }
 .lord-tour-stage:focus-visible { outline: 2px solid #d7b478; outline-offset: 2px; }
-.lord-tour-stage > img { width: 100%; height: auto; max-height: 300px; object-fit: contain; border-radius: 8px; animation: lord-reveal .5s ease-out both; }
-.lord-tour-stage .car-art { width: min(100%, 340px); }
-.lord-tour-nav { display: flex; justify-content: center; flex-wrap: wrap; gap: 5px; margin-top: 12px; }
-.lord-tour-nav .chip { font-size: 11px; padding: 6px 9px; }
-.lord-tour-caption { color: #efdfc2 !important; margin: 10px 4px 0; text-align: center; line-height: 1.4; }
+.lord-tour-stage > img { width: 100%; height: auto; max-height: min(58dvh, 520px); object-fit: contain; border-radius: 8px; animation: lord-reveal .5s ease-out both; }
+.lord-tour-stage .car-art { width: min(100%, 440px); }
 @keyframes lord-reveal { from { opacity: .3; transform: scale(1.035); } to { opacity: 1; transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) { .lord-tour-stage > img { animation: none; } }
 
@@ -8800,38 +8858,10 @@ p {
   padding: 12px;
 }
 .base-tour-missing > span { font-size: 34px; line-height: 1; }
-.base-tour-badge {
-  position: absolute;
-  left: 8px;
-  bottom: 8px;
-  max-width: calc(100% - 16px);
-  padding: 4px 9px;
-  border-radius: 999px;
-  background: rgba(22, 18, 32, .72);
-  color: #fff8ec;
-  font-size: 11px;
-  font-weight: 800;
-  line-height: 1.25;
-  backdrop-filter: blur(3px);
-}
-.base-tour-badge.front { background: rgba(255, 248, 236, .9); color: var(--ink); }
-.base-tour-dots { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
-.base-tour-dot {
-  width: 34px;
-  height: 34px;
-  display: grid;
-  place-items: center;
-  padding: 0;
-  border: 2px solid var(--line);
-  border-radius: 50%;
-  background: var(--bg-2);
-  font-size: 15px;
-  line-height: 1;
-  cursor: pointer;
-  transition: transform .12s ease, border-color .12s ease;
-}
-.base-tour-dot.on { border-color: var(--primary); background: var(--primary-soft); transform: translateY(-2px); }
-.base-tour-dot:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+/* 2026-10-29: точек-прыжков и подсказок под кадром больше нет (жалоба
+   «лишние кружочки и текст — увеличь фото»): кадр во всю ширину листа,
+   комнаты — тапом по нему. Сколько комнат и где мы — счётчик в подписи
+   комнаты; на фасаде подписи нет, вход — тапом (aria-label сцены). */
 .base-tour-copy {
   margin-top: 10px;
   padding: 10px 12px;
@@ -8842,14 +8872,212 @@ p {
 }
 .base-tour-copy > p { margin: 0; }
 .base-tour-title { font-size: 14px; font-weight: 800; margin-bottom: 3px !important; }
+.base-tour-idx { margin-left: 6px; color: var(--ink-3); font-size: 11px; font-weight: 800; letter-spacing: .08em; }
 .base-tour-fact { font-size: 12px; line-height: 1.45; color: var(--ink-2); }
-.base-tour-find { margin-top: 6px !important; font-size: 12px; line-height: 1.4; color: var(--primary); }
-.shop-bigart > .base-tour .base-tour-stage { max-width: 440px; margin: 0 auto; }
-.shop-bigart > .base-tour .base-tour-copy { max-width: 440px; margin-inline: auto; }
-.collection-detail-art > .base-tour { width: min(100%, 420px); }
+.base-tour-find { margin-top: 6px !important; font-size: 12px; line-height: 1.4; color: var(--lux-plaque-ink); }
+.shop-bigart > .base-tour .base-tour-stage { margin: 0 auto; }
 @keyframes base-tour-reveal { from { opacity: .25; transform: scale(1.03); } to { opacity: 1; transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) { .base-tour-photo { animation: none; } }
-@media (max-width: 360px) { .base-tour-dot { width: 30px; height: 30px; font-size: 13px; } }
 
 /* Studio renders intentionally have a photographic background, not transparent pencil art. */
 .car-art-studio { border-radius: 7px; overflow: hidden; box-shadow: 0 3px 12px rgba(18, 15, 12, .16); }
+
+/* ── Витрина-люкс (0.79.0): две базовые темы — Rolls-Royce и Maybach ────────
+   Структура одна, материал задают только токены --lux-* (tokens.css):
+   • светлая тема — Rolls-Royce: жемчужный подиум, хром Pantheon, сапфировый
+     лак; промежутки витрины — светлый показочный зал, тёмного фона нет;
+   • тёмная тема — Maybach: обсидиановая ниша, шампань-золото, лампа салона.
+   Что не меняется между темами:
+   • ценник живёт в подвале (`.shop-foot`) табличкой рядом с кнопкой: цена
+     не дублируется в подписи кнопки и не лежит на рисунке; хватает
+     кристаллов — гравировка (`.afford`), не хватает — тихий контур;
+   • статусы («В Моём мире ✓») — строкой `.shop-status` под описанием:
+     картинка не закрыта;
+   • стык ниши и этикетки — полоса-решётка (`--lux-strip`), tier-glow —
+     цветной свет над кузовом; рамка карточки — статусная (owned — зелёная,
+     on/current — акцентная). */
+.shop-boutique {
+  border-color: var(--lux-panel-frame);
+  background:
+    radial-gradient(85% 46% at 50% 0%, var(--lux-glow), transparent 74%),
+    linear-gradient(180deg, var(--lux-panel-2), var(--lux-panel));
+  box-shadow: var(--lux-panel-shadow);
+}
+/* Полоса-решётка по верхнему краю витрины (Pantheon-штрих). */
+.shop-boutique::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 14px;
+  left: 14px;
+  height: 4.5px;
+  border-radius: 0 0 4px 4px;
+  background: var(--lux-strip);
+  pointer-events: none;
+}
+/* Карточка — этикетка на подиуме темы; статусные границы перекрывают
+   цвет рамки сами. */
+.shop-boutique .shop-item {
+  background: var(--lux-card);
+  border: 1.5px solid var(--lux-card-line);
+  border-radius: 22px;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--lux-card) 74%, #ffffff),
+    0 10px 22px rgba(10, 16, 30, 0.28),
+    0 2px 4px rgba(10, 16, 30, 0.16);
+}
+/* Подиум ниши темы + цветной свет редкости над кузовом. Правило позже
+   и специфичнее прежних: тона ниш (0,2,0) и tier-градиентов (0,3,0). */
+.shop-boutique .shop-item .shop-case {
+  border-radius: 20px 20px 0 0;
+  background:
+    radial-gradient(54% 34% at 50% 4%, var(--tier-glow, rgba(150, 165, 200, 0.28)), transparent 74%),
+    linear-gradient(168deg, var(--lux-pearl-2) 0%, var(--lux-pearl) 84%);
+}
+/* Полоса-решётка-стык: «крыша» отделяется от этикетки материалом темы. */
+.shop-boutique .shop-case::before {
+  border-bottom: none;
+  background: var(--lux-strip);
+  background-size: 100% 4.5px;
+  background-position: bottom;
+  background-repeat: no-repeat;
+}
+/* Подвал этикетки: цена слева, действие справа — обе в одной линии. */
+.shop-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: auto;
+  padding-top: 2px;
+}
+.shop-foot > .btn {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+/* Цена в подвале — чистая типографика, без пилюли (жалоба 2026-10-29):
+   цифры ровно в одной линии с кнопкой; доступное — сапфир/шампань люкса,
+   дорогущее — тихо. */
+.shop-boutique .shop-foot > .shop-price {
+  flex: none;
+  margin-top: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  box-shadow: none;
+  white-space: nowrap;
+}
+.shop-boutique .shop-foot > .shop-price.afford {
+  color: var(--lux-plaque-ink);
+}
+/* Строка состояния — эмалевая плашка под описанием: купленное видно с
+   первого взгляда, и надпись не лежит на рисунке. */
+.shop-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 3px 10px;
+  border: 1px solid color-mix(in srgb, var(--green) 45%, transparent);
+  border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--green-soft) 75%, transparent);
+  color: var(--good-ink);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.25;
+}
+/* Покупка — лак кнопки темы: сочный сапфир «при дневном свете» в светлой,
+   обсидиан в тёмной; кромка и надпись — материал люкса (хром / шампань). */
+.shop-boutique .shop-item .btn.primary {
+  background: var(--lux-cta);
+  border: 1px solid var(--lux-cta-line);
+  color: var(--lux-cta-ink);
+  box-shadow:
+    0 3px 0 var(--lux-cta-edge),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+.shop-boutique .shop-item .btn.primary:active {
+  box-shadow:
+    0 1px 0 var(--lux-cta-edge),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  transform: translateY(2px);
+}
+/* ── Единый акцент витрины (жалоба 2026-10-29) ──────────────────────────
+   «Вверху фиолетовый, а правильно синий из карточки»: всё активное и всё,
+   что ведёт к покупке в магазине, — материал --lux-cta, тот же, что у
+   кнопок «Купить» на карточках (сапфир в светлой теме, обсидиан в тёмной).
+   Селекторы намеренно повторяют «карточную» специфичность и стоят после
+   блоков тем (neon/цветных): во всех темах меню, лист и подтверждение
+   покупки совпадают с карточной кнопкой — пара «фиолетовый сверху / синий
+   внизу» больше не возникает. */
+:root .shop-screen .btn.primary {
+  background: var(--lux-cta);
+  border: 1px solid var(--lux-cta-line);
+  color: var(--lux-cta-ink);
+  box-shadow: 0 3px 0 var(--lux-cta-edge), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+:root .shop-screen .btn.primary:active {
+  box-shadow: 0 1px 0 var(--lux-cta-edge), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  transform: translateY(2px);
+}
+:root .shop-cats .chip.on {
+  background: var(--lux-cta);
+  border-color: var(--lux-cta);
+  color: var(--lux-cta-ink);
+}
+/* Цена в листе — крупная цифра без плашки (жалоба 2026-10-29: «не факт что
+   стоимость нужно помещать в пилюлю»); доступное — сапфир/шампань люкса. */
+.shop-screen .shop-sheet .shop-price {
+  color: var(--ink);
+  font-size: var(--fs-lg);
+  letter-spacing: -0.02em;
+}
+.shop-screen .shop-sheet .shop-price.afford {
+  color: var(--lux-plaque-ink);
+}
+/* Надетый наряд в «Моих покупках» — рамка акцентом, заливка — его тон, а не лаванда. */
+.shop-screen .shop-wear.on {
+  border-color: var(--lux-cta);
+  background: color-mix(in srgb, var(--lux-cta) 10%, var(--bg-2));
+}
+/* Прогресс в листе и точки головоломки — материал люкса. */
+.shop-screen .shop-progress i { background: var(--lux-plaque-ink); }
+.shop-screen .pz-dot {
+  background: color-mix(in srgb, var(--lux-cta) 14%, var(--bg-2));
+  border-color: color-mix(in srgb, var(--lux-cta) 34%, transparent);
+}
+.shop-screen .pz-dot.on { background: var(--lux-cta); border-color: var(--lux-cta); }
+.shop-screen .puzzle-win { border-color: color-mix(in srgb, var(--lux-cta) 45%, transparent); }
+/* Активный сбор и «мечты по деньгам» — рамки акцентом люкса вместо лаванды. */
+.shop-screen .shop-collect { border-color: color-mix(in srgb, var(--lux-cta) 55%, transparent); }
+.shop-screen .wishlist-card.afford {
+  border-color: color-mix(in srgb, var(--lux-cta) 65%, transparent);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--lux-cta) 14%, transparent);
+}
+/* Недоступное/просмотр — тихая кнопка с хромовой кромкой на кости. */
+.shop-boutique .shop-item .btn.ghost {
+  background: transparent;
+  border: 1.5px solid var(--lux-card-line);
+  color: var(--ink-2);
+}
+/* Узкий экран: подвал не переполняется («Ещё 260 💎» + цифра цены). */
+@media (max-width: 379px) {
+  .shop-boutique .shop-foot {
+    gap: 6px;
+  }
+  .shop-boutique .shop-foot > .shop-price {
+    font-size: 11px;
+  }
+  .shop-boutique .shop-foot > .shop-price .ico {
+    width: 13px;
+    height: 13px;
+  }
+}
+

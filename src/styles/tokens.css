@@ -76,6 +76,34 @@
   --tag-bg: #fff8e6;
   --tag-ink: #8a4b0b;
   --tag-line: rgba(138, 75, 11, 0.28);
+  /* ── Витрина-люкс (0.79.0): две базовые темы ────────────────────────────
+     Светлая тема — Rolls-Royce: жемчужный подиум под товаром, хром Pantheon
+     (полоса-решётка); в промежутках витрины — светлый показочный зал,
+     тёмного фона нет. Midnight Sapphire при дневном свете: лак кнопки —
+     сочный сапфир (не почти-чёрный), гравировка ценника — тёмный сапфир.
+     Тёмная тема — Maybach: обсидиановая ниша, шампань-золото, лампа салона
+     (полный набор — в [data-theme='dark']).
+     Правило: app.css работает только через var(--lux-*) — весь материал
+     меняется в этом файле, обе темы обязаны задавать ОДИНАКОВЫЙ набор ключей
+     (страж в tests/cards-ui.test.tsx). */
+  --lux-panel: #e6e8ee;
+  --lux-panel-2: #f2f3f6;
+  --lux-panel-frame: rgba(154, 161, 173, 0.55);
+  --lux-panel-shadow: inset 0 3px 16px rgba(120, 130, 150, 0.16), 0 14px 34px rgba(60, 70, 90, 0.16);
+  --lux-glow: rgba(255, 255, 255, 0.65);
+  --lux-pearl: #edeff3;
+  --lux-pearl-2: #ffffff;
+  --lux-strip: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.55) 0 1px, rgba(96, 102, 114, 0.24) 1px 4px), linear-gradient(180deg, #ffffff, #d9dde3 42%, #a9afb9 58%, #eceef1);
+  --lux-card: #fdfcf9;
+  --lux-card-line: rgba(154, 161, 173, 0.7);
+  --lux-cta: #3d5fd0;
+  --lux-cta-ink: #f7f9ff;
+  --lux-cta-line: rgba(255, 255, 255, 0.5);
+  --lux-cta-edge: #2b46a6;
+  --lux-plaque: #e9edf2;
+  --lux-plaque-ink: #1b2b52;
+  --lux-plaque-line: rgba(94, 101, 115, 0.6);
+  --lux-plaque-gloss: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 2px 5px rgba(12, 18, 34, 0.18);
   /* Сцена витрины техники (0.19.0): небо, пол, дерево, вода, рамы арок. */
   --stage-sky: color-mix(in srgb, var(--primary-soft) 46%, #efe6ff);
   --stage-sky-2: color-mix(in srgb, var(--primary-soft) 22%, #f4ecff);
@@ -252,6 +280,27 @@
   --tag-bg: #3a2c14;
   --tag-ink: #ffd98a;
   --tag-line: rgba(255, 217, 138, 0.3);
+  /* Витрина-люкс — Maybach (тёмная тема): обсидиан вместо жемчи, шампань
+     вместо хрома, лампа салона вместо дневного света. Набор ключей обязан
+     совпадать со светлой темой — страж в tests/cards-ui.test.tsx. */
+  --lux-panel: #16120d;
+  --lux-panel-2: #262017;
+  --lux-panel-frame: rgba(214, 181, 108, 0.45);
+  --lux-panel-shadow: inset 0 3px 16px rgba(0, 0, 0, 0.45), 0 14px 34px rgba(0, 0, 0, 0.32);
+  --lux-glow: rgba(243, 229, 193, 0.18);
+  --lux-pearl: #16120d;
+  --lux-pearl-2: #262017;
+  --lux-strip: repeating-linear-gradient(90deg, rgba(255, 240, 205, 0.5) 0 1px, rgba(120, 95, 35, 0.4) 1px 4px), linear-gradient(180deg, #f7ecd0, #d6b971 42%, #a8863e 58%, #f3e5c1);
+  --lux-card: #282219;
+  --lux-card-line: rgba(214, 181, 108, 0.5);
+  --lux-cta: #171310;
+  --lux-cta-ink: #f3e5c1;
+  --lux-cta-line: rgba(243, 229, 193, 0.5);
+  --lux-cta-edge: #0c0a07;
+  --lux-plaque: #171310;
+  --lux-plaque-ink: #f3e5c1;
+  --lux-plaque-line: rgba(243, 229, 193, 0.55);
+  --lux-plaque-gloss: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 2px 6px rgba(0, 0, 0, 0.34);
   --stage-sky: color-mix(in srgb, var(--primary-soft) 26%, var(--bg));
   --stage-sky-2: color-mix(in srgb, var(--primary-soft) 14%, var(--bg-2));
   --stage-sky-top: color-mix(in srgb, #ddf2ff 22%, var(--bg-2));

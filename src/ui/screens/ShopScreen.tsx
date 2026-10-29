@@ -27,12 +27,12 @@ import {
 import { BUILDINGS, BUILDING_BY_ID, isBuildingOwned, type BuildingItem } from '../../engine/buildings';
 import { BASE_SETS, baseSetPrice, type BaseSet } from '../../engine/base-sets';
 import { BuildingArt } from '../BuildingArt';
-import { BaseTour } from '../BaseTour';
+import { BaseTour, warmBaseTour } from '../BaseTour';
 import { RarityChip, RarityLabel } from '../RarityChip';
 import { Mascot } from '../Mascot';
 import { ToyArt } from '../ToyArt';
-import { CarTour, CAR_TOUR_IDS } from '../CarTour';
-import { hasProductPhoto } from '../ProductPhoto';
+import { CarTour, CAR_TOUR_IDS, warmCarTour } from '../CarTour';
+import { hasProductPhoto, warmProductPhoto } from '../ProductPhoto';
 import { carAlt, carKind, carNote, hasCarArt } from '../CarArt';
 import { hasShipArt, shipAlt, shipKind, shipNote } from '../ShipArt';
 import { WorldScreen } from './WorldScreen';
@@ -162,16 +162,26 @@ interface TintTarget {
 
 /**
  * Единый макет карточки товара — один на все типы.
- * Состояние читается плашкой-ценником и подписью кнопки, не только цветом
+ * Состояние читается плашкой состояния и подписью кнопки, не только цветом
  * (WCAG 1.4.1); тап по карточке открывает подробный sheet.
  *
- * 0.76.0 — вёрстка переделана вокруг картинки:
- *  • фото/рисунок занимает всю ширину карточки и нишу, ничего не обрезается:
- *    раньше машина упиралась в 126 px, потому что ниша была 126 px высотой;
- *  • название, редкость, описание и кнопка собраны в этикетку под картинкой,
- *    описание — максимум две строки, поэтому карточки в ряду одной высоты;
- *  • ценник и сердечко «в мечты» лежат на картинке, а не отнимают строку;
- *  • сколько карточек в ряду, решает сетка (2 на телефоне, 3 на планшете).
+ * 0.79.0 — жалобы «ценник занимает много места», «надпись „В Моём мире“
+ * закрывает карточку» и «тёмный верх излишне мрачен»; две базовые темы
+ * (токены --lux-* в tokens.css, app.css без цветов):
+ *  • светлая — Rolls-Royce: жемчужный подиум, хром Pantheon, сапфировый
+ *    лак, светлые промежутки витрины;
+ *  • тёмная — Maybach: обсидиановая ниша, шампань-золото, лампа салона;
+ *  • ценник — компактная плашка в подвале этикетки, РЯДОМ с кнопкой: цена
+ *    больше не дублируется в подписи кнопки и не лежит на рисунке;
+ *  • статус («В Моём мире ✓», «Твоя ✓») — отдельная строка состояния под
+ *    описанием: надпись не перекрывает товар на картинке;
+ *  • стык ниши и этикетки — полоса-решётка, «Купить» — лак темы, ценник
+ *    гравируется, когда кристаллов хватает (`.afford`), иначе — тихий
+ *    контур;
+ *  • сердечко «в мечты» и плашка «Собираю» остаются на картинке — это
+ *    короткие метки, а не текстовые строки;
+ *  • фото/рисунок по-прежнему занимает нишу целиком, описание — максимум
+ *    две строки, число колонок решает сетка (2 на телефоне, 3 на планшете).
  */
 function ShopCard(props: {
   badge?: string;
@@ -181,9 +191,12 @@ function ShopCard(props: {
   /** Дополнительный класс карточки: on (надето), owned (куплено), current (собираем) */
   cardCls?: string;
   rarity?: import('../../engine/shop').ItemRarity;
-  /** Между подписью и ценой — например, точки прогресса пазла */
+  /** Между подписью и подвалом — например, точки прогресса пазла */
   extra?: ReactNode;
+  /** Компактная плашка цены — в подвале слева от кнопки, не на картинке */
   priceLabel?: ReactNode;
+  /** Строка состояния («В Моём мире ✓») — под описанием, картинку не закрывает */
+  statusLabel?: ReactNode;
   afford?: boolean;
   /** У товара студийное фото: снимок занимает нишу целиком */
   photo?: boolean;
@@ -206,13 +219,10 @@ function ShopCard(props: {
         if (e.target === e.currentTarget && e.key === 'Enter') props.onOpen();
       }}
     >
-      {/* Ниша витрины: товар крупно, ценник и мечты — поверх снимка. */}
+      {/* Ниша витрины: только товар и короткие метки — без текстовых строк. */}
       <div className={`shop-case${props.photo ? ' shop-case-photo' : ''}`}>
         <div className="shop-icon">{props.art}</div>
         {props.badge && <span className="shop-badge">{props.badge}</span>}
-        {props.priceLabel && (
-          <span className={`shop-price${props.afford ? ' afford' : ''}`}>{props.priceLabel}</span>
-        )}
         {props.onWish && (
           <button
             type="button"
@@ -233,17 +243,25 @@ function ShopCard(props: {
           {props.rarity && <RarityLabel rarity={props.rarity} className="rarity-chip-mini" />}
         </div>
         {props.desc && <div className="tiny shop-desc">{props.desc}</div>}
+        {props.statusLabel && <div className="shop-status">{props.statusLabel}</div>}
         {props.extra}
-        <button
-          className={`btn sm wide ${props.actionTone}`}
-          disabled={props.actionDisabled}
-          onClick={(e) => {
-            e.stopPropagation();
-            props.onAction();
-          }}
-        >
-          {props.actionLabel}
-        </button>
+        {/* Подвал этикетки: цена — компактной плашкой слева от кнопки.
+            Одна цена на карточку, картинка остаётся чистой. */}
+        <div className="shop-foot">
+          {props.priceLabel && (
+            <span className={`shop-price${props.afford ? ' afford' : ''}`}>{props.priceLabel}</span>
+          )}
+          <button
+            className={`btn sm ${props.actionTone}`}
+            disabled={props.actionDisabled}
+            onClick={(e) => {
+              e.stopPropagation();
+              props.onAction();
+            }}
+          >
+            {props.actionLabel}
+          </button>
+        </div>
       </div>
     </article>
   );
@@ -417,6 +435,15 @@ export function ShopScreen({
     sfx.tap();
     haptic.tap();
     setPaletteOpen(false);
+    // Тёплый старт картинок листа: качаем в момент тапа, чтобы к развороту снимок,
+    // ракурсы и комнаты базы уже были в кэше — по тапу они не «долго грузятся»
+    // (жалоба 2026-10-29).
+    if (detail.kind === 'item') {
+      warmProductPhoto(detail.item.id);
+      warmCarTour(detail.item.id);
+    } else if (detail.kind === 'building') {
+      warmBaseTour(detail.building.id);
+    }
     setSheet(detail);
   };
 
@@ -685,7 +712,8 @@ export function ShopScreen({
         // Арт техники рисуется целиком, без совы: на полке это товар,
         // а не ещё один наряд на БУКе.
         cardCls={[wearing ? 'on' : owned_ ? 'owned' : '', toy ? 'toy-item' : ''].filter(Boolean).join(' ') || undefined}
-        priceLabel={owned_ ? (toy ? 'В Моём мире ✓' : 'Твоя ✓') : <Gem value={item.price} size={18} />}
+        statusLabel={owned_ ? (toy ? 'В Моём мире ✓' : 'Твоя ✓') : undefined}
+        priceLabel={owned_ ? undefined : <Gem value={item.price} size={16} />}
         afford={affordable}
         wished={wished}
         onWish={!owned_ ? () => tapWish(item.id, item.title) : undefined}
@@ -695,7 +723,7 @@ export function ShopScreen({
               ? stateOn
               : actionOn
             : affordable
-              ? `Купить · 💎${item.price}`
+              ? 'Купить'
               : `Ещё ${missingGems(item, gems)} 💎`
         }
         actionTone={owned_ ? (wearing ? 'green' : 'ghost') : affordable ? 'primary' : 'ghost'}
@@ -754,8 +782,7 @@ export function ShopScreen({
             </div>
           )
         }
-        priceLabel={done ? 'Собран ✓' : `${prog}/${PUZZLE_SIZE} 🧩`}
-        afford={done}
+        statusLabel={done ? 'Собран ✓' : undefined}
         actionLabel={
           done
             ? wearing
@@ -793,9 +820,10 @@ export function ShopScreen({
         art={<Mascot mood={wearing ? 'happy' : 'idle'} costumeId={c.id} size={104} stage={growth.index} />}
         title={c.title}
         desc={c.desc}
-        priceLabel={owned_ ? 'Твой ✓' : <Gem value={price} size={18} />}
+        statusLabel={owned_ ? 'Твой ✓' : undefined}
+        priceLabel={owned_ ? undefined : <Gem value={price} size={16} />}
         afford={affordable}
-        actionLabel={owned_ ? (wearing ? 'Надето ✓' : 'Надеть') : affordable ? `Купить · 💎${price}` : `Ещё ${Math.max(0, price - gems)} 💎`}
+        actionLabel={owned_ ? (wearing ? 'Надето ✓' : 'Надеть') : affordable ? 'Купить' : `Ещё ${Math.max(0, price - gems)} 💎`}
         actionTone={owned_ ? (wearing ? 'green' : 'ghost') : affordable ? 'primary' : 'ghost'}
         actionDisabled={!owned_ && !affordable}
         onOpen={() => openSheet({ kind: 'costume', costume: c })}
@@ -821,9 +849,10 @@ export function ShopScreen({
         art={<BuildingArt id={building.id} className="building-card-art" />}
         title={building.title}
         desc={building.desc}
-        priceLabel={owned_ ? 'В Моём мире ✓' : <Gem value={building.price} size={18} />}
+        statusLabel={owned_ ? 'В Моём мире ✓' : undefined}
+        priceLabel={owned_ ? undefined : <Gem value={building.price} size={16} />}
         afford={affordable}
-        actionLabel={owned_ ? 'Посмотреть' : affordable ? `Купить · 💎${building.price}` : `Ещё ${missing} 💎`}
+        actionLabel={owned_ ? 'Посмотреть' : affordable ? 'Купить' : `Ещё ${missing} 💎`}
         actionTone={owned_ ? 'ghost' : affordable ? 'primary' : 'ghost'}
         actionDisabled={!owned_ && !affordable}
         onOpen={() => openSheet({ kind: 'building', building })}
@@ -849,9 +878,10 @@ export function ShopScreen({
         art={<div className="base-set-icons"><BuildingArt id={setInfo.baseId} className="building-card-art" />{costume && <Mascot mood="idle" costumeId={costume.id} size={42} stage={growth.index} />}</div>}
         title={setInfo.title}
         desc={setInfo.desc}
-        priceLabel={complete ? 'Набор собран ✓' : `💎 ${price} · премиум`}
+        statusLabel={complete ? 'Набор собран ✓' : undefined}
+        priceLabel={complete ? undefined : <Gem value={price} size={16} />}
         afford={affordable}
-        actionLabel={complete ? 'Собран ✓' : affordable ? `Купить · 💎${price}` : `Ещё ${Math.max(0, price - gems)} 💎`}
+        actionLabel={complete ? 'Собран ✓' : affordable ? 'Купить' : `Ещё ${Math.max(0, price - gems)} 💎`}
         actionTone={complete ? 'green' : affordable ? 'primary' : 'ghost'}
         actionDisabled={complete || !affordable}
         onOpen={() => openSheet({ kind: 'baseSet', set: setInfo })}
@@ -882,7 +912,8 @@ export function ShopScreen({
         title={track.title}
         desc={`${fmtTime(track.seconds)} · ${track.shelf === 'calm' ? 'спокойный фон' : 'награда'}`}
         cardCls={`music-item${selected ? ' on' : ownedTrack ? ' owned' : ''}`}
-        priceLabel={ownedTrack ? 'Твоя ✓' : <Gem value={track.price} size={18} />}
+        statusLabel={ownedTrack ? 'Твоя ✓' : undefined}
+        priceLabel={ownedTrack ? undefined : <Gem value={track.price} size={16} />}
         afford={affordable}
         actionLabel={
           ownedTrack
@@ -890,7 +921,7 @@ export function ShopScreen({
               ? 'Играет ✓'
               : 'Выбрать'
             : affordable
-              ? `Купить · 💎${track.price}`
+              ? 'Купить'
               : `Ещё ${track.price - gems} 💎`
         }
         actionTone={ownedTrack ? (selected ? 'green' : 'ghost') : affordable ? 'primary' : 'ghost'}
@@ -961,7 +992,8 @@ export function ShopScreen({
         desc={pack.desc}
         cardCls={`music-item sound-item${selected ? ' on' : ownedPack ? ' owned' : ''}`}
         extra={cueButtons(pack, 'sm')}
-        priceLabel={ownedPack ? 'Твои ✓' : <Gem value={pack.price} size={18} />}
+        statusLabel={ownedPack ? 'Твои ✓' : undefined}
+        priceLabel={ownedPack ? undefined : <Gem value={pack.price} size={16} />}
         afford={affordable}
         actionLabel={
           ownedPack
@@ -969,7 +1001,7 @@ export function ShopScreen({
               ? 'Звучит ✓'
               : 'Выбрать'
             : affordable
-              ? `Купить · 💎${pack.price}`
+              ? 'Купить'
               : `Ещё ${pack.price - gems} 💎`
         }
         actionTone={ownedPack ? (selected ? 'green' : 'ghost') : affordable ? 'primary' : 'ghost'}
@@ -1032,37 +1064,37 @@ export function ShopScreen({
               <Mascot mood="happy" look={{ [item.slot]: item.id }} costumeId={null} stage={growth.index} size={150} />
             )}
           </div>
-          {hasCarArt(item.id) && !CAR_TOUR_IDS.has(item.id) && <p className="tiny muted art-hint">Нажми на машину — рассмотри кузов ближе</p>}
-          <h2 style={{ margin: '0 0 2px' }}>{item.title}</h2>
-          <RarityChip item={item} className="rarity-chip-detail" />
-          <p className="tiny muted" style={{ marginTop: 0 }}>{item.desc}</p>
-          {(carKind(item.id) || shipKind(item.id)) && (
-            <p className="tiny muted">
-              <b>{carKind(item.id) ?? shipKind(item.id)}</b>
-              {(carNote(item.id) ?? shipNote(item.id)) && (
-                <>
-                  <br />
-                  {carNote(item.id) ?? shipNote(item.id)}
-                </>
-              )}
-            </p>
-          )}
-          {toy && (
-            <p className="tiny muted">
-              После покупки появится в коллекции «Моего мира».
-            </p>
-          )}
-          <div className="row mb">
-            <span className={`shop-price${affordable ? ' afford' : ''}`}>💎 {item.price}</span>
-            <span className="tiny muted grow" style={{ alignSelf: 'center' }}>
-              {owned_ ? (toy ? 'Уже в «Моём мире»' : 'Уже в гардеробе') : `У тебя ${gems} 💎`}
-            </span>
+          {/* Подсказки «Нажми на машину/телефон» убраны (2026-10-29): лишний
+              текст под фото; зум и поворот — стандартное поведение по тапу. */}
+          {/* Лист товара: витринная иерархия вместо россыпи похожих абзацев
+              (жалоба 2026-10-29: «текст дублируется, сверстан как школьник»).
+              desc дублировал note («карбон и диски» дважды), к ним примешивалась
+              общая строка «После покупки…», а цена, баланс и возврат шли тремя
+              мелкими строками без ритма. Теперь: заголовок → строка «тип ·
+              редкость» → один живой абзац (у техники note — он для листа и
+              написан; desc остаётся на витринной карточке) → смета за тонкой
+              линией → сноска мелким шрифтом. */}
+          <h2 className="sheet-title">{item.title}</h2>
+          <div className="sheet-headline">
+            <RarityChip item={item} className="rarity-chip-detail" />
+            {(carKind(item.id) ?? shipKind(item.id)) && (
+              <span className="sheet-kind">{carKind(item.id) ?? shipKind(item.id)}</span>
+            )}
           </div>
-          {!owned_ && (
-            <p className="tiny muted mb">
-              Если передумаешь — вернём {sellPrice(item)} 💎 ({SELL_RATE[item.kind ?? 'outfit'] * 100}% от цены)
-            </p>
-          )}
+          <p className="sheet-lead">{carNote(item.id) ?? shipNote(item.id) ?? item.desc}</p>
+          <div className="sheet-facts">
+            <div className="row">
+              <span className={`shop-price${affordable ? ' afford' : ''}`}>💎 {item.price}</span>
+              <span className="sheet-balance">
+                {owned_ ? (toy ? 'Уже в «Моём мире»' : 'Уже в гардеробе') : `У тебя ${gems} 💎`}
+              </span>
+            </div>
+            {!owned_ && (
+              <p className="sheet-fine">
+                Если передумаешь — вернём {sellPrice(item)} 💎 ({SELL_RATE[item.kind ?? 'outfit'] * 100}% от цены)
+              </p>
+            )}
+          </div>
           <div className="row mb">
             {owned_ ? (
               <button
@@ -1151,13 +1183,21 @@ export function ShopScreen({
         return (
           <>
             <div className="shop-bigart"><Mascot mood="happy" costumeId={c.id} size={150} stage={growth.index} /></div>
-            <h2 style={{ margin: '0 0 2px' }}>{c.title}</h2>
-            {c.rarity && <RarityLabel rarity={c.rarity} className="rarity-chip-detail" />}
-            <p className="tiny muted" style={{ marginTop: 0 }}>{c.desc}</p>
-            <p className="tiny muted">Костюм своей научной базы: покупается за кристаллы, а не собирается из фрагментов.</p>
-            <div className="row mb">
-              <span className={`shop-price${affordableC ? ' afford' : ''}`}>💎 {priceC}</span>
-              <span className="tiny muted grow" style={{ alignSelf: 'center' }}>{ownedC ? 'Уже в гардеробе' : `У тебя ${gems} 💎`}</span>
+            {/* Единая схема листа (2026-10-29): заголовок → редкость → один
+                абзац → смета; условие покупки — сноской под сметой. */}
+            <h2 className="sheet-title">{c.title}</h2>
+            {c.rarity && (
+              <div className="sheet-headline">
+                <RarityLabel rarity={c.rarity} className="rarity-chip-detail" />
+              </div>
+            )}
+            <p className="sheet-lead">{c.desc}</p>
+            <div className="sheet-facts">
+              <div className="row">
+                <span className={`shop-price${affordableC ? ' afford' : ''}`}>💎 {priceC}</span>
+                <span className="sheet-balance">{ownedC ? 'Уже в гардеробе' : `У тебя ${gems} 💎`}</span>
+              </div>
+              <p className="sheet-fine">Костюм своей научной базы: покупается за кристаллы, а не собирается из фрагментов.</p>
             </div>
             <div className="row mb">
               {ownedC ? (
@@ -1178,8 +1218,13 @@ export function ShopScreen({
           <div className="shop-bigart">
             <Mascot mood="happy" costumeId={c.id} size={150} stage={growth.index} />
           </div>
-          <h2 style={{ margin: '0 0 2px' }}>{c.title}</h2>
-          <p className="tiny muted" style={{ marginTop: 0 }}>{c.desc}</p>
+          <h2 className="sheet-title">{c.title}</h2>
+          {c.rarity && (
+            <div className="sheet-headline">
+              <RarityLabel rarity={c.rarity} className="rarity-chip-detail" />
+            </div>
+          )}
+          <p className="sheet-lead">{c.desc}</p>
           {done ? (
             <div className="row mb">
               <button
@@ -1260,13 +1305,20 @@ export function ShopScreen({
       return (
         <>
           <div className="shop-bigart building-detail-art"><BaseTour id={building.id} loading="eager" /></div>
-          <h2 style={{ margin: '0 0 2px' }}>{building.title}</h2>
-          <RarityLabel rarity={building.rarity} className="rarity-chip-detail" />
-          <p className="tiny muted" style={{ marginTop: 0 }}>{building.desc}</p>
-          <p className="tiny muted">Нажми на картинку — и попадёшь внутрь базы: пять комнат с научными секретами и заданиями «найди».</p>
-          <div className="row mb">
-            <span className={`shop-price${affordable ? ' afford' : ''}`}>💎 {building.price}</span>
-            <span className="tiny muted grow" style={{ alignSelf: 'center' }}>{owned_ ? 'Уже в коллекции' : `У тебя ${gems} 💎`}</span>
+          {/* Лист здания — та же типографская схема, что у товара (единый стиль,
+              2026-10-29): заголовок → редкость → один абзац → смета. Подсказка
+              «Нажми на картинку…» убрана: дублировала подпись фасада, а тап по
+              кадру — стандартное поведение карусели. */}
+          <h2 className="sheet-title">{building.title}</h2>
+          <div className="sheet-headline">
+            <RarityLabel rarity={building.rarity} className="rarity-chip-detail" />
+          </div>
+          <p className="sheet-lead">{building.desc}</p>
+          <div className="sheet-facts">
+            <div className="row">
+              <span className={`shop-price${affordable ? ' afford' : ''}`}>💎 {building.price}</span>
+              <span className="sheet-balance">{owned_ ? 'Уже в коллекции' : `У тебя ${gems} 💎`}</span>
+            </div>
           </div>
           <div className="row mb">
             {owned_ ? (
@@ -1298,15 +1350,20 @@ export function ShopScreen({
           <div className="shop-bigart base-set-detail-art">
             <div className="base-set-icons"><BuildingArt id={setInfo.baseId} className="building-card-art" loading="eager" /><ToyArt id={setInfo.carId} size={56} tuning={profile.shop?.tuning} /><ToyArt id={setInfo.planeId} size={56} tuning={profile.shop?.tuning} />{costume && <Mascot mood="idle" costumeId={costume.id} size={56} stage={growth.index} />}</div>
           </div>
-          <h2 style={{ margin: '0 0 2px' }}>{setInfo.title}</h2>
-          <RarityLabel rarity={setInfo.rarity} className="rarity-chip-detail" />
-          <p className="tiny muted" style={{ marginTop: 0 }}>{setInfo.desc}</p>
+          <h2 className="sheet-title">{setInfo.title}</h2>
+          <div className="sheet-headline">
+            <RarityLabel rarity={setInfo.rarity} className="rarity-chip-detail" />
+          </div>
+          <p className="sheet-lead">{setInfo.desc}</p>
           <div className="col mb">
             {parts.map((part) => (<div key={part.title} className="tiny">{part.owned ? '✓' : '○'} {part.emoji} {part.title}</div>))}
           </div>
-          <div className="row mb">
-            <span className={`shop-price${affordable ? ' afford' : ''}`}>{complete ? 'Набор собран ✓' : `💎 ${price}`}</span>
-            <span className="tiny muted grow" style={{ alignSelf: 'center' }}>{complete ? 'Всё уже у тебя' : `У тебя ${gems} 💎 · цена — за недостающие части ×3`}</span>
+          <div className="sheet-facts">
+            <div className="row">
+              <span className={`shop-price${affordable ? ' afford' : ''}`}>{complete ? 'Набор собран ✓' : `💎 ${price}`}</span>
+              <span className="sheet-balance">{complete ? 'Всё уже у тебя' : `У тебя ${gems} 💎`}</span>
+            </div>
+            {!complete && <p className="sheet-fine">Цена — за недостающие части ×3.</p>}
           </div>
           {!complete && (
             <div className="row mb">
@@ -1329,13 +1386,15 @@ export function ShopScreen({
               <i>♪</i>
             </div>
           </div>
-          <h2 style={{ margin: '0 0 2px' }}>{pack.title}</h2>
-          <p className="tiny muted" style={{ marginTop: 0 }}>{pack.desc} · звуки правильного ответа и ошибки</p>
-          <div className="row mb">
-            <span className={`shop-price${affordable ? ' afford' : ''}`}>💎 {pack.price}</span>
-            <span className="tiny muted grow" style={{ alignSelf: 'center' }}>
-              {ownedPack ? 'В коллекции' : pack.price === 0 ? 'Бесплатно' : `У тебя ${gems} 💎`}
-            </span>
+          <h2 className="sheet-title">{pack.title}</h2>
+          <p className="sheet-lead">{pack.desc} · звуки правильного ответа и ошибки</p>
+          <div className="sheet-facts">
+            <div className="row">
+              <span className={`shop-price${affordable ? ' afford' : ''}`}>💎 {pack.price}</span>
+              <span className="sheet-balance">
+                {ownedPack ? 'В коллекции' : pack.price === 0 ? 'Бесплатно' : `У тебя ${gems} 💎`}
+              </span>
+            </div>
           </div>
           <div className="mb">{cueButtons(pack, 'lg')}</div>
           <div className="row mb">
@@ -1383,15 +1442,17 @@ export function ShopScreen({
             {previewing && <span className="shop-eq"><i /><i /><i /></span>}
           </div>
         </div>
-        <h2 style={{ margin: '0 0 2px' }}>{track.title}</h2>
-        <p className="tiny muted" style={{ marginTop: 0 }}>
+        <h2 className="sheet-title">{track.title}</h2>
+        <p className="sheet-lead">
           «{track.originalTitle}» · {track.artist} · {fmtTime(track.seconds)}
         </p>
-        <div className="row mb">
-          <span className={`shop-price${affordable ? ' afford' : ''}`}>💎 {track.price}</span>
-          <span className="tiny muted grow" style={{ alignSelf: 'center' }}>
-            {ownedTrack ? 'В коллекции' : track.price === 0 ? 'Бесплатно' : `У тебя ${gems} 💎`}
-          </span>
+        <div className="sheet-facts">
+          <div className="row">
+            <span className={`shop-price${affordable ? ' afford' : ''}`}>💎 {track.price}</span>
+            <span className="sheet-balance">
+              {ownedTrack ? 'В коллекции' : track.price === 0 ? 'Бесплатно' : `У тебя ${gems} 💎`}
+            </span>
+          </div>
         </div>
         <div className="row mb">
           <button className="btn lg grow ghost" onClick={() => togglePreview(track)}>
@@ -1462,7 +1523,10 @@ export function ShopScreen({
     SHOP_ITEMS.filter((i) => i.slot === slot && isOwned(owned, i.id) && !i.series);
 
   return (
-    <div className="screen">
+    // shop-screen — метка «всё внутри = витрина»: по ней app.css красит
+    // активные пункты меню, лист и подтверждения покупки единым акцентом
+    // --lux-cta (жалоба 2026-10-29 — см. блок «Единый акцент витрины»).
+    <div className="screen shop-screen">
       {/* ── Шапка: название и баланс — и больше ничего ─────────────────── */}
       {view !== 'world' && (
         <div className="shop-sticky">

@@ -2,7 +2,10 @@
 // комнату, после последней кольцо возвращается к фасаду, а не упирается в конец.
 //
 // Данные и файлы проверяет tests/base-tours.test.ts; здесь — то, что видно
-// только в сборке: кольцо, подписи, задание «найди» и точки-прыжки.
+// только в сборке: кольцо, подписи комнат, счётчик и задание «найди».
+// 2026-10-29: точки-прыжки и подсказки под кадром убраны («лишние кружочки») —
+// идентичность кадра держим на aria-label сцены, комнаты — на подписи под
+// кадром (в ней же счётчик · N/5), вход на фасаде — на отсутствии .base-tour-photo.
 import { BASE_TOUR_BY_ID } from '../src/engine/base-tours';
 import type { Profile } from '../src/types';
 import { useApp } from '../src/state/store';
@@ -17,10 +20,11 @@ function active(): Profile {
   return p;
 }
 
-/** Кнопка-кадр экскурсии (сцена) и её подпись. */
+/** Кнопка-кадр экскурсии (сцена): подпись кадра — в её aria-label. */
 const stage = () => document.querySelector('.base-tour-stage') as HTMLButtonElement | null;
-const badge = () => document.querySelector('.base-tour-badge')?.textContent ?? '';
+const stageLabel = () => stage()?.getAttribute('aria-label') ?? '';
 const copy = () => document.querySelector('.base-tour-copy')?.textContent ?? '';
+const roomPhoto = () => document.querySelector('.base-tour-photo');
 
 export async function runBaseTourUiChecks() {
   console.log('\n── Экскурсия по базам: комнаты по тапу, кольцо и задания ──');
@@ -54,9 +58,8 @@ export async function runBaseTourUiChecks() {
 
   // ── Кольцо: фасад → 5 комнат → снова фасад ───────────────────────────────
   const tour = BASE_TOUR_BY_ID['atomic-base'];
-  check('экскурсия: начинается с фасада', badge().includes('Снаружи'), badge());
-  const dots = () => document.querySelectorAll('.base-tour-dot');
-  check('экскурсия: шесть точек — фасад и пять комнат', dots().length === 6, String(dots().length));
+  check('экскурсия: начинается с фасада', !roomPhoto() && stageLabel() === 'Войти внутрь базы', stageLabel());
+  check('экскурсия: на фасаде нет подсказок под кадром', !document.querySelector('.base-tour-copy'), document.querySelector('.base-tour-copy')?.textContent ?? 'нет подписи');
 
   for (let index = 0; index < tour.stops.length; index++) {
     click(stage());
@@ -64,12 +67,17 @@ export async function runBaseTourUiChecks() {
     const stop = tour.stops[index];
     check(
       `экскурсия: тап ${index + 1} открывает «${stop.title}»`,
-      badge().includes(stop.title) && !!document.querySelector('.base-tour-photo'),
-      badge(),
+      copy().includes(stop.title) && !!roomPhoto(),
+      copy().slice(0, 80),
     );
     check(
       `экскурсия: у «${stop.title}» есть факт и задание «найди»`,
       copy().includes(stop.fact.slice(0, 30)) && copy().includes(stop.find.slice(0, 20)),
+      copy().slice(0, 80),
+    );
+    check(
+      `экскурсия: в подписи «${stop.title}» есть счётчик ${index + 1}/${tour.stops.length}`,
+      copy().includes(`· ${index + 1}/${tour.stops.length}`),
       copy().slice(0, 80),
     );
   }
@@ -77,14 +85,16 @@ export async function runBaseTourUiChecks() {
   // Шестой тап — и снова фасад: кольцо не заканчивается.
   click(stage());
   await sleep(30);
-  check('экскурсия: после последней комнаты кольцо возвращает к фасаду', badge().includes('Снаружи') && !document.querySelector('.base-tour-photo'), badge());
+  check('экскурсия: после последней комнаты кольцо возвращает к фасаду', !roomPhoto() && stageLabel() === 'Войти внутрь базы', stageLabel());
 
-  // ── Прыжок точкой ────────────────────────────────────────────────────────
-  const third = dots()[3] as HTMLButtonElement;
-  click(third);
+  // Точки-прыжки убраны (2026-10-29): до нужной комнаты — тапами по сцене.
+  click(stage());
   await sleep(30);
-  check('экскурсия: точка прыгает сразу в нужную комнату', badge().includes(tour.stops[2].title), badge());
-  check('экскурсия: картинка комнаты лежит в public/base-tours', (document.querySelector('.base-tour-photo') as HTMLImageElement | null)?.getAttribute('src') === '/base-tours/atomic-base-3.webp', (document.querySelector('.base-tour-photo') as HTMLImageElement | null)?.getAttribute('src') ?? '');
+  click(stage());
+  await sleep(30);
+  click(stage());
+  await sleep(30);
+  check('экскурсия: картинка комнаты лежит в public/base-tours', (roomPhoto() as HTMLImageElement | null)?.getAttribute('src') === '/base-tours/atomic-base-3.webp', (roomPhoto() as HTMLImageElement | null)?.getAttribute('src') ?? '');
 
   // Закрываем лист и возвращаемся в витрину.
   const close = buttons().find((b) => (b.getAttribute('aria-label') ?? '').includes('Закрыть') || (b.textContent ?? '').includes('Закрыть'));
@@ -103,7 +113,7 @@ export async function runBaseTourUiChecks() {
   click(stage());
   await sleep(30);
   const steam = BASE_TOUR_BY_ID['steam-base'];
-  check('мир: у базы паровозов внутри машинный зал с котлом', badge().includes(steam.stops[0].title) && copy().includes('паровой двигатель'), badge());
+  check('мир: у базы паровозов внутри машинный зал с котлом', copy().includes(steam.stops[0].title) && copy().includes('паровой двигатель'), copy().slice(0, 80));
 
   // Возвращаемся в БУК: следующие проверки смоука начинают с магазина.
   click(buttons().find((b) => (b.textContent ?? '').includes('К области')));

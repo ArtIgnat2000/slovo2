@@ -120,6 +120,19 @@ export function productPhotoUrl(id: string): string {
 }
 
 /**
+ * Тёплый старт большой картинки (подробная карточка, «Мечты», мир): скачивание
+ * начинается в момент тапа по карточке — к развороту листа снимок уже в кэше и по
+ * тапу не «долго грузится» (жалоба 2026-10-29). Загрузка стартует и без ссылки на
+ * элемент в DOM.
+ */
+export function warmProductPhoto(id: string): void {
+  if (!hasProductPhoto(id)) return;
+  const img = document.createElement('img');
+  img.decoding = 'async';
+  img.src = productPhotoUrl(id);
+}
+
+/**
  * Фото товара. Размер задаёт контекст (CSS): ниша карточки, крупный лист в
  * подробной карточке, строка гардероба. `alt` пустой, если карточка уже
  * названа словами и фото декоративное.

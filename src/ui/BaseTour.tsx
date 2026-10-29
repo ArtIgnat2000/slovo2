@@ -1,8 +1,24 @@
 import { useEffect, useState } from 'react';
 import { baseTourImageUrl, baseTourStops } from '../engine/base-tours';
-import { plural } from '../engine/quests';
 import { BUILDING_BY_ID } from '../engine/buildings';
-import { BuildingArt } from './BuildingArt';
+import { BuildingArt, buildingArtUrl } from './BuildingArt';
+
+/**
+ * Тёплый старт экскурсии (жалоба 2026-10-29: по тапу картинки долго грузятся):
+ * фасад и все комнаты базы качаем в момент тапа по карточке — к развороту листа
+ * (или предпросмотра в «Моём мире») файлы уже в кэше. Начатая загрузка не зависит
+ * от ссылки на неё в DOM.
+ */
+export function warmBaseTour(id: string): void {
+  const sources = [buildingArtUrl(id)];
+  for (let index = 0; index < baseTourStops(id).length; index++) {
+    sources.push(baseTourImageUrl(id, index));
+  }
+  for (const src of sources) {
+    const img = document.createElement('img');
+    img.src = src;
+  }
+}
 
 /**
  * Экскурсия по базе (0.76.0): фасад → пять комнат внутри, по тапу и по кругу.
@@ -13,9 +29,12 @@ import { BuildingArt } from './BuildingArt';
  * попадает в следующую комнату, а после последней возвращается к фасаду —
  * кольцо не заканчивается, поэтому можно смотреть сколько хочешь.
  *
- * Кнопки-точки под картинкой позволяют прыгнуть в любую комнату сразу: на
- * телефоне удобнее попасть в «реакторный зал», чем пролистать три кадра.
- * Подписи живут в `aria-live`: при тапе озвучка сообщает, куда мы попали.
+ * 2026-10-29: из листа убраны точки-прыжки и подсказки под кадром (жалоба:
+ * «лишние кружочки и текст — увеличь фото»). Кадр идёт во всю ширину листа,
+ * комнаты — тапом по нему (стандартная карусель без хрома), сколько комнат
+ * и где мы — счётчик «· 2/5» в подписи комнаты под кадром; на фасаде подписи
+ * нет вовсе. Подписи живут в `aria-live`: при тапе озвучка сообщает, куда мы
+ * попали; вход внутрь — в aria-label сцены.
  */
 export function BaseTour({
   id,
@@ -74,54 +93,21 @@ export function BaseTour({
             onError={() => setBroken((was) => ({ ...was, [step]: true }))}
           />
         )}
-        <span className={`base-tour-badge${step === 0 ? ' front' : ''}`}>
-          {step === 0 ? '🏙️ Снаружи · нажми, чтобы войти' : `${stop?.emoji} ${stop?.title} · ${step}/${stops.length}`}
-        </span>
       </button>
 
-      {frames > 1 && (
-        <div className="base-tour-dots" role="group" aria-label="Комнаты базы">
-          <button
-            type="button"
-            className={`base-tour-dot${step === 0 ? ' on' : ''}`}
-            aria-pressed={step === 0}
-            aria-label="Снаружи"
-            title="Снаружи"
-            onClick={() => setStep(0)}
-          >
-            🏙️
-          </button>
-          {stops.map((entry, index) => (
-            <button
-              key={entry.id}
-              type="button"
-              className={`base-tour-dot${step === index + 1 ? ' on' : ''}`}
-              aria-pressed={step === index + 1}
-              aria-label={entry.title}
-              title={entry.title}
-              onClick={() => setStep(index + 1)}
-            >
-              {entry.emoji}
-            </button>
-          ))}
+      {/* Подпись только внутри комнаты: на фасаде под кадром пусто — никаких
+          «Нажми на базу…» (жалоба 2026-10-29). Счётчик · 2/5 — стандартный
+          индикатор «фото несколько» без лишних элементов на макете. */}
+      {stop && (
+        <div className="base-tour-copy" aria-live="polite">
+          <p className="base-tour-title">
+            {stop.title}
+            <span className="base-tour-idx" aria-hidden="true"> · {step}/{stops.length}</span>
+          </p>
+          <p className="base-tour-fact">{stop.fact}</p>
+          <p className="base-tour-find">🔍 <b>Найди:</b> {stop.find}</p>
         </div>
       )}
-
-      <div className="base-tour-copy" aria-live="polite">
-        {stop ? (
-          <>
-            <p className="base-tour-title">{stop.title}</p>
-            <p className="base-tour-fact">{stop.fact}</p>
-            <p className="base-tour-find">🔍 <b>Найди:</b> {stop.find}</p>
-          </>
-        ) : (
-          <p className="base-tour-fact">
-            {stops.length > 0
-              ? `Нажми на базу — внутри ${stops.length} ${plural(stops.length, 'комната', 'комнаты', 'комнат')} с настоящими научными секретами.`
-              : 'Нажми на базу, чтобы рассмотреть её снаружи.'}
-          </p>
-        )}
-      </div>
     </div>
   );
 }
