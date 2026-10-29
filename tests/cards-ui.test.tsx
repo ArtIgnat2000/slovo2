@@ -46,23 +46,55 @@ export async function runShopCardChecks() {
     `${photographed.length} из ${PRODUCT_PHOTOS.length}`,
   );
 
-  await goBuk();
-  click(shelf('Питомцы')!);
-  await sleep(60);
-
-  const petCards = Array.from(document.querySelectorAll('.shop-item.toy-item'));
-  check('карточка: полка питомцев нарисована карточками', petCards.length > 0, String(petCards.length));
-  // Товары в фотостудии показываются снимком; остальные (перевод идёт
-  // полками) — прежним артом. Проверяем по списку фото, а не «всё или ничего».
-  const cardOf = (id: string) => {
-    const item = TOY_ITEMS.find((entry) => entry.id === id);
-    return petCards.find((card) => (card.textContent ?? '').includes(item?.title ?? '\u0000'));
-  };
-  const photoCards = PRODUCT_PHOTOS.map(cardOf);
+  // Фото проверяем на каждой полке, где они уже есть: перевод идёт полками,
+  // поэтому «снимок вместо рисунка» — свойство товара, а не всей витрины.
+  const shelves: [string, string][] = [
+    ['Питомцы', 'pet'],
+    ['Спорт', 'sport'],
+    ['Вкусняшки', 'food'],
+    ['Самолёты', 'plane'],
+  ];
+  let photoCards: (Element | undefined)[] = [];
+  for (const [title, kind] of shelves) {
+    await goBuk();
+    // Самолёты, корабли и телефоны живут вкладками внутри полки «Техника»,
+    // а питомцы/спорт/вкусняшки — отдельными полками. Открываем и так, и так.
+    if (!shelf(title)) {
+      click(shelf('Техника')!);
+      await sleep(60);
+      const tab = Array.from(document.querySelectorAll('.shop-toy-cats [role="tab"]')).find((el) =>
+        (el.textContent ?? '').includes(title),
+      ) as HTMLButtonElement | undefined;
+      click(tab);
+    } else {
+      click(shelf(title)!);
+    }
+    await sleep(60);
+    const cards = Array.from(document.querySelectorAll('.shop-item.toy-item'));
+    const inShelf = PRODUCT_PHOTOS.filter((id) => TOY_ITEMS.find((item) => item.id === id)?.toy === kind);
+    const withPhoto = cards.filter((card) => !!card.querySelector('img.product-photo'));
+    check(
+      `карточка: на полке «${title}» каждый товар из списка фото показан снимком`,
+      withPhoto.length === inShelf.length && inShelf.length > 0,
+      `карточек ${cards.length}, из них с фото ${withPhoto.length}, по списку ${inShelf.length}`,
+    );
+    check(
+      `карточка: на полке «${title}» в нише снимка нет векторного рисунка поверх`,
+      withPhoto.every((card) => !card.querySelector('.shop-icon > svg')),
+      withPhoto.map((card) => card.querySelector('.shop-icon')?.innerHTML.slice(0, 30)).join(' | ').slice(0, 140),
+    );
+    photoCards = photoCards.concat(withPhoto);
+  }
+  // Перевод на фото идёт полками, и это видно в тесте: список ожидания
+  // сокращается с каждой партией. Если кто-то вернёт рисунок вместо готового
+  // снимка, проверка упадёт и напомнит, что полка уже переехала в студию.
+  const stillDrawn = TOY_ITEMS.filter(
+    (item) => ['pet', 'sport', 'food'].includes(item.toy ?? '') && !hasProductPhoto(item.id),
+  ).map((item) => item.id);
   check(
-    'карточка: у товара с фото — снимок, а не нарисованная иконка',
-    photoCards.every((card) => !!card?.querySelector('.shop-icon > img.product-photo') && !card.querySelector('.shop-icon > svg')),
-    photoCards.map((card) => card?.querySelector('.shop-icon')?.innerHTML.slice(0, 40)).join(' | ').slice(0, 160),
+    'фото товаров: без снимков остались только запланированные товары',
+    stillDrawn.join(',') === '',
+    stillDrawn.join(', ') || 'ни одного',
   );
   check(
     'карточка: у снимка адрес из папки продуктов',
@@ -82,7 +114,7 @@ export async function runShopCardChecks() {
     caseRule.replace(/\s+/g, ' ').trim() || 'правило .shop-case не найдено',
   );
 
-  const firstCard = petCards[0];
+  const firstCard = photoCards[0];
   check(
     'карточка: ценник лежит на картинке, а не отдельной строкой',
     !!firstCard?.querySelector('.shop-case > .shop-price') && !firstCard.querySelector('.shop-body > .shop-price'),

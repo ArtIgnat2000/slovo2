@@ -22,10 +22,12 @@
  * `public/products/<id>.webp` обязан существовать, иначе сборка теста падает
  * («фото товаров: у каждого id из списка есть файл»).
  *
- * 0.76.0 — переведены питомцы. Следующие шаги (тем же конвейером
- * `scripts/make-product-images.mjs`): спорт, вкусняшки, техника, базы.
+ * 0.77.0 — питомцы, спорт и вкусняшки. Следующие шаги тем же конвейером
+ * `scripts/make-product-images.mjs`: техника (авто, самолёты, корабли,
+ * электроника) и базы.
  */
 export const PRODUCT_PHOTOS: readonly string[] = [
+  // Питомцы
   'pet-cat',
   'pet-bunny',
   'pet-panda',
@@ -36,6 +38,26 @@ export const PRODUCT_PHOTOS: readonly string[] = [
   'pet-cat-scottish',
   'pet-poodle',
   'pet-cat-british',
+  'pet-cat-sphynx',
+  'pet-cat-mainecoon',
+  'pet-elephant',
+  // Спорт
+  'sport-ball',
+  'sport-skate',
+  'sport-dumbbell',
+  'sport-racket',
+  // Вкусняшки
+  'food-donut',
+  'food-kulich',
+  'food-icecream',
+  'food-cake',
+  // Самолёты
+  'plane-swift',
+  'plane-electron-base',
+  'plane-arctic-base',
+  'plane-moon-base',
+  'plane-atomic-base',
+  'plane-steam-base',
 ];
 
 const PHOTOS = new Set(PRODUCT_PHOTOS);
