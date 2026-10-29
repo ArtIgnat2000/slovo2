@@ -185,11 +185,40 @@ export async function runFloatingMascotChecks(): Promise<void> {
   check('БУК: навигатор открывает дугу из пяти дверей', doorCount === 5, `дверей: ${doorCount}`);
   check('БУК: под дугой есть подложка для тапа мимо', !!document.querySelector('.app > .mascot .buk-hub-veil'), '');
   check('БУК: кнопка навигатора помечена раскрытой', document.querySelector('.mascot-hub')?.getAttribute('aria-expanded') === 'true', '');
+  // 0.86.2: пока дуга открыта, ряд кнопок скрыт — подписи дверей не закрыты.
+  check('БУК: с открытой дугой у совы класс hub-open', !!document.querySelector('.app > .mascot.hub-open'), '');
+  check(
+    'БУК: после открытия фокус — на первой двери',
+    document.activeElement?.classList.contains('buk-door') ?? false,
+    (document.activeElement as HTMLElement | null)?.className ?? '',
+  );
+  // Позиции дверей считает BukHub до первого кадра: центры обязаны быть
+  // внутри вьюпорта — на телефоне подписи не уезжают за край экрана.
+  const doorCenters = Array.from(document.querySelectorAll('.buk-door')).map((d) => {
+    const st = (d as HTMLElement).style;
+    return { x: parseFloat(st.left) + 32, y: parseFloat(st.top) + 23 };
+  });
+  check(
+    'БУК: у всех дверей проставлены координаты',
+    doorCenters.length === 5 && doorCenters.every((p) => Number.isFinite(p.x) && Number.isFinite(p.y)),
+    JSON.stringify(doorCenters.slice(0, 2)),
+  );
+  check(
+    'БУК: центры дверей внутри экрана (кламп к краям)',
+    doorCenters.every((p) => p.x >= 0 && p.x <= window.innerWidth && p.y >= 0 && p.y <= window.innerHeight),
+    JSON.stringify(doorCenters),
+  );
 
   // Escape закрывает дугу — как любой лист в приложении.
   window.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape' }));
   await sleep(40);
   check('БУК: Escape закрывает навигатор', !document.querySelector('.buk-hub'), 'дуга осталась');
+  check('БУК: после закрытия класс hub-open снят', !document.querySelector('.mascot.hub-open'), '');
+  check(
+    'БУК: после закрытия фокус вернулся на кнопку навигатора',
+    document.activeElement === hubBtn,
+    (document.activeElement as HTMLElement | null)?.className ?? '',
+  );
 
   // Тап мимо дверей (подложка) тоже закрывает.
   if (hubBtn) click(hubBtn);

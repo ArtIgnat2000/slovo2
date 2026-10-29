@@ -121,9 +121,9 @@ export function FloatingMascot({ raised = false, hub }: { raised?: boolean; hub?
   const [hiding, setHiding] = useState(false);
   /** БУК вернулся в угол: после перетаскивания остаётся стрелка «в угол» */
   const [homeless, setHomeless] = useState(() => !!readPos());
-  /** Навигатор-дуга (0.85.0): открыт/закрыт и откуда смотрит створка дуги */
+  /** Навигатор-дуга (0.85.0): открыта/закрыта. Раскладку дверей считает
+   *  сам BukHub от центра совы — здесь только состояние. */
   const [hubOpen, setHubOpen] = useState(false);
-  const [hubBase, setHubBase] = useState(0);
   const hubBtn = useRef<HTMLButtonElement>(null);
   const pokeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pokeTaps = useRef<number[]>([]);
@@ -146,26 +146,18 @@ export function FloatingMascot({ raised = false, hub }: { raised?: boolean; hub?
     save(FOLD_KEY, next ? '1' : '0');
   }, []);
 
-  /**
-   * Открыть навигатор: дуга смотрит «в экран» — от ближайшего края к центру,
-   * иначе у края двери уехали бы за пределы экрана.
-   */
-  const openHub = useCallback(() => {
-    const el = ref.current;
-    if (el) {
-      const r = el.getBoundingClientRect();
-      const bx = r.left + r.width / 2 < window.innerWidth / 2 ? 1 : -1;
-      const by = r.top + r.height / 2 < window.innerHeight / 2 ? 1 : -1;
-      // 0° — вверх, дальше по часовой; направление (bx, by) → atan2(bx, -by).
-      setHubBase((Math.atan2(bx, -by) * 180) / Math.PI);
-    }
-    setHubOpen(true);
-  }, []);
+  /** Открыть навигатор: углы дуги и кламп к краям считает BukHub (layout effect). */
+  const openHub = useCallback(() => setHubOpen(true), []);
 
-  /** Закрыть дугу и вернуть фокус на кнопку: Esc, тап мимо, выбор двери. */
+  /**
+   * Закрыть дугу и вернуть фокус на кнопку: Esc, тап мимо, выбор двери.
+   * Фокус — через таймер: сразу после setHubOpen(false) ряд кнопок ещё скрыт
+   * (класс .hub-open снимается только перерисовкой), а на скрытый элемент
+   * фокус не ставится.
+   */
   const closeHub = useCallback(() => {
     setHubOpen(false);
-    hubBtn.current?.focus();
+    window.setTimeout(() => hubBtn.current?.focus(), 0);
   }, []);
 
   /** Перезапуск CSS-анимации: класс снимаем и возвращаем в следующем кадре. */
@@ -425,11 +417,13 @@ export function FloatingMascot({ raised = false, hub }: { raised?: boolean; hub?
       // Живой взгляд — только развёрнутому плавающему (моргание и зрачки).
       alive={!folded}
       overlay={
-        hubOpen && !folded && hub && hub.length > 0 ? (
-          <BukHub doors={hub} base={hubBase} onClose={closeHub} />
-        ) : undefined
+        hubOpen && !folded && hub && hub.length > 0 ? <BukHub doors={hub} onClose={closeHub} /> : undefined
       }
       className={`buk-float ${folded ? 'folded' : ''} ${fx} ${
+        // Пока дуга открыта, ряд кнопок и реплика прячутся — иначе они лежат
+        // поверх подписей дверей (замечание 2026-10-29: «буквы скрыты»).
+        hubOpen ? 'hub-open' : ''
+      } ${
         // Пока внизу висит баннер («Доступно обновление» / «Добавь на экран»),
         // БУК поднимается выше него: раньше он был «сквозным» и не мешал,
         // теперь ловит касания и без этого перекрыл бы кнопки баннера.
