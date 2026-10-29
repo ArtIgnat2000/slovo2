@@ -31,6 +31,7 @@ import { RarityChip, RarityLabel } from '../RarityChip';
 import { Mascot } from '../Mascot';
 import { ToyArt } from '../ToyArt';
 import { CarTour, CAR_TOUR_IDS, warmCarTour } from '../CarTour';
+import { TechTour, isTechTourItem, warmTechTour } from '../TechTour';
 import { hasProductPhoto, warmProductPhoto } from '../ProductPhoto';
 import { carAlt, carKind, carNote, hasCarArt } from '../CarArt';
 import { hasShipArt, shipAlt, shipKind, shipNote } from '../ShipArt';
@@ -101,7 +102,8 @@ const MUSIC_SHELVES: { shelf: MusicShelf; title: string }[] = [
 type View = 'vitrina' | 'wardrobe' | 'world';
 
 /** Полки витрины — по типу товара, не по слоту совы. */
-type Cat = 'naash' | 'outfits' | 'toys' | 'buildings' | 'pets' | 'sport' | 'food' | 'sets' | 'music' | 'sounds' | 'backgrounds';
+/** Полка магазина. Экспортируется (0.85.0): навигатор БУКа входит витрину сразу на «Музыке». */
+export type Cat = 'naash' | 'outfits' | 'toys' | 'buildings' | 'pets' | 'sport' | 'food' | 'sets' | 'music' | 'sounds' | 'backgrounds';
 
 // 0.54.0: у полок магазина — те же иконки набора, что в остальном интерфейсе.
 // У «Техники», «Музыки» и «Фонов» своей иконки в наборе 20 пока нет — остаются
@@ -289,8 +291,11 @@ function Sheet(props: { onClose: () => void; children: React.ReactNode }) {
  */
 export function ShopScreen({
   initialView = 'vitrina',
+  initialCat = 'outfits',
 }: {
   initialView?: 'vitrina' | 'wardrobe' | 'world';
+  /** С какой полки открывать витрину — вход двери «🎵 Музыка» (0.85.0). */
+  initialCat?: Cat;
 } = {}) {
   const profile = useActiveProfile();
   const look = useLook();
@@ -312,7 +317,7 @@ export function ShopScreen({
   const themeStyle = useApp((s) => s.settings.themeStyle);
   const setSettings = useApp((s) => s.setSettings);
   const [view, setView] = useState<View>(initialView);
-  const [cat, setCat] = useState<Cat>('outfits');
+  const [cat, setCat] = useState<Cat>(initialCat);
   const [toyShelf, setToyShelf] = useState<ToyKind>('car');
   // Подробная карточка и её палитра (палитра — только в sheet)
   const [sheet, setSheet] = useState<Detail | null>(null);
@@ -440,6 +445,7 @@ export function ShopScreen({
     if (detail.kind === 'item') {
       warmProductPhoto(detail.item.id);
       warmCarTour(detail.item.id);
+      warmTechTour(detail.item.id);
     } else if (detail.kind === 'building') {
       warmBaseTour(detail.building.id);
     }
@@ -1047,10 +1053,10 @@ export function ShopScreen({
         <>
           <div className={`shop-bigart${toy ? ' shop-bigart-toy' : ''}`}>
             {toy ? (
-              // Техника в подробной карточке — сам товар крупным планом
-              // (машина/судно — карандашный лист, телефон — поворотный WebP). БУКа здесь
-              // нет: ребёнок пришёл посмотреть вещь, а не примерку на сове.
-              CAR_TOUR_IDS.has(item.id) ? <CarTour key={item.id} id={item.id} tuning={profile.shop?.tuning} alt={artAlt} /> : <ToyArt
+              // Техника в подробной карточке — сам товар крупным планом.
+              // Машины листаются в CarTour, телефоны/корабли/самолёты — в TechTour;
+              // БУКа здесь нет: ребёнок пришёл рассмотреть вещь, а не сову.
+              CAR_TOUR_IDS.has(item.id) ? <CarTour key={item.id} id={item.id} tuning={profile.shop?.tuning} alt={artAlt} /> : isTechTourItem(item.id) ? <TechTour key={item.id} id={item.id} alt={artAlt} /> : <ToyArt
                 key={item.id}
                 id={item.id}
                 interactive

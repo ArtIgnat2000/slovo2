@@ -35,7 +35,7 @@ export const THEME_MIRROR_KEY = 'slovo2-theme';
 export const THEME_STYLE_MIRROR_KEY = 'slovo2-theme-style';
 
 /** Цвет системной панели приложения в классической тёмной теме. */
-export const DARK_THEME_COLOR = '#171426';
+export const DARK_THEME_COLOR = '#16120d';
 /** Цвет системной панели приложения в классической светлой теме. */
 export const LIGHT_THEME_COLOR = '#7C5CFF';
 /** Цвет системной панели в неоновой тёмной теме. */

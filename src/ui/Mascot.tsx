@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import type { ShopSlot } from '../types';
 import { COSTUME_BY_ID } from '../engine/puzzles';
 import { accessoryColors, costumeAccent } from '../engine/tints';
 import { useShopTuning, useWornCostume } from '../state/store';
 import { CostumeCape, CostumeHead, CostumeProp, MascotAccessory, SLOT_ORDER } from './MascotLook';
 import { MascotWings } from './MascotDecor';
+import { gazeToward } from './mascot-motion';
 
 export type Mood = 'idle' | 'happy' | 'excited' | 'sad' | 'think' | 'dance';
 
@@ -41,11 +42,22 @@ interface Props {
   className?: string;
   /** Положение плавающего БУКа: когда его сдвинули, CSS-угол больше не работает */
   style?: React.CSSProperties;
+  /**
+   * «Живой» БУК (0.85.0): глаза следят за указателем, веки моргают.
+   * Ставит только плавающий экземпляр (и не ставит свёрнутому) — в магазине,
+   * церемонии и на карточках сова остаётся спокойной картинкой.
+   */
+  alive?: boolean;
+  /**
+   * Слой поверх совы — дуга дверей навигатора БУКа. Живёт внутри `.buk-stage`:
+   * контейнер центрируется по самой SVG-сове, дуге не нужны координаты страницы.
+   */
+  overlay?: React.ReactNode;
 }
 
 /** БУК — сова-помощник. Крупные глаза и округлые формы → привязанность ребёнка. */
 export const Mascot = React.forwardRef<HTMLDivElement, Props>(function Mascot(
-  { mood, message, look, size, stage = 1, costumeId, action, interactiveLabel, className, style },
+  { mood, message, look, size, stage = 1, costumeId, action, interactiveLabel, className, style, alive, overlay },
   ref,
 ) {
   // Рост читается тремя способами сразу: размер, хвост из перьев и «перья на груди»
@@ -64,59 +76,73 @@ export const Mascot = React.forwardRef<HTMLDivElement, Props>(function Mascot(
   const cBelly = cst?.belly ?? '#fcd768';
   const cWing = cst?.wing ?? '#e8901a';
   const cStripe = cst ? cst.wing : '#f0a92c';
-  const eyes: Record<Mood, React.ReactNode> = {
+  // Белки глаз — отдельно от зрачков (0.85.0): зрачки вынесены в свой <g>,
+  // чтобы «живой» БУК двигал их одной трансформацией прямо в DOM, без
+  // ре-рендера на каждое движение пальца (см. ui/mascot-motion.ts).
+  const whites: Record<Mood, React.ReactNode> = {
     idle: (
       <>
         <circle cx="36" cy="36" r="8" fill="#fff" />
         <circle cx="64" cy="36" r="8" fill="#fff" />
-        <circle cx="37" cy="37" r="4" fill="#241f36" />
-        <circle cx="65" cy="37" r="4" fill="#241f36" />
       </>
     ),
     happy: (
       <>
         <ellipse cx="36" cy="38" rx="8" ry="6" fill="#fff" />
         <ellipse cx="64" cy="38" rx="8" ry="6" fill="#fff" />
-        <circle cx="37" cy="39" r="4" fill="#241f36" />
-        <circle cx="65" cy="39" r="4" fill="#241f36" />
       </>
     ),
     excited: (
       <>
         <circle cx="36" cy="34" r="10" fill="#fff" />
         <circle cx="64" cy="34" r="10" fill="#fff" />
-        <circle cx="36" cy="34" r="5.5" fill="#241f36" />
-        <circle cx="64" cy="34" r="5.5" fill="#241f36" />
-        <circle cx="38" cy="31" r="2" fill="#fff" />
-        <circle cx="66" cy="31" r="2" fill="#fff" />
       </>
     ),
     sad: (
       <>
         <ellipse cx="36" cy="38" rx="8" ry="5" fill="#fff" />
         <ellipse cx="64" cy="38" rx="8" ry="5" fill="#fff" />
-        <circle cx="35" cy="39" r="3.5" fill="#241f36" />
-        <circle cx="63" cy="39" r="3.5" fill="#241f36" />
       </>
     ),
     think: (
       <>
         <ellipse cx="36" cy="34" rx="8" ry="7" fill="#fff" />
         <ellipse cx="64" cy="34" rx="8" ry="7" fill="#fff" />
-        <circle cx="39" cy="34" r="4" fill="#241f36" />
-        <circle cx="67" cy="34" r="4" fill="#241f36" />
       </>
     ),
     dance: (
       <>
         <circle cx="36" cy="33" r="9.5" fill="#fff" />
         <circle cx="64" cy="33" r="9.5" fill="#fff" />
-        <circle cx="35" cy="33" r="5" fill="#241f36" />
-        <circle cx="63" cy="33" r="5" fill="#241f36" />
-        <circle cx="33" cy="30" r="2" fill="#fff" />
-        <circle cx="61" cy="30" r="2" fill="#fff" />
       </>
     ),
+  };
+  /** Зрачки и блики каждого настроения: `[x, y, r]` и смещение блика. */
+  const pupils: Record<Mood, { x: number; y: number; r: number; hi?: [number, number, number] }[]> = {
+    idle: [
+      { x: 37, y: 37, r: 4 },
+      { x: 65, y: 37, r: 4 },
+    ],
+    happy: [
+      { x: 37, y: 39, r: 4 },
+      { x: 65, y: 39, r: 4 },
+    ],
+    excited: [
+      { x: 36, y: 34, r: 5.5, hi: [2, -3, 2] },
+      { x: 64, y: 34, r: 5.5, hi: [2, -3, 2] },
+    ],
+    sad: [
+      { x: 35, y: 39, r: 3.5 },
+      { x: 63, y: 39, r: 3.5 },
+    ],
+    think: [
+      { x: 39, y: 34, r: 4 },
+      { x: 67, y: 34, r: 4 },
+    ],
+    dance: [
+      { x: 35, y: 33, r: 5, hi: [-2, -3, 2] },
+      { x: 63, y: 33, r: 5, hi: [-2, -3, 2] },
+    ],
   };
 
   const mouths: Record<Mood, React.ReactNode> = {
@@ -127,6 +153,49 @@ export const Mascot = React.forwardRef<HTMLDivElement, Props>(function Mascot(
     think: <path d="M44 53 Q50 53 58 53" stroke="#241f36" strokeWidth="2.4" fill="none" strokeLinecap="round" />,
     dance: <ellipse cx="50" cy="53" rx="8" ry="5" fill="#f43f5e" />,
   };
+
+  const svgRef = useRef<SVGSVGElement>(null);
+  const pupilsRef = useRef<SVGGElement>(null);
+
+  /**
+   * Живой взгляд (0.85.0): слушатель один на всё окно, в кадре — только запись
+   * transform в DOM (ре-рендером на каждое движение пальца отвечать нельзя,
+   * см. бюджеты docs/perf-audit.md). При prefers-reduced-motion взгляд выключен —
+   * остаётся статичная морда, как у картинки в магазине.
+   */
+  useEffect(() => {
+    if (!alive) return;
+    const reduced =
+      typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduced) return;
+    let frame = 0;
+    let px = -1;
+    let py = -1;
+    const apply = () => {
+      frame = 0;
+      if (px < 0) return;
+      const svg = svgRef.current;
+      const group = pupilsRef.current;
+      if (!svg || !group) return;
+      const box = svg.getBoundingClientRect();
+      const g = gazeToward(px, py, box.left + box.width / 2, box.top + box.height / 2);
+      group.style.transform = `translate(${g.dx.toFixed(2)}px, ${g.dy.toFixed(2)}px)`;
+      svg.style.transform = g.lean ? `rotate(${g.lean.toFixed(2)}deg)` : '';
+    };
+    const onMove = (e: PointerEvent) => {
+      px = e.clientX;
+      py = e.clientY;
+      if (!frame) frame = window.requestAnimationFrame(apply);
+    };
+    window.addEventListener('pointermove', onMove, { passive: true });
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      if (frame && typeof window.cancelAnimationFrame === 'function') window.cancelAnimationFrame(frame);
+      // Глаза возвращаются в центр при сворачивании и размонтировании.
+      if (pupilsRef.current) pupilsRef.current.style.transform = '';
+      if (svgRef.current) svgRef.current.style.transform = '';
+    };
+  }, [alive]);
 
   return (
     <div
@@ -139,7 +208,11 @@ export const Mascot = React.forwardRef<HTMLDivElement, Props>(function Mascot(
     >
       {action}
       {message && <div className="bubble pop">{message}</div>}
+      {/* `.buk-stage` — обёртка ровно по размеру совы: якорь для дуги дверей
+          навигатора и место, где живой взгляд пишет transform картинки. */}
+      <div className={`buk-stage${alive ? ' alive' : ''}`}>
       <svg
+        ref={svgRef}
         width={(size ?? 92) * (100 / 120) * 1.09 * scale}
         height={(size ?? 110) * scale}
         viewBox="0 0 100 120"
@@ -186,7 +259,23 @@ export const Mascot = React.forwardRef<HTMLDivElement, Props>(function Mascot(
         )}
         <circle cx="36" cy="37" r="13" fill={cBelly} />
         <circle cx="64" cy="37" r="13" fill={cBelly} />
-        {eyes[mood]}
+        {whites[mood]}
+        <g ref={pupilsRef} className="buk-pupils">
+          {pupils[mood].map((p, i) => (
+            <g key={i}>
+              <circle cx={p.x} cy={p.y} r={p.r} fill="#241f36" />
+              {p.hi && <circle cx={p.x + p.hi[0]} cy={p.y + p.hi[1]} r={p.hi[2]} fill="#fff" />}
+            </g>
+          ))}
+        </g>
+        {/* Веки (0.85.0) — те же диски цвета живота, что под белками: на
+            моргании закрывают глаз целиком. Рисуются только «живой» сове. */}
+        {alive && (
+          <>
+            <circle cx="36" cy="37" r="13" fill={cBelly} className="buk-lid on" />
+            <circle cx="64" cy="37" r="13" fill={cBelly} className="buk-lid on" />
+          </>
+        )}
         <path d="M44 45 L50 53 L56 45Z" fill={cWing} />
         {mouths[mood]}
         {/* «перья-полоски» на груди: одна за каждую освоенную ступень */}
@@ -217,6 +306,8 @@ export const Mascot = React.forwardRef<HTMLDivElement, Props>(function Mascot(
             showsOnBuk в engine/shop.ts). `equipped.toy` означает «любимая
             вещь на главном подиуме ангара». */}
       </svg>
+      {overlay}
+      </div>
     </div>
   );
 });

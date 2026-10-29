@@ -16,8 +16,6 @@ interface Props {
   onOpenDiagnostics: (section: ParentTabId) => void;
   /** Вернуться в тот же раздел после диагностики, открытой из ярлыка. */
   initialTab?: ParentTabId;
-  /** Открыть вкладку «Слова» (из обзора — «посмотреть все слова») */
-  onOpenWords: () => void;
   /** Списки к контрольной (0.58.0): тренировка, контроль, ошибки. */
   onStartList: (listId: string, mode?: 'train' | 'check' | 'errors') => void;
 }
@@ -41,7 +39,7 @@ interface Props {
  * стал честнее: ошибка показывается на месте, ответ не стирается, Enter
  * отправляет форму.
  */
-export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs, onOpenDiagnostics, initialTab = 'overview', onOpenWords, onStartList }: Props) {
+export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs, onOpenDiagnostics, initialTab = 'overview', onStartList }: Props) {
   const profile = useActiveProfile();
   const [tab, setTab] = useState<ParentTabId>(initialTab === 'app' || initialTab === 'progress' ? 'more' : initialTab);
   const [moreSection, setMoreSection] = useState<'progress' | 'app'>(initialTab === 'app' ? 'app' : 'progress');
@@ -81,7 +79,7 @@ export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs, 
 
       {tab === 'overview' && (
         <ParentPanel id="overview">
-          <OverviewTab profile={profile} onOpenWords={onOpenWords} />
+          <OverviewTab profile={profile} />
         </ParentPanel>
       )}
       {tab === 'lists' && (

@@ -7,9 +7,9 @@ export const THEME_STYLES = [
     id: 'classic',
     title: 'Классическая',
     emoji: '🌤️',
-    description: 'Тёплый фон и мягкие фиолетовые акценты — исходный вид приложения.',
-    preview: { light: '#fff8ec', dark: '#171426', accent: '#7c5cff', secondary: '#ff9f0a' },
-    panelColor: { light: '#7C5CFF', dark: '#171426' },
+    description: 'Светлая — тёплый фон и фиолетовые акценты. Тёмная — обсидиан и шампань в стиле Maybach.',
+    preview: { light: '#fff8ec', dark: '#16120d', accent: '#7c5cff', secondary: '#ff9f0a' },
+    panelColor: { light: '#7C5CFF', dark: '#16120d' },
   },
   {
     id: 'neon',
