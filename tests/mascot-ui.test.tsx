@@ -172,7 +172,7 @@ export async function runFloatingMascotChecks(): Promise<void> {
   );
   check('БУК: у живого БУКа включены веки-моргание', !!document.querySelector('.app > .mascot .buk-lid.on'), '');
 
-  // ── Навигатор (0.85.0): кнопка 🧭 открывает дугу из пяти дверей ────────────
+  // ── Навигатор (0.85.0): кнопка 🧭 открывает дугу из шести дверей ────────────
   const hubBtn = document.querySelector('.app > .mascot .mascot-hub') as HTMLButtonElement | null;
   check(
     'БУК: есть кнопка навигатора «Куда полетим»',
@@ -182,7 +182,8 @@ export async function runFloatingMascotChecks(): Promise<void> {
   if (hubBtn) click(hubBtn);
   await sleep(40);
   const doorCount = document.querySelectorAll('.app > .mascot .buk-door').length;
-  check('БУК: навигатор открывает дугу из пяти дверей', doorCount === 5, `дверей: ${doorCount}`);
+  // 0.87.0: шестая дверь — чат «Спроси БУКа».
+  check('БУК: навигатор открывает дугу из шести дверей', doorCount === 6, `дверей: ${doorCount}`);
   check('БУК: под дугой есть подложка для тапа мимо', !!document.querySelector('.app > .mascot .buk-hub-veil'), '');
   check('БУК: кнопка навигатора помечена раскрытой', document.querySelector('.mascot-hub')?.getAttribute('aria-expanded') === 'true', '');
   // 0.86.2: пока дуга открыта, ряд кнопок скрыт — подписи дверей не закрыты.
@@ -200,7 +201,7 @@ export async function runFloatingMascotChecks(): Promise<void> {
   });
   check(
     'БУК: у всех дверей проставлены координаты',
-    doorCenters.length === 5 && doorCenters.every((p) => Number.isFinite(p.x) && Number.isFinite(p.y)),
+    doorCenters.length === 6 && doorCenters.every((p) => Number.isFinite(p.x) && Number.isFinite(p.y)),
     JSON.stringify(doorCenters.slice(0, 2)),
   );
   check(
