@@ -10,8 +10,9 @@ import { plural } from '../../engine/quests';
 import { useActiveProfile, useApp, useLook } from '../../state/store';
 import { Mascot } from '../Mascot';
 import { ToyArt } from '../ToyArt';
+import { warmProductPhoto } from '../ProductPhoto';
 import { BuildingArt } from '../BuildingArt';
-import { BaseTour } from '../BaseTour';
+import { BaseTour, warmBaseTour } from '../BaseTour';
 import { playMusic } from '../../platform/music';
 import { previewSoundCue, sfx } from '../../platform/sound';
 import type { ShopTuning } from '../../types';
@@ -258,7 +259,7 @@ export function WorldScreen({ onBack }: { onBack: () => void }) {
                 type="button"
                 className="collection-item-card"
                 key={thing.id}
-                onClick={() => setItemId(thing.id)}
+                onClick={() => { warmProductPhoto(thing.id); if (thing.kind === 'building') warmBaseTour(thing.id); setItemId(thing.id); }}
                 aria-label={`Увеличить: ${thing.title}`}
               >
                 <span className="collection-item-art"><CollectionArt entry={thing} size={72} tuning={profile.shop?.tuning} /></span>

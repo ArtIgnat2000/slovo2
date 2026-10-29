@@ -27,6 +27,26 @@ function viewTitle(id: string, index: number): string {
   return TOUR_LABELS[id]?.[index] ?? views[index].title;
 }
 
+/**
+ * Тёплый старт ракурсов: качаем оба снимка в момент тапа по карточке — к развороту
+ * подробной карточки файлы уже в кэше и по тапу ничего не «долго грузится»
+ * (жалоба 2026-10-29). Начатая загрузка не зависит от наличия ссылки на неё в DOM.
+ */
+export function warmCarTour(id: string): void {
+  if (!CAR_TOUR_IDS.has(id)) return;
+  for (const shot of ['interior', 'dashboard']) {
+    const img = document.createElement('img');
+    img.src = `${import.meta.env.BASE_URL}cars/${id}-${shot}.webp`;
+  }
+}
+
+/**
+ * Лист салона для подробной карточки машины (0.75.0). Кнопок-ракурсов, подписей
+ * и точек-пагинации на кадре нет (просьбы 2026-10-29: «кнопки вообще не нужны»,
+ * «текст на картинке убери», «кружочки … лишние — стандартные подходы, не портите
+ * дизайн»): кадр во всю ширину листа, ракурсы листаются тапом по снимку — про них
+ * говорит aria-label сцены и sr-only-подпись с дисклеймером визуализации.
+ */
 export function CarTour({ id, tuning, alt }: { id: string; tuning?: ShopTuning; alt: string }) {
   const [view, setView] = useState(0);
   const current = views[view];
@@ -35,15 +55,10 @@ export function CarTour({ id, tuning, alt }: { id: string; tuning?: ShopTuning; 
     <div className="lord-tour">
       <button type="button" className="lord-tour-stage" onClick={() => setView((view + 1) % total)} aria-label={current.hint}>
         {view === 0 ? <ToyArt id={id} tuning={tuning} alt={alt} /> : (
-          <img key={`${id}-${current.image}`} src={`${import.meta.env.BASE_URL}cars/${id}-${current.image}.webp`} alt={`${alt}: ${viewTitle(id, view).toLowerCase()}`} width="1264" height="843" decoding="async" />
+          <img key={`${id}-${current.image}`} src={`${import.meta.env.BASE_URL}cars/${id}-${current.image}.webp`} alt={`${alt}: ${viewTitle(id, view).toLowerCase()}`} width="1000" height="667" decoding="async" />
         )}
       </button>
-      <div className="lord-tour-nav" role="group" aria-label="Ракурсы автомобиля">
-        {views.map((entry, index) => (
-          <button key={entry.title} type="button" className={`chip${index === view ? ' on' : ''}`} aria-pressed={index === view} onClick={() => setView(index)}>{viewTitle(id, index)}</button>
-        ))}
-      </div>
-      <p className="tiny muted lord-tour-caption">{current.hint}. Интерьер — художественная визуализация, не документальная фотография модели.</p>
+      <p className="sr-only">{current.hint}. Интерьер — художественная визуализация, не документальная фотография модели.</p>
     </div>
   );
 }
