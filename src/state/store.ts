@@ -2,7 +2,7 @@ import { nextAdaptiveState, type Outcome } from '../engine/adaptive';
 import { isThemeStyle, type ThemeStyle } from '../engine/theme-styles';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { ClassId, DailyState, DayStat, LessonSize, LessonState, ListRun, ListRunMode, PracticeList, Profile, ShopState, ShopSlot, ShopTuning, StudyAnswerMeta, StudySession, StudySessionStatus, WeeklyState, Word, WordState } from '../types';
+import type { BukFacts, ClassId, DailyState, DayStat, LessonSize, LessonState, ListRun, ListRunMode, PracticeList, Profile, ShopState, ShopSlot, ShopTuning, StudyAnswerMeta, StudySession, StudySessionStatus, WeeklyState, Word, WordState } from '../types';
 import { applyAnswer, initState } from '../engine/srs';
 import { idbStorage } from '../platform/storage';
 import { GEMS_PER_STREAK, levelOf } from '../engine/rewards';
@@ -53,6 +53,7 @@ import {
   withStress,
 } from '../engine/word-lists';
 import { normalizeStudySessions, STUDY_SESSION_RETENTION_DAYS } from '../engine/study';
+import { normalizeBukFacts } from '../engine/buk-chat';
 import {
   addTrash,
   emptyVault,
@@ -362,6 +363,10 @@ function normalizeProfile(raw: Partial<Profile> | null | undefined): Profile | n
       // чужие id слов чиним при чтении — уроки списков не должны падать.
       lists: normalizeLists(raw.lists),
       customWords: normalizeCustomWords(raw.customWords),
+      // Память БУКа (0.87.0): мусор из файла или бэкапа стрижется до
+      // whitelist-фактов чата — строка идёт после ...raw, чтобы санитайзер
+      // перебирал значение из файла, а не наоборот.
+      bukFacts: normalizeBukFacts(raw.bukFacts),
       lessonSize:
         raw.lessonSize === 'short' || raw.lessonSize === 'standard' || raw.lessonSize === 'full'
           ? raw.lessonSize
@@ -548,6 +553,12 @@ interface AppState {
   /** То же для конкретного профиля — экран «Профили» редактирует и других детей. */
   setProfileClass: (profileId: string, classId: ClassId) => void;
   adaptLesson: (profileId: string, ceiling: number, outcome: Outcome) => void;
+  /**
+   * Рассказать БУКу whitelist-факт из чата (0.87.0): патч сливается с уже
+   * известным, `toldAt` обновляется — напоминание «через неделю» отсчитывается
+   * от последней рассказки. Наград за чат нет — это правка «в стол».
+   */
+  setBukFacts: (patch: Partial<BukFacts>) => void;
 
   // ── Списки слов к контрольной (0.58.0) ───────────────────────────────────
   /**
@@ -1894,6 +1905,14 @@ export const useApp = create<AppState>()(
             // Только эти два поля: смена программы не должна трогать ни опыт,
             // ни товары, ни награды, ни прогресс по словам и урокам.
             return { ...p, activeClass: next, adaptiveGood: 0 };
+          }),
+        ),
+
+      setBukFacts: (patch) =>
+        set((s) =>
+          patchActive(s, (p) => {
+            const facts = normalizeBukFacts({ ...p.bukFacts, ...patch, toldAt: Date.now() });
+            return { ...p, bukFacts: facts };
           }),
         ),
 

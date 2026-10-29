@@ -6,6 +6,7 @@ import { ThemeBanner } from './ui/ThemeBanner';
 import { onExternalChange } from './platform/vault';
 import { FloatingMascot } from './ui/FloatingMascot';
 import type { HubDoor } from './ui/BukHub';
+import { BukChat } from './ui/BukChat';
 import { nextStartAction } from './engine/next-start';
 import { useHomeIntent } from './state/home-intent';
 import { HomeScreen } from './ui/screens/HomeScreen';
@@ -86,6 +87,8 @@ export default function App() {
   // а не с текущей настройкой: «Родители» могут поменять цель прямо во время урока.
   const [lessonGoal, setLessonGoal] = useState(settings.dailyGoal);
   const [vlabsOpen, setVlabsOpen] = useState(false);
+  /** Чат «Спроси БУКа» (0.87.0): полноэкранный оверлей, открывается дверью из хаба. */
+  const [chatOpen, setChatOpen] = useState(false);
   /**
    * Подсказка «добавь на экран». Читаем флаг один раз при старте и держим в состоянии:
    * раньше `markInstallHintShown()` писал в localStorage, но React об этом не знал —
@@ -317,9 +320,10 @@ export default function App() {
   };
 
   /**
-   * Навигатор БУКа (0.85.0): пять дверей — те же разделы, что в меню ☰
-   * главной, только в один тап от совы. Порядок как в меню: сначала учёба,
-   * потом мир, задания и наряды, музыка последней.
+   * Навигатор БУКа (0.85.0; 0.87.0 — шестая дверь «Спроси БУКа»): двери
+   * в один тап от совы, те же разделы, что в меню ☰ главной, плюс чат.
+   * Порядок как в меню: сначала учёба, потом мир, задания и наряды,
+   * музыка, чат последним.
    */
   const hubDoors: HubDoor[] = [
     {
@@ -349,6 +353,18 @@ export default function App() {
     },
     { id: 'wardrobe', emoji: '🎩', label: 'Наряды', run: () => openShop('wardrobe') },
     { id: 'music', emoji: '🎵', label: 'Музыка', run: () => openShop('vitrina', 'music') },
+    {
+      id: 'chat',
+      emoji: '💬',
+      label: 'Спроси БУКа',
+      run: () => {
+        // Чат — оверлей над главной: сначала домой (как у «Заданий»), чтобы
+        // после урока из чата вернуться на чистую страницу.
+        setProfilesOpen(false);
+        setTab('home');
+        setChatOpen(true);
+      },
+    },
   ];
 
   if (lessonId) {
@@ -435,11 +451,24 @@ export default function App() {
       )}
 
       {!profilesOpen &&
+        !chatOpen &&
         tab !== 'shop' &&
         settings.mascot !== 'off' &&
         (settings.mascot !== 'home' || tab === 'home') && (
           <FloatingMascot raised={updateReady || installHint} hub={hubDoors} />
         )}
+      {/* Чат «Спроси БУКа» (0.87.0): действие «Потренироваться»/«Полетели»
+          закрывает оверлей и ведёт в урок — тот же старт, что из навигатора. */}
+      {chatOpen && (
+        <BukChat
+          onClose={() => setChatOpen(false)}
+          onAction={(a) => {
+            setChatOpen(false);
+            if (a.mode === 'review') startLesson('review');
+            else if (a.lessonId) startLesson(a.lessonId);
+          }}
+        />
+      )}
       <Toast />
 
       {updateReady && (

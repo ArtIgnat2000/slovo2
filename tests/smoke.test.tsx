@@ -24,6 +24,7 @@ import { runQuickSoundChecks } from './quick-sound-ui.test';
 import { runShareAppChecks } from './share-ui.test';
 import { runThemeChecks } from './theme-ui.test';
 import { runFloatingMascotChecks } from './mascot-ui.test';
+import { runBukChatChecks } from './buk-chat-ui.test';
 import { runBukLessonChecks } from './buk-lesson-ui.test';
 import { runLessonArtChecks } from './lesson-art-ui.test';
 import { runVerdictChecks } from './verdict-ui.test';
@@ -1748,6 +1749,9 @@ async function main() {
 
   // Плавающий БУК: перетаскивание, сворачивание и тап (замечание 2026-10-04).
   await runFloatingMascotChecks();
+
+  // Чат «Спроси БУКа» (0.87.0): дверь, чипы, память, потолок и уход в урок.
+  await runBukChatChecks();
 
   // Помощник БУК в уроке: вопрос вместо ответа и тихое предложение помощи.
   await runBukLessonChecks();
