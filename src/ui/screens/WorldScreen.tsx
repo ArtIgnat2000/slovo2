@@ -240,7 +240,7 @@ export function WorldScreen({ onBack }: { onBack: () => void }) {
               ))}
             </div>
           )}
-          <p className="collection-map-hint">Нажми на область, чтобы рассмотреть её крупнее.</p>
+
         </div>
       )}
 
@@ -250,7 +250,7 @@ export function WorldScreen({ onBack }: { onBack: () => void }) {
             <span aria-hidden="true">{area.emoji}</span>
             <div>
               <h2>{area.title}</h2>
-              <p>{area.items.length} {plural(area.items.length, 'предмет', 'предмета', 'предметов')} · нажми на вещь, чтобы увеличить</p>
+              <p>{area.items.length} {plural(area.items.length, 'предмет', 'предмета', 'предметов')}</p>
             </div>
           </div>
           <div className="collection-items-grid">
@@ -289,12 +289,8 @@ export function WorldScreen({ onBack }: { onBack: () => void }) {
             {entry.kind === 'music' && entry.track && <p>{entry.track.originalTitle}</p>}
             {entry.kind === 'sound' && entry.sound && <p>{entry.sound.desc}</p>}
             {entry.kind === 'theme' && entry.theme && <p>{entry.theme.description}</p>}
-            <div className="collection-detail-status">Есть в твоей коллекции ✓</div>
             {entry.kind === 'shop-item' && entry.item && entry.item.kind !== 'toy' && (
               <div className="collection-detail-status">{currentLook[entry.item.slot] === entry.item.id ? 'Сейчас надето на Буке ✓' : 'Можно надеть в БУКе'}</div>
-            )}
-            {entry.kind === 'building' && entry.building && (
-              <div className="collection-detail-status">Часть твоей коллекции ✓ · нажми на базу, чтобы войти внутрь</div>
             )}
             {entry.kind === 'theme' && entry.theme && (
               <div className="collection-detail-status">{settings.themeStyle === entry.theme.id ? 'Сейчас выбрано ✓' : 'Твоё оформление'}</div>

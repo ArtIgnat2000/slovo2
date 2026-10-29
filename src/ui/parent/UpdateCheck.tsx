@@ -12,11 +12,7 @@ import { applyUpdate, checkForUpdate, type UpdateCheckResult } from '../../platf
 
 type Phase = 'idle' | 'checking' | 'applying';
 
-interface Props {
-  onOpenDiagnostics: () => void;
-}
-
-export function UpdateCheck({ onOpenDiagnostics }: Props) {
+export function UpdateCheck() {
   const [phase, setPhase] = useState<Phase>('idle');
   const [result, setResult] = useState<UpdateCheckResult | null>(null);
   /** Проверка идёт секунды: если родитель уже ушёл со вкладки, не пишем в размонтированный компонент. */
@@ -53,12 +49,9 @@ export function UpdateCheck({ onOpenDiagnostics }: Props) {
         <button type="button" className="btn ghost sm" onClick={() => void run()} disabled={phase !== 'idle'}>
           {checking ? 'Проверяем…' : 'Проверить обновления'}
         </button>
-        <button type="button" className="btn ghost sm" onClick={onOpenDiagnostics} disabled={applying}>
-          Диагностика приложения
-        </button>
       </div>
       <div className="update-status" role="status">
-        {checking && <p className="setting-hint">Смотрим, нет ли новой версии…</p>}
+        {checking && <p className="setting-hint">Проверяем…</p>}
         {result && !checking && <UpdateStatus result={result} applying={applying} onApply={apply} />}
       </div>
     </div>
@@ -77,16 +70,12 @@ function UpdateStatus({
   switch (result.status) {
     case 'current':
       return (
-        <p className="setting-hint">
-          ✅ У вас последняя версия (v{import.meta.env.VITE_APP_VERSION}). Обновлять нечего.
-        </p>
+        <p className="setting-hint">✅ Установлена последняя версия.</p>
       );
     case 'available':
       return (
         <div className="update-available">
-          <p className="setting-hint">
-            <b>🎉 Есть новая версия.</b> Обновите приложение — прогресс и покупки сохранятся.
-          </p>
+          <p className="setting-hint"><b>Доступно обновление.</b></p>
           <button type="button" className="btn primary sm" onClick={onApply} disabled={applying}>
             {applying ? 'Обновляем…' : 'Обновить сейчас'}
           </button>
@@ -94,22 +83,15 @@ function UpdateStatus({
       );
     case 'offline':
       return (
-        <p className="setting-hint">
-          📴 Нет интернета — проверить обновление можно, когда появится сеть. Занятия работают и так.
-        </p>
+        <p className="setting-hint">📴 Нет интернета.</p>
       );
     case 'unavailable':
       return (
-        <p className="setting-hint">
-          Проверка обновлений работает в опубликованном приложении. Эта копия открыта без
-          сервис-воркера — при обычном запуске приложение проверяет обновления само.
-        </p>
+        <p className="setting-hint">В этой копии проверка недоступна.</p>
       );
     case 'error':
       return (
-        <p className="setting-hint">
-          ⚠️ Не удалось проверить обновление. Проверьте интернет и попробуйте ещё раз.
-        </p>
+        <p className="setting-hint">⚠️ Не удалось проверить. Попробуйте ещё раз.</p>
       );
   }
 }

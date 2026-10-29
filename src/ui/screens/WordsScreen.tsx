@@ -207,8 +207,7 @@ export function WordsScreen() {
   const scopeTitle = `${CLASS_META[grade].emoji} ${CLASS_META[grade].title}`;
 
   const allMastered = scopeSummary.total > 0 && scopeSummary.remaining === 0;
-  const openState = word ? profile?.words[word.id] : undefined;
-  const openBucket = word ? wordBucket(openState) : 'new';
+  const openBucket = word ? wordBucket(profile?.words[word.id]) : 'new';
 
   return (
     <div className="screen words-screen">
@@ -239,48 +238,14 @@ export function WordsScreen() {
               {plural(scopeSummary.total, 'слово', 'слова', 'слов')}
             </div>
 
-            {allMastered ? (
-              <>
-                <div className="dict-hero-headline">
-                  Все {scopeSummary.total}{' '}
-                  {plural(scopeSummary.total, 'слово', 'слова', 'слов')} знаю! 🎉
-                </div>
-                <div className="dict-hero-split">
-                  <span className="dict-stat-pill good">
-                    ✓ Знаю: <b>{scopeSummary.mastered}</b> ({scopeSummary.masteredPct}%)
-                  </span>
-                  <span className="dict-stat-pill rest">
-                    Осталось выучить: <b>0</b>
-                  </span>
-                </div>
-                <p className="dict-hero-note">Отличная работа — все слова зелёные!</p>
-              </>
-            ) : (
-              <>
-                <div className="dict-hero-headline">
-                  Знаю {scopeSummary.mastered}{' '}
-                  {plural(scopeSummary.mastered, 'слово', 'слова', 'слов')}
-                  {scopeSummary.mastered > 0 && (
-                    <span className="dict-pct-badge">{scopeSummary.masteredPct}%</span>
-                  )}
-                </div>
-                <div className="dict-hero-split">
-                  <span className="dict-stat-pill good">
-                    ✓ Уже знаю: <b>{scopeSummary.mastered}</b>
-                  </span>
-                  <span className="dict-stat-pill rest">
-                    Осталось выучить: <b>{scopeSummary.remaining}</b>
-                  </span>
-                </div>
-                <p className="dict-hero-note">
-                  {scopeSummary.inProgress > 0
-                    ? `Из оставшихся уже учу ${scopeSummary.inProgress}, совсем новых — ${scopeSummary.counts.new}`
-                    : scopeSummary.mastered > 0
-                      ? `Впереди ещё ${scopeSummary.counts.new} ${plural(scopeSummary.counts.new, 'новое слово', 'новых слова', 'новых слов')}`
-                      : 'Начни урок — и круг начнёт закрашиваться!'}
-                </p>
-              </>
-            )}
+            <div className="dict-hero-headline">
+              {allMastered ? 'Все слова знаю! 🎉' : `Знаю ${scopeSummary.mastered} из ${scopeSummary.total}`}
+            </div>
+            <div className="dict-hero-split">
+              <span className="dict-stat-pill good">✓ Знаю: <b>{scopeSummary.mastered}</b></span>
+              <span className="dict-stat-pill mid">★ Учу: <b>{scopeSummary.inProgress}</b></span>
+              <span className="dict-stat-pill rest">○ Новые: <b>{scopeSummary.counts.new}</b></span>
+            </div>
           </div>
         </section>
 
@@ -296,9 +261,7 @@ export function WordsScreen() {
               >
                 Все 4 колонки
               </button>
-            ) : (
-              <span className="tiny">нажми на цвет или часть круга</span>
-            )}
+            ) : null}
           </div>
 
           <div className="dict-legend-grid">
@@ -406,7 +369,6 @@ export function WordsScreen() {
                   </span>
                   <div className="dict-col-titles">
                     <h3 className="dict-col-title">{group.meta.title}</h3>
-                    <span className="dict-col-hint">{group.meta.columnHint}</span>
                   </div>
                   <span className={`dict-col-count ${group.bucket}`}>{group.count}</span>
                 </header>
@@ -457,10 +419,6 @@ export function WordsScreen() {
                   )}
                 </div>
 
-                <footer className="dict-col-foot" data-col-total={group.bucket}>
-                  <span className="dict-col-total-label">{columnTotalLabel(group.count)}</span>
-                  <span className="dict-col-total-pct">{group.pct}%</span>
-                </footer>
               </section>
             );
           })}
@@ -486,12 +444,7 @@ export function WordsScreen() {
               <Sentence word={word} hidden={false} />
               {word.mnemonic && <div className="banner">💡 {word.mnemonic}</div>}
               <p className="tiny center">{dangerSummary(word)}</p>
-              {openState && (
-                <p className="tiny center">
-                  {/* 0.66.0: «освоенность» — слово взрослого, ребёнку оно ничего не говорит. */}
-                  знаешь на {openState.s}% · ошибок: {openState.wrong}
-                </p>
-              )}
+
               <button type="button" className="btn ghost wide" onClick={() => setOpen(null)}>
                 Закрыть
               </button>

@@ -56,9 +56,7 @@ export function InviteFriend({ onClose }: Props) {
           </button>
         </div>
 
-        <p className="invite-text">
-          Покажи этот код другу: он наведёт камеру телефона и откроет СЛОВО 2.0. Или отправь ссылку в сообщении.
-        </p>
+        <p className="invite-text">Покажи QR-код или отправь ссылку.</p>
 
         {matrix ? (
           <div className="invite-qr">
@@ -85,7 +83,7 @@ export function InviteFriend({ onClose }: Props) {
 
         {outcome === 'copied' && <div className="share-note">Ссылка скопирована ✓</div>}
         {outcome === 'shared' && <div className="share-note">Отправлено ✓</div>}
-        {outcome === 'cancelled' && <div className="share-note">Ничего страшного. Можно скопировать ссылку.</div>}
+        {outcome === 'cancelled' && <div className="share-note">Отправка отменена</div>}
         {outcome === 'manual' && (
           <>
             <div className="share-note">Скопируй ссылку вручную:</div>
@@ -99,7 +97,6 @@ export function InviteFriend({ onClose }: Props) {
           </>
         )}
 
-        <p className="tiny invite-foot">У каждого ученика свой прогресс и своя техника в ангаре.</p>
       </div>
     </div>
   );

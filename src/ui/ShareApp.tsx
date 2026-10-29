@@ -47,9 +47,7 @@ export function ShareApp() {
         <span className="share-app-icon" aria-hidden="true">📤</span>
         <div className="grow">
           <h3 style={{ margin: 0 }}>Передать приложение</h3>
-          <div className="tiny">
-            Ссылка откроет СЛОВО 2.0 на другом телефоне. Прогресс у каждого ученика свой.
-          </div>
+          <div className="tiny">QR-код или ссылка для другого телефона.</div>
         </div>
       </div>
 
@@ -83,9 +81,7 @@ export function ShareApp() {
 
           {outcome === 'copied' && <div className="share-note">Ссылка скопирована ✓</div>}
           {outcome === 'shared' && <div className="share-note">Отправлено ✓</div>}
-          {outcome === 'cancelled' && (
-            <div className="share-note">Окно закрылось. Можно просто скопировать ссылку.</div>
-          )}
+          {outcome === 'cancelled' && <div className="share-note">Отправка отменена</div>}
           {outcome === 'manual' && (
             <>
               <div className="share-note">Скопируй ссылку вручную:</div>
@@ -101,11 +97,6 @@ export function ShareApp() {
         </div>
       </div>
 
-      <ol className="share-steps tiny">
-        <li>Наведи камеру на QR-код или отправь ссылку в мессенджере.</li>
-        <li>На другом телефоне открой ссылку в браузере.</li>
-        <li>Меню браузера → «Добавить на экран» — и приложение работает без интернета.</li>
-      </ol>
 
       {zoomed && matrix && (
         <div

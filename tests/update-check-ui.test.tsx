@@ -87,7 +87,7 @@ export async function runUpdateCheckUiChecks(): Promise<void> {
     await sleep(60);
     check(
       'без сервис-воркера проверка сообщает, что проверить нельзя',
-      has('без сервис-воркера') && has('проверяет обновления само'),
+      has('В этой копии проверка недоступна'),
       document.querySelector('.update-status')?.textContent?.slice(0, 200) ?? 'ответа нет',
     );
     const afterUnavailable = btnText('Проверить обновления') as HTMLButtonElement | undefined;
@@ -205,7 +205,7 @@ export async function runUpdateCheckUiChecks(): Promise<void> {
     await sleep(80);
     check(
       'экран показывает «последняя версия» при отсутствии обновления',
-      has('последняя версия') && has('Обновлять нечего') && !btnText('Обновить сейчас'),
+      has('Установлена последняя версия') && !btnText('Обновить сейчас'),
       document.querySelector('.update-status')?.textContent?.slice(0, 200) ?? 'ответа нет',
     );
 
@@ -216,7 +216,7 @@ export async function runUpdateCheckUiChecks(): Promise<void> {
     await sleep(80);
     check(
       'экран показывает новую версию и кнопку «Обновить сейчас»',
-      has('Есть новая версия') && !!btnText('Обновить сейчас'),
+      has('Доступно обновление') && !!btnText('Обновить сейчас'),
       document.querySelector('.update-status')?.textContent?.slice(0, 220) ?? 'ответа нет',
     );
     // 10. Сторож автообновлений (0.29.0): пока перезагружать нельзя — только

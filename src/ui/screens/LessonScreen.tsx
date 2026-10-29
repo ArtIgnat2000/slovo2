@@ -588,7 +588,6 @@ export function LessonScreen({ lessonId, onExit, goal, onStartList }: Props) {
       <>
         <Confetti show={confetti} />
         <Results
-          lessonId={lessonId}
           listTitle={list ? lesson.title : undefined}
           isCheck={isCheck}
           check={list?.lastCheck ?? (listId ? {
@@ -804,7 +803,6 @@ export function LessonScreen({ lessonId, onExit, goal, onStartList }: Props) {
  * крупно — XP за сегодня, мелко — «цель 120», перебор — бейджем (см. п. 3 плана).
  */
 function Results({
-  lessonId,
   correct,
   wrong,
   xp,
@@ -824,7 +822,6 @@ function Results({
   onTrainList,
   previous,
 }: {
-  lessonId: string;
   correct: number;
   wrong: number;
   xp: number;
@@ -856,20 +853,11 @@ function Results({
   const answered = correct + wrong;
   const stars = starsFor(correct, answered);
   const profile = useActiveProfile();
-  // Урок-список (list:/check:/err:) в программе не зарегистрирован: раньше
-  // здесь был `undefined`, и обращение к `lesson.emoji` ниже роняло экран
-  // результатов в белый (исправлено 0.62.0).
-  const lesson = LESSON_BY_ID[lessonId];
-  const headingEmoji = isCheck ? '📋' : listTitle ? '🏫' : lesson?.emoji ?? '📚';
-  const headingTitle = listTitle ?? lesson?.title ?? 'Урок';
-  const isReview = lessonId === REVIEW.id;
-
-  // XP за сегодня берём из профиля: туда уже попали и задания, и бонус за урок.
+  // Урока-списка нет в общем каталоге, поэтому результат использует только
+  // переданные данные. XP за сегодня уже включает задания и бонус за урок.
   const xpToday = profile ? todayStat(profile).xp : xpBefore + xp;
   const goalDone = xpToday >= goal;
   const over = Math.max(0, xpToday - goal);
-  const gained = xpToday - xpBefore;
-  const beforePct = Math.min(100, (xpBefore / Math.max(1, goal)) * 100);
   const afterPct = Math.min(100, (xpToday / Math.max(1, goal)) * 100);
   // Цель закрылась именно этим уроком? Это отдельный повод для праздника.
   const closedNow = goalDone && xpBefore < goal;
@@ -910,10 +898,8 @@ function Results({
           )}
           {profile && wrong > 0 && (
             <div className="kv">
-              <span>Вернёмся к ним завтра</span>
-              <b>
-                {wrong} {plural(wrong, 'слово', 'слова', 'слов')}
-              </b>
+              <span>Ошибки</span>
+              <b>{wrong} {plural(wrong, 'ошибка', 'ошибки', 'ошибок')}</b>
             </div>
           )}
         </div>
@@ -1042,11 +1028,7 @@ function Results({
                 </button>
               )}
             </div>
-            {isCheck && (
-              <p className="tiny muted" style={{ margin: '8px 0 0' }}>
-                Здесь мы проверяем, а не учим. Потренировать ошибки можно кнопкой выше.
-              </p>
-            )}
+
           </div>
         )}
 
@@ -1054,34 +1036,12 @@ function Results({
           <div className="row" style={{ textAlign: 'left' }}>
             <Ring value={afterPct} main={String(xpToday)} sub={`цель ${goal}`} done={goalDone} />
             <div className="grow">
-              <h3 style={{ marginBottom: 2 }}>Цель дня</h3>
-              <div className="row" style={{ flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
+              <h3 style={{ marginBottom: 4 }}>Цель дня</h3>
+              <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
                 <p className="muted" style={{ margin: 0 }}>
-                  {closedNow
-                    ? '🎉 Цель дня закрыта!'
-                    : goalDone
-                      ? 'Цель уже была закрыта — а ты принёс ещё! 🎉'
-                      : `Ещё ${goal - xpToday} XP до цели дня`}
+                  {goalDone ? '🎉 Выполнена!' : `Осталось ${goal - xpToday} XP`}
                 </p>
                 {over > 0 && <span className="goal-over">+{over} сверх цели</span>}
-              </div>
-              {/* Полоска — как на главной; метка показывает, где было начало урока */}
-              <div className="goal-track">
-                <Bar value={afterPct} tone="green" />
-                {xpBefore > 0 && !goalDone && (
-                  <i className="goal-mark" style={{ left: `${beforePct}%` }} aria-hidden="true" />
-                )}
-              </div>
-              <div className="tiny" style={{ marginTop: 4 }}>
-                {gained > 0 ? (
-                  <>
-                    {isReview ? 'Тренировка дала ' : 'Урок принёс '}
-                    <b>+{gained} XP</b>
-                    {xpBefore > 0 && <> · сегодня было уже {xpBefore} XP</>}
-                  </>
-                ) : (
-                  <>Прогресс есть — слова стали крепче в памяти 💪</>
-                )}
               </div>
             </div>
           </div>
@@ -1089,9 +1049,6 @@ function Results({
           <button className="btn green wide lg mt" onClick={onHome}>
             К урокам 🗺️
           </button>
-          <div className="tiny" style={{ marginTop: 8 }}>
-            {headingEmoji} {headingTitle}
-          </div>
         </div>
       </div>
     </div>
