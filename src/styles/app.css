@@ -9237,7 +9237,9 @@ img.product-photo {
 }
 .buk-door-label {
   /* Подпись — таблетка на цвете карточки: читается поверх карточек урока
-     даже там, где подложка почти прозрачна. */
+     даже там, где подложка почти прозрачна. Без nowrap (0.87.0): шестая
+     дверь «Спроси БУКа» длиннее кружка 64 px и встаёт в две строки —
+     зато ни одна подпись не вылезает за таблетку. */
   padding: 1px 6px;
   border: 1px solid var(--line);
   border-radius: 9px;
@@ -9247,7 +9249,8 @@ img.product-photo {
   line-height: 1.15;
   color: var(--ink-2);
   text-align: center;
-  white-space: nowrap;
+  max-width: 100%;
+  white-space: normal;
 }
 .buk-door:active .buk-door-emoji {
   transform: scale(0.92);
@@ -9328,4 +9331,166 @@ img.product-photo {
 @media (max-width: 420px) {
   .tech-tour-stage { min-height: 190px; }
   .tech-tour-caption { padding-top: 6px; }
+}
+
+/* ── Чат «Спроси БУКа» (0.87.0) ─────────────────────────────────────────────
+   Полноэкранный оверлей с чипами и опциональной печатью. Слой 95: выше хаба
+   (≤30), шторок и листов (40–90), ниже церемоний сундуков (100) — тосты и
+   редкие полноэкранные события остаются поверх разговора. */
+.buk-chat {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+.buk-chat-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: calc(10px + var(--safe-t, 0px)) 14px 10px;
+  border-bottom: 2px solid var(--line);
+  background: var(--card);
+}
+.buk-chat-owl {
+  /* Та же осанка, что у хабовой совы: чат — «тот же БУК», не новый герой. */
+  width: 44px;
+  height: 44px;
+}
+.buk-chat-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.buk-chat-close {
+  margin-left: auto;
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  background: var(--bg-2);
+  color: var(--ink-2);
+  font-size: 18px;
+  cursor: pointer;
+}
+.buk-chat-close:focus-visible,
+.chat-chip:focus-visible,
+.chat-action:focus-visible,
+.buk-chat-send:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+.buk-chat-log {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+}
+.chat-msg {
+  max-width: 82%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.chat-buk {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+.chat-me {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+.chat-text {
+  margin: 0;
+  padding: 9px 13px;
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  background: var(--card);
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.35;
+}
+.chat-me .chat-text {
+  background: var(--primary-soft);
+  border-color: transparent;
+  color: var(--primary-ink);
+}
+.chat-action {
+  min-height: 44px;
+  padding: 8px 18px;
+  border: none;
+  border-radius: var(--r-pill);
+  background: var(--primary);
+  color: var(--on-primary);
+  font-weight: 800;
+  font-size: 15px;
+  cursor: pointer;
+}
+.chat-action:active,
+.chat-chip:active,
+.buk-chat-send:active {
+  transform: scale(0.97);
+}
+.buk-chat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px 14px 10px;
+  border-top: 2px dashed var(--line);
+  background: var(--card);
+}
+.chat-chip {
+  min-height: 48px;
+  padding: 8px 14px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--bg-2);
+  color: var(--ink);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+.buk-chat-form {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px calc(10px + var(--safe-b, 0px));
+  border-top: 2px solid var(--line);
+  background: var(--card);
+}
+.buk-chat-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 46px;
+  padding: 8px 14px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--bg-2);
+  color: var(--ink);
+  /* 16px — iOS не зумит поле при фокусе. */
+  font-size: 16px;
+}
+.buk-chat-input::placeholder {
+  color: var(--ink-3);
+}
+.buk-chat-send {
+  width: 46px;
+  height: 46px;
+  border: none;
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--on-primary);
+  font-size: 17px;
+  cursor: pointer;
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-action:active,
+  .chat-chip:active,
+  .buk-chat-send:active {
+    transform: none;
+  }
 }

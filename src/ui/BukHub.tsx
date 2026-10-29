@@ -7,8 +7,9 @@
  * `.mascot-actions` (🧭 ⌂ −) лежал поверх подписей — «буквы скрыты»
  * (замечание 2026-10-29). Поэтому:
  *  • `useLayoutEffect` раскладывает двери ДО первого кадра: веер от центра
- *    совы (шаг 34°, r=132 px), каждый центр клампится в вьюпорт с полями —
- *    подпись не вылезает за экран ни при каком положении БУКа;
+ *    совы (для пяти дверей шаг 34°, r=132; для шести — 30°/r=140, 0.87.0),
+ *    каждый центр клампится в вьюпорт с полями — подпись не вылезает за
+ *    экран ни при каком положении БУКа;
  *  • пока дуга открыта, `.mascot` получает класс `hub-open` — ряд кнопок и
  *    реплика прячутся (`visibility: hidden`), освобождая место подписям;
  *  • подложка закрывает меню тапом мимо, первая дверь получает фокус при
@@ -35,6 +36,15 @@ const STEP_DEG = 34;
 /** Поле от краёв экрана: центр двери не ближе EDGE к краю (кружок не срезает). */
 const EDGE = 34;
 
+/**
+ * Дуга считает от числа дверей: шестая (чат, 0.87.0) требует шага 30° и
+ * радиуса 140 — при 34° кружки 64 px слипаются, а подпись «Спроси БУКа»
+ * длиннее «Урок». Для пяти дверей цифры прежние — вид, привычный с 0.86.2.
+ */
+function arcFor(count: number): { r: number; step: number } {
+  return count > 5 ? { r: 140, step: 30 } : { r: ARC_R, step: STEP_DEG };
+}
+
 export function BukHub({ doors, onClose }: { doors: HubDoor[]; onClose: () => void }) {
   const hubRef = useRef<HTMLDivElement>(null);
 
@@ -52,13 +62,15 @@ export function BukHub({ doors, onClose }: { doors: HubDoor[]; onClose: () => vo
     const bx = cx < w / 2 ? 1 : -1;
     const by = cy < h / 2 ? 1 : -1;
     const base = (Math.atan2(bx, -by) * 180) / Math.PI;
+    // Шесть дверей (чат) — шаг 30°/r=140, пять — привычные 34°/r=132.
+    const { r, step } = arcFor(doors.length);
     // Низ экрана — как у самого БУКа: двери выше панели вкладок.
     const tabsH = document.querySelector('.tabs')?.getBoundingClientRect().height ?? 0;
     const yMax = h - (tabsH > 0 ? tabsH + EDGE : 76) - EDGE;
     hub.querySelectorAll<HTMLElement>('.buk-door').forEach((el, i) => {
-      const a = ((base + (i - (doors.length - 1) / 2) * STEP_DEG) * Math.PI) / 180;
-      const x = Math.min(Math.max(cx + Math.sin(a) * ARC_R, EDGE), w - EDGE);
-      const y = Math.min(Math.max(cy - Math.cos(a) * ARC_R, EDGE), yMax);
+      const a = ((base + (i - (doors.length - 1) / 2) * step) * Math.PI) / 180;
+      const x = Math.min(Math.max(cx + Math.sin(a) * r, EDGE), w - EDGE);
+      const y = Math.min(Math.max(cy - Math.cos(a) * r, EDGE), yMax);
       // Смещения от центра контейнера: кружок 64 px (−32), центр круга сверху (−23).
       el.style.left = `${(x - cx - 32).toFixed(1)}px`;
       el.style.top = `${(y - cy - 23).toFixed(1)}px`;
