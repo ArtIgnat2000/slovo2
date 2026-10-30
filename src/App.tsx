@@ -411,7 +411,9 @@ export default function App() {
           onStartLesson={startLesson}
           onOpenProfiles={() => setProfilesOpen(true)}
           onOpenSupport={() => {
-            setParentUnlocked(false);
+            // Поддержка — внешнее добровольное действие: не заставляем взрослого
+            // проходить общий замок, а сразу показываем QR и ссылку на перевод.
+            setParentUnlocked(true);
             setParentReturnTab('overview');
             switchTab('parent');
           }}
