@@ -17,6 +17,7 @@
     "content:check": "node scripts/check-content.mjs",
     "test:content": "node scripts/content-test.mjs",
     "test:smoke": "node scripts/smoke.mjs",
+    "test:galleries": "node --test tests/car-gallery.test.mjs tests/product-galleries.test.mjs",
     "test:guard": "node scripts/purchase-guard.mjs",
     "test:icons": "node scripts/icons-check.mjs",
     "test:contrast": "node scripts/contrast-check.mjs",

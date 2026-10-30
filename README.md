@@ -28,6 +28,7 @@ npm run preview:build && npm run preview:show   # показ с корня (дл
 npm run content:check  # проверить разметку слов
 npm run test:smoke     # смоук-тест в jsdom: пройти урок и получить награды
 SMOKE_SEED=42 npm run test:smoke  # тот же тест на другой перестановке (по умолчанию сид 1)
+npm run test:galleries # фото-галереи товаров: пары ракурсов целы, без копий и кропов
 npm run test:boot      # прод-бандл на первом запуске: не пустой ли экран
 npm run audit:storage  # прогон сейфа прогресса: копии, корзина, сбой записи
 npm run test:guard     # стенд «защита покупок»: копия до списания, откат при сбое записи
