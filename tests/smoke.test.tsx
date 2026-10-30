@@ -1432,19 +1432,23 @@ async function main() {
     menu?.querySelector('.menu-status')?.textContent ?? '',
   );
   check(
-    'в меню есть награды, покупки, «Мой мир», класс и смена ученика',
-    ['rewards', 'purchases', 'world', 'class', 'profiles'].every(
+    'в меню есть награды, покупки, «Мой мир», класс, смена ученика, поддержка и отправка ссылки',
+    ['support', 'rewards', 'purchases', 'world', 'class', 'profiles', 'share'].every(
       (key) => !!menu?.querySelector(`[data-menu="${key}"]`),
     ),
     Array.from(menu?.querySelectorAll('[data-menu]') ?? []).map((n) => n.getAttribute('data-menu')).join(' | '),
   );
-  // 0.66.0: «Позови друга» — одно место. Оно уже есть на главной в один тап
-  // (0.32.1: за кнопкой профиля ребёнок его не находил), поэтому строка в
-  // меню была дублем; теперь меню отвечает только за второстепенное.
   check(
-    '«Позови друга» не дублируется в меню ☰',
-    !menu?.querySelector('[data-menu="invite"]'),
-    Array.from(menu?.querySelectorAll('[data-menu]') ?? []).map((n) => n.getAttribute('data-menu')).join(' | '),
+    'поддержка разработчика заметно выделена и помечена как добровольная для родителей',
+    !!menu?.querySelector('.menu-support-row[data-menu="support"]') &&
+      (menu?.querySelector('[data-menu="support"]')?.getAttribute('aria-label') ?? '').includes('Для родителей') &&
+      (menu?.querySelector('[data-menu="support"]')?.textContent ?? '').includes('добровольно'),
+    menu?.querySelector('[data-menu="support"]')?.textContent ?? 'нет пункта поддержки',
+  );
+  check(
+    'поделиться приложением можно прямо из меню',
+    (menu?.querySelector('[data-menu="share"]')?.textContent ?? '').includes('QR-код или ссылка'),
+    menu?.querySelector('[data-menu="share"]')?.textContent ?? 'нет пункта отправки',
   );
 
   // Версия релиза (0.65.0) — внизу меню, чтобы ребёнок мог назвать её взрослому.
@@ -1546,6 +1550,29 @@ async function main() {
   );
   click(btn((b) => (b.getAttribute('aria-label') ?? '') === 'Закрыть'));
   await sleep(40);
+
+  // Кнопки меню: приложение можно отправить ссылкой/QR, а донат остаётся за взрослым.
+  await openHomeMenu();
+  click(document.querySelector('[data-menu="share"]'));
+  await sleep(60);
+  check(
+    '«Поделиться приложением» в меню открывает QR и ссылку',
+    !!document.querySelector('.invite-sheet') && !!document.querySelector('.invite-qr-art') && !!document.querySelector('.invite-link'),
+    body().slice(0, 180),
+  );
+  click(btn((b) => (b.getAttribute('aria-label') ?? '') === 'Закрыть'));
+  await sleep(40);
+
+  await openHomeMenu();
+  click(document.querySelector('[data-menu="support"]'));
+  await sleep(60);
+  check(
+    'поддержка из меню сначала ведёт через экран для взрослых',
+    has('Раздел для взрослых') && !document.querySelector('.home-menu'),
+    body().slice(0, 180),
+  );
+  click(buttons().find((b) => (b.textContent ?? '').includes('Уроки') && b.className.includes('tab')));
+  await sleep(60);
 
   // «Позови друга» (0.32.1): ссылка — в один тап прямо с главной, тихой
   // строкой под героем. Раньше 🤝 прятался за кнопкой профиля, а на экране
