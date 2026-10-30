@@ -870,6 +870,8 @@ p {
   line-height: 1.2;
 }
 .menu-status-title {
+  font-size: 20px;
+  line-height: 1.3;
   font-weight: 800;
 }
 .menu-list {
@@ -881,8 +883,8 @@ p {
   align-items: center;
   gap: 12px;
   width: 100%;
-  min-height: 56px;
-  padding: 10px 12px;
+  min-height: 64px;
+  padding: 12px;
   background: var(--card);
   border: 2px solid var(--line);
   border-radius: var(--r-lg);
@@ -902,19 +904,29 @@ p {
 }
 .menu-row-title {
   display: block;
+  font-size: 18px;
+  line-height: 1.3;
   font-weight: 800;
+}
+/* В меню не используем общий мелкий стиль .tiny: строки должны читаться
+   с первого взгляда на телефоне, в том числе детьми младших классов. */
+.menu-row .tiny {
+  display: block;
+  margin-top: 2px;
+  font-size: 17px;
+  line-height: 1.35;
 }
 .menu-count {
   flex: none;
-  min-width: 22px;
-  height: 22px;
+  min-width: 24px;
+  height: 24px;
   padding: 0 6px;
   display: grid;
   place-items: center;
   border-radius: var(--r-pill);
   background: var(--orange);
   color: #2b1a00;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 800;
   line-height: 1;
   font-variant-numeric: tabular-nums;
@@ -937,6 +949,8 @@ p {
 .menu-version {
   margin: 2px 0 0;
   text-align: center;
+  font-size: 16px;
+  line-height: 1.35;
   font-variant-numeric: tabular-nums;
 }
 .rewards-backdrop {
@@ -1200,10 +1214,15 @@ p {
   background: var(--card);
   color: var(--ink);
   font: inherit;
-  font-size: var(--fs-sm);
+  font-size: 17px;
+  line-height: 1.25;
   font-weight: 700;
   cursor: pointer;
   touch-action: manipulation;
+}
+.class-form-btn .tiny {
+  font-size: 16px;
+  line-height: 1.25;
 }
 .class-form-btn.on {
   border-color: var(--primary-ink);
@@ -1224,8 +1243,8 @@ p {
   align-items: center;
   gap: 12px;
   width: 100%;
-  min-height: 56px;
-  padding: 10px 14px;
+  min-height: 64px;
+  padding: 12px 14px;
   border: 2px solid var(--line);
   border-radius: var(--r-md);
   background: var(--card);
@@ -1249,6 +1268,8 @@ p {
 }
 .class-card-title {
   display: block;
+  font-size: 18px;
+  line-height: 1.3;
   font-weight: 800;
 }
 .class-card-check {
@@ -1256,10 +1277,15 @@ p {
 }
 .class-card-meta {
   display: block;
-  margin-top: 2px;
+  margin-top: 3px;
   color: var(--ink-2);
-  font-size: var(--fs-sm);
+  font-size: 17px;
+  line-height: 1.35;
   font-weight: 600;
+}
+.class-sheet > .tiny {
+  font-size: 17px;
+  line-height: 1.35;
 }
 .class-card.done {
   border-color: var(--green);
@@ -5790,13 +5816,16 @@ img.product-photo {
 .dict-grade-picker { flex: none; }
 .dict-grade-picker select {
   min-height: 44px;
-  max-width: 110px;
+  width: 132px;
+  min-width: 120px;
+  max-width: 40vw;
   padding: 0 24px 0 10px;
   border: 2px solid var(--line);
   border-radius: var(--r-md);
   background: var(--card);
   color: var(--ink);
   font: inherit;
+  font-size: 18px;
   font-weight: 800;
   cursor: pointer;
 }
@@ -9238,15 +9267,15 @@ img.product-photo {
 .buk-door-label {
   /* Подпись — таблетка на цвете карточки: читается поверх карточек урока
      даже там, где подложка почти прозрачна. Без nowrap (0.87.0): шестая
-     дверь «Спроси БУКа» длиннее кружка 64 px и встаёт в две строки —
-     зато ни одна подпись не вылезает за таблетку. */
-  padding: 1px 6px;
+     дверь «Спроси БУКа» длиннее кружка 64 px и переносится на строки —
+     подпись остаётся внутри таблетки и не обрезается. */
+  padding: 2px 6px;
   border: 1px solid var(--line);
   border-radius: 9px;
   background: var(--card);
-  font-size: var(--fs-xs);
+  font-size: 16px;
   font-weight: 700;
-  line-height: 1.15;
+  line-height: 1.2;
   color: var(--ink-2);
   text-align: center;
   max-width: 100%;
