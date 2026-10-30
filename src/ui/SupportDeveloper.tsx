@@ -1,11 +1,36 @@
+import { useEffect, useRef, useState } from 'react';
+
 // Адрес считан из предоставленного разработчиком QR-кода. Ссылка и изображение
 // ведут к одному получателю; приложение не обрабатывает платёж самостоятельно.
 const SUPPORT_URL = 'https://www.sberbank.com/sms/pbpn?requisiteNumber=79202544239';
 
-/** Ненавязчивый вход для взрослого, без напоминаний и связи с занятиями. */
-export function SupportDeveloper() {
+/** Блок добровольной поддержки для родителей. */
+export function SupportDeveloper({ autoOpen = false, onAutoOpenConsumed }: { autoOpen?: boolean; onAutoOpenConsumed?: () => void }) {
+  const detailsRef = useRef<HTMLDetailsElement>(null);
+  const [open, setOpen] = useState(autoOpen);
+
+  // Вход из меню означает явный запрос QR: раскрываем блок только после того,
+  // как родитель прошёл взрослую проверку, и подводим его к самому QR.
+  useEffect(() => {
+    if (!autoOpen) return;
+    setOpen(true);
+    const timer = window.setTimeout(() => {
+      const details = detailsRef.current;
+      if (details && typeof details.scrollIntoView === 'function') {
+        details.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      onAutoOpenConsumed?.();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [autoOpen, onAutoOpenConsumed]);
+
   return (
-    <details className="support-developer">
+    <details
+      ref={detailsRef}
+      className="support-developer"
+      open={open}
+      onToggle={(event) => setOpen(event.currentTarget.open)}
+    >
       <summary>
         <span className="support-developer-heart" aria-hidden="true">♡</span>
         <span className="support-developer-label">

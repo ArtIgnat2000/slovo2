@@ -11,6 +11,9 @@ import { PARENT_TABS, ParentPanel, ParentTabs, type ParentTabId } from '../paren
 interface Props {
   unlocked: boolean;
   onUnlock: () => void;
+  /** Раскрыть QR добровольного доната после входа через пункт меню. */
+  supportAutoOpen?: boolean;
+  onSupportAutoOpened?: () => void;
   onOpenProfiles: () => void;
   onOpenVlabs: () => void;
   onOpenDiagnostics: (section: ParentTabId) => void;
@@ -39,7 +42,7 @@ interface Props {
  * стал честнее: ошибка показывается на месте, ответ не стирается, Enter
  * отправляет форму.
  */
-export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs, onOpenDiagnostics, initialTab = 'overview', onStartList }: Props) {
+export function ParentScreen({ unlocked, onUnlock, supportAutoOpen = false, onSupportAutoOpened, onOpenProfiles, onOpenVlabs, onOpenDiagnostics, initialTab = 'overview', onStartList }: Props) {
   const profile = useActiveProfile();
   const [tab, setTab] = useState<ParentTabId>(initialTab === 'app' || initialTab === 'progress' ? 'more' : initialTab);
   const [moreSection, setMoreSection] = useState<'progress' | 'app'>(initialTab === 'app' ? 'app' : 'progress');
@@ -73,7 +76,7 @@ export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs, 
         <div className="parent-child-name grow">{profile.name}</div>
       </div>
 
-      <SupportDeveloper />
+      <SupportDeveloper autoOpen={supportAutoOpen} onAutoOpenConsumed={onSupportAutoOpened} />
 
       <ParentTabs items={PARENT_TABS} value={tab} onChange={setTab} />
 

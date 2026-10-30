@@ -1571,6 +1571,22 @@ async function main() {
     has('Раздел для взрослых') && !document.querySelector('.home-menu'),
     body().slice(0, 180),
   );
+  const donateEquation = document.body.textContent?.match(/(\d+) × (\d+) = \?/);
+  const donateAnswer = document.querySelector('input[aria-label^="Сколько будет"]') as HTMLInputElement | null;
+  if (donateEquation && donateAnswer) {
+    const value = String(Number(donateEquation[1]) * Number(donateEquation[2]));
+    const setValue = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+    setValue?.call(donateAnswer, value);
+    donateAnswer.dispatchEvent(new window.Event('input', { bubbles: true }));
+    await sleep(20);
+    click(btnText('Войти'));
+    await sleep(80);
+  }
+  check(
+    'после взрослой проверки QR доната раскрыт автоматически',
+    !!document.querySelector('.support-developer[open] .support-developer-qr'),
+    document.querySelector('.support-developer')?.outerHTML.slice(0, 240) ?? 'нет блока доната',
+  );
   click(buttons().find((b) => (b.textContent ?? '').includes('Уроки') && b.className.includes('tab')));
   await sleep(60);
 
