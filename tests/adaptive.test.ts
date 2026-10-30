@@ -32,6 +32,7 @@ import './mascot.test';
 // Правила помощи БУКа в уроке: вопросы без утечки ответа, цена помощи, пауза.
 import './buk-help.test';
 import './buk-chat.test';
+import './buk-3d.test';
 import { effectiveCards, nextAdaptiveState, recordAttempt } from '../src/engine/adaptive';
 import { buildLesson } from '../src/engine/scheduler';
 import { LESSONS, WORDS, WORDS_BY_GRADE } from '../src/content/words';
