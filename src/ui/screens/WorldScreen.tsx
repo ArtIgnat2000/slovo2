@@ -14,6 +14,7 @@ import { warmProductPhoto } from '../ProductPhoto';
 import { BuildingArt } from '../BuildingArt';
 import { BaseTour, warmBaseTour } from '../BaseTour';
 import { playMusic } from '../../platform/music';
+import { DigitalCover } from '../DigitalCover';
 import { previewSoundCue, sfx } from '../../platform/sound';
 import type { ShopTuning } from '../../types';
 
@@ -63,10 +64,12 @@ function CollectionArt({ entry, size = 64, tuning }: { entry: CollectionItem; si
     );
   }
   if (entry.kind === 'music' && entry.track) {
-    return <span className="collection-sound-art music" aria-hidden="true">{entry.track.emoji}</span>;
+    // Обложка вместо эмодзи: коллекция показывает тот же «конверт», что и витрина.
+    // Крупный кадр листается (лицо → оборот), плитки показывают только лицо.
+    return <DigitalCover track={entry.track} variant={size >= 160 ? 'full' : size >= 100 ? 'card' : 'mini'} />;
   }
   if (entry.kind === 'sound' && entry.sound) {
-    return <span className="collection-sound-art" aria-hidden="true">{entry.sound.emoji}</span>;
+    return <DigitalCover pack={entry.sound} variant={size >= 160 ? 'full' : size >= 100 ? 'card' : 'mini'} />;
   }
   return null;
 }

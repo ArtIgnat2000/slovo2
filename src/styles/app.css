@@ -4270,12 +4270,6 @@ img.product-photo {
   position: relative;
   z-index: 1;
 }
-/* Крупная обложка трека в sheet */
-.music-cover-lg {
-  width: 120px;
-  height: 120px;
-}
-.music-cover-lg span { font-size: 44px; }
 /* Анимированный эквалайзер: идёт примерка записи */
 .shop-eq {
   position: absolute;
@@ -7988,40 +7982,6 @@ img.product-photo {
   padding: 9px;
   gap: 6px;
 }
-.music-cover {
-  width: 100%;
-  height: 74px;
-  position: relative;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #8b6bff, #ff88b7 55%, #ffc857);
-}
-.music-cover::before,
-.music-cover::after {
-  content: '';
-  position: absolute;
-  width: 78px;
-  height: 78px;
-  border: 1px solid rgba(255, 255, 255, .34);
-  border-radius: 50%;
-}
-.music-cover::before { transform: translate(-36px, 27px); }
-.music-cover::after { transform: translate(42px, -27px); }
-.music-cover span {
-  z-index: 1;
-  font-size: 34px;
-  filter: drop-shadow(0 2px 3px rgba(20, 10, 50, .2));
-}
-.music-cover i {
-  position: absolute;
-  right: 8px;
-  bottom: 4px;
-  color: rgba(255, 255, 255, .8);
-  font-size: 21px;
-  font-style: normal;
-}
 .music-item .shop-title {
   min-height: 34px;
   display: grid;
@@ -8039,15 +7999,339 @@ img.product-photo {
 }
 @media (min-width: 420px) {
   .music-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .music-cover { height: 86px; }
 }
 
-/* Магазин → «Звуки» (0.17.0): наборы мелодий правильного ответа и ошибки.
-   Карточка — музыкальная, но обложка своя, и под названием две кнопки
-   «послушать»: ✓ верный ответ и ✗ ошибка. */
-.sound-cover {
-  background: linear-gradient(135deg, #34c3a0, #5b8cff 55%, #a77bff);
+/* Магазин → «Звуки»: под названием набора две кнопки «послушать» —
+   ✓ верный ответ и ✗ ошибка. Обложка у набора своя (см. ниже). */
+
+/* ── Цифровые обложки (0.88.0) ─────────────────────────────────────────────
+   Цифровой товар не имеет физического предмета, поэтому вместо «фото товара»
+   у трека и набора звуков — редакционная обложка: чернильный фон, бумажная
+   типографика, абстрактный спектр и оборот с настоящими метаданными (трек)
+   или партитурой реальных нот (набор звуков). Мультяшных сцен и нарисованных
+   инструментов здесь нет намеренно: рядом с фото витрины они выглядели бы
+   другой игрой. См. src/ui/DigitalCover.tsx. */
+.dc-frame { width: 100%; }
+.digital-cover {
+  --dc-ink: hsl(260 30% 15%);
+  --dc-ink-2: hsl(260 25% 22%);
+  --dc-accent: hsl(40 70% 62%);
+  --dc-paper: hsl(42 30% 93%);
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 14px;
+  background:
+    repeating-linear-gradient(0deg, color-mix(in srgb, var(--dc-paper) 5%, transparent) 0 1px, transparent 1px 7px),
+    radial-gradient(120% 80% at 88% 108%, color-mix(in srgb, var(--dc-accent) 26%, transparent), transparent 62%),
+    linear-gradient(158deg, var(--dc-ink-2), var(--dc-ink) 64%);
+  color: var(--dc-paper);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--dc-paper) 16%, transparent);
+  font-family: ui-sans-serif, system-ui, 'Helvetica Neue', Arial, sans-serif;
 }
+.digital-cover.is-flippable { border-radius: 14px; }
+
+.dc-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.dc-stage:focus-visible {
+  outline: 3px solid var(--dc-accent);
+  outline-offset: -3px;
+  border-radius: inherit;
+}
+/* Значок «перевернуть»: единственная подсказка о второй стороне. */
+.dc-stage::after {
+  content: '↻';
+  position: absolute;
+  right: 7px;
+  bottom: 7px;
+  display: grid;
+  place-items: center;
+  width: 21px;
+  height: 21px;
+  border: 1px solid color-mix(in srgb, var(--dc-paper) 34%, transparent);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--dc-ink) 62%, transparent);
+  font-size: 12px;
+  line-height: 1;
+  opacity: .82;
+}
+.digital-cover[data-side='back'] .dc-stage::after { content: '↺'; }
+
+.dc-face {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  height: 100%;
+  padding: 10%;
+}
+.dc-rule {
+  width: 26px;
+  height: 2px;
+  margin-bottom: 2px;
+  background: var(--dc-accent);
+}
+.dc-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+  font-size: 7px;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--dc-paper) 68%, transparent);
+}
+.dc-cat { white-space: nowrap; }
+.dc-main { margin-top: auto; display: grid; gap: 3px; min-width: 0; }
+.dc-number {
+  font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+  font-size: 40px;
+  font-weight: 700;
+  line-height: .82;
+  letter-spacing: -.06em;
+  color: color-mix(in srgb, var(--dc-accent) 72%, transparent);
+}
+.dc-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.07;
+  letter-spacing: -.012em;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.dc-sub {
+  margin: 0;
+  font-size: 7.5px;
+  letter-spacing: .02em;
+  color: color-mix(in srgb, var(--dc-paper) 72%, transparent);
+  overflow-wrap: anywhere;
+}
+.dc-spectrum {
+  display: block;
+  width: 100%;
+  height: 34px;
+  fill: color-mix(in srgb, var(--dc-accent) 86%, var(--dc-paper));
+  opacity: .95;
+}
+.dc-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+  font-size: 6.5px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--dc-paper) 66%, transparent);
+}
+.is-flippable .dc-foot { padding-right: 20px; }
+
+/* Оборот: метаданные и партитура. Плотная «печатная» сетка строк. */
+.dc-back { gap: 4px; }
+.dc-back-lead {
+  margin: 2px 0 0;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -.012em;
+  overflow-wrap: anywhere;
+}
+.dc-back-kicker {
+  margin: 0;
+  font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+  font-size: 6.5px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--dc-accent);
+}
+.dc-facts {
+  display: grid;
+  gap: 2px;
+  margin: 3px 0 0;
+}
+.dc-facts > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid color-mix(in srgb, var(--dc-paper) 15%, transparent);
+}
+.dc-facts dt {
+  font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+  font-size: 6.5px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--dc-paper) 58%, transparent);
+  white-space: nowrap;
+}
+.dc-facts dd {
+  margin: 0;
+  font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+  font-size: 8.5px;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.dc-note {
+  margin: auto 0 0;
+  font-size: 6.5px;
+  line-height: 1.4;
+  color: color-mix(in srgb, var(--dc-paper) 62%, transparent);
+}
+
+.dc-roll { margin: 0; display: grid; gap: 2px; }
+.dc-roll figcaption {
+  font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+  font-size: 6.5px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--dc-paper) 66%, transparent);
+}
+.dc-roll svg { display: block; width: 100%; height: 31px; }
+.dc-roll-line { stroke: color-mix(in srgb, var(--dc-paper) 18%, transparent); stroke-width: .6; }
+.dc-roll-note { fill: var(--dc-accent); }
+.dc-roll-glide { stroke: var(--dc-accent); stroke-width: 1.1; stroke-linecap: round; opacity: .8; }
+
+/* Эквалайзер прослушивания — поверх обложки, как на прежней карточке. */
+.dc-eq {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 14px;
+  pointer-events: none;
+}
+.dc-eq i {
+  width: 3px;
+  border-radius: 2px;
+  background: var(--dc-accent);
+  animation: dcEq .8s ease-in-out infinite;
+}
+.dc-eq i:nth-child(2) { animation-delay: .15s; }
+.dc-eq i:nth-child(3) { animation-delay: .3s; }
+@keyframes dcEq {
+  0%, 100% { height: 4px; }
+  50% { height: 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dc-eq i { animation: none; }
+}
+
+.dc-caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 6px 2px 0;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+/* Карточка магазина: обложка-«слив», читается название и номер в серии. */
+.digital-cover[data-variant='card'],
+.dc-frame[data-variant='card'] .digital-cover {
+  aspect-ratio: 1.42;
+  border-radius: 12px;
+}
+.digital-cover[data-variant='card'] .dc-face,
+.dc-frame[data-variant='card'] .dc-face {
+  gap: 3px;
+  padding: 9px 10px;
+}
+.digital-cover[data-variant='card'] .dc-rule,
+.dc-frame[data-variant='card'] .dc-rule { width: 18px; height: 1.5px; }
+.digital-cover[data-variant='card'] .dc-top,
+.dc-frame[data-variant='card'] .dc-top { font-size: 5.5px; }
+.digital-cover[data-variant='card'] .dc-top .dc-imprint,
+.dc-frame[data-variant='card'] .dc-top .dc-imprint { display: none; }
+.digital-cover[data-variant='card'] .dc-number,
+.dc-frame[data-variant='card'] .dc-number { font-size: 26px; }
+.digital-cover[data-variant='card'] .dc-title,
+.dc-frame[data-variant='card'] .dc-title {
+  font-size: 12px;
+  -webkit-line-clamp: 2;
+}
+.digital-cover[data-variant='card'] .dc-sub,
+.dc-frame[data-variant='card'] .dc-sub,
+.digital-cover[data-variant='card'] .dc-foot,
+.dc-frame[data-variant='card'] .dc-foot { display: none; }
+.digital-cover[data-variant='card'] .dc-spectrum,
+.dc-frame[data-variant='card'] .dc-spectrum { height: 20px; }
+/* В нише витрины обложка занимает её целиком: это печатный конверт, а не
+   предмет на подиуме. Скругление по краям делает сама ниша (overflow: hidden). */
+.shop-case .shop-icon > .digital-cover {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  border-radius: 0;
+}
+
+/* Совсем маленькая плитка (герой, мечты, коллекция): только номер и спектр. */
+.digital-cover[data-variant='mini'],
+.dc-frame[data-variant='mini'] .digital-cover {
+  aspect-ratio: 1;
+  border-radius: 10px;
+}
+.digital-cover[data-variant='mini'] .dc-face,
+.dc-frame[data-variant='mini'] .dc-face {
+  gap: 2px;
+  padding: 7px;
+}
+.digital-cover[data-variant='mini'] .dc-rule,
+.digital-cover[data-variant='mini'] .dc-top,
+.digital-cover[data-variant='mini'] .dc-title,
+.digital-cover[data-variant='mini'] .dc-sub,
+.digital-cover[data-variant='mini'] .dc-foot,
+.dc-frame[data-variant='mini'] .dc-rule,
+.dc-frame[data-variant='mini'] .dc-top,
+.dc-frame[data-variant='mini'] .dc-title,
+.dc-frame[data-variant='mini'] .dc-sub,
+.dc-frame[data-variant='mini'] .dc-foot { display: none; }
+.digital-cover[data-variant='mini'] .dc-main,
+.dc-frame[data-variant='mini'] .dc-main { margin-top: auto; }
+.digital-cover[data-variant='mini'] .dc-number,
+.dc-frame[data-variant='mini'] .dc-number { font-size: 22px; }
+.digital-cover[data-variant='mini'] .dc-spectrum,
+.dc-frame[data-variant='mini'] .dc-spectrum { height: 15px; }
+
+/* Места, где обложка живёт: витрина, лист товара, «Мой мир», демо. */
+.shop-bigart .dc-frame { width: min(100%, 236px); }
+.shop-hero-art .digital-cover { width: 84px; height: 84px; aspect-ratio: auto; }
+.wishlist-card-art .digital-cover { width: 56px; height: 56px; aspect-ratio: auto; }
+.collection-item-art .digital-cover {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  border-radius: 11px;
+}
+.collection-detail-art .dc-frame { width: min(100%, 210px); }
+.mz-art .digital-cover { width: 100%; max-width: 108px; aspect-ratio: 1; }
+.mz-bigart .dc-frame { width: min(100%, 190px); }
+.music-choice .music-choice-cover { width: 38px; height: 38px; aspect-ratio: auto; flex: none; border-radius: 9px; }
 .sound-try {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -8786,10 +9070,11 @@ img.product-photo {
 }
 .collection-map-thumb .mascot { position: static; animation: none; max-width: 36px; max-height: 36px; }
 .collection-map-thumb .collection-building-art { width: 36px; height: 36px; object-fit: contain; }
-.collection-map-thumb .collection-sound-art, .collection-map-thumb .collection-theme-art { width: 100%; height: 100%; font-size: 23px; }
+.collection-map-thumb .collection-theme-art { width: 100%; height: 100%; font-size: 23px; }
+/* Цифровая обложка в миниатюре карты: только цвет и спектр, без типографики. */
+.collection-map-thumb .digital-cover { width: 100%; height: 100%; aspect-ratio: auto; border-radius: 7px; }
+.collection-map-thumb .dc-number { display: none; }
 .collection-theme-art { display: grid; place-items: center; min-width: 64px; min-height: 64px; border: 2px solid rgba(255,255,255,.8); border-radius: 12px; font-size: 34px; box-shadow: inset 0 0 0 1px rgba(20,20,40,.12); }
-.collection-sound-art { display: grid; place-items: center; width: 84px; height: 84px; border: 2px solid var(--line); border-radius: 18px; background: var(--primary-soft); font-size: 42px; }
-.collection-sound-art.music { background: linear-gradient(145deg, var(--primary-soft), var(--bg-2)); }
 .collection-map-hint { margin: 12px 2px 4px; color: var(--ink-2); font-size: var(--fs-sm); text-align: center; }
 .collection-empty { display: grid; justify-items: center; gap: 8px; padding: 28px 20px; text-align: center; }
 .collection-empty > span { font-size: 42px; }
@@ -8824,7 +9109,6 @@ img.product-photo {
 .collection-detail-art .mascot { position: static; animation: none; }
 .collection-detail-art .collection-building-art { width: min(100%, 320px); height: 230px; object-fit: contain; }
 .collection-detail-art .collection-theme-art { width: min(100%, 320px); height: 230px; font-size: 100px; }
-.collection-detail-art .collection-sound-art { width: 180px; height: 180px; font-size: 96px; }
 .collection-detail-copy { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
 .collection-detail-kicker { color: var(--ink-2); font-size: var(--fs-sm); font-weight: 700; }
 .collection-detail-copy h2 { margin: 0; }

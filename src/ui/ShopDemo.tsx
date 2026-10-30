@@ -25,6 +25,7 @@ import {
   type ToyKind,
 } from '../engine/shop';
 import { ToyArt } from './ToyArt';
+import { DigitalCover } from './DigitalCover';
 import { COSTUMES, PUZZLE_SIZE, costumeProgress, type Costume } from '../engine/puzzles';
 import { MUSIC_TRACKS, type MusicTrack } from '../engine/music';
 import { TINT_PRICE, type TintOption } from '../engine/tints';
@@ -717,12 +718,7 @@ function Demo() {
                     return (
                       <Card
                         key={t.id}
-                        art={
-                          <div className="music-cover" aria-hidden="true">
-                            <span>{t.emoji}</span><i>♫</i>
-                            {playing && <span className="mz-eq" style={{ position: 'absolute', bottom: 6, right: 6 }}><i /><i /><i /></span>}
-                          </div>
-                        }
+                        art={<DigitalCover track={t} variant="card" playing={playing} />}
                         title={t.title}
                         desc={`${Math.floor(t.seconds / 60)}:${String(t.seconds % 60).padStart(2, '0')} · ${t.shelf === 'calm' ? 'фон' : 'награда'}`}
                         state={st}
@@ -864,7 +860,7 @@ function Demo() {
                 <div style={{ padding: '0 14px 6px' }}>
                   {MUSIC_TRACKS.filter((t) => musicOwned.includes(t.id)).map((t) => (
                     <div className="music-choice" key={t.id} style={{ cursor: 'default' }}>
-                      <span className="music-emoji">{t.emoji}</span>
+                      <DigitalCover track={t} variant="mini" className="music-choice-cover" />
                       <span className="grow"><b>{t.title}</b><small>«{t.originalTitle}»</small></span>
                       {musicTrack === t.id ? (
                         <span className="mz-eq" aria-label="Играет"><i /><i /><i /></span>
@@ -910,7 +906,7 @@ function Demo() {
                       const left = track.price - gems;
                       return (
                         <div className="mz-card" key={id} style={{ cursor: 'default' }}>
-                          <div className="mz-art"><div className="music-cover"><span>{track.emoji}</span><i>♫</i></div></div>
+                          <div className="mz-art"><DigitalCover track={track} variant="mini" /></div>
                           <div className="shop-title">{track.title}</div>
                           <div className="mz-progress"><i style={{ width: `${Math.min(100, (gems / track.price) * 100)}%` }} /></div>
                           <div className="mz-state go" style={{ fontSize: 'var(--fs-xs)' }}>
@@ -1078,10 +1074,7 @@ function Demo() {
                   return (
                     <>
                       <div className="mz-bigart">
-                        <div className="music-cover" style={{ width: 120, height: 120 }} aria-hidden="true">
-                          <span style={{ fontSize: 44 }}>{t.emoji}</span><i>♫</i>
-                          {playing && <span className="mz-eq" style={{ position: 'absolute', bottom: 8, right: 8 }}><i /><i /><i /></span>}
-                        </div>
+                        <DigitalCover track={t} variant="full" playing={playing} />
                       </div>
                       <h2 style={{ margin: '0 0 2px' }}>{t.title}</h2>
                       <p className="tiny muted" style={{ marginTop: 0 }}>«{t.originalTitle}» · {t.artist} · {t.seconds} сек</p>
