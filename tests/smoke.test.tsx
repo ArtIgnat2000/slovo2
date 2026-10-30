@@ -1565,27 +1565,12 @@ async function main() {
 
   await openHomeMenu();
   click(document.querySelector('[data-menu="support"]'));
-  await sleep(60);
+  await sleep(80);
   check(
-    'поддержка из меню сначала ведёт через экран для взрослых',
-    has('Раздел для взрослых') && !document.querySelector('.home-menu'),
-    body().slice(0, 180),
-  );
-  const donateEquation = document.body.textContent?.match(/(\d+) × (\d+) = \?/);
-  const donateAnswer = document.querySelector('input[aria-label^="Сколько будет"]') as HTMLInputElement | null;
-  if (donateEquation && donateAnswer) {
-    const value = String(Number(donateEquation[1]) * Number(donateEquation[2]));
-    const setValue = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
-    setValue?.call(donateAnswer, value);
-    donateAnswer.dispatchEvent(new window.Event('input', { bubbles: true }));
-    await sleep(20);
-    click(btnText('Войти'));
-    await sleep(80);
-  }
-  check(
-    'после взрослой проверки QR доната раскрыт автоматически',
-    !!document.querySelector('.support-developer[open] .support-developer-qr'),
-    document.querySelector('.support-developer')?.outerHTML.slice(0, 240) ?? 'нет блока доната',
+    'донат из меню сразу открывает раздел для родителей с раскрытым QR',
+    !document.querySelector('.home-menu') && !!document.querySelector('.parent-screen') &&
+      !!document.querySelector('.support-developer[open] .support-developer-qr'),
+    document.querySelector('.support-developer')?.outerHTML.slice(0, 240) ?? body().slice(0, 180),
   );
   click(buttons().find((b) => (b.textContent ?? '').includes('Уроки') && b.className.includes('tab')));
   await sleep(60);

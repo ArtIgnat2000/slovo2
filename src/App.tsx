@@ -415,7 +415,9 @@ export default function App() {
           onOpenProfiles={() => setProfilesOpen(true)}
           onOpenSupport={() => {
             setSupportAutoOpen(true);
-            setParentUnlocked(false);
+            // Поддержка — добровольное внешнее действие: открываем QR сразу,
+            // не оставляя человека на отдельном шаге взрослого раздела.
+            setParentUnlocked(true);
             setParentReturnTab('overview');
             switchTab('parent');
           }}

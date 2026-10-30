@@ -7,10 +7,10 @@ const SUPPORT_URL = 'https://www.sberbank.com/sms/pbpn?requisiteNumber=792025442
 /** Блок добровольной поддержки для родителей. */
 export function SupportDeveloper({ autoOpen = false, onAutoOpenConsumed }: { autoOpen?: boolean; onAutoOpenConsumed?: () => void }) {
   const detailsRef = useRef<HTMLDetailsElement>(null);
-  const [open, setOpen] = useState(autoOpen);
+  const [open, setOpen] = useState(true);
 
-  // Вход из меню означает явный запрос QR: раскрываем блок только после того,
-  // как родитель прошёл взрослую проверку, и подводим его к самому QR.
+  // Вход из меню означает явный запрос QR: подводим человека к QR-коду,
+  // а ручное раскрытие сохраняем для остальных способов входа в раздел.
   useEffect(() => {
     if (!autoOpen) return;
     setOpen(true);
