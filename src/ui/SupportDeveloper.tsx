@@ -5,7 +5,7 @@ const SUPPORT_URL = 'https://www.sberbank.com/sms/pbpn?requisiteNumber=792025442
 /** Ненавязчивый вход для взрослого, без напоминаний и связи с занятиями. */
 export function SupportDeveloper() {
   return (
-    <details className="support-developer">
+    <details className="support-developer" open>
       <summary>
         <span className="support-developer-heart" aria-hidden="true">♡</span>
         <span className="support-developer-label">
