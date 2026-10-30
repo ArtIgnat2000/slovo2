@@ -410,6 +410,11 @@ export default function App() {
         <HomeScreen
           onStartLesson={startLesson}
           onOpenProfiles={() => setProfilesOpen(true)}
+          onOpenSupport={() => {
+            setParentUnlocked(false);
+            setParentReturnTab('overview');
+            switchTab('parent');
+          }}
           onStartReview={() => startLesson('review')}
           onOpenShop={openShop}
           onStartList={(listId, mode = 'train') =>

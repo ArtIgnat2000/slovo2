@@ -846,15 +846,15 @@ p {
    Один уровень, крупные строки с эмодзи и подписью, справа стрелка. */
 .home-menu {
   display: grid;
-  gap: 12px;
+  gap: 8px;
 }
 
 /* Счётчики со словами: у 🔥 и 💎 должно быть объяснение, а не только цифра. */
 .menu-status {
   display: grid;
-  gap: 10px;
-  padding: 12px;
-  margin-bottom: 12px;
+  gap: 8px;
+  padding: 10px;
+  margin-bottom: 8px;
   background: var(--card);
   border: 2px solid var(--line);
   border-radius: var(--r-lg);
@@ -862,7 +862,7 @@ p {
 .menu-status-row {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: 8px;
 }
 .menu-status-emoji {
   flex: none;
@@ -870,8 +870,8 @@ p {
   line-height: 1.2;
 }
 .menu-status-title {
-  font-size: 20px;
-  line-height: 1.3;
+  font-size: 18px;
+  line-height: 1.25;
   font-weight: 800;
 }
 .menu-list {
@@ -881,10 +881,10 @@ p {
 .menu-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
-  min-height: 64px;
-  padding: 12px;
+  min-height: 56px;
+  padding: 8px 10px;
   background: var(--card);
   border: 2px solid var(--line);
   border-radius: var(--r-lg);
@@ -895,6 +895,15 @@ p {
 .menu-row:active {
   transform: scale(0.99);
 }
+/* Взрослый донат не прячем в «Родителям», но объясняем, что он добровольный,
+   и оставляем шаг подтверждения за родительским экраном. */
+.menu-support-row {
+  border-color: var(--orange-ink);
+  background: var(--orange-soft);
+}
+.menu-support-row .menu-row-title {
+  color: var(--orange-ink);
+}
 .menu-row-emoji {
   flex: none;
   width: 32px;
@@ -904,8 +913,8 @@ p {
 }
 .menu-row-title {
   display: block;
-  font-size: 18px;
-  line-height: 1.3;
+  font-size: 17px;
+  line-height: 1.25;
   font-weight: 800;
 }
 /* В меню не используем общий мелкий стиль .tiny: строки должны читаться
@@ -913,8 +922,8 @@ p {
 .menu-row .tiny {
   display: block;
   margin-top: 2px;
-  font-size: 17px;
-  line-height: 1.35;
+  font-size: 16px;
+  line-height: 1.3;
 }
 .menu-count {
   flex: none;
@@ -949,8 +958,8 @@ p {
 .menu-version {
   margin: 2px 0 0;
   text-align: center;
-  font-size: 16px;
-  line-height: 1.35;
+  font-size: 14px;
+  line-height: 1.3;
   font-variant-numeric: tabular-nums;
 }
 .rewards-backdrop {

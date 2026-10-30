@@ -35,6 +35,8 @@ import type { Profile } from '../../types';
 interface Props {
   onStartLesson: (lessonId: string) => void;
   onOpenProfiles: () => void;
+  /** Открыть раздел родителей за взрослой проверкой для добровольной поддержки. */
+  onOpenSupport: () => void;
   /** «Пора повторить» — отдельный режим тренировки, id урока не нужен */
   onStartReview: () => void;
   /** Меню ведёт прямо в «Мои покупки» или «Мой мир» внутри БУКа. */
@@ -63,7 +65,7 @@ function rewardsCount(profile: Profile): number {
   return count;
 }
 
-export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpenShop, onStartList }: Props) {
+export function HomeScreen({ onStartLesson, onOpenProfiles, onOpenSupport, onStartReview, onOpenShop, onStartList }: Props) {
   const profile = useActiveProfile();
   const setActiveClass = useApp((s) => s.setActiveClass);
   const [rewardsOpen, setRewardsOpen] = useState(false);
@@ -81,7 +83,7 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
   }, [intentNonce, intent]);
   /** «Позови друга» — 0.32.1: ссылка должна быть в один тап с первого экрана. */
   const [inviteOpen, setInviteOpen] = useState(false);
-  /** Меню ☰ (0.33.0) — заменяет 🎁 в шапке: награды, покупки, мир, друг, профиль. */
+  /** Меню ☰: награды, покупки, мир, смена ученика, поддержка и QR/ссылка для друзей. */
   const [menuOpen, setMenuOpen] = useState(false);
   /** Лист класса (0.33.0): вход — строкой в меню, а не пилюлей над героем. */
   const [classOpen, setClassOpen] = useState(false);
@@ -459,6 +461,21 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
               </div>
             </div>
 
+            <button
+              type="button"
+              className="menu-row menu-support-row"
+              data-menu="support"
+              aria-label="Для родителей: поддержать разработчика, добровольно"
+              onClick={() => openMenuSheet(onOpenSupport)}
+            >
+              <span className="menu-row-emoji" aria-hidden="true">💛</span>
+              <span className="grow">
+                <span className="menu-row-title">Поддержать разработчика</span>
+                <span className="tiny muted">Для родителей · добровольно</span>
+              </span>
+              <span className="menu-row-arrow" aria-hidden="true">›</span>
+            </button>
+
             <div className="menu-list">
               <button
                 type="button"
@@ -543,6 +560,20 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onStartReview, onOpe
                 <span className="menu-row-emoji" aria-hidden="true">👤</span>
                 <span className="grow">
                   <span className="menu-row-title">Сменить ученика</span>
+                </span>
+                <span className="menu-row-arrow" aria-hidden="true">›</span>
+              </button>
+
+              <button
+                type="button"
+                className="menu-row"
+                data-menu="share"
+                onClick={() => openMenuSheet(() => setInviteOpen(true))}
+              >
+                <span className="menu-row-emoji" aria-hidden="true">📤</span>
+                <span className="grow">
+                  <span className="menu-row-title">Поделиться приложением</span>
+                  <span className="tiny muted">QR-код или ссылка</span>
                 </span>
                 <span className="menu-row-arrow" aria-hidden="true">›</span>
               </button>
