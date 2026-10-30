@@ -1,0 +1,204 @@
+{
+  "version": 1,
+  "cell": 256,
+  "profiles": [
+    "chick",
+    "student",
+    "sage",
+    "master"
+  ],
+  "clips": {
+    "idle": {
+      "frames": 16,
+      "grid": [
+        4,
+        4
+      ],
+      "fps": 10,
+      "kind": "circle",
+      "stepDeg": 22.5
+    },
+    "face": {
+      "frames": 4,
+      "grid": [
+        2,
+        2
+      ],
+      "fps": 6,
+      "kind": "faces",
+      "mood": "idle",
+      "angles": [
+        -45,
+        -15,
+        15,
+        45
+      ]
+    },
+    "happy": {
+      "frames": 4,
+      "grid": [
+        2,
+        2
+      ],
+      "fps": 6,
+      "kind": "faces",
+      "mood": "happy",
+      "angles": [
+        -45,
+        -15,
+        15,
+        45
+      ]
+    },
+    "excited": {
+      "frames": 4,
+      "grid": [
+        2,
+        2
+      ],
+      "fps": 6,
+      "kind": "faces",
+      "mood": "excited",
+      "angles": [
+        -45,
+        -15,
+        15,
+        45
+      ]
+    },
+    "sad": {
+      "frames": 4,
+      "grid": [
+        2,
+        2
+      ],
+      "fps": 4,
+      "kind": "faces",
+      "mood": "sad",
+      "angles": [
+        -45,
+        -15,
+        15,
+        45
+      ]
+    },
+    "think": {
+      "frames": 4,
+      "grid": [
+        2,
+        2
+      ],
+      "fps": 4,
+      "kind": "faces",
+      "mood": "think",
+      "angles": [
+        -45,
+        -15,
+        15,
+        45
+      ]
+    },
+    "dance": {
+      "frames": 4,
+      "grid": [
+        2,
+        2
+      ],
+      "fps": 8,
+      "kind": "faces",
+      "mood": "dance",
+      "angles": [
+        -45,
+        -15,
+        15,
+        45
+      ]
+    },
+    "sleep": {
+      "frames": 4,
+      "grid": [
+        2,
+        2
+      ],
+      "fps": 3,
+      "kind": "faces",
+      "mood": "sleep",
+      "angles": [
+        -45,
+        -15,
+        15,
+        45
+      ]
+    },
+    "curious": {
+      "frames": 4,
+      "grid": [
+        2,
+        2
+      ],
+      "fps": 6,
+      "kind": "faces",
+      "mood": "curious",
+      "angles": [
+        -45,
+        -15,
+        15,
+        45
+      ]
+    }
+  },
+  "atlas": {
+    "chick": {
+      "idle": "chick/idle.webp",
+      "face": "chick/face.webp",
+      "happy": "chick/happy.webp",
+      "excited": "chick/excited.webp",
+      "sad": "chick/sad.webp",
+      "think": "chick/think.webp",
+      "dance": "chick/dance.webp",
+      "sleep": "chick/sleep.webp",
+      "curious": "chick/curious.webp"
+    },
+    "student": {
+      "idle": "student/idle.webp",
+      "face": "student/face.webp",
+      "happy": "student/happy.webp",
+      "excited": "student/excited.webp",
+      "sad": "student/sad.webp",
+      "think": "student/think.webp",
+      "dance": "student/dance.webp",
+      "sleep": "student/sleep.webp",
+      "curious": "student/curious.webp"
+    },
+    "sage": {
+      "idle": "sage/idle.webp",
+      "face": "sage/face.webp",
+      "happy": "sage/happy.webp",
+      "excited": "sage/excited.webp",
+      "sad": "sage/sad.webp",
+      "think": "sage/think.webp",
+      "dance": "sage/dance.webp",
+      "sleep": "sage/sleep.webp",
+      "curious": "sage/curious.webp"
+    },
+    "master": {
+      "idle": "master/idle.webp",
+      "face": "master/face.webp",
+      "happy": "master/happy.webp",
+      "excited": "master/excited.webp",
+      "sad": "master/sad.webp",
+      "think": "master/think.webp",
+      "dance": "master/dance.webp",
+      "sleep": "master/sleep.webp",
+      "curious": "master/curious.webp"
+    }
+  },
+  "budgetBytesPerProfile": 500000,
+  "bytesPerProfile": {
+    "chick": 143860,
+    "student": 151972,
+    "sage": 154356,
+    "master": 155668
+  },
+  "totalBytes": 605856
+}

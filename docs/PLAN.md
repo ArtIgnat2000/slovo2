@@ -4959,3 +4959,37 @@ Enter/Пробел), `src/styles/app.css` (`.lesson-task`, `.verdict-bar` и е�
   `git diff --check`.
 * **Заметка:** [`docs/RELEASE-0.87.2.md`](./RELEASE-0.87.2.md).
 * **Дальше:** итерация 3 серии — 3D-пайплайн (`buk-companion-3d.md` §7).
+
+### 103. 3D-пайплайн БУКа: Blender → атласы WebP (версия 0.87.3, 2026-10-30)
+
+* **Итерация 3, этап 1** по `buk-companion-3d.md` §6.3–6.6: единственный
+  источник модели — `scripts/make-buk-art.py` (Blender headless): процедурная
+  low-poly сова < 5 тыс. треугольников, toon-шейдинг Cycles CPU, палитра и
+  морфы повторяют `src/ui/Mascot.tsx` — 4 ступени роста (птенец-пух, ушки,
+  хвост-перья, полоски на груди), 8 mood'ов лицом (белки/зрачки/рот/поворот
+  головы — таблицы из SVG). Кадры на ступень: `idle` 16 углов (шаг 22,5°) +
+  `face`, `happy`, `excited`, `sad`, `think`, `dance`, `sleep`, `curious`
+  × 4 фронта (±45/±15) = 48 (бюджет §6.4). Выход — `images-src/buk/frames`
+  (вне git, как весь images-src).
+* **Сборка `scripts/make-buk-3d.mjs`** (в `npm run buk:art` цепочкой после
+  рендера): montage+convert → `public/buk3d/<ступень>/<клип>.webp` (ячейка
+  256, quality 80) + `public/buk3d/manifest.json` (клипы, сетки, углы, честные
+  байты). Бюджеты фактические: 140/148/151/152 кБ на ступень ≤ 500 кБ, всего
+  592 кБ на четыре ступени.
+* **Вне precache** (§6.4): `globIgnores` в vite.config.ts + `buk3d/**` —
+  в `dist/sw.js` файла нет (проверено); runtime-кэш `slovo2-buk3d` подключит
+  плеер на этапе 2.
+* **Контролька `npm run buk:check`** (по образцу `audio:check`): реестр
+  клипов спеки в манифесте, габариты WebP = сетке, честность `bytesPerProfile`,
+  бюджет 500 кБ на ступень, precache-гард по тексту vite.config.ts.
+* **Проверки:** `tests/buk-3d.test.ts` в адаптивном контуре (манифест цел,
+  ровно 48 кадров, атласы на диске, бюджеты, `buk3d` в globIgnores). Контур
+  зелёный: `typecheck`, `content:check`, `test:adaptive`, `test:smoke`,
+  `build`, `buk:check`.
+* **Окружение песочницы:** bpy 5.0.1 подняли без системных X/GL-либ —
+  пустышечные `.so` в `LD_LIBRARY_PATH` и 48 заглушечных символов (glX*/Xi/
+  xkbcommon), отрендерено 192 кадра за 3,7 мин. Скрипт к окружению не
+  привязан: CI берёт готовые атласы (§6.7), рендер только локальный.
+* **Заметка:** [`docs/RELEASE-0.87.3.md`](./RELEASE-0.87.3.md).
+* **Дальше:** этап 2 — `ui/Buk3D.tsx` (canvas-плеер, инерция и кувырок,
+  кэш `slovo2-buk3d`, замена маскота на главной и в магазине).

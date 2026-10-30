@@ -104,7 +104,10 @@ export default defineConfig(({ command }) => ({
         // тоже вне precache — их открывают только те, кто зашёл внутрь базы.
         // Первый просмотр кладёт файл в кэш `slovo2-base-tours`, дальше он
         // работает офлайн.
-        globIgnores: ['docs/**', 'naash/**', 'base-tours/**'],
+        // 0.87.3: атласы 3D-БУКа (public/buk3d, до 500 кБ на ступень) — вне
+        // precache по §6.4 спеки: кладутся в runtime-кэш `slovo2-buk3d` при
+        // первом открытии экрана с плеером. Проверяет `npm run buk:check`.
+        globIgnores: ['docs/**', 'naash/**', 'base-tours/**', 'buk3d/**'],
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,
         // Остальная музыка (покупки, прослушивание): первый запрос кладёт файл

@@ -1,6 +1,6 @@
 {
   "name": "slovo2",
-  "version": "0.87.2",
+  "version": "0.87.3",
   "private": true,
   "description": "СЛОВО 2.0 — словарные слова 1–4 класса. Mobile-first офлайн PWA.",
   "type": "module",
@@ -25,6 +25,7 @@
     "images": "node scripts/make-word-images.mjs",
     "images:report": "node scripts/image-coverage.mjs",
     "chests:art": "node scripts/process-chest-art.mjs",
+    "buk:art": "python3 scripts/make-buk-art.py && node scripts/make-buk-3d.mjs",
     "cars:art": "node scripts/make-car-images.mjs",
     "promo": "OUT_DIR=docs/promo/$(date +%F) node scripts/promo/make_costumes.mjs",
     "test:adaptive": "node scripts/adaptive-test.mjs",
@@ -34,6 +35,7 @@
     "naash:art": "node scripts/make-naash-gallery.mjs",
     "merch:preview": "node scripts/merch-preview.mjs 4173",
     "audio:check": "node scripts/check-audio.mjs",
+    "buk:check": "node scripts/buk3d-check.mjs",
     "music:fetch": "node scripts/fetch-music.mjs",
     "server:start": "node --disable-warning=ExperimentalWarning server/src/main.mjs",
     "server:test": "node --disable-warning=ExperimentalWarning --test server/test/*.test.mjs",
