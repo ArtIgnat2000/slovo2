@@ -1565,11 +1565,12 @@ async function main() {
 
   await openHomeMenu();
   click(document.querySelector('[data-menu="support"]'));
-  await sleep(60);
+  await sleep(80);
   check(
-    'поддержка из меню сначала ведёт через экран для взрослых',
-    has('Раздел для взрослых') && !document.querySelector('.home-menu'),
-    body().slice(0, 180),
+    'донат из меню сразу открывает раздел для родителей с раскрытым QR',
+    !document.querySelector('.home-menu') && !!document.querySelector('.parent-screen') &&
+      !!document.querySelector('.support-developer[open] .support-developer-qr'),
+    document.querySelector('.support-developer')?.outerHTML.slice(0, 240) ?? body().slice(0, 180),
   );
   click(buttons().find((b) => (b.textContent ?? '').includes('Уроки') && b.className.includes('tab')));
   await sleep(60);

@@ -101,6 +101,8 @@ export default function App() {
   };
   const [profilesOpen, setProfilesOpen] = useState(false);
   const [parentUnlocked, setParentUnlocked] = useState(false);
+  /** Одноразовый запрос: после взрослой проверки раскрыть блок QR доната. */
+  const [supportAutoOpen, setSupportAutoOpen] = useState(false);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(diagnosticsRequested);
   // Из установленного ярлыка нет адресной строки. После проверки темы
   // возвращаем взрослого в тот же раздел, откуда он открыл диагностику.
@@ -308,6 +310,7 @@ export default function App() {
     if (next !== 'parent') {
       setParentUnlocked(false);
       setParentReturnTab('overview');
+      setSupportAutoOpen(false);
     }
     setTab(next);
   };
@@ -411,8 +414,9 @@ export default function App() {
           onStartLesson={startLesson}
           onOpenProfiles={() => setProfilesOpen(true)}
           onOpenSupport={() => {
-            // Поддержка — внешнее добровольное действие: не заставляем взрослого
-            // проходить общий замок, а сразу показываем QR и ссылку на перевод.
+            setSupportAutoOpen(true);
+            // Поддержка — добровольное внешнее действие: открываем QR сразу,
+            // не оставляя человека на отдельном шаге взрослого раздела.
             setParentUnlocked(true);
             setParentReturnTab('overview');
             switchTab('parent');
@@ -444,6 +448,8 @@ export default function App() {
           }}
           unlocked={parentUnlocked}
           onUnlock={() => setParentUnlocked(true)}
+          supportAutoOpen={supportAutoOpen}
+          onSupportAutoOpened={() => setSupportAutoOpen(false)}
           initialTab={parentReturnTab}
           onOpenDiagnostics={(section) => {
             setParentReturnTab(section);
