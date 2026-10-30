@@ -9252,6 +9252,27 @@ img.product-photo {
   max-width: 100%;
   white-space: normal;
 }
+/* ── Дуга в тёмной Maybach-теме (0.87.2) ────────────────────────────────────
+   Плашки дверей шли токеном --card — тем же материалом, что карточки уроков
+   на главной: в тёмной теме подписи и кружки сливались с контентом под дугой
+   (скриншот 2026-10-30, решение согласовано выбором «шампань-кромка +
+   обсидиан»). Теперь плашка обсидиановая (фон глубже карточек), кромка —
+   шампань (--primary-ink, читается на любом тёмном), а подложка дуги
+   плотнее — дуга выглядит отдельным слоем. Светлая тема не меняется. */
+:root[data-theme='dark'] .buk-hub-veil {
+  background: rgb(0 0 0 / 0.3);
+}
+:root[data-theme='dark'] .buk-door-emoji {
+  background: var(--bg);
+  border-color: var(--primary-ink);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.55);
+}
+:root[data-theme='dark'] .buk-door-label {
+  background: var(--bg);
+  border-color: var(--primary-ink);
+  color: var(--ink);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.5);
+}
 .buk-door:active .buk-door-emoji {
   transform: scale(0.92);
 }

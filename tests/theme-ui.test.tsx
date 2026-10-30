@@ -102,6 +102,31 @@ export async function runThemeChecks(): Promise<void> {
   const appCss = readFileSync('src/styles/app.css', 'utf8');
   check('Maybach: кнопки вне магазина не сохраняют фиолетовую тень', !appCss.includes('#5b3ede') && appCss.includes('var(--primary-depth)'));
 
+  // Дуга БУКа в тёмной теме: плашки дверей не карточный цвет, а обсидиан с
+  // шампань-кромкой — иначе подписи сливаются с карточками уроков (0.87.2,
+  // скриншот 2026-10-30). Тоже читаем текстом: jsdom не рисует CSS.
+  const darkHub = appCss.match(/:root\[data-theme='dark'\] \.buk-door-label \{([^}]+)\}/)?.[1] ?? '';
+  const darkEmoji = appCss.match(/:root\[data-theme='dark'\] \.buk-door-emoji \{([^}]+)\}/)?.[1] ?? '';
+  const darkVeil = appCss.match(/:root\[data-theme='dark'\] \.buk-hub-veil \{([^}]+)\}/)?.[1] ?? '';
+  check(
+    'Дуга в тёмной: подпись — обсидиан с шампань-кромкой, не карточный цвет',
+    darkHub.includes('background: var(--bg)') &&
+      darkHub.includes('border-color: var(--primary-ink)') &&
+      darkHub.includes('color: var(--ink)') &&
+      !darkHub.includes('var(--card)'),
+    darkHub.trim() || 'правило не найдено',
+  );
+  check(
+    'Дуга в тёмной: кружок эмодзи — та же обсидиан-кромка',
+    darkEmoji.includes('background: var(--bg)') && darkEmoji.includes('border-color: var(--primary-ink)'),
+    darkEmoji.trim() || 'правило не найдено',
+  );
+  check(
+    'Дуга в тёмной: подложка плотнее (0.30 против 0.16 в светлой)',
+    darkVeil.includes('rgb(0 0 0 / 0.3)'),
+    darkVeil.trim() || 'правило не найдено',
+  );
+
   // ── 2. Настройка после загрузки и при переключении ──────────────────────
   applyTheme('light');
   check(
