@@ -34,6 +34,7 @@ import { CarTour, CAR_TOUR_IDS, warmCarTour } from '../CarTour';
 import { TechTour, isTechTourItem, warmTechTour } from '../TechTour';
 import { DigitalCover } from '../DigitalCover';
 import { hasProductPhoto, warmProductPhoto } from '../ProductPhoto';
+import { hasOutfitPair, OutfitPhoto, OutfitPhotoTour, warmOutfitPair } from '../PhotoPair';
 import { carAlt, carKind, carNote, hasCarArt } from '../CarArt';
 import { hasShipArt, shipAlt, shipKind, shipNote } from '../ShipArt';
 import { WorldScreen } from './WorldScreen';
@@ -140,9 +141,13 @@ type Detail =
  * накладывать на него «цветной карандаш» нельзя (закрасится весь снимок),
  * поэтому у фотографий палитра не показывается. Векторные вещи красятся,
  * как раньше. Правило одно на весь магазин.
+ *
+ * 0.89.0: наряд с фотопарой — тоже фото (снимок в нише и в листе), поэтому
+ * палитра у него скрыта. Иначе ребёнок платил бы 1 💎 за оттенок, которого
+ * на снимке не видно.
  */
 function supportsTint(id: string): boolean {
-  return !!TINT_PALETTES[id] && !hasProductPhoto(id);
+  return !!TINT_PALETTES[id] && !hasProductPhoto(id) && !hasOutfitPair(id);
 }
 
 /** Все витрины показывают более доступные покупки раньше дорогих. */
@@ -447,6 +452,7 @@ export function ShopScreen({
       warmProductPhoto(detail.item.id);
       warmCarTour(detail.item.id);
       warmTechTour(detail.item.id);
+      warmOutfitPair(detail.item.id);
     } else if (detail.kind === 'building') {
       warmBaseTour(detail.building.id);
     }
@@ -704,10 +710,15 @@ export function ShopScreen({
     return (
       <ShopCard
         key={item.id}
-        photo={hasProductPhoto(item.id)}
+        // 0.89.0: у наряда с фотопарой в нише — студийный снимок. Сова в вещи
+        // остаётся для вещей без пары (и на примерке в листе): на 96 px очки
+        // или брошь на сове почти не читались, и вещь выглядела отсутствующей.
+        photo={hasProductPhoto(item.id) || hasOutfitPair(item.id)}
         art={
           toy ? (
             <ToyArt id={item.id} interactive size={148} tuning={profile.shop?.tuning} alt="" />
+          ) : hasOutfitPair(item.id) ? (
+            <OutfitPhoto key={item.id} id={item.id} alt="" />
           ) : (
             <Mascot mood="idle" look={{ [item.slot]: item.id }} stage={growth.index} size={96} />
           )
@@ -1037,9 +1048,11 @@ export function ShopScreen({
         : hasShipArt(item.id)
           ? shipAlt(item.id, item.title)
           : `${item.title} — техника БУКа`;
+      /** Подпись для кадров наряда: там нет ни машины, ни корабля — только вещь. */
+      const altFor = (it: ShopItem) => `${it.title} — фото товара`;
       return (
         <>
-          <div className={`shop-bigart${toy ? ' shop-bigart-toy' : ''}`}>
+          <div className={`shop-bigart${toy ? ' shop-bigart-toy' : ''}${!toy && hasOutfitPair(item.id) ? ' shop-bigart-photo' : ''}`}>
             {toy ? (
               // Техника в подробной карточке — сам товар крупным планом.
               // Машины листаются в CarTour, телефоны/корабли/самолёты — в TechTour;
@@ -1053,6 +1066,11 @@ export function ShopScreen({
                 tuning={profile.shop?.tuning}
                 alt={artAlt}
               />
+            ) : hasOutfitPair(item.id) ? (
+              // 0.89.0: у наряда с фотосерией в листе — два кадра вместо крупной
+              // совы. Сова в вещи осталась на примерке ниже и в гардеробе:
+              // здесь ребёнок пришёл рассмотреть саму вещь.
+              <OutfitPhotoTour key={item.id} id={item.id} alt={altFor(item)} />
             ) : (
               <Mascot mood="happy" look={{ [item.slot]: item.id }} costumeId={null} stage={growth.index} size={150} />
             )}

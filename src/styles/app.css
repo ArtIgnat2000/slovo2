@@ -9676,6 +9676,50 @@ img.product-photo {
   .tech-tour-caption { padding-top: 6px; }
 }
 
+/* ── Пара кадров наряда (0.89.0) ────────────────────────────────────────────
+   В листе товара у наряда с фотосерией вместо крупной совы — два студийных
+   кадра: главный и второй ракурс. Раскладка и жест те же, что у .tech-tour
+   (тап по кадру переключает), но фон нейтральный: снимки уже со своим серым
+   задником, и мятная арка витрины рядом с ними выглядела бы чужой. */
+.shop-bigart-photo {
+  padding: 10px 10px 8px;
+  background: linear-gradient(160deg, #efece7, #dfdad3 62%, #eae6e0);
+  box-shadow: inset 0 0 0 1px rgba(65, 57, 48, .12);
+}
+.photo-tour { position: relative; z-index: 2; width: 100%; }
+.photo-tour-stage {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 180px;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  border-radius: 14px;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.photo-tour-stage:focus-visible { outline: 3px solid #0f4ca0; outline-offset: 4px; }
+.photo-tour-stage > .photo-tour-photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: min(52dvh, 440px);
+  object-fit: contain;
+  border-radius: 12px;
+  animation: tech-photo-reveal .36s cubic-bezier(.2,.8,.25,1) both;
+}
+.photo-tour-caption { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 2px 1px; color: #25231f; font-size: 12px; font-weight: 750; letter-spacing: .01em; }
+.photo-tour-count { color: #5f5a52; font-variant-numeric: tabular-nums; font-size: 11px; }
+.photo-tour-progress { height: 3px; overflow: hidden; border-radius: 99px; background: rgba(45, 39, 32, .14); }
+.photo-tour-progress > i { display: block; height: 100%; border-radius: inherit; background: #0f4ca0; transition: width .24s ease; }
+@media (prefers-reduced-motion: reduce) {
+  .photo-tour-stage > .photo-tour-photo { animation: none !important; }
+  .photo-tour-progress > i { transition: none !important; }
+}
+
 /* ── Чат «Спроси БУКа» (0.87.0) ─────────────────────────────────────────────
    Полноэкранный оверлей с чипами и опциональной печатью. Слой 95: выше хаба
    (≤30), шторок и листов (40–90), ниже церемоний сундуков (100) — тосты и

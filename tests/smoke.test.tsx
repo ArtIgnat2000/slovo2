@@ -567,6 +567,36 @@ async function main() {
     pricesAscending('.shop-item', outfitShelves[0]),
     Array.from(outfitShelves[0]?.querySelectorAll('.shop-title') ?? []).map((el) => el.textContent).join(' → '),
   );
+  // 0.89.0: фотосерия нарядов подключена к витрине. В нише карточки — сам
+  // предмет (раньше сова в вещи на 96 px, по которой очки и брошь не узнать),
+  // в листе — пара кадров с переключением по тапу (жалоба «не нашёл фото»).
+  const crownCard = Array.from(document.querySelectorAll('.shop-item')).find((el) => (el.textContent ?? '').includes('Корона'));
+  check(
+    'наряд с фотопарой показывает в нише студийный снимок',
+    !!crownCard?.querySelector('.shop-case-photo img[src*="products/crown.webp"]'),
+    crownCard?.querySelector('.shop-case img')?.getAttribute('src') ?? 'нет снимка',
+  );
+  click(crownCard);
+  await sleep(60);
+  check(
+    'в листе наряда — пара кадров: главный и второй ракурс',
+    document.querySelectorAll('.photo-tour').length === 1 &&
+      (document.querySelector('.photo-tour img')?.getAttribute('src') ?? '').includes('products/crown.webp') &&
+      (document.querySelector('.photo-tour-caption')?.textContent ?? '').includes('1 / 2'),
+    document.querySelector('.photo-tour-caption')?.textContent ?? 'пары нет',
+  );
+  click(document.querySelector('.photo-tour-stage'));
+  await sleep(40);
+  check(
+    'тап по кадру переключает на второй ракурс пары',
+    (document.querySelector('.photo-tour img')?.getAttribute('src') ?? '').includes('products/gallery/crown-alt.webp') &&
+      (document.querySelector('.photo-tour-caption')?.textContent ?? '').includes('2 / 2'),
+    document.querySelector('.photo-tour-caption')?.textContent ?? '--',
+  );
+  click(document.querySelector('.shop-sheet-veil'));
+  await sleep(40);
+  check('лист наряда закрывается тапом по затемнению', !document.querySelector('.photo-tour'), '');
+
   check(
     'полки — чипами, «Звуки» уже открыты',
     has('Костюмы') && has('Музыка') && !!Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Звуки') && !c.hasAttribute('disabled')) && !has('скоро'),
@@ -1240,9 +1270,18 @@ async function main() {
     // ── Тюнинг цвета купленной вещи: 1 💎 за оттенок, дальше бесплатно ────────
     // Палитра живёт в подробной карточке (sheet), а не на витрине:
     // сначала вещь — потом краски.
-    const ownedIds = useApp.getState().profiles[0].shop?.owned ?? [];
-    const itemId = ownedIds[0];
-    const itemTitle = ITEM_BY_ID[itemId].title;
+    // 0.89.0: у наряда с фотопарой палитры нет (снимок не перекрасить), поэтому
+    // краски проверяем на вещи без фото — платье. Владеем им принудительно:
+    // покупку выше делает самый дешёвый наряд, а он теперь с фотопарой.
+    const tintItem = ITEM_BY_ID['dress-pink'];
+    useApp.setState((s) => ({
+      profiles: s.profiles.map((p) => (p.id === s.activeId
+        ? { ...p, shop: { ...p.shop!, owned: [...p.shop!.owned, tintItem.id] } }
+        : p)),
+    }));
+    await sleep(40);
+    const itemId = tintItem.id;
+    const itemTitle = tintItem.title;
     const paids = () => Array.from(document.querySelectorAll('.tint-swatch')) as HTMLButtonElement[];
     const cardSvg = () =>
       Array.from(document.querySelectorAll('.shop-item'))
@@ -1254,8 +1293,8 @@ async function main() {
     const closeSheet = () => {
       document.querySelector('.shop-sheet-veil')?.click();
     };
-    // У некупленной вещи палитры нет даже в sheet
-    click(vitrinaCard('Шарфик')!);
+    // У некупленной вещи палитры нет даже в sheet (платье со звёздами не куплено)
+    click(vitrinaCard('Платье со звёздами')!);
     await sleep(30);
     check('тюнинг: у некупленной вещи палитры нет', !buttons().some((b) => (b.textContent ?? '').includes('🎨 Цвет')), '');
     closeSheet();
