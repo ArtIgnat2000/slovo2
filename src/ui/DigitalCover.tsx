@@ -701,7 +701,7 @@ function NoteShape({ x, y, size, rotate, opacity, pair, fill = 'hsl(42 46% 97%)'
   );
 }
 
-export function MusicArt({ track, id }: { track: MusicTrack; id: string }) {
+export function MusicArt({ track, id, variant = 'full' }: { track: MusicTrack; id: string; variant?: DigitalCoverVariant }) {
   const scene = useMemo(() => musicScene(id, track.shelf), [id, track.shelf]);
   const ink = 'hsl(210 30% 16%)';
   const paper = 'hsl(42 46% 97%)';
@@ -710,7 +710,7 @@ export function MusicArt({ track, id }: { track: MusicTrack; id: string }) {
       <svg
         className="dc-art-svg"
         viewBox="0 0 100 100"
-        preserveAspectRatio="xMidYMid slice"
+        preserveAspectRatio="xMidYMax slice"
         role="img"
         aria-label={`Иллюстрация к мелодии «${track.title}»: ${scene.bunting ? 'тёплый вечер' : 'тихое утро'}, холмы, вода и ноты`}
       >
@@ -787,7 +787,12 @@ export function MusicArt({ track, id }: { track: MusicTrack; id: string }) {
         {/* Предмет мелодии — по названию трека (см. MUSIC_MOTIFS). */}
         <TrackMotif motif={scene.motif} accent={scene.bunting ? 'hsl(4 70% 60%)' : 'hsl(36 86% 60%)'} />
       </svg>
-      <span className="dc-art-imprint">Иллюстрация · {SHELF_LABEL[track.shelf]}</span>
+      {variant === 'full' && (
+        <>
+          <span className="dc-art-imprint">Иллюстрация · {SHELF_LABEL[track.shelf]}</span>
+          <span className="dc-art-title">{track.title}</span>
+        </>
+      )}
     </div>
   );
 }
@@ -847,8 +852,13 @@ export function DigitalCover({
 }: DigitalCoverProps) {
   const id = track?.id ?? pack?.id ?? '';
   const flip = interactive ?? variant === 'full';
-  const [side, setSide] = useState<DigitalCoverSide>('front');
-  useEffect(() => setSide('front'), [id]);
+  // 0.89.10: у трека первой стороной идёт картинка — дети выбирают музыку
+  // глазами, а не по номеру в серии. Типографика и метаданные остаются, но уже
+  // позади: 1/3 картинка, 2/3 лицо, 3/3 оборот. У набора звуков лицо прежнее:
+  // его «картинка» — это и есть партитура на обороте.
+  const firstSide: DigitalCoverSide = track ? 'art' : 'front';
+  const [side, setSide] = useState<DigitalCoverSide>(firstSide);
+  useEffect(() => setSide(firstSide), [id, firstSide]);
 
   if (!id || (!track && !pack)) return null;
 
@@ -857,17 +867,20 @@ export function DigitalCover({
   const classes = `digital-cover${flip ? ' is-flippable' : ' is-static'}${className ? ` ${className}` : ''}`;
   const front = <Front id={id} track={track} pack={pack} variant={variant} />;
   const back = track ? <TrackBack track={track} id={id} /> : <SoundBack pack={pack!} id={id} />;
-  // У трека сторон три: лицо, иллюстрация и оборот. У набора звуков — две:
-  // его «картинка» это партитура сигналов, отдельная иллюстрация ничего не
-  // добавит к нотам.
-  const sides: DigitalCoverSide[] = track ? ['front', 'art', 'back'] : ['front', 'back'];
+  const sides: DigitalCoverSide[] = track ? ['art', 'front', 'back'] : ['front', 'back'];
   const sideIndex = Math.max(0, sides.indexOf(side));
-  const face = side === 'front' ? front : side === 'art' && track ? <MusicArt track={track} id={id} /> : back;
+  const face =
+    side === 'front'
+      ? front
+      : side === 'art' && track
+        ? <MusicArt track={track} id={id} variant={variant} />
+        : back;
   const faceLabel: Record<DigitalCoverSide, string> = {
+    art: 'Картинка',
     front: 'Лицевая сторона',
-    art: 'Иллюстрация',
     back: 'Оборот',
   };
+  const eq = playing ? <span className="dc-eq"><i /><i /><i /></span> : null;
 
   if (!flip) {
     return (
@@ -877,11 +890,11 @@ export function DigitalCover({
         data-cover={id}
         data-kind={track ? 'track' : 'sound'}
         data-variant={variant}
-        data-side="front"
+        data-side={firstSide}
         aria-hidden="true"
       >
-        {front}
-        {playing && <span className="dc-eq"><i /><i /><i /></span>}
+        {track ? <MusicArt track={track} id={id} variant={variant} /> : front}
+        {eq}
       </div>
     );
   }
@@ -903,10 +916,10 @@ export function DigitalCover({
           className="dc-stage"
           onClick={() => setSide(nextSide)}
           aria-label={`Обложка «${title}»: ${faceLabel[side].toLowerCase()}. Показать ${next}`}
-          aria-pressed={side !== 'front'}
+          aria-pressed={side !== firstSide}
         >
           {face}
-          {playing && side === 'front' && <span className="dc-eq"><i /><i /><i /></span>}
+          {eq}
         </button>
       </div>
       <p className="dc-caption" aria-live="polite">

@@ -87,11 +87,12 @@ export async function runWorldUiChecks() {
   click(buttons().find((b) => (b.getAttribute('aria-label') ?? '').includes(`Увеличить: ${music.title}`)));
   await sleep(30);
   const worldTrackCover = document.querySelector('.collection-detail .dc-frame');
-  check('мир: трек крупно открывается лицевой стороной обложки', worldTrackCover?.getAttribute('data-side') === 'front' && !!worldTrackCover.querySelector('.dc-front'), '');
+  // 0.89.10: у трека первой идёт картинка — в коллекции тоже.
+  check('мир: трек крупно открывается картинкой мелодии', worldTrackCover?.getAttribute('data-side') === 'art' && !!worldTrackCover.querySelector('.dc-art-svg'), worldTrackCover?.getAttribute('data-side') ?? '');
   const worldTrackFlip = worldTrackCover?.querySelector('.dc-stage') as HTMLElement | null;
   if (worldTrackFlip) click(worldTrackFlip);
   await sleep(30);
-  check('мир: вторая сторона обложки — иллюстрация мелодии', worldTrackCover?.getAttribute('data-side') === 'art' && !!worldTrackCover.querySelector('.dc-art-svg'), worldTrackCover?.getAttribute('data-side') ?? '');
+  check('мир: вторая сторона — лицевая сторона с типографикой', worldTrackCover?.getAttribute('data-side') === 'front' && !!worldTrackCover.querySelector('.dc-front'), worldTrackCover?.getAttribute('data-side') ?? '');
   if (worldTrackFlip) click(worldTrackFlip);
   await sleep(30);
   check('мир: оборот обложки показывает метаданные трека', (worldTrackCover?.textContent ?? '').includes(music.isrc) && (worldTrackCover?.textContent ?? '').includes('CC BY 4.0'), worldTrackCover?.textContent ?? '');

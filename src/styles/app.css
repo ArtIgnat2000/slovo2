@@ -8229,6 +8229,23 @@ img.product-photo {
   text-transform: uppercase;
   opacity: .92;
 }
+.dc-art-title {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  left: 10px;
+  z-index: 1;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -.01em;
+  color: hsl(42 46% 97%);
+  text-shadow: 0 1px 6px hsl(212 42% 14% / .6);
+  overflow-wrap: anywhere;
+}
+/* В карточке и меленькой плитке подпись не нужна: название стоит прямо под
+   картинкой, а сцена должна остаться целиком. */
 .digital-cover[data-variant='mini'] .dc-art-imprint { display: none; }
 
 .dc-roll { margin: 0; display: grid; gap: 2px; }
