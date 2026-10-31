@@ -27,11 +27,25 @@ const SIGN_GREEN = '#2E8B45';
 const SIGN_BLUE = '#0F4CA0';
 
 /**
- * Знак школы в упрощении для мелких вещей: крыша, четыре стебля букв НААШ и
- * полка под ними. Буквы здесь не буквы, а вертикали: на кепке шириной 15 px
- * надпись «НААШ» превращается в грязь, а силуэт знака узнаётся сразу.
- * `colored` — знак в цветах школы (для кремовой эмали), иначе одним цветом.
+ * Знак школы — по канону, а не «по мотивам».
+ *
+ * Канон лежит в репозитории: `docs/merch/img/mark-lockups.webp` (чистый знак),
+ * оттуда же `docs/naash/mark-color.png` и `mark-mono.png`. Прочитать его можно
+ * так: крыша двойным скатом с оконцем-полукругом, четыре буквы НААШ (обе «А» —
+ * домики), под ними линейка. Раньше здесь стояло «упрощение до крыши, стеблей
+ * и полки» — на карточке 96 px это читалось, но переставало быть знаком школы
+ * (0.89.6: пользователь справедливо сказал «это не лого, а нечто похожее»).
+ *
+ * Геометрия снята с канона в единицах, где высота букв = 100:
+ *   ширина знака 194.2, высота 193.3, обводка букв 5.4, крыши 7,
+ *   буква 28.5 шириной с шагом 34.9, перекладина на 76 от верха,
+ *   линейка — на 16.1 ниже строки.
+ *
+ * `colored` — знак в цветах школы (кремовая эмаль значка, печать по светлому),
+ * иначе всё одним цветом: вышивка и печать по синему — кремовым.
  */
+const MARK_W = 194.2;
+
 function SchoolMark({
   cx,
   top,
@@ -45,22 +59,26 @@ function SchoolMark({
   ink: string;
   colored?: boolean;
 }) {
-  const k = w / 16;
-  const stems = colored ? [SIGN_RED, SIGN_AMBER, SIGN_GREEN, SIGN_BLUE] : [ink, ink, ink, ink];
+  const k = w / MARK_W;
+  const base = colored ? SIGN_BLUE : ink;
   return (
-    <g transform={`translate(${cx - w / 2} ${top}) scale(${k.toFixed(4)})`}>
-      <path
-        d="M-0.8 3.4 L8 -0.7 L16.8 3.4"
-        fill="none"
-        stroke={ink}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      {stems.map((color, i) => (
-        <rect key={i} x={1.1 + i * 2.95} y="4.4" width="1.5" height="3.8" rx="0.3" fill={color} />
-      ))}
-      <rect x="0.4" y="8.7" width="15.2" height="1.25" rx="0.3" fill={ink} />
+    <g transform={`translate(${(cx - w / 2).toFixed(3)} ${top}) scale(${k.toFixed(5)})`}>
+      <g fill="none" strokeLinecap="round" strokeLinejoin="miter">
+        {/* крыша: внешний и внутренний скаты и оконце */}
+        <path d="M-30.2 -12.4 L66.9 -74.5 L164 -12.4" stroke={base} strokeWidth="7" />
+        <path d="M-9.4 -12.4 L66.9 -61.2 L143.2 -12.4" stroke={base} strokeWidth="7" />
+        <path d="M52 -14 A14.95 14.95 0 0 1 81.9 -14" stroke={base} strokeWidth="5.7" />
+        {/* Н */}
+        <path d="M2.7 0 V100 M25.8 0 V100 M2.7 76 H25.8" stroke={colored ? SIGN_RED : ink} strokeWidth="5.4" />
+        {/* А — домик */}
+        <path d="M35.1 100 L49.35 0 L63.6 100 M35.1 76 H63.6" stroke={colored ? SIGN_AMBER : ink} strokeWidth="5.4" />
+        {/* А — второй домик */}
+        <path d="M70.8 100 L85.05 0 L99.3 100 M70.8 76 H99.3" stroke={colored ? SIGN_GREEN : ink} strokeWidth="5.4" />
+        {/* Ш */}
+        <path d="M108.1 0 V100 M119.65 0 V100 M131.2 0 V100 M108.1 97.3 H131.2" stroke={colored ? SIGN_BLUE : ink} strokeWidth="5.4" />
+        {/* линейка под буквами */}
+        <path d="M0 116.1 H133.9" stroke={base} strokeWidth="5.4" />
+      </g>
     </g>
   );
 }
@@ -141,7 +159,7 @@ export function MascotAccessory({ id, colors }: { id: string; colors?: [string, 
           <path d="M19 26 A31 31 0 0 1 81 26 Q50 8 19 26 Z" fill={dome} />
           <path d="M17 25 Q50 32.5 83 25 L83 29.5 Q50 37 17 29.5 Z" fill={band} />
           <circle cx="50" cy="10.6" r="2.4" fill={band} />
-          <SchoolMark cx={50} top={12} w={15} ink={ink} />
+          <SchoolMark cx={50} top={12} w={14} ink={ink} />
         </g>
       );
     }
