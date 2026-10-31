@@ -64,6 +64,9 @@ export const OUTFIT_PAIRS: Record<string, AlternateShot> = {
   'shoes-sparkle': { path: 'products/gallery/shoes-sparkle-alt.webp', label: 'Сверху: стельки и блёстки' },
   'skates-ice': { path: 'products/gallery/skates-ice-alt.webp', label: 'Сзади: крепление лезвий' },
   'school-pin': { path: 'products/gallery/school-pin-alt.webp', label: 'Оборот: булавка и зажим' },
+  'school-cap': { path: 'products/gallery/school-cap-alt.webp', label: 'Сзади: ремешок и пряжка' },
+  'school-scarf': { path: 'products/gallery/school-scarf-alt.webp', label: 'С изнанки: протяжки и бахрома' },
+  'school-hoodie': { path: 'products/gallery/school-hoodie-alt.webp', label: 'Со спины: капюшон и швы' },
 };
 
 /** Есть ли у наряда пара кадров. Только для вещей со слотом (kind: 'outfit'). */
