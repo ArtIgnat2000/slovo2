@@ -1009,6 +1009,11 @@ async function main() {
     trackCover?.getAttribute('data-side') === 'art' && !!trackCover.querySelector('.dc-art .dc-art-svg') && (document.querySelector('.dc-caption')?.textContent ?? '').includes('2 / 3'),
     trackCover?.getAttribute('data-side') ?? '',
   );
+  check(
+    'картинка соответствует названию: у «Беззаботного дня» — воздушный змей',
+    !!trackCover?.querySelector('.dc-art [data-motif="kite"]'),
+    trackCover?.querySelector('.dc-art [data-motif]')?.getAttribute('data-motif') ?? 'нет мотива',
+  );
   if (coverFlip) click(coverFlip);
   await sleep(40);
   check('третий тап показывает оборот', trackCover?.getAttribute('data-side') === 'back' && !!trackCover.querySelector('.dc-back'), '');
@@ -1127,7 +1132,14 @@ async function main() {
     setTiles.map((tile) => tile.querySelector('.set-part-name')?.textContent ?? '').join(' | '),
   );
   check('база, машина и самолёт показаны снимками', document.querySelectorAll('.set-parts .set-part-photo').length === 3, String(document.querySelectorAll('.set-parts .set-part-photo').length));
-  check('костюм набора показан на БУКе', !!(document.querySelector('.set-part[data-part="costume"]')?.querySelector('.mascot, svg, img')), '');
+  // БУК в плитке — картинка, а не плавающий виджет: проверяем и разметку, и класс,
+  // на который опирается CSS-сброс позиции (`.set-part-art .mascot`).
+  const costumeTile = document.querySelector('.set-parts .set-part[data-part="costume"]');
+  check(
+    'костюм набора показан на БУКе внутри плитки',
+    !!costumeTile?.querySelector('.set-part-art .mascot .buk-stage svg') && (costumeTile?.querySelector('.set-part-name')?.textContent ?? '').length > 2,
+    costumeTile?.querySelector('.set-part-name')?.textContent ?? '',
+  );
   document.querySelector('.shop-sheet-veil')?.click();
   await sleep(30);
 

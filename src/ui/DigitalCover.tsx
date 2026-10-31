@@ -284,6 +284,296 @@ function Front({ id, track, pack, variant }: { id: string; track?: MusicTrack; p
  *  • стиль общий на всю серию: небо, солнце, холмы, деревья и ноты — у всех
  *    треков одна рука, меняются только оттенок, время суток и мотив.
  */
+/**
+ * Мотив сцены — по названию мелодии, а не «просто пейзаж».
+ *
+ * Первая версия третьей стороны рисовала всем трекам один и тот же пейзаж:
+ * пользователь справедливо сказал, что картинка не соответствует названию —
+ * «Лимончик» без лимона и «Утёнок» без утёнка ничего не объясняют. Теперь у
+ * каждой мелодии свой предмет, нарисованный в том же плоском языке, что и
+ * пейзаж: он стоит на переднем плане, а небо, холмы и вода остаются общими,
+ * чтобы серия читалась одной рукой.
+ */
+export type MusicMotifId =
+  | 'kite'
+  | 'rainbow'
+  | 'lemons'
+  | 'house'
+  | 'wallpaper'
+  | 'beetle'
+  | 'monkeys'
+  | 'footprints'
+  | 'duck'
+  | 'alley'
+  | 'calendar'
+  | 'pixels';
+
+export const MUSIC_MOTIFS: Record<string, MusicMotifId> = {
+  carefree: 'kite', // «Беззаботный день» — воздушный змей
+  'life-of-riley': 'rainbow', // «Счастливые деньки» — радуга
+  'easy-lemon': 'lemons', // «Лимончик» — лимоны
+  wholesome: 'house', // «Тёплый дом» — домик с дымком
+  wallpaper: 'wallpaper', // «Тихий ритм» — обои в ромбик
+  'daily-beetle': 'beetle', // «Весёлый жук» — жук
+  'monkeys-spinning-monkeys': 'monkeys', // «Обезьянки» — две обезьянки
+  'sneaky-snitch': 'footprints', // «Шаг на цыпочках» — следы
+  'fluffing-a-duck': 'duck', // «Утёнок» — утёнок
+  'happy-alley': 'alley', // «Весёлый переулок» — два дома и фонарь
+  'cheery-monday': 'calendar', // «Добрый понедельник» — календарь
+  pixelland: 'pixels', // «Пикселяндия» — пиксельный замок
+};
+
+/** Крупные мотивы чуть уменьшаем, мелкие (следы, пиксели) — увеличиваем: на
+ *  обложке 236 px и в карточке списка предмет должен читаться. */
+const MOTIF_SCALE: Partial<Record<MusicMotifId, number>> = {
+  footprints: 1.35,
+  pixels: 1.18,
+  wallpaper: 1.12,
+  monkeys: 1.05,
+};
+
+/** Предмет мелодии: плоские фигуры в тех же цветах, что и пейзаж. */
+function TrackMotif({ motif, accent }: { motif: MusicMotifId; accent: string }) {
+  const paper = 'hsl(42 46% 97%)';
+  const ink = 'hsl(210 34% 18%)';
+  const amber = 'hsl(36 88% 64%)';
+  const leaf = 'hsl(146 38% 46%)';
+  const shapes: Record<MusicMotifId, React.ReactNode> = {
+    // Воздушный змей с хвостом из бантиков.
+    kite: (
+      <>
+        <path d="M-34 6 L-12 -34" stroke={ink} strokeWidth="0.7" opacity="0.55" fill="none" />
+        <g transform="translate(0 -44) rotate(-8)">
+          <path d="M0 -14 L13 0 L0 14 L-13 0 Z" fill={accent} />
+          <path d="M0 -14 L0 14 M-13 0 L13 0" stroke={paper} strokeWidth="0.9" opacity="0.85" />
+          <path d="M0 14 C 8 22, -6 26, 4 34" stroke={ink} strokeWidth="0.7" fill="none" opacity="0.7" />
+          <path d="M2 22 l5 2 -4 4 Z" fill={paper} />
+          <path d="M-2 30 l5 2 -4 4 Z" fill={paper} />
+        </g>
+      </>
+    ),
+    // Радуга над холмом.
+    rainbow: (
+      <>
+        {[
+          ['26', 'hsl(4 72% 62%)'],
+          ['21', amber],
+          ['16', 'hsl(146 42% 50%)'],
+          ['11', 'hsl(203 58% 56%)'],
+        ].map(([r, color]) => (
+          <path key={r} d={`M-${r} -4 A ${r} ${r} 0 0 1 ${r} -4`} stroke={color} strokeWidth="4.2" fill="none" strokeLinecap="round" />
+        ))}
+        <ellipse cx="-29" cy="-2" rx="7" ry="3.4" fill={paper} opacity="0.92" />
+        <ellipse cx="29" cy="-3" rx="6" ry="3" fill={paper} opacity="0.92" />
+      </>
+    ),
+    // Два лимона и половинка с дольками.
+    lemons: (
+      <>
+        <g>
+          <ellipse cx="12" cy="-5" rx="9" ry="6" transform="rotate(-14 12 -5)" fill="hsl(50 92% 64%)" />
+          <path d="M4 -8 C 8 -14, 16 -13, 20 -9" stroke={paper} strokeWidth="1" fill="none" opacity="0.5" />
+          <path d="M22 -9 q4 -4 6 -1 q-3 4 -6 1" fill={leaf} />
+        </g>
+        <g>
+          <ellipse cx="-12" cy="-3" rx="8" ry="5.4" transform="rotate(10 -12 -3)" fill="hsl(50 92% 64%)" />
+          <path d="M-19 -6 q2 -4 7 -3" stroke="hsl(50 60% 88%)" strokeWidth="1" fill="none" opacity="0.8" />
+        </g>
+        <g transform="translate(0 -14)">
+          <circle cx="0" cy="0" r="6.4" fill={paper} />
+          <circle cx="0" cy="0" r="6.4" fill="none" stroke="hsl(50 92% 64%)" strokeWidth="1.4" />
+          <path d="M0 -5.4 V5.4 M-4.9 -2.4 L4.9 2.4 M-4.9 2.4 L4.9 -2.4" stroke="hsl(50 78% 58%)" strokeWidth="0.8" />
+        </g>
+      </>
+    ),
+    // Домик: крыша, светящееся окно, труба с дымком.
+    house: (
+      <>
+        <rect x="4" y="-34" width="5" height="10" fill={accent} />
+        <circle cx="8" cy="-37" r="2" fill={paper} opacity="0.75" />
+        <circle cx="12" cy="-41" r="2.6" fill={paper} opacity="0.55" />
+        <circle cx="17" cy="-45" r="3" fill={paper} opacity="0.38" />
+        <rect x="-13" y="-24" width="26" height="24" fill={paper} />
+        <path d="M-16 -24 L0 -34 L16 -24 Z" fill={accent} />
+        <rect x="-8" y="-17" width="7" height="7" fill={amber} opacity="0.95" />
+        <rect x="3" y="-17" width="7" height="7" fill={amber} opacity="0.95" />
+        <rect x="-3" y="-10" width="7" height="10" fill={ink} opacity="0.8" />
+      </>
+    ),
+    // Рулон обоев в ромбик: полоса и подвёрнутый край.
+    wallpaper: (
+      <>
+        <rect x="-9" y="-36" width="18" height="36" fill={paper} />
+        {[-30, -21, -12, -3].map((y) => (
+          <g key={y}>
+            <path d={`M0 ${y} L4.4 ${y + 4} L0 ${y + 8} L-4.4 ${y + 4} Z`} fill={accent} opacity="0.9" />
+            <circle cx="-6" cy={y + 4} r="1.1" fill={accent} opacity="0.5" />
+            <circle cx="6" cy={y + 4} r="1.1" fill={accent} opacity="0.5" />
+          </g>
+        ))}
+        <path d="M-9 0 C -9 7, 9 7, 9 0 Z" fill={accent} opacity="0.35" />
+      </>
+    ),
+    // Жук: вертикальный панцирь с точками, голова, усики и лапки.
+    beetle: (
+      <>
+        <g stroke={ink} strokeWidth="0.9" fill="none" opacity="0.9" strokeLinecap="round">
+          <path d="M-7 -12 L-15 -15" />
+          <path d="M-7 -8 L-16 -7" />
+          <path d="M-6 -3 L-14 1" />
+          <path d="M7 -12 L15 -15" />
+          <path d="M7 -8 L16 -7" />
+          <path d="M6 -3 L14 1" />
+          <path d="M-2.4 -20 L-5 -25" />
+          <path d="M2.4 -20 L5 -25" />
+        </g>
+        <circle cx="-5.8" cy="-25.6" r="1.1" fill={ink} />
+        <circle cx="5.8" cy="-25.6" r="1.1" fill={ink} />
+        <ellipse cx="0" cy="-8" rx="9" ry="10.5" fill={ink} />
+        <circle cx="0" cy="-20" r="4.6" fill={ink} />
+        <circle cx="-1.6" cy="-21.4" r="0.9" fill={paper} opacity="0.85" />
+        <circle cx="1.6" cy="-21.4" r="0.9" fill={paper} opacity="0.85" />
+        <path d="M0 -18 V2.4" stroke={paper} strokeWidth="0.9" opacity="0.6" />
+        <circle cx="-4.4" cy="-12" r="1.5" fill={paper} opacity="0.92" />
+        <circle cx="4.4" cy="-12" r="1.5" fill={paper} opacity="0.92" />
+        <circle cx="-4.4" cy="-5" r="1.3" fill={paper} opacity="0.8" />
+        <circle cx="4.4" cy="-5" r="1.3" fill={paper} opacity="0.8" />
+      </>
+    ),
+    // Две обезьянки: круглые уши, светлая мордочка.
+    monkeys: (
+      <>
+        <g transform="translate(-10 -13)">
+          <circle cx="-7.4" cy="0" r="3" fill={paper} />
+          <circle cx="7.4" cy="0" r="3" fill={paper} />
+          <circle cx="0" cy="0" r="7" fill={paper} />
+          <ellipse cx="0" cy="2.6" rx="4.6" ry="3.6" fill="hsl(30 52% 78%)" />
+          <circle cx="-2.6" cy="-1.6" r="1" fill={ink} />
+          <circle cx="2.6" cy="-1.6" r="1" fill={ink} />
+          <path d="M-2 3.6 q2 2 4 0" stroke={ink} strokeWidth="0.7" fill="none" />
+        </g>
+        <g transform="translate(11 -17) scale(0.82)">
+          <circle cx="-7.4" cy="0" r="3" fill={paper} />
+          <circle cx="7.4" cy="0" r="3" fill={paper} />
+          <circle cx="0" cy="0" r="7" fill={paper} />
+          <ellipse cx="0" cy="2.6" rx="4.6" ry="3.6" fill="hsl(30 52% 78%)" />
+          <circle cx="-2.6" cy="-1.6" r="1" fill={ink} />
+          <circle cx="2.6" cy="-1.6" r="1" fill={ink} />
+          <path d="M-2 3.6 q2 2 4 0" stroke={ink} strokeWidth="0.7" fill="none" />
+        </g>
+      </>
+    ),
+    // Следы на цыпочках: печати поднимаются вверх по склону.
+    footprints: (
+      <>
+        {[0, 1, 2, 3, 4, 5].map((index) => {
+          const side = index % 2 === 0 ? -1 : 1;
+          const x = -20 + index * 8;
+          const y = -index * 2.6;
+          const scale = 1 - index * 0.07;
+          return (
+            <g key={index} transform={`translate(${x} ${y}) scale(${scale}) rotate(${side * 12})`} opacity={0.98 - index * 0.05}>
+              <ellipse cx="0" cy="0" rx="2.5" ry="3.4" fill={paper} />
+              <circle cx="-1.6" cy="-4" r="0.9" fill={paper} />
+              <circle cx="0" cy="-4.7" r="0.9" fill={paper} />
+              <circle cx="1.6" cy="-4" r="0.9" fill={paper} />
+            </g>
+          );
+        })}
+      </>
+    ),
+    // Утёнок: тело, голова, клюв и лапки.
+    duck: (
+      <>
+        <g stroke={ink} strokeWidth="0.9" fill="none" opacity="0.75">
+          <path d="M-4 0 v4 M4 0 v4 M-6 4 h4 M2 4 h4" />
+        </g>
+        <ellipse cx="0" cy="-8" rx="12" ry="8" fill={paper} />
+        <path d="M11 -11 q6 2 4 6 q-3 1 -5 -2 Z" fill={paper} />
+        <circle cx="-8" cy="-19" r="6.2" fill={paper} />
+        <path d="M-14 -19 L-21 -17 L-14 -15 Z" fill={amber} />
+        <circle cx="-9.6" cy="-21" r="1" fill={ink} />
+        <path d="M-2 -9 q7 1 8 -4" stroke="hsl(30 40% 82%)" strokeWidth="1.5" fill="none" />
+      </>
+    ),
+    // Переулок: два дома по сторонам и фонарь между ними.
+    alley: (
+      <>
+        <rect x="-27" y="-18" width="14" height="18" fill={paper} />
+        <path d="M-29 -18 L-20 -25 L-11 -18 Z" fill={accent} />
+        <rect x="-24" y="-13" width="4" height="5" fill={amber} />
+        <rect x="-19" y="-13" width="4" height="5" fill={amber} />
+        <rect x="9" y="-22" width="15" height="22" fill={paper} />
+        <path d="M7 -22 L16.5 -30 L26 -22 Z" fill={accent} />
+        <rect x="12" y="-17" width="4.5" height="5.5" fill={amber} />
+        <rect x="18" y="-17" width="4.5" height="5.5" fill={amber} />
+        <rect x="14" y="-8" width="5" height="8" fill={ink} opacity="0.75" />
+        <path d="M-8 0 C -3 -6, 3 -6, 8 0 Z" fill={paper} opacity="0.55" />
+        <rect x="-1.2" y="-30" width="2.4" height="30" fill={ink} opacity="0.8" />
+        <circle cx="0" cy="-32" r="4.4" fill={amber} />
+        <circle cx="0" cy="-32" r="7.6" fill={amber} opacity="0.22" />
+      </>
+    ),
+    // Календарь: страница с кольцами и одна отмеченная клетка.
+    calendar: (
+      <>
+        <circle cx="14" cy="-36" r="8" fill={amber} opacity="0.85" />
+        <rect x="-12" y="-26" width="24" height="26" rx="2.4" fill={paper} />
+        <rect x="-12" y="-26" width="24" height="6.4" rx="2.4" fill={accent} />
+        <rect x="-6" y="-29" width="2" height="5" rx="1" fill={ink} opacity="0.8" />
+        <rect x="4" y="-29" width="2" height="5" rx="1" fill={ink} opacity="0.8" />
+        {[0, 1, 2].map((row) =>
+          [0, 1, 2].map((col) => (
+            <rect
+              key={`${row}${col}`}
+              x={-8 + col * 6}
+              y={-16 + row * 5}
+              width="3.6"
+              height="3.6"
+              rx="0.8"
+              fill={row === 0 && col === 0 ? accent : ink}
+              opacity={row === 0 && col === 0 ? 1 : 0.35}
+            />
+          )),
+        )}
+      </>
+    ),
+    // Пикселяндия: замок из блоков и пиксельные облака.
+    pixels: (
+      <>
+        {[
+          [-34, -30],
+          [-30, -30],
+          [-26, -30],
+          [-30, -34],
+          [24, -36],
+          [28, -36],
+          [32, -36],
+          [28, -40],
+        ].map(([x, y], index) => (
+          <rect key={index} x={x} y={y} width="4" height="4" fill={paper} opacity="0.78" />
+        ))}
+        <rect x="-18" y="-10" width="36" height="10" fill={accent} />
+        <rect x="-18" y="-18" width="8" height="8" fill={accent} />
+        <rect x="10" y="-18" width="8" height="8" fill={accent} />
+        <rect x="-6" y="-22" width="12" height="12" fill={accent} />
+        <rect x="-18" y="-22" width="4" height="4" fill={accent} />
+        <rect x="14" y="-22" width="4" height="4" fill={accent} />
+        <rect x="-4" y="-4" width="8" height="4" fill="hsl(210 34% 18%)" opacity="0.55" />
+        <rect x="-1" y="-12" width="2" height="2.4" fill={paper} />
+        <rect x="-14" y="-14" width="2.4" height="2.4" fill={paper} />
+        <rect x="12" y="-14" width="2.4" height="2.4" fill={paper} />
+      </>
+    ),
+  };
+  const scale = MOTIF_SCALE[motif] ?? 1;
+  return (
+    <g data-motif={motif} transform={`translate(50 86) scale(${scale})`}>
+      {shapes[motif]}
+    </g>
+  );
+}
+
 type MusicScene = {
   skyTop: string;
   skyBottom: string;
@@ -304,6 +594,7 @@ type MusicScene = {
   stars: Array<{ x: number; y: number; r: number; o: number }>;
   notes: Array<{ x: number; y: number; size: number; rotate: number; o: number; pair: boolean }>;
   bunting: boolean;
+  motif: MusicMotifId;
 };
 
 /**
@@ -353,13 +644,14 @@ function musicScene(id: string, shelf: MusicTrack['shelf']): MusicScene {
     r: 0.5 + random() * 0.9,
     c: ['hsl(4 74% 64%)', 'hsl(196 64% 54%)', 'hsl(46 92% 86%)'][Math.floor(random() * 3)],
   })) : [];
-  const trees = Array.from({ length: 4 + Math.floor(random() * 3) }, (_, index) => ({
-    x: 6 + ((index + random()) / 7) * 90,
+  const edge = (value: number) => (random() > 0.5 ? 4 + value * 22 : 74 + value * 22);
+  const trees = Array.from({ length: 4 + Math.floor(random() * 3) }, () => ({
+    x: edge(random() / 1.4),
     y: 79 + random() * 10,
     size: 4.5 + random() * 5.5,
   }));
   const bushes = Array.from({ length: 3 + Math.floor(random() * 3) }, () => ({
-    x: 8 + random() * 84,
+    x: edge(random()),
     y: 92 + random() * 7,
     r: 2.4 + random() * 2.6,
   }));
@@ -376,15 +668,15 @@ function musicScene(id: string, shelf: MusicTrack['shelf']): MusicScene {
         r: 0.4 + random() * 0.8,
         o: 0.35 + random() * 0.5,
       }));
-  const notes = Array.from({ length: 5 + Math.floor(random() * 3) }, () => ({
+  const notes = Array.from({ length: 3 + Math.floor(random() * 2) }, () => ({
     x: 10 + random() * 80,
-    y: 22 + random() * 50,
+    y: 16 + random() * 24,
     size: 3.4 + random() * 3.2,
     rotate: -16 + random() * 32,
     o: 0.55 + random() * 0.35,
     pair: random() > 0.55,
   }));
-  return { skyTop, skyBottom, far, mid, near, water, sunX, sunY, sunR, hills, river, clouds, confetti, trees, bushes, grass, stars, notes, bunting: fun };
+  return { skyTop, skyBottom, far, mid, near, water, sunX, sunY, sunR, hills, river, clouds, confetti, trees, bushes, grass, stars, notes, bunting: fun, motif: MUSIC_MOTIFS[id] ?? 'notes' };
 }
 
 /** Нота вектором: головка, штиль и флажок. Никакого шрифта — значит, всегда
@@ -492,11 +784,8 @@ export function MusicArt({ track, id }: { track: MusicTrack; id: string }) {
             opacity="0.55"
           />
         ))}
-        {/* Знак мелодии: нота вектором, а не эмодзи — шрифт с эмодзи есть не
-            везде, а пустой кружок вместо символа выглядел бы браком. */}
-        <circle cx={17} cy={83} r={9.6} fill={paper} opacity="0.97" />
-        <circle cx={17} cy={83} r={9.6} fill="none" stroke="hsl(38 44% 74%)" strokeWidth="0.8" opacity="0.9" />
-        <NoteShape x={14.4} y={86} size={7.4} rotate={-6} opacity={1} pair={true} fill="hsl(210 34% 22%)" />
+        {/* Предмет мелодии — по названию трека (см. MUSIC_MOTIFS). */}
+        <TrackMotif motif={scene.motif} accent={scene.bunting ? 'hsl(4 70% 60%)' : 'hsl(36 86% 60%)'} />
       </svg>
       <span className="dc-art-imprint">Иллюстрация · {SHELF_LABEL[track.shelf]}</span>
     </div>

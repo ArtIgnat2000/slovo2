@@ -8936,7 +8936,22 @@ img.product-photo {
   background: #e6e1d7;
 }
 .set-part-photo { width: 100%; height: 100%; object-fit: contain; }
-.set-part-mascot { width: 92%; height: 100%; }
+/* БУК — плавающий элемент (`.mascot` по умолчанию `position: fixed`), в плитке
+   он улетал в угол экрана, и костюм выглядел пустой картинкой. Снимаем позицию,
+   z-index и анимацию, как это уже сделано для карточек магазина. */
+.set-part-art .mascot {
+  position: static;
+  inset: auto;
+  z-index: auto;
+  margin: 0;
+  animation: none;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+.set-part-art .mascot > .buk-stage { width: 100%; height: 100%; display: grid; place-items: center; }
+.set-part-art .mascot svg { width: auto; height: 94%; max-width: 100%; }
 .set-part-kind {
   font-size: 8.5px;
   font-weight: 700;
