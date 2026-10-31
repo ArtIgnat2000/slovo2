@@ -32,6 +32,7 @@ jobs:
       - run: npm run test:adaptive
       - run: npm run server:test
       - run: npm run test:smoke
+      - run: npm run test:galleries
       - run: npm run test:guard
       - run: npm run test:icons
       - run: npm run test:contrast

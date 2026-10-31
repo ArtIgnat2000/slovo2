@@ -32,6 +32,7 @@ import { Mascot } from '../Mascot';
 import { ToyArt } from '../ToyArt';
 import { CarTour, CAR_TOUR_IDS, warmCarTour } from '../CarTour';
 import { TechTour, isTechTourItem, warmTechTour } from '../TechTour';
+import { DigitalCover } from '../DigitalCover';
 import { hasProductPhoto, warmProductPhoto } from '../ProductPhoto';
 import { carAlt, carKind, carNote, hasCarArt } from '../CarArt';
 import { hasShipArt, shipAlt, shipKind, shipNote } from '../ShipArt';
@@ -905,15 +906,7 @@ export function ShopScreen({
         key={track.id}
         wished={wished}
         onWish={!ownedTrack ? () => tapWish(track.id, track.title) : undefined}
-        art={
-          <div className="music-cover" aria-hidden="true">
-            <span>{track.emoji}</span>
-            <i>♫</i>
-            {previewTrack === track.id && (
-              <span className="shop-eq"><i /><i /><i /></span>
-            )}
-          </div>
-        }
+        art={<DigitalCover track={track} variant="card" playing={previewTrack === track.id} />}
         title={track.title}
         desc={`${fmtTime(track.seconds)} · ${track.shelf === 'calm' ? 'спокойный фон' : 'награда'}`}
         cardCls={`music-item${selected ? ' on' : ownedTrack ? ' owned' : ''}`}
@@ -987,12 +980,7 @@ export function ShopScreen({
     return (
       <ShopCard
         key={pack.id}
-        art={
-          <div className="music-cover sound-cover" aria-hidden="true">
-            <span>{pack.emoji}</span>
-            <i>♪</i>
-          </div>
-        }
+        art={<DigitalCover pack={pack} variant="card" />}
         title={pack.title}
         desc={pack.desc}
         cardCls={`music-item sound-item${selected ? ' on' : ownedPack ? ' owned' : ''}`}
@@ -1386,10 +1374,7 @@ export function ShopScreen({
       return (
         <>
           <div className="shop-bigart">
-            <div className="music-cover music-cover-lg sound-cover" aria-hidden="true">
-              <span>{pack.emoji}</span>
-              <i>♪</i>
-            </div>
+            <DigitalCover pack={pack} variant="full" />
           </div>
           <h2 className="sheet-title">{pack.title}</h2>
           <p className="sheet-lead">{pack.desc} · звуки правильного ответа и ошибки</p>
@@ -1441,11 +1426,7 @@ export function ShopScreen({
     return (
       <>
         <div className="shop-bigart">
-          <div className="music-cover music-cover-lg" aria-hidden="true">
-            <span>{track.emoji}</span>
-            <i>♫</i>
-            {previewing && <span className="shop-eq"><i /><i /><i /></span>}
-          </div>
+          <DigitalCover track={track} variant="full" playing={previewing} />
         </div>
         <h2 className="sheet-title">{track.title}</h2>
         <p className="sheet-lead">
@@ -1722,10 +1703,7 @@ export function ShopScreen({
                 }}
               >
                 <div className="shop-hero-art">
-                  <div className="music-cover" style={{ width: 84, height: 84, fontSize: 36 }}>
-                    <span>{hero.track.emoji}</span>
-                    <i>♫</i>
-                  </div>
+                  <DigitalCover track={hero.track} variant="mini" />
                 </div>
                 <div className="shop-hero-body grow">
                   <span className="shop-badge">🎯 Следующая цель</span>
@@ -2123,7 +2101,7 @@ export function ShopScreen({
                 className={`music-choice${selectedMusic === track.id ? ' selected' : ''}`}
                 onClick={() => chooseMusic(selectedMusic === track.id ? null : track.id)}
               >
-                <span className="music-emoji">{track.emoji}</span>
+                <DigitalCover track={track} variant="mini" className="music-choice-cover" />
                 <span className="grow"><b>{track.title}</b><small>«{track.originalTitle}»</small></span>
                 {selectedMusic === track.id && <span aria-label="Выбрано">✓</span>}
               </button>
@@ -2140,7 +2118,7 @@ export function ShopScreen({
                 className={`music-choice sound-choice${selectedSound === pack.id ? ' selected' : ''}`}
                 onClick={() => (selectedSound === pack.id ? tryCue(pack, 'correct') : chooseSound(pack))}
               >
-                <span className="music-emoji">{pack.emoji}</span>
+                <DigitalCover pack={pack} variant="mini" className="music-choice-cover" />
                 <span className="grow"><b>{pack.title}</b><small>{pack.desc}</small></span>
                 {selectedSound === pack.id && <span aria-label="Выбрано">✓</span>}
               </button>
@@ -2250,10 +2228,7 @@ export function ShopScreen({
                           💜
                         </button>
                         <div className="wishlist-card-art">
-                          <div className="music-cover" style={{ width: 56, height: 56, fontSize: 24 }}>
-                            <span>{track.emoji}</span>
-                            <i>♫</i>
-                          </div>
+                          <DigitalCover track={track} variant="mini" />
                         </div>
                         <div className="shop-title">{track.title}</div>
                         <div className="shop-progress wishlist-progress-row">

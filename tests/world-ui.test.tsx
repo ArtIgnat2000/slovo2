@@ -77,6 +77,43 @@ export async function runWorldUiChecks() {
   await sleep(20);
   click(buttons().find((b) => (b.textContent ?? '').includes('К карте')));
   await sleep(20);
+
+  // Музыка в коллекции (0.88.0): та же редакционная обложка, что на витрине,
+  // и оборот с метаданными прямо в «Моём мире».
+  click(buttons().find((b) => (b.getAttribute('aria-label') ?? '').startsWith('Музыка:')));
+  await sleep(30);
+  check('мир: область музыки показывает купленный трек', (document.querySelector('.collection-zoom')?.textContent ?? '').includes(music.title), document.querySelector('.collection-zoom')?.textContent?.slice(0, 160) ?? '');
+  check('мир: у трека в коллекции цифровая обложка', !!document.querySelector(`.collection-item-art .digital-cover[data-cover="${music.id}"]`), '');
+  click(buttons().find((b) => (b.getAttribute('aria-label') ?? '').includes(`Увеличить: ${music.title}`)));
+  await sleep(30);
+  const worldTrackCover = document.querySelector('.collection-detail .dc-frame');
+  check('мир: трек крупно открывается лицевой стороной обложки', worldTrackCover?.getAttribute('data-side') === 'front' && !!worldTrackCover.querySelector('.dc-front'), '');
+  const worldTrackFlip = worldTrackCover?.querySelector('.dc-stage') as HTMLElement | null;
+  if (worldTrackFlip) click(worldTrackFlip);
+  await sleep(30);
+  check('мир: оборот обложки показывает метаданные трека', (worldTrackCover?.textContent ?? '').includes(music.isrc) && (worldTrackCover?.textContent ?? '').includes('CC BY 4.0'), worldTrackCover?.textContent ?? '');
+  check('мир: счётчик сторон обложки 2 / 2', (worldTrackCover?.querySelector('.dc-caption')?.textContent ?? document.querySelector('.dc-caption')?.textContent ?? '').includes('2 / 2'), '');
+  click(buttons().find((b) => (b.textContent ?? '').includes('К области')));
+  await sleep(20);
+  click(buttons().find((b) => (b.textContent ?? '').includes('К карте')));
+  await sleep(20);
+
+  // Звуки: на обороте — партитура реальных нот набора.
+  click(buttons().find((b) => (b.getAttribute('aria-label') ?? '').startsWith('Звуки:')));
+  await sleep(30);
+  check('мир: у набора звуков в коллекции цифровая обложка', !!document.querySelector(`.collection-item-art .digital-cover[data-cover="${sound.id}"]`), '');
+  click(buttons().find((b) => (b.getAttribute('aria-label') ?? '').includes(`Увеличить: ${sound.title}`)));
+  await sleep(30);
+  const worldSoundCover = document.querySelector('.collection-detail .dc-frame');
+  const worldSoundFlip = worldSoundCover?.querySelector('.dc-stage') as HTMLElement | null;
+  if (worldSoundFlip) click(worldSoundFlip);
+  await sleep(30);
+  check('мир: оборот набора звуков — две партитуры сигналов', worldSoundCover?.querySelectorAll('.dc-roll').length === 2, String(worldSoundCover?.querySelectorAll('.dc-roll').length ?? 0));
+  click(buttons().find((b) => (b.textContent ?? '').includes('К области')));
+  await sleep(20);
+  click(buttons().find((b) => (b.textContent ?? '').includes('К карте')));
+  await sleep(20);
+
   click(buttons().find((b) => (b.textContent ?? '').includes('Назад в БУК')));
   await sleep(60);
   check('мир: явный возврат вернул в БУК на прежнюю полку «Техника»', !!document.querySelector('.shop-cats .chip.on') && (document.querySelector('.shop-cats .chip.on')?.textContent ?? '').includes('Техника'));

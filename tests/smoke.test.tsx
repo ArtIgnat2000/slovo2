@@ -956,6 +956,29 @@ async function main() {
   await sleep(30);
   check('в музыкальном магазине все мелодии каталога', document.querySelectorAll('.music-item').length === MUSIC_TRACKS.length, String(document.querySelectorAll('.music-item').length));
   check('полки «Спокойный фон» и «Коллекция» разведены', has('Спокойный фон') && has('Коллекция и награды'), '');
+  // Цифровые обложки (0.88.0): у трека лицо с типографикой и оборот с
+  // настоящими метаданными. Эмодзи на градиенте больше нет.
+  check('у каждой мелодии на витрине своя цифровая обложка', document.querySelectorAll('.music-item .digital-cover').length === MUSIC_TRACKS.length, String(document.querySelectorAll('.music-item .digital-cover').length));
+  const carefreeCard = Array.from(document.querySelectorAll('.music-item')).find((card) => (card.textContent ?? '').includes('Беззаботный день'));
+  check('на обложке трека — номер в серии и название', carefreeCard?.querySelector('.dc-number')?.textContent === '01' && (carefreeCard?.querySelector('.dc-title')?.textContent ?? '').includes('Беззаботный день'), carefreeCard?.querySelector('.dc-title')?.textContent ?? '');
+  if (carefreeCard) click(carefreeCard);
+  await sleep(40);
+  const trackCover = document.querySelector('.shop-bigart .dc-frame');
+  check('лист трека открывается лицевой стороной обложки', trackCover?.getAttribute('data-side') === 'front' && !!trackCover.querySelector('.dc-front'), '');
+  check('лицо обложки: название и абстрактный спектр', (trackCover?.textContent ?? '').includes('Беззаботный день') && !!trackCover?.querySelector('.dc-spectrum'), '');
+  check('у обложки виден счётчик сторон 1 / 2', (document.querySelector('.dc-caption')?.textContent ?? '').includes('1 / 2'), document.querySelector('.dc-caption')?.textContent ?? '');
+  const coverFlip = trackCover?.querySelector('.dc-stage') as HTMLElement | null;
+  if (coverFlip) click(coverFlip);
+  await sleep(40);
+  check('тап по обложке показывает оборот', trackCover?.getAttribute('data-side') === 'back' && !!trackCover.querySelector('.dc-back'), '');
+  check(
+    'оборот трека: оригинал, ISRC и лицензия',
+    (trackCover?.textContent ?? '').includes('Carefree') && (trackCover?.textContent ?? '').includes('USUAN1400037') && (trackCover?.textContent ?? '').includes('CC BY 4.0'),
+    trackCover?.textContent ?? '',
+  );
+  check('счётчик сторон переключился на 2 / 2', (document.querySelector('.dc-caption')?.textContent ?? '').includes('2 / 2'), document.querySelector('.dc-caption')?.textContent ?? '');
+  document.querySelector('.shop-sheet-veil')?.click();
+  await sleep(30);
   // Лицензия не загромождает полку, но доступна по запросу.
   const creditsBtn = buttons().find((b) => (b.textContent ?? '').includes('Авторы и лицензии'));
   check('лицензия скрыта за подписанной кнопкой', !!creditsBtn && !has('CC BY 4.0'), '');
@@ -1053,6 +1076,24 @@ async function main() {
   check('в «Звуках» показаны все наборы', document.querySelectorAll('.sound-item').length === SOUND_PACKS.length, String(document.querySelectorAll('.sound-item').length));
   check('наборы звуков идут от меньшей цены к большей', pricesAscending('.sound-item'));
   check('у каждого набора — «послушать» верный ответ и ошибку', document.querySelectorAll('.sound-item .sound-try button').length === SOUND_PACKS.length * 2, '');
+  check('у каждого набора звуков своя цифровая обложка', document.querySelectorAll('.sound-item .digital-cover').length === SOUND_PACKS.length, String(document.querySelectorAll('.sound-item .digital-cover').length));
+  const classicCard = Array.from(document.querySelectorAll('.sound-item')).find((card) => (card.textContent ?? '').includes(SOUND_PACKS[0].title));
+  if (classicCard) click(classicCard);
+  await sleep(40);
+  const packCover = document.querySelector('.shop-bigart .dc-frame');
+  check('лист набора показывает обложку, а не эмодзи', !!packCover?.querySelector('.dc-front') && packCover?.getAttribute('data-kind') === 'sound', '');
+  const packFlip = packCover?.querySelector('.dc-stage') as HTMLElement | null;
+  if (packFlip) click(packFlip);
+  await sleep(40);
+  check(
+    'оборот набора — партитура реальных нот: верный ответ и ошибка',
+    packCover?.querySelectorAll('.dc-roll').length === 2 &&
+      (packCover?.textContent ?? '').includes('Верный ответ') &&
+      (packCover?.textContent ?? '').includes('Ошибка'),
+    String(packCover?.querySelectorAll('.dc-roll').length),
+  );
+  document.querySelector('.shop-sheet-veil')?.click();
+  await sleep(30);
   check('новый профиль звучит классикой', useApp.getState().profiles[0].shop?.soundPack === 'classic', String(useApp.getState().profiles[0].shop?.soundPack));
   const xyloCard = Array.from(document.querySelectorAll('.sound-item')).find((card) => (card.textContent ?? '').includes('Ксилофон'));
   const xyloPick = Array.from(xyloCard?.querySelectorAll('button') ?? []).find((b) => (b.textContent ?? '').includes('Выбрать')) as HTMLButtonElement | undefined;
