@@ -81,7 +81,7 @@ export function SetComposition({ set, owned, stage = 1 }: { set: BaseSet; owned:
             {part.photoId ? (
               <ProductPhoto id={part.photoId} alt={`${part.title} — фото товара`} className="set-part-photo" />
             ) : (
-              <Mascot mood="idle" costumeId={part.costumeId} stage={stage} size={64} className="set-part-mascot" />
+              <Mascot mood="idle" costumeId={part.costumeId} stage={stage} size={64} />
             )}
           </span>
           <span className="set-part-kind">{part.kind}</span>

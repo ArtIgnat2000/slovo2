@@ -8229,6 +8229,23 @@ img.product-photo {
   text-transform: uppercase;
   opacity: .92;
 }
+.dc-art-title {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  left: 10px;
+  z-index: 1;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -.01em;
+  color: hsl(42 46% 97%);
+  text-shadow: 0 1px 6px hsl(212 42% 14% / .6);
+  overflow-wrap: anywhere;
+}
+/* В карточке и меленькой плитке подпись не нужна: название стоит прямо под
+   картинкой, а сцена должна остаться целиком. */
 .digital-cover[data-variant='mini'] .dc-art-imprint { display: none; }
 
 .dc-roll { margin: 0; display: grid; gap: 2px; }
@@ -8936,7 +8953,22 @@ img.product-photo {
   background: #e6e1d7;
 }
 .set-part-photo { width: 100%; height: 100%; object-fit: contain; }
-.set-part-mascot { width: 92%; height: 100%; }
+/* БУК — плавающий элемент (`.mascot` по умолчанию `position: fixed`), в плитке
+   он улетал в угол экрана, и костюм выглядел пустой картинкой. Снимаем позицию,
+   z-index и анимацию, как это уже сделано для карточек магазина. */
+.set-part-art .mascot {
+  position: static;
+  inset: auto;
+  z-index: auto;
+  margin: 0;
+  animation: none;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+.set-part-art .mascot > .buk-stage { width: 100%; height: 100%; display: grid; place-items: center; }
+.set-part-art .mascot svg { width: auto; height: 94%; max-width: 100%; }
 .set-part-kind {
   font-size: 8.5px;
   font-weight: 700;

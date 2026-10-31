@@ -163,3 +163,31 @@ test('состав набора: у каждой части есть карти�
   assert.ok(shopSource.includes('<SetComposition'), 'лист набора не показывает состав картинками');
   assert.ok(existsSync(fileUrl('src/ui/SetComposition.tsx')), 'нет компонента состава набора');
 });
+
+test('иллюстрация мелодии: у каждого трека свой предмет по названию', () => {
+  // 0.89.9: первая версия третьей стороны рисовала всем трекам один пейзаж —
+  // «Лимончик» без лимона и «Утёнок» без утёнка. Теперь у каждой мелодии свой
+  // мотив, и тест не даёт появиться треку без картинки.
+  const covers = read('src/ui/DigitalCover.tsx');
+  const block = covers.slice(covers.indexOf('export const MUSIC_MOTIFS'), covers.indexOf('};', covers.indexOf('export const MUSIC_MOTIFS')));
+  const motifs = new Map([...block.matchAll(/'?([a-z0-9-]+)'?:\s*'([a-z]+)'/g)].map((match) => [match[1], match[2]]));
+  const music = read('src/engine/music.ts');
+  const tracks = [...music.matchAll(/id: '([a-z0-9-]+)', title:/g)].map((match) => match[1]);
+  assert.equal(tracks.length, 12, `в каталоге ${tracks.length} треков`);
+  for (const id of tracks) {
+    assert.ok(motifs.has(id), `${id}: у трека нет своего предмета на иллюстрации`);
+  }
+  assert.equal(new Set(motifs.values()).size, motifs.size, 'два трека делят один мотив — названия разные');
+  // Мотив рисуется в сцене, а не объявлен «в воздухе».
+  assert.ok(covers.includes('data-motif={motif}'), 'мотив не выводится в сцене');
+  assert.ok(covers.includes('<TrackMotif'), 'сцена не рисует предмет мелодии');
+});
+
+test('состав набора рисует костюм в плитке, а не плавающего БУКа', () => {
+  // БУК по умолчанию плавающий (`position: fixed`) и улетал в угол экрана —
+  // плитка костюма выглядела пустой. Проверяем сброс позиции в CSS.
+  const css = read('src/styles/app.css');
+  const rule = css.slice(css.indexOf('.set-part-art .mascot'), css.indexOf('.set-part-art .mascot') + 260);
+  assert.ok(rule.includes('position: static'), 'в плитке набора БУК остаётся плавающим');
+  assert.ok(!/position: fixed/.test(rule), 'в плитке набора БУК остаётся плавающим');
+});

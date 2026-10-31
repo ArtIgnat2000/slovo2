@@ -993,22 +993,36 @@ async function main() {
   // настоящими метаданными. Эмодзи на градиенте больше нет.
   check('у каждой мелодии на витрине своя цифровая обложка', document.querySelectorAll('.music-item .digital-cover').length === MUSIC_TRACKS.length, String(document.querySelectorAll('.music-item .digital-cover').length));
   const carefreeCard = Array.from(document.querySelectorAll('.music-item')).find((card) => (card.textContent ?? '').includes('Беззаботный день'));
-  check('на обложке трека — номер в серии и название', carefreeCard?.querySelector('.dc-number')?.textContent === '01' && (carefreeCard?.querySelector('.dc-title')?.textContent ?? '').includes('Беззаботный день'), carefreeCard?.querySelector('.dc-title')?.textContent ?? '');
+  // 0.89.10: в карточке первой идёт картинка, а не типографика с номером —
+  // дети выбирают музыку по картинке.
+  check(
+    'в карточке мелодии первой показана картинка',
+    !!carefreeCard?.querySelector('.digital-cover[data-side="art"] .dc-art-svg') && !carefreeCard?.querySelector('.dc-front'),
+    carefreeCard?.querySelector('.digital-cover')?.getAttribute('data-side') ?? '',
+  );
+  check(
+    'карточка «Беззаботного дня» показывает воздушного змея',
+    !!carefreeCard?.querySelector('.dc-art [data-motif="kite"]'),
+    carefreeCard?.querySelector('.dc-art [data-motif]')?.getAttribute('data-motif') ?? 'нет мотива',
+  );
   if (carefreeCard) click(carefreeCard);
   await sleep(40);
   const trackCover = document.querySelector('.shop-bigart .dc-frame');
-  check('лист трека открывается лицевой стороной обложки', trackCover?.getAttribute('data-side') === 'front' && !!trackCover.querySelector('.dc-front'), '');
-  check('лицо обложки: название и абстрактный спектр', (trackCover?.textContent ?? '').includes('Беззаботный день') && !!trackCover?.querySelector('.dc-spectrum'), '');
-  check('у обложки виден счётчик сторон 1 / 3', (document.querySelector('.dc-caption')?.textContent ?? '').includes('1 / 3'), document.querySelector('.dc-caption')?.textContent ?? '');
+  check(
+    'лист трека открывается картинкой',
+    trackCover?.getAttribute('data-side') === 'art' && !!trackCover.querySelector('.dc-art .dc-art-svg') && (document.querySelector('.dc-caption')?.textContent ?? '').includes('1 / 3'),
+    trackCover?.getAttribute('data-side') ?? '',
+  );
+  check(
+    'на картинке — предмет по названию: воздушный змей',
+    !!trackCover?.querySelector('.dc-art [data-motif="kite"]'),
+    trackCover?.querySelector('.dc-art [data-motif]')?.getAttribute('data-motif') ?? 'нет мотива',
+  );
   const coverFlip = trackCover?.querySelector('.dc-stage') as HTMLElement | null;
   if (coverFlip) click(coverFlip);
   await sleep(40);
-  // 0.89.8: вторая сторона — иллюстрация музыки, а не сразу метаданные.
-  check(
-    'вторая сторона обложки — иллюстрация к мелодии',
-    trackCover?.getAttribute('data-side') === 'art' && !!trackCover.querySelector('.dc-art .dc-art-svg') && (document.querySelector('.dc-caption')?.textContent ?? '').includes('2 / 3'),
-    trackCover?.getAttribute('data-side') ?? '',
-  );
+  check('второй тап показывает лицевую сторону с типографикой и спектром', trackCover?.getAttribute('data-side') === 'front' && !!trackCover?.querySelector('.dc-spectrum') && (document.querySelector('.dc-caption')?.textContent ?? '').includes('2 / 3'), trackCover?.getAttribute('data-side') ?? '');
+  check('лицо обложки: название и абстрактный спектр', (trackCover?.textContent ?? '').includes('Беззаботный день') && !!trackCover?.querySelector('.dc-spectrum'), '');
   if (coverFlip) click(coverFlip);
   await sleep(40);
   check('третий тап показывает оборот', trackCover?.getAttribute('data-side') === 'back' && !!trackCover.querySelector('.dc-back'), '');
@@ -1127,7 +1141,14 @@ async function main() {
     setTiles.map((tile) => tile.querySelector('.set-part-name')?.textContent ?? '').join(' | '),
   );
   check('база, машина и самолёт показаны снимками', document.querySelectorAll('.set-parts .set-part-photo').length === 3, String(document.querySelectorAll('.set-parts .set-part-photo').length));
-  check('костюм набора показан на БУКе', !!(document.querySelector('.set-part[data-part="costume"]')?.querySelector('.mascot, svg, img')), '');
+  // БУК в плитке — картинка, а не плавающий виджет: проверяем и разметку, и класс,
+  // на который опирается CSS-сброс позиции (`.set-part-art .mascot`).
+  const costumeTile = document.querySelector('.set-parts .set-part[data-part="costume"]');
+  check(
+    'костюм набора показан на БУКе внутри плитки',
+    !!costumeTile?.querySelector('.set-part-art .mascot .buk-stage svg') && (costumeTile?.querySelector('.set-part-name')?.textContent ?? '').length > 2,
+    costumeTile?.querySelector('.set-part-name')?.textContent ?? '',
+  );
   document.querySelector('.shop-sheet-veil')?.click();
   await sleep(30);
 
