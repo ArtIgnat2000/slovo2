@@ -51,6 +51,8 @@ import { ITEM_BY_ID, SHOP_ITEMS, TOY_ITEMS, growthStage, sellPrice } from '../sr
 import { hasProductPhoto } from '../src/ui/ProductPhoto';
 import { isTechTourItem } from '../src/ui/TechTour';
 import { TINT_PALETTES, TINT_PRICE } from '../src/engine/tints';
+import { hasProductPhoto } from '../src/ui/ProductPhoto';
+import { hasOutfitPair } from '../src/ui/PhotoPair';
 import { THEME_STYLES } from '../src/engine/theme-styles';
 import { masteredCount } from '../src/state/store';
 import { runStudyEngineChecks } from './study.test';
@@ -1270,115 +1272,173 @@ async function main() {
     // ── Тюнинг цвета купленной вещи: 1 💎 за оттенок, дальше бесплатно ────────
     // Палитра живёт в подробной карточке (sheet), а не на витрине:
     // сначала вещь — потом краски.
-    // 0.89.0: у наряда с фотопарой палитры нет (снимок не перекрасить), поэтому
-    // краски проверяем на вещи без фото — платье. Владеем им принудительно:
-    // покупку выше делает самый дешёвый наряд, а он теперь с фотопарой.
-    const tintItem = ITEM_BY_ID['dress-pink'];
-    useApp.setState((s) => ({
-      profiles: s.profiles.map((p) => (p.id === s.activeId
-        ? { ...p, shop: { ...p.shop!, owned: [...p.shop!.owned, tintItem.id] } }
-        : p)),
-    }));
-    await sleep(40);
-    const itemId = tintItem.id;
-    const itemTitle = tintItem.title;
-    const paids = () => Array.from(document.querySelectorAll('.tint-swatch')) as HTMLButtonElement[];
-    const cardSvg = () =>
-      Array.from(document.querySelectorAll('.shop-item'))
-        .find((el) => (el.textContent ?? '').includes(itemTitle))
-        ?.querySelector('.shop-icon svg')?.innerHTML ?? '';
+    // 0.89.0: у вещи с фотографией палитры нет (снимок не перекрасить).
+    // Фотосерия нарядов растёт каждый релиз, поэтому вещь для проверки красок
+    // выбираем по правилу, а не по id: первая вещь в каталоге, у которой есть
+    // палитра и нет фото. Иначе тест ломается на каждом новом снимке.
     const vitrinaCard = (title: string) =>
       Array.from(document.querySelectorAll('.shop-item:not(.music-item):not(.costume-card)'))
         .find((el) => (el.textContent ?? '').includes(title));
+    /**
+     * 0.89.4: вещи с палитрой и без фото закончились на полке «НААШ»
+     * (школьные кепка, шарф и худи). Витрина открыта на «Нарядах», поэтому
+     * карточку ищем по всем полкам: щёлкаем чипы, пока нужная не появится.
+     * Тест больше не зависит от того, на какой полке живёт красивая вещь.
+     */
+    const openTintCard = async (title: string) => {
+      if (!vitrinaCard(title)) {
+        const chips = Array.from(document.querySelectorAll('.shop-cats .chip')) as HTMLButtonElement[];
+        for (const chip of chips) {
+          if (chip.classList.contains('on')) continue;
+          click(chip);
+          await sleep(25);
+          if (vitrinaCard(title)) break;
+        }
+      }
+      const card = vitrinaCard(title);
+      if (!card) throw new Error(`тюнинг: карточка «${title}» не нашлась ни на одной полке`);
+      click(card);
+      await sleep(30);
+    };
     const closeSheet = () => {
       document.querySelector('.shop-sheet-veil')?.click();
     };
-    // У некупленной вещи палитры нет даже в sheet (платье со звёздами не куплено)
-    click(vitrinaCard('Платье со звёздами')!);
-    await sleep(30);
-    check('тюнинг: у некупленной вещи палитры нет', !buttons().some((b) => (b.textContent ?? '').includes('🎨 Цвет')), '');
-    closeSheet();
-    await sleep(30);
-    check('тюнинг: карточка купленной вещи открывает sheet', !!vitrinaCard(itemTitle), '');
-    click(vitrinaCard(itemTitle)!);
-    await sleep(30);
-    check('тюнинг: в sheet купленной вещи есть «🎨 Цвет»', !!btnText('🎨 Цвет'), '');
-    click(btnText('🎨 Цвет'));
-    await sleep(60);
-    check('тюнинг: палитра из 4 оттенков', paids().length === 4, `кружков: ${paids().length}`);
-    check(
-      'тюнинг: у трёх новых оттенков видна цена 💎1',
-      paids().filter((s) => (s.textContent ?? '').includes('💎1')).length === 3,
-      '',
-    );
-    const gemsBeforeTint = useApp.getState().profiles[0].gems;
-    click(paids()[1]); // первый платный оттенок
-    await sleep(50);
-    check('тюнинг: новый оттенок спрашивает подтверждение', has('Открыть цвет'), body().slice(0, 160));
-    click(btnText('Открыть за'));
-    await sleep(80);
-    let tuned = useApp.getState().profiles[0];
-    const extraTint = TINT_PALETTES[itemId].extra[0];
-    check(
-      `тюнинг: за новый оттенок списан ровно 1 💎 (${gemsBeforeTint} → ${tuned.gems})`,
-      tuned.gems === gemsBeforeTint - TINT_PRICE,
-      '',
-    );
-    check(
-      'тюнинг: выбранный оттенок записан в профиль',
-      tuned.shop?.tuning?.current?.[itemId] === extraTint.id,
-      JSON.stringify(tuned.shop?.tuning),
-    );
-    check(
-      'тюнинг: карточка вещи перекрашена в выбранный цвет',
-      cardSvg().includes(extraTint.colors[0]),
-      `${extraTint.colors[0]} не найден в SVG`,
-    );
-    // Повторный тап по тому же оттенку — без списания (двойной тап не стоит денег)
-    click(paids()[1]);
-    await sleep(50);
-    tuned = useApp.getState().profiles[0];
-    check('тюнинг: повторный выбор того же цвета ничего не списывает', tuned.gems === gemsBeforeTint - TINT_PRICE, '');
-    // База и уже открытые оттенки — бесплатны
-    click(paids()[0]);
-    await sleep(50);
-    tuned = useApp.getState().profiles[0];
-    check(
-      'тюнинг: возврат к базовому цвету бесплатен и не хранится',
-      tuned.gems === gemsBeforeTint - TINT_PRICE && !tuned.shop?.tuning?.current?.[itemId],
-      JSON.stringify(tuned.shop?.tuning),
-    );
-    click(paids()[1]);
-    await sleep(50);
-    tuned = useApp.getState().profiles[0];
-    check(
-      'тюнинг: переключение на открытый оттенок бесплатно',
-      tuned.gems === gemsBeforeTint - TINT_PRICE && tuned.shop?.tuning?.current?.[itemId] === extraTint.id,
-      '',
-    );
-    // Без кристаллов краска не открывается: подсказка вместо списания
-    useApp.setState((s) => ({
-      profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, gems: 0 } : p)),
-    }));
-    await sleep(30);
-    click(paids()[2]);
-    await sleep(50);
-    tuned = useApp.getState().profiles[0];
-    const unlockedNow = Object.values(tuned.shop?.tuning?.unlocked ?? {}).flat().length;
-    check(
-      'тюнинг: без кристаллов цвет не меняется и есть подсказка',
-      tuned.gems === 0 && unlockedNow === 1 && has('нужен ещё 1 💎'),
-      `кристаллов: ${tuned.gems}, открыто: ${unlockedNow}`,
-    );
-    // Возвращаем баланс как был: он нужен следующим блокам смоука
-    useApp.setState((s) => ({
-      profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, gems: gemsBeforeTint } : p)),
-    }));
-    await sleep(30);
-    click(btnText('🎨 Готово'));
-    await sleep(40);
-    closeSheet();
-    await sleep(30);
+
+    // 0.89.5: серия закрыта — все 38 нарядов с фото, и других вещей без снимка
+    // в каталоге нет. Значит палитру сейчас не показать ни одной карточке:
+    // правило 0.89.0 «снимок не перекрашивается» держится до конца серии.
+    // Полный прогон красок ниже остаётся на случай новой векторной вещи
+    // (так было с полкой школы в 0.74.0), а пока проверяем само правило.
+    const tintable = (i: { id: string }) =>
+      !!TINT_PALETTES[i.id] && !hasProductPhoto(i.id) && !hasOutfitPair(i.id);
+    const tintItem = SHOP_ITEMS.find(tintable);
+    if (!tintItem) {
+      // Берём наряд с фотопарой: он на полке «Наряды», которая уже открыта.
+      const photographed =
+        SHOP_ITEMS.find((i) => hasOutfitPair(i.id)) ?? SHOP_ITEMS.find((i) => hasProductPhoto(i.id));
+      if (!photographed) throw new Error('тюнинг: в каталоге нет ни снимка, ни палитры — проверять нечего');
+      await openTintCard(photographed.title);
+      check(
+        'тюнинг: у вещи со снимком палитры нет (снимок не перекрасить)',
+        !buttons().some((b) => (b.textContent ?? '').includes('🎨 Цвет')),
+        photographed.title,
+      );
+      closeSheet();
+      await sleep(30);
+      const palettes = Object.keys(TINT_PALETTES).length;
+      check('тюнинг: палитры на месте для будущих векторных вещей', palettes >= 90, `палитр: ${palettes}`);
+      const broken = Object.entries(TINT_PALETTES).filter(
+        ([, p]) => !p.base || !p.extra.length || !p.base.colors.length,
+      );
+      check('тюнинг: у каждой палитры есть база и хотя бы один оттенок', broken.length === 0, broken.map(([id]) => id).join(', '));
+      check(
+        'тюнинг: ни у одной вещи в каталоге нет палитры без снимка',
+        SHOP_ITEMS.filter((i) => TINT_PALETTES[i.id] && !hasProductPhoto(i.id) && !hasOutfitPair(i.id)).length === 0,
+        '',
+      );
+    } else {
+      if (!tintItem) throw new Error('тюнинг: не осталось вещей с палитрой и без фото — проверку красок нужно переписать');
+      useApp.setState((s) => ({
+        profiles: s.profiles.map((p) => (p.id === s.activeId
+          ? { ...p, shop: { ...p.shop!, owned: [...p.shop!.owned, tintItem.id] } }
+          : p)),
+      }));
+      await sleep(40);
+      const itemId = tintItem.id;
+      const itemTitle = tintItem.title;
+      const paids = () => Array.from(document.querySelectorAll('.tint-swatch')) as HTMLButtonElement[];
+      const cardSvg = () =>
+        Array.from(document.querySelectorAll('.shop-item'))
+          .find((el) => (el.textContent ?? '').includes(itemTitle))
+          ?.querySelector('.shop-icon svg')?.innerHTML ?? '';
+      // У некупленной вещи палитры нет даже в sheet: берём другую вещь с
+      // палитрой и без фото, которой у профиля точно нет.
+      const unownedTintItem = SHOP_ITEMS.find((i) => i !== tintItem && TINT_PALETTES[i.id] && !hasProductPhoto(i.id) && !hasOutfitPair(i.id));
+      if (!unownedTintItem) throw new Error('тюнинг: нет второй вещи с палитрой и без фото для проверки «не куплено»');
+      await openTintCard(unownedTintItem.title);
+      check('тюнинг: у некупленной вещи палитры нет', !buttons().some((b) => (b.textContent ?? '').includes('🎨 Цвет')), '');
+      closeSheet();
+      await sleep(30);
+      check('тюнинг: карточка купленной вещи открывает sheet', !!vitrinaCard(itemTitle), '');
+      await openTintCard(itemTitle);
+      check('тюнинг: в sheet купленной вещи есть «🎨 Цвет»', !!btnText('🎨 Цвет'), '');
+      click(btnText('🎨 Цвет'));
+      await sleep(60);
+      check('тюнинг: палитра из 4 оттенков', paids().length === 4, `кружков: ${paids().length}`);
+      check(
+        'тюнинг: у трёх новых оттенков видна цена 💎1',
+        paids().filter((s) => (s.textContent ?? '').includes('💎1')).length === 3,
+        '',
+      );
+      const gemsBeforeTint = useApp.getState().profiles[0].gems;
+      click(paids()[1]); // первый платный оттенок
+      await sleep(50);
+      check('тюнинг: новый оттенок спрашивает подтверждение', has('Открыть цвет'), body().slice(0, 160));
+      click(btnText('Открыть за'));
+      await sleep(80);
+      let tuned = useApp.getState().profiles[0];
+      const extraTint = TINT_PALETTES[itemId].extra[0];
+      check(
+        `тюнинг: за новый оттенок списан ровно 1 💎 (${gemsBeforeTint} → ${tuned.gems})`,
+        tuned.gems === gemsBeforeTint - TINT_PRICE,
+        '',
+      );
+      check(
+        'тюнинг: выбранный оттенок записан в профиль',
+        tuned.shop?.tuning?.current?.[itemId] === extraTint.id,
+        JSON.stringify(tuned.shop?.tuning),
+      );
+      check(
+        'тюнинг: карточка вещи перекрашена в выбранный цвет',
+        cardSvg().includes(extraTint.colors[0]),
+        `${extraTint.colors[0]} не найден в SVG`,
+      );
+      // Повторный тап по тому же оттенку — без списания (двойной тап не стоит денег)
+      click(paids()[1]);
+      await sleep(50);
+      tuned = useApp.getState().profiles[0];
+      check('тюнинг: повторный выбор того же цвета ничего не списывает', tuned.gems === gemsBeforeTint - TINT_PRICE, '');
+      // База и уже открытые оттенки — бесплатны
+      click(paids()[0]);
+      await sleep(50);
+      tuned = useApp.getState().profiles[0];
+      check(
+        'тюнинг: возврат к базовому цвету бесплатен и не хранится',
+        tuned.gems === gemsBeforeTint - TINT_PRICE && !tuned.shop?.tuning?.current?.[itemId],
+        JSON.stringify(tuned.shop?.tuning),
+      );
+      click(paids()[1]);
+      await sleep(50);
+      tuned = useApp.getState().profiles[0];
+      check(
+        'тюнинг: переключение на открытый оттенок бесплатно',
+        tuned.gems === gemsBeforeTint - TINT_PRICE && tuned.shop?.tuning?.current?.[itemId] === extraTint.id,
+        '',
+      );
+      // Без кристаллов краска не открывается: подсказка вместо списания
+      useApp.setState((s) => ({
+        profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, gems: 0 } : p)),
+      }));
+      await sleep(30);
+      click(paids()[2]);
+      await sleep(50);
+      tuned = useApp.getState().profiles[0];
+      const unlockedNow = Object.values(tuned.shop?.tuning?.unlocked ?? {}).flat().length;
+      check(
+        'тюнинг: без кристаллов цвет не меняется и есть подсказка',
+        tuned.gems === 0 && unlockedNow === 1 && has('нужен ещё 1 💎'),
+        `кристаллов: ${tuned.gems}, открыто: ${unlockedNow}`,
+      );
+      // Возвращаем баланс как был: он нужен следующим блокам смоука
+      useApp.setState((s) => ({
+        profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, gems: gemsBeforeTint } : p)),
+      }));
+      await sleep(30);
+      click(btnText('🎨 Готово'));
+      await sleep(40);
+      closeSheet();
+      await sleep(30);
+    }
   }
 
   // ── Сдача купленной вещи обратно (sell-back, 0.24.0) ────────
