@@ -1,13 +1,14 @@
 # Фотосерии галерей: маршрут на 38 нарядов и 24 товара
 
-Состояние на 31.10.2026, ветка `arena/5381728f-slovo2`, версия 0.89.3.
-Генератор изображений работает: **30 из 38 пар нарядов готовы** — `crown`,
+Состояние на 31.10.2026, ветка `arena/5381728f-slovo2`, версия 0.89.4.
+Генератор изображений работает: **35 из 38 пар нарядов готовы** — `crown`,
 `glasses-heart`, `choker`, `cap`, `bow`, `scarf`, `glasses`, `medal`, `grad`,
 `clips-stars`, `wreath`, `hat-ribbon`, `glasses-round`, `beads`, `bag`,
 `brooch-flower`, `badge-cat`, `wings-butterfly`, `wings-dragon`, `hair-buns`,
 `hair-ponytail`, `hair-curls`, `glasses-sigma`, `pendant-heart`,
 `pendant-star`, `bag-pink`, `bracelet-beads`, `bracelet-heart`, `dress-pink`,
-`dress-star`. Все тридцать подключены к витрине. Ещё 8 нарядов и 24 товара
+`dress-star`, `dress-rainbow`, `shoes-pink`, `shoes-sparkle`, `skates-ice`,
+`school-pin`. Все тридцать пять подключены к витрине. Ещё 3 наряда и 24 товара
 с одиночным кадром ждут генерации. Лимит сервиса —
 **10 изображений за ход**, то есть пять пар за один заход; пересъёмка брака
 тратит тот же лимит, поэтому кадр проверяется сразу после генерации.

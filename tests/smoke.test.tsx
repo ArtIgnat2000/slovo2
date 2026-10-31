@@ -1294,6 +1294,27 @@ async function main() {
     const vitrinaCard = (title: string) =>
       Array.from(document.querySelectorAll('.shop-item:not(.music-item):not(.costume-card)'))
         .find((el) => (el.textContent ?? '').includes(title));
+    /**
+     * 0.89.4: вещи с палитрой и без фото закончились на полке «НААШ»
+     * (школьные кепка, шарф и худи). Витрина открыта на «Нарядах», поэтому
+     * карточку ищем по всем полкам: щёлкаем чипы, пока нужная не появится.
+     * Тест больше не зависит от того, на какой полке живёт красивая вещь.
+     */
+    const openTintCard = async (title: string) => {
+      if (!vitrinaCard(title)) {
+        const chips = Array.from(document.querySelectorAll('.shop-cats .chip')) as HTMLButtonElement[];
+        for (const chip of chips) {
+          if (chip.classList.contains('on')) continue;
+          click(chip);
+          await sleep(25);
+          if (vitrinaCard(title)) break;
+        }
+      }
+      const card = vitrinaCard(title);
+      if (!card) throw new Error(`тюнинг: карточка «${title}» не нашлась ни на одной полке`);
+      click(card);
+      await sleep(30);
+    };
     const closeSheet = () => {
       document.querySelector('.shop-sheet-veil')?.click();
     };
@@ -1301,14 +1322,12 @@ async function main() {
     // палитрой и без фото, которой у профиля точно нет.
     const unownedTintItem = SHOP_ITEMS.find((i) => i !== tintItem && TINT_PALETTES[i.id] && !hasProductPhoto(i.id) && !hasOutfitPair(i.id));
     if (!unownedTintItem) throw new Error('тюнинг: нет второй вещи с палитрой и без фото для проверки «не куплено»');
-    click(vitrinaCard(unownedTintItem.title)!);
-    await sleep(30);
+    await openTintCard(unownedTintItem.title);
     check('тюнинг: у некупленной вещи палитры нет', !buttons().some((b) => (b.textContent ?? '').includes('🎨 Цвет')), '');
     closeSheet();
     await sleep(30);
     check('тюнинг: карточка купленной вещи открывает sheet', !!vitrinaCard(itemTitle), '');
-    click(vitrinaCard(itemTitle)!);
-    await sleep(30);
+    await openTintCard(itemTitle);
     check('тюнинг: в sheet купленной вещи есть «🎨 Цвет»', !!btnText('🎨 Цвет'), '');
     click(btnText('🎨 Цвет'));
     await sleep(60);
