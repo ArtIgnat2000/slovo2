@@ -143,3 +143,23 @@ test('главные фото: список витрины совпадает с
     seen.set(digest, id);
   }
 });
+
+test('состав набора: у каждой части есть картинка, и она подключена к листу', () => {
+  // 0.89.8: набор продавался «вслепую» — в листе были только названия. Теперь
+  // у базы, машины и самолёта стоят их собственные снимки, у костюма — БУК в
+  // костюме. Тест ловит случай, когда часть набора осталась без файла: плитка
+  // тогда молча покажет пустое место.
+  const setsSource = read('src/engine/base-sets.ts');
+  const sets = [...setsSource.matchAll(/id: '([a-z-]+)', baseId: '([a-z-]+)', carId: '([a-z-]+)', planeId: '([a-z-]+)', costumeId: '([a-z-]+)'/g)];
+  assert.equal(sets.length, 5, 'наборов должно быть пять');
+  const photos = new Set([...read('src/ui/ProductPhoto.tsx').matchAll(/'([a-z0-9-]+)'/g)].map((match) => match[1]));
+  for (const [, id, base, car, plane] of sets) {
+    for (const part of [base, car, plane]) {
+      assert.ok(photos.has(part), `${id}: у части ${part} нет фото — плитка состава останется пустой`);
+      assert.ok(existsSync(fileUrl(`public/products/${part}.webp`)), `${id}: нет файла public/products/${part}.webp`);
+    }
+  }
+  const shopSource = read('src/ui/screens/ShopScreen.tsx');
+  assert.ok(shopSource.includes('<SetComposition'), 'лист набора не показывает состав картинками');
+  assert.ok(existsSync(fileUrl('src/ui/SetComposition.tsx')), 'нет компонента состава набора');
+});

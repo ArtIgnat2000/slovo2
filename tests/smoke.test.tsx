@@ -41,6 +41,7 @@ import './recolor-music.test';
 import { LESSONS, WORDS } from '../src/content/words';
 import { MUSIC_TRACKS } from '../src/engine/music';
 import { SOUND_PACKS, STARTER_SOUND_IDS } from '../src/engine/sounds';
+import { BASE_SETS } from '../src/engine/base-sets';
 import { resolvePhotoSize, resolveWordCardVariant } from '../src/ui/WordView';
 import { buildLesson, lessonCardLimit } from '../src/engine/scheduler';
 import { dayKey, dayPlan, useApp } from '../src/state/store';
@@ -998,17 +999,25 @@ async function main() {
   const trackCover = document.querySelector('.shop-bigart .dc-frame');
   check('лист трека открывается лицевой стороной обложки', trackCover?.getAttribute('data-side') === 'front' && !!trackCover.querySelector('.dc-front'), '');
   check('лицо обложки: название и абстрактный спектр', (trackCover?.textContent ?? '').includes('Беззаботный день') && !!trackCover?.querySelector('.dc-spectrum'), '');
-  check('у обложки виден счётчик сторон 1 / 2', (document.querySelector('.dc-caption')?.textContent ?? '').includes('1 / 2'), document.querySelector('.dc-caption')?.textContent ?? '');
+  check('у обложки виден счётчик сторон 1 / 3', (document.querySelector('.dc-caption')?.textContent ?? '').includes('1 / 3'), document.querySelector('.dc-caption')?.textContent ?? '');
   const coverFlip = trackCover?.querySelector('.dc-stage') as HTMLElement | null;
   if (coverFlip) click(coverFlip);
   await sleep(40);
-  check('тап по обложке показывает оборот', trackCover?.getAttribute('data-side') === 'back' && !!trackCover.querySelector('.dc-back'), '');
+  // 0.89.8: вторая сторона — иллюстрация музыки, а не сразу метаданные.
+  check(
+    'вторая сторона обложки — иллюстрация к мелодии',
+    trackCover?.getAttribute('data-side') === 'art' && !!trackCover.querySelector('.dc-art .dc-art-svg') && (document.querySelector('.dc-caption')?.textContent ?? '').includes('2 / 3'),
+    trackCover?.getAttribute('data-side') ?? '',
+  );
+  if (coverFlip) click(coverFlip);
+  await sleep(40);
+  check('третий тап показывает оборот', trackCover?.getAttribute('data-side') === 'back' && !!trackCover.querySelector('.dc-back'), '');
   check(
     'оборот трека: оригинал, ISRC и лицензия',
     (trackCover?.textContent ?? '').includes('Carefree') && (trackCover?.textContent ?? '').includes('USUAN1400037') && (trackCover?.textContent ?? '').includes('CC BY 4.0'),
     trackCover?.textContent ?? '',
   );
-  check('счётчик сторон переключился на 2 / 2', (document.querySelector('.dc-caption')?.textContent ?? '').includes('2 / 2'), document.querySelector('.dc-caption')?.textContent ?? '');
+  check('счётчик сторон переключился на 3 / 3', (document.querySelector('.dc-caption')?.textContent ?? '').includes('3 / 3'), document.querySelector('.dc-caption')?.textContent ?? '');
   document.querySelector('.shop-sheet-veil')?.click();
   await sleep(30);
   // Лицензия не загромождает полку, но доступна по запросу.
@@ -1101,6 +1110,26 @@ async function main() {
     }));
     await sleep(30);
   }
+
+  // Полка «Наборы» (0.89.8): состав виден картинками, а не строкой описания.
+  click(Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Наборы'))!);
+  await sleep(30);
+  check('в «Наборах» все наборы', document.querySelectorAll('.base-set-card').length === BASE_SETS.length, String(document.querySelectorAll('.base-set-card').length));
+  const firstSetCard = document.querySelector('.base-set-card') as HTMLElement | null;
+  if (firstSetCard) click(firstSetCard);
+  await sleep(40);
+  const setTiles = Array.from(document.querySelectorAll('.set-parts .set-part'));
+  check('лист набора показывает состав из четырёх плиток', setTiles.length === 4, String(setTiles.length));
+  check(
+    'у каждой части набора своя картинка и настоящее название',
+    setTiles.length === 4 &&
+      setTiles.every((tile) => (tile.querySelector('.set-part-art')?.children.length ?? 0) > 0 && (tile.querySelector('.set-part-name')?.textContent ?? '').length > 2),
+    setTiles.map((tile) => tile.querySelector('.set-part-name')?.textContent ?? '').join(' | '),
+  );
+  check('база, машина и самолёт показаны снимками', document.querySelectorAll('.set-parts .set-part-photo').length === 3, String(document.querySelectorAll('.set-parts .set-part-photo').length));
+  check('костюм набора показан на БУКе', !!(document.querySelector('.set-part[data-part="costume"]')?.querySelector('.mascot, svg, img')), '');
+  document.querySelector('.shop-sheet-veil')?.click();
+  await sleep(30);
 
   // Полка «Звуки»: мелодии правильного ответа и ошибки
   click(Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Звуки'))!);

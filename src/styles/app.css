@@ -8199,6 +8199,38 @@ img.product-photo {
   color: color-mix(in srgb, var(--dc-paper) 62%, transparent);
 }
 
+/* Третья сторона трека (0.89.8): иллюстрация музыки на всю обложку.
+   Сцена рисуется вектором по id трека, поэтому «внутренняя страница» есть у
+   всех мелодий сразу и не требует съёмки. Подписи лежат поверх неба с мягкой
+   тенью: белое на светлом иначе не читается. */
+.dc-art {
+  padding: 0;
+  overflow: hidden;
+  background: hsl(210 30% 16%);
+}
+.dc-art-svg {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.dc-art-imprint {
+  position: absolute;
+  z-index: 1;
+  margin: 0;
+  color: hsl(42 44% 97%);
+  text-shadow: 0 1px 5px hsl(212 40% 16% / .55);
+  top: 8px;
+  left: 10px;
+  font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+  font-size: 6.5px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  opacity: .92;
+}
+.digital-cover[data-variant='mini'] .dc-art-imprint { display: none; }
+
 .dc-roll { margin: 0; display: grid; gap: 2px; }
 .dc-roll figcaption {
   font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
@@ -8871,6 +8903,57 @@ img.product-photo {
 .base-set-icons { display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; }
 .base-set-icons > .building-card-art { width: 58px; height: 40px; border-radius: 8px; }
 .base-set-icons > .car-art { width: 58px; } .base-set-icons > .airplane-art { width: 58px; max-width: 100%; }
+
+/* Состав набора (0.89.8): «упаковочный лист» — база, машина, самолёт и костюм
+   с их собственными картинками. Плитки одинаковые, снимок вписан целиком
+   (object-fit: contain) на тёплый серый — тот же, что задник студии, поэтому
+   фото не обрезаются, а костюм стоит на такой же подложке. */
+.set-parts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+.set-part {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 6px 6px 8px;
+  border: 1.5px solid var(--line);
+  border-radius: 13px;
+  background: var(--bg-2);
+}
+.set-part.owned { border-color: color-mix(in srgb, var(--green) 42%, var(--line)); }
+.set-part-art {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  margin-bottom: 4px;
+  overflow: hidden;
+  border-radius: 9px;
+  background: #e6e1d7;
+}
+.set-part-photo { width: 100%; height: 100%; object-fit: contain; }
+.set-part-mascot { width: 92%; height: 100%; }
+.set-part-kind {
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.set-part-name {
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.15;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.set-part-state { font-size: 10.5px; font-weight: 700; color: var(--ink-2); }
+.set-part.owned .set-part-state { color: var(--good-ink); }
+
 
 /* «Мой мир» */
 .world-screen { padding-bottom: 96px; }
