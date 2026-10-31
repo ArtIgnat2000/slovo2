@@ -23,7 +23,7 @@ import {
   rarityOf,
   type ToyKind,
 } from '../../engine/shop';
-import { BUILDINGS, BUILDING_BY_ID, isBuildingOwned, type BuildingItem } from '../../engine/buildings';
+import { BUILDINGS, isBuildingOwned, type BuildingItem } from '../../engine/buildings';
 import { BASE_SETS, baseSetPrice, type BaseSet } from '../../engine/base-sets';
 import { BuildingArt } from '../BuildingArt';
 import { BaseTour, warmBaseTour } from '../BaseTour';
@@ -33,6 +33,7 @@ import { ToyArt } from '../ToyArt';
 import { CarTour, CAR_TOUR_IDS, warmCarTour } from '../CarTour';
 import { TechTour, isTechTourItem, warmTechTour } from '../TechTour';
 import { DigitalCover } from '../DigitalCover';
+import { SetComposition } from '../SetComposition';
 import { hasProductPhoto, warmProductPhoto } from '../ProductPhoto';
 import { hasOutfitPair, OutfitPhoto, OutfitPhotoTour, warmOutfitPair } from '../PhotoPair';
 import { carAlt, carKind, carNote, hasCarArt } from '../CarArt';
@@ -1344,31 +1345,22 @@ export function ShopScreen({
     if (sheet.kind === 'baseSet') {
       const setInfo = sheet.set;
       const price = priceForSet(setInfo);
-      const base = BUILDING_BY_ID[setInfo.baseId];
-      const car = ITEM_BY_ID[setInfo.carId];
-      const plane = ITEM_BY_ID[setInfo.planeId];
-      const costume = CRYSTAL_COSTUMES.find((c) => c.id === setInfo.costumeId);
-      const parts = [
-        { title: base?.title ?? setInfo.baseId, emoji: base?.emoji ?? '🏙️', owned: isBuildingOwned(buildingsOwned, setInfo.baseId) },
-        { title: car?.title ?? setInfo.carId, emoji: '🚗', owned: isOwned(owned, setInfo.carId) },
-        { title: plane?.title ?? setInfo.planeId, emoji: '✈️', owned: isOwned(owned, setInfo.planeId) },
-        { title: costume?.title ?? setInfo.costumeId, emoji: '✨', owned: allOwnedCostumes.includes(setInfo.costumeId) },
-      ];
-      const complete = parts.every((part) => part.owned);
+      const ownedParts = {
+        base: isBuildingOwned(buildingsOwned, setInfo.baseId),
+        car: isOwned(owned, setInfo.carId),
+        plane: isOwned(owned, setInfo.planeId),
+        costume: allOwnedCostumes.includes(setInfo.costumeId),
+      };
+      const complete = Object.values(ownedParts).every(Boolean);
       const affordable = !complete && gems >= price;
       return (
         <>
-          <div className="shop-bigart base-set-detail-art">
-            <div className="base-set-icons"><BuildingArt id={setInfo.baseId} className="building-card-art" loading="eager" /><ToyArt id={setInfo.carId} size={56} tuning={profile.shop?.tuning} /><ToyArt id={setInfo.planeId} size={56} tuning={profile.shop?.tuning} />{costume && <Mascot mood="idle" costumeId={costume.id} size={56} stage={growth.index} />}</div>
-          </div>
           <h2 className="sheet-title">{setInfo.title}</h2>
           <div className="sheet-headline">
             <RarityLabel rarity={setInfo.rarity} className="rarity-chip-detail" />
           </div>
           <p className="sheet-lead">{setInfo.desc}</p>
-          <div className="col mb">
-            {parts.map((part) => (<div key={part.title} className="tiny">{part.owned ? '✓' : '○'} {part.emoji} {part.title}</div>))}
-          </div>
+          <SetComposition set={setInfo} owned={ownedParts} stage={growth.index} />
           <div className="sheet-facts">
             <div className="row">
               <span className={`shop-price${affordable ? ' afford' : ''}`}>{complete ? 'Набор собран ✓' : `💎 ${price}`}</span>

@@ -91,8 +91,11 @@ export async function runWorldUiChecks() {
   const worldTrackFlip = worldTrackCover?.querySelector('.dc-stage') as HTMLElement | null;
   if (worldTrackFlip) click(worldTrackFlip);
   await sleep(30);
+  check('мир: вторая сторона обложки — иллюстрация мелодии', worldTrackCover?.getAttribute('data-side') === 'art' && !!worldTrackCover.querySelector('.dc-art-svg'), worldTrackCover?.getAttribute('data-side') ?? '');
+  if (worldTrackFlip) click(worldTrackFlip);
+  await sleep(30);
   check('мир: оборот обложки показывает метаданные трека', (worldTrackCover?.textContent ?? '').includes(music.isrc) && (worldTrackCover?.textContent ?? '').includes('CC BY 4.0'), worldTrackCover?.textContent ?? '');
-  check('мир: счётчик сторон обложки 2 / 2', (worldTrackCover?.querySelector('.dc-caption')?.textContent ?? document.querySelector('.dc-caption')?.textContent ?? '').includes('2 / 2'), '');
+  check('мир: счётчик сторон обложки 3 / 3', (worldTrackCover?.querySelector('.dc-caption')?.textContent ?? document.querySelector('.dc-caption')?.textContent ?? '').includes('3 / 3'), '');
   click(buttons().find((b) => (b.textContent ?? '').includes('К области')));
   await sleep(20);
   click(buttons().find((b) => (b.textContent ?? '').includes('К карте')));

@@ -53,7 +53,9 @@ function tableRows(text) {
 }
 
 const outfitRows = tableRows(section('## Наряды: 38 позиций'));
-const toyRows = tableRows(section('## Товары с одним кадром: 24 позиции'));
+// Заголовок раздела меняет число по мере серии, поэтому ищем по префиксу:
+// само количество сверяет отдельный тест.
+const toyRows = tableRows(section('## Товары с одним кадром'));
 
 const catalog = [...shop.matchAll(/id: '([a-z0-9-]+)', slot: '[a-z]+', kind: '(\w+)'/g)].map((match) => ({
   id: match[1],
@@ -90,8 +92,8 @@ test('очередь запуска нарядов: сначала корона,
 });
 
 test('таблица товаров совпадает с товарами, у которых только главный кадр', () => {
-  assert.equal(singleShotIds.length, 24, `одно-кадровых товаров ${singleShotIds.length}`);
-  assert.equal(toyRows.length, 24, `в документе ${toyRows.length} строк товаров`);
+  assert.equal(singleShotIds.length, 16, `одно-кадровых товаров ${singleShotIds.length}`);
+  assert.equal(toyRows.length, 16, `в документе ${toyRows.length} строк товаров`);
   assert.deepEqual(new Set(toyRows.map((row) => row.id)), new Set(singleShotIds));
   assert.ok(unique(toyRows.map((row) => row.id)), 'id товаров в таблице повторяются');
 });
