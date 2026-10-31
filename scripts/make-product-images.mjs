@@ -56,6 +56,9 @@ const STRIP = new Set([
 const STRIP_WIDTH = 0.42;
 
 mkdirSync(out, { recursive: true });
+/** Кадры галереи живут отдельно: там их ищут TechTour и план фотосерий. */
+const galleryOut = path.join(out, 'gallery');
+mkdirSync(galleryOut, { recursive: true });
 
 const files = readdirSync(src).filter((name) => name.toLowerCase().endsWith('.png'));
 if (!files.length) {
@@ -103,7 +106,12 @@ function fitOnBackdrop(from, to, id) {
 for (const name of files) {
   const id = name.replace(/\.png$/i, '');
   const from = path.join(src, name);
-  const to = path.join(out, `${id}.webp`);
+  // 0.88.1: второй кадр пары (`<id>-alt.png`, `<id>-front.png`,
+  // `<id>-detail.png`) кладём в public/products/gallery/, а не рядом с
+  // главным фото. Иначе галерея не найдёт файл, а контракт фотосерий
+  // (`tests/photo-plan.test.mjs`) увидит одиночный кадр.
+  const inGallery = /-(alt|front|detail)$/.test(id);
+  const to = path.join(inGallery ? galleryOut : out, `${id}.webp`);
   const { w, h } = size(from);
 
   if (STRIP.has(id)) {
