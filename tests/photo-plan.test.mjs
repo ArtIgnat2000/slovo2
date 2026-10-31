@@ -134,6 +134,41 @@ test('второй кадр товара не появляется без гла
   }
 });
 
+test('каждая полная пара нарядов подключена к витрине', () => {
+  // Правило 0.89.0: файлов два — и они видны. Пока пары не были подключены,
+  // фотосерия лежала в репозитории мёртвым грузом («не нашёл очки и шляпу»).
+  // Тест сверяет список показа (src/ui/PhotoPair.tsx) с тем, что реально есть
+  // на диске: сгенерировали новую пару — обязаны добавить её в витрину.
+  const source = readFileSync(new URL('../src/ui/PhotoPair.tsx', import.meta.url), 'utf8');
+  const block = source.slice(source.indexOf('OUTFIT_PAIRS'), source.indexOf('};', source.indexOf('OUTFIT_PAIRS')));
+  const wired = [...block.matchAll(/'?([a-z0-9-]+)'?:\s*\{\s*path:\s*'(products\/gallery\/[a-z0-9-]+\.webp)',\s*label:\s*'([^']+)'\s*\}/g)].map(
+    (match) => ({ id: match[1], path: match[2], label: match[3] }),
+  );
+
+  const complete = outfitRows
+    .filter((row) => existsSync(`${root}public/products/${row.id}.webp`) && existsSync(`${root}public/products/gallery/${row.id}-alt.webp`))
+    .map((row) => row.id);
+
+  assert.ok(complete.length >= 16, `полных пар в репозитории ${complete.length}, ожидалось не меньше 16`);
+  assert.deepEqual(
+    new Set(wired.map((pair) => pair.id)),
+    new Set(complete),
+    'список показа пар разошёлся с файлами: у каждой полной пары должен быть кадр на витрине',
+  );
+  assert.ok(unique(wired.map((pair) => pair.id)), 'пара подключена дважды');
+  for (const pair of wired) {
+    assert.equal(pair.path, `products/gallery/${pair.id}-alt.webp`, `${pair.id}: второй кадр ведёт на чужой файл`);
+    assert.ok(pair.label.trim().length >= 3, `${pair.id}: у второго кадра нет подписи`);
+    assert.ok(outfitIds.includes(pair.id), `${pair.id}: в списке пар не наряд из каталога`);
+  }
+
+  // Витрина и лист обязаны пользоваться этим списком, иначе он снова станет мёртвым.
+  const shopSource = readFileSync(new URL('../src/ui/screens/ShopScreen.tsx', import.meta.url), 'utf8');
+  assert.ok(shopSource.includes("from '../PhotoPair'"), 'ShopScreen не импортирует пары нарядов');
+  assert.ok(shopSource.includes('hasOutfitPair('), 'витрина не спрашивает про пару кадров');
+  assert.ok(shopSource.includes('<OutfitPhotoTour'), 'в листе товара нет просмотра пары');
+});
+
 test('в products/gallery нет файлов без ссылки из галереи или плана', () => {
   const galleryDir = `${root}public/products/gallery`;
   const referenced = new Set([
