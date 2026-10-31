@@ -51,6 +51,8 @@ import { ITEM_BY_ID, SHOP_ITEMS, TOY_ITEMS, growthStage, sellPrice } from '../sr
 import { hasProductPhoto } from '../src/ui/ProductPhoto';
 import { isTechTourItem } from '../src/ui/TechTour';
 import { TINT_PALETTES, TINT_PRICE } from '../src/engine/tints';
+import { hasProductPhoto } from '../src/ui/ProductPhoto';
+import { hasOutfitPair } from '../src/ui/PhotoPair';
 import { THEME_STYLES } from '../src/engine/theme-styles';
 import { masteredCount } from '../src/state/store';
 import { runStudyEngineChecks } from './study.test';
@@ -1270,10 +1272,12 @@ async function main() {
     // ── Тюнинг цвета купленной вещи: 1 💎 за оттенок, дальше бесплатно ────────
     // Палитра живёт в подробной карточке (sheet), а не на витрине:
     // сначала вещь — потом краски.
-    // 0.89.0: у наряда с фотопарой палитры нет (снимок не перекрасить), поэтому
-    // краски проверяем на вещи без фото — платье. Владеем им принудительно:
-    // покупку выше делает самый дешёвый наряд, а он теперь с фотопарой.
-    const tintItem = ITEM_BY_ID['dress-pink'];
+    // 0.89.0: у вещи с фотографией палитры нет (снимок не перекрасить).
+    // Фотосерия нарядов растёт каждый релиз, поэтому вещь для проверки красок
+    // выбираем по правилу, а не по id: первая вещь в каталоге, у которой есть
+    // палитра и нет фото. Иначе тест ломается на каждом новом снимке.
+    const tintItem = SHOP_ITEMS.find((i) => TINT_PALETTES[i.id] && !hasProductPhoto(i.id) && !hasOutfitPair(i.id));
+    if (!tintItem) throw new Error('тюнинг: не осталось вещей с палитрой и без фото — проверку красок нужно переписать');
     useApp.setState((s) => ({
       profiles: s.profiles.map((p) => (p.id === s.activeId
         ? { ...p, shop: { ...p.shop!, owned: [...p.shop!.owned, tintItem.id] } }
@@ -1293,8 +1297,11 @@ async function main() {
     const closeSheet = () => {
       document.querySelector('.shop-sheet-veil')?.click();
     };
-    // У некупленной вещи палитры нет даже в sheet (платье со звёздами не куплено)
-    click(vitrinaCard('Платье со звёздами')!);
+    // У некупленной вещи палитры нет даже в sheet: берём другую вещь с
+    // палитрой и без фото, которой у профиля точно нет.
+    const unownedTintItem = SHOP_ITEMS.find((i) => i !== tintItem && TINT_PALETTES[i.id] && !hasProductPhoto(i.id) && !hasOutfitPair(i.id));
+    if (!unownedTintItem) throw new Error('тюнинг: нет второй вещи с палитрой и без фото для проверки «не куплено»');
+    click(vitrinaCard(unownedTintItem.title)!);
     await sleep(30);
     check('тюнинг: у некупленной вещи палитры нет', !buttons().some((b) => (b.textContent ?? '').includes('🎨 Цвет')), '');
     closeSheet();

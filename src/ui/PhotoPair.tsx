@@ -54,6 +54,11 @@ export const OUTFIT_PAIRS: Record<string, AlternateShot> = {
   'glasses-sigma': { path: 'products/gallery/glasses-sigma-alt.webp', label: 'В профиль' },
   'pendant-heart': { path: 'products/gallery/pendant-heart-alt.webp', label: 'Раскладка: замок' },
   'pendant-star': { path: 'products/gallery/pendant-star-alt.webp', label: 'Раскладка: замок' },
+  'bag-pink': { path: 'products/gallery/bag-pink-alt.webp', label: 'Сзади: ручка и бант' },
+  'bracelet-beads': { path: 'products/gallery/bracelet-beads-alt.webp', label: 'Сверху: порядок бусин' },
+  'bracelet-heart': { path: 'products/gallery/bracelet-heart-alt.webp', label: 'Раскладка: застёжка' },
+  'dress-pink': { path: 'products/gallery/dress-pink-alt.webp', label: 'Со спины' },
+  'dress-star': { path: 'products/gallery/dress-star-alt.webp', label: 'Со спины и подола' },
 };
 
 /** Есть ли у наряда пара кадров. Только для вещей со слотом (kind: 'outfit'). */
