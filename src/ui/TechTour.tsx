@@ -34,12 +34,25 @@ const ALTERNATES: Record<string, AlternatePhoto> = {
   'plane-moon-base': { path: 'products/gallery/plane-moon-base-alt.webp', label: 'Другой ракурс' },
   'plane-atomic-base': { path: 'products/gallery/plane-atomic-base-alt.webp', label: 'Другой ракурс' },
   'plane-steam-base': { path: 'products/gallery/plane-steam-base-alt.webp', label: 'Другой ракурс' },
+  // Second angles for the everyday toys (0.89.7). Same studio, same scale,
+  // same light: the label names what the second frame actually shows, so the
+  // counter «1 / 2» and the «Далее» button read like a caption, not a stub.
+  'sport-ball': { path: 'products/gallery/sport-ball-alt.webp', label: 'Сверху — ниппель и швы' },
+  'sport-skate': { path: 'products/gallery/sport-skate-alt.webp', label: 'Снизу — подвески и колёса' },
+  'sport-dumbbell': { path: 'products/gallery/sport-dumbbell-alt.webp', label: 'Лёжа — гриф и диски' },
+  'sport-racket': { path: 'products/gallery/sport-racket-alt.webp', label: 'Плашмя — струны и мяч' },
+  'food-donut': { path: 'products/gallery/food-donut-alt.webp', label: 'Сверху — глазурь и дырка' },
+  'food-icecream': { path: 'products/gallery/food-icecream-alt.webp', label: 'Сверху — три шарика' },
+  'food-cake': { path: 'products/gallery/food-cake-alt.webp', label: 'Срез — слои и крем' },
+  'laptop-air': { path: 'products/gallery/laptop-air-alt.webp', label: 'Сзади — крышка и порты' },
 };
 
 export function isTechTourItem(id: string): boolean {
+  // A toy gets the photo tour exactly when a second real frame exists for it.
+  // The earlier type whitelist (phones, ships, planes) only described the set
+  // that had been shot at the time; the list itself is the source of truth.
   const item = ITEM_BY_ID[id];
-  const isTargetType = item?.kind === 'toy' && ((item.toy === 'phone' && id.startsWith('phone-')) || item.toy === 'ship' || item.toy === 'plane');
-  return !!isTargetType && Object.prototype.hasOwnProperty.call(ALTERNATES, id);
+  return item?.kind === 'toy' && Object.prototype.hasOwnProperty.call(ALTERNATES, id);
 }
 
 /** Start loading the second real photo as soon as the product is opened. */
