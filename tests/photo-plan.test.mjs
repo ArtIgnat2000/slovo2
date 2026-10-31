@@ -1,7 +1,7 @@
 // Контракт фотосерий: брифы из docs/proposals/photo-series-plan.md и правило
 // «пара или ничего».
 //
-// Зачем: наряды (38 позиций) и вторые ракурсы 24 товаров появятся только
+// Зачем: наряды (38 позиций) и вторые ракурсы товаров появятся только
 // после разблокировки генератора. Чтобы серия не собралась наполовину и чтобы
 // фото не подмешались к векторному арту, документ-маршрут связан с каталогом и
 // с файлами тестом:
@@ -92,8 +92,8 @@ test('очередь запуска нарядов: сначала корона,
 });
 
 test('таблица товаров совпадает с товарами, у которых только главный кадр', () => {
-  assert.equal(singleShotIds.length, 16, `одно-кадровых товаров ${singleShotIds.length}`);
-  assert.equal(toyRows.length, 16, `в документе ${toyRows.length} строк товаров`);
+  assert.equal(singleShotIds.length, 6, `одно-кадровых товаров ${singleShotIds.length}`);
+  assert.equal(toyRows.length, 6, `в документе ${toyRows.length} строк товаров`);
   assert.deepEqual(new Set(toyRows.map((row) => row.id)), new Set(singleShotIds));
   assert.ok(unique(toyRows.map((row) => row.id)), 'id товаров в таблице повторяются');
 });

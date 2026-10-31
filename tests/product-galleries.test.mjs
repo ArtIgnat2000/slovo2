@@ -72,7 +72,7 @@ const CARS = carTourIds();
 const MAIN = (id) => `public/products/${id}.webp`;
 
 test('второй кадр техники: файл есть, он не копия главного фото и не мелкий', () => {
-  assert.equal(ALTERNATES.size, 27, 'у 27 позиций должен быть второй кадр');
+  assert.equal(ALTERNATES.size, 37, 'у 37 позиций должен быть второй кадр');
   const seen = new Map();
   for (const [id, alternate] of ALTERNATES) {
     const path = `public/${alternate.path}`;

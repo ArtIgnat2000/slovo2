@@ -45,6 +45,18 @@ const ALTERNATES: Record<string, AlternatePhoto> = {
   'food-icecream': { path: 'products/gallery/food-icecream-alt.webp', label: 'Сверху — три шарика' },
   'food-cake': { path: 'products/gallery/food-cake-alt.webp', label: 'Срез — слои и крем' },
   'laptop-air': { path: 'products/gallery/laptop-air-alt.webp', label: 'Сзади — крышка и порты' },
+  // Питомцы (0.89.10). Сняты не «с нуля», а правкой главного кадра: иначе
+  // получается другое животное, а не второй ракурс того же.
+  'pet-cat': { path: 'products/gallery/pet-cat-alt.webp', label: 'Сбоку — уши и хвост' },
+  'pet-bunny': { path: 'products/gallery/pet-bunny-alt.webp', label: 'В профиль — уши и задние лапы' },
+  'pet-panda': { path: 'products/gallery/pet-panda-alt.webp', label: 'В профиль — пятна и лапы' },
+  'pet-corgi': { path: 'products/gallery/pet-corgi-alt.webp', label: 'В профиль — уши, хвост и окрас' },
+  'pet-hamster': { path: 'products/gallery/pet-hamster-alt.webp', label: 'В профиль — щёки и лапки' },
+  'pet-chihuahua': { path: 'products/gallery/pet-chihuahua-alt.webp', label: 'В профиль — уши и морда' },
+  'pet-cat-siamese': { path: 'products/gallery/pet-cat-siamese-alt.webp', label: 'В профиль — окрас морды и хвост' },
+  'pet-cat-scottish': { path: 'products/gallery/pet-cat-scottish-alt.webp', label: 'В профиль — щёки и уши' },
+  'pet-poodle': { path: 'products/gallery/pet-poodle-alt.webp', label: 'В профиль — кудри и хвост' },
+  'pet-cat-british': { path: 'products/gallery/pet-cat-british-alt.webp', label: 'В профиль — окрас и лапы' },
 };
 
 export function isTechTourItem(id: string): boolean {
