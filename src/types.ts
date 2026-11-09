@@ -11,7 +11,7 @@ export type DangerKind = 'vowel' | 'consonant' | 'other';
  * Класс — свойство профиля, а не слова: у слова одна карточка и один прогресс,
  * `grades` лишь говорит, в словариках каких классов оно встречается.
  */
-export type ClassId = 1 | 2 | 3 | 4;
+export type ClassId = 1 | 2 | 3 | 4 | 5;
 
 export interface Word {
   id: string;

@@ -202,9 +202,12 @@ function wordChips(ctx: ChatContext): ChatChip[] {
 
 /** Ответ на вопрос «Как пишется …»: слоги, ударение, опасность, подсказка. */
 function wordReply(word: Word): ChatReply {
-  const lines: string[] = [
-    `Слоги: ${word.syllables.join('-')}. Ударение: ${stressedText(word)}.`,
-  ];
+  // Пузырь чата ограничен LINE_LIMIT: у длинных слов («повествовательный»,
+  // «Великая Отечественная война») слоги и ударение показываем двумя строками.
+  const syll = `Слоги: ${word.syllables.join('-')}.`;
+  const stress = `Ударение: ${stressedText(word)}.`;
+  const full = `${syll} ${stress}`;
+  const lines: string[] = full.length <= LINE_LIMIT ? [full] : [syll, stress];
   const danger = dangerSummary(word);
   if (danger && danger.length <= LINE_LIMIT) lines.push(danger);
   if (word.mnemonic && word.mnemonic.length <= LINE_LIMIT) {
@@ -396,7 +399,7 @@ export function chatRespond(
     } else if (/^(привет|здравствуй|здравствуйте|здорово|хай)[!.\s]*$/i.test(text)) {
       reply = { lines: ['Привет! Чем помочь?'], chips: ROOT_CHIPS };
     } else {
-      reply = { lines: ['Назови слово или жми чип внизу!'], chips: ROOT_CHIPS };
+      reply = { lines: ['Назови слово или нажми на чип!'], chips: ROOT_CHIPS };
     }
   }
 

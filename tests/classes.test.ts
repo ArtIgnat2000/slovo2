@@ -235,7 +235,8 @@ export async function runClassChecks() {
     assert.equal(g2.pct, Math.round((g2.mastered / g2.words) * 100), 'процент освоения — от слов класса');
 
     assert.equal(nextClass(1), 2, 'после 1 класса — 2');
-    assert.equal(nextClass(4), null, 'после 4 класса программы нет');
+    assert.equal(nextClass(4), 5, 'после 4 класса — 5 класс');
+    assert.equal(nextClass(5), null, 'после 5 класса программы нет');
 
     const id = active().id;
     useApp.setState((s) => ({
@@ -497,8 +498,37 @@ export async function runClassChecks() {
     ui4.unmount();
     host4.remove();
 
+    // ── 5 класс: новый класс программы ───────────────────────────────────
+    store().setActiveClass(5);
+    const host5 = document.createElement('div');
+    document.body.appendChild(host5);
+    const ui5: Root = createRoot(host5);
+    ui5.render(createElement(App));
+    await sleep(120);
+    await expandPath();
+    const nodes5 = host5.querySelectorAll('.node-btn').length;
+    check('путь 5 класса — 22 урока', nodes5 === LESSONS_BY_GRADE[5].length, `узлов: ${nodes5}`);
+    check('на главной виден 5 класс', (host5.textContent ?? '').includes('5 класс'));
+    const firstNode5 = host5.querySelector<HTMLButtonElement>('.node-btn')!;
+    click(firstNode5);
+    await sleep(120);
+    const screen5 = host5.querySelector('.lesson-screen') as HTMLElement | null;
+    const opened5 = LESSONS_BY_GRADE[5].find((l) => l.id === (screen5?.dataset.lessonId ?? ''));
+    check('урок 5 класса взят из программы 5 класса', !!opened5, screen5?.dataset.lessonId ?? 'урок не открылся');
+    check(
+      'в уроке 5 класса только слова 5 класса',
+      !!opened5 && opened5.wordIds.every((id) => WORD_BY_ID[id].grades.includes(5)),
+      opened5 ? opened5.wordIds.join(', ') : 'урок не найден',
+    );
+    assert.equal(active().xp, 1234, '5 класс не тронул опыт');
+    assert.equal(active().gems, 87, '5 класс не тронул кристаллы');
+    assert.equal(active().streak, 9, '5 класс не тронул серию');
+    assert.deepEqual(active().shop?.owned, ['phone-retro'], '5 класс не тронул покупки');
+    ui5.unmount();
+    host5.remove();
+
     // Классы 1–4 в сборке: в листе классов все четыре.
-    check('в сборке доступны все классы 1–4', AVAILABLE_CLASSES.length === 4, AVAILABLE_CLASSES.join(','));
+    check('в сборке доступны все классы 1–5', AVAILABLE_CLASSES.length === 5, AVAILABLE_CLASSES.join(','));
     store().setActiveClass(2);
     ui.unmount();
     host.remove();
