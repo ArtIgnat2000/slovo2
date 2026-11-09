@@ -237,6 +237,10 @@ Internet с включённым принудительным затемнени
 (94 слова, 15 уроков)** — 257 карточек в общем банке. Списки слов и проверки —
 [`docs/proposals/classes-1-4.md`](./docs/proposals/classes-1-4.md) и
 [`docs/proposals/slova-1-4-klass.md`](./docs/proposals/slova-1-4-klass.md).
+Свод правил проекта (формат слов, опасные буквы, карточки, картинки, релизный
+контур) — [`docs/PROJECT-RULES.md`](./docs/PROJECT-RULES.md); план словаря
+5 класса (УМК Баранов–Ладыженская, «Русский язык. 5 класс») —
+[`docs/proposals/slova-5-klass.md`](./docs/proposals/slova-5-klass.md).
 
 Что важно при правке контента:
 
