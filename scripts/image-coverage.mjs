@@ -2,7 +2,7 @@
 /**
  * Покрытие слов картинками (npm run images:report).
  *
- * В банке 257 карточек, а WebP-иллюстрации нарисованы только для 94 слов
+ * В банке 367 карточек, а WebP-иллюстрации нарисованы для 257 из них
  * 2 класса. Этот отчёт показывает, сколько слов каждого класса уже с картинкой,
  * сколько живёт на эмодзи, и сколько весят файлы — чтобы решение «рисовать
  * дальше или оставить эмодзи» принималось по цифрам, а не на глаз.
@@ -48,7 +48,7 @@ if (words.some((w) => w.grades.length === 0)) {
   process.exit(1);
 }
 
-const classes = [1, 2, 3, 4];
+const classes = [1, 2, 3, 4, 5];
 const rows = classes.map((grade) => {
   const list = words.filter((w) => w.grades.includes(grade));
   const withImage = list.filter((w) => w.image && fs.existsSync(path.join(wordsDir, `${w.image}.webp`)));

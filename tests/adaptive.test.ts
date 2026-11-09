@@ -140,7 +140,8 @@ import { findFixDiffIdx } from '../src/ui/TaskView';
   assert.equal(WORDS_BY_GRADE[2].length, 94, 'в программе 2 класса 94 слова');
   assert.equal(WORDS_BY_GRADE[3].length, 72, 'в программе 3 класса 72 слова');
   assert.equal(WORDS_BY_GRADE[4].length, 94, 'в программе 4 класса 94 слова');
-  assert.equal(WORDS.length, 257, 'в банке 257 карточек 1–4 классов');
+  assert.equal(WORDS_BY_GRADE[5].length, 127, 'в программе 5 класса 127 слов');
+  assert.equal(WORDS.length, 367, 'в банке 367 карточек 1–5 классов');
   for (const w of WORDS) {
     assert.ok(w.danger.length >= 1, `${w.text}: должна быть хотя бы одна опасная буква`);
     // Исключение — «ё»: она сама и есть орфограмма («чёрный», а не «чорный»).

@@ -111,12 +111,15 @@ for (const hour of [0, 3, 5, 10, 11, 17, 18, 21, 22, 23]) {
 for (const word of WORDS) {
   const { reply } = chatRespond({ chipId: `word:${word.id}` }, ctx(profileWith(12)), sessionStart());
   remember(reply, `word:${word.id}`);
+  // Длинные слова (фразы 5 класса) занимают две строки по 70 знаков —
+  // ищем слоги и ударение во всём ответе, а не в одной реплике.
+  const whole = reply.lines.join('\n');
   assert.ok(
-    reply.lines[0].includes(word.syllables.join('-')),
-    `word:${word.id}: первая реплика должна показывать слоги ${word.syllables.join('-')}`,
+    whole.includes(word.syllables.join('-')),
+    `word:${word.id}: ответ должен показывать слоги ${word.syllables.join('-')}`,
   );
   assert.ok(
-    reply.lines[0].toLowerCase().includes('ударение'),
+    whole.toLowerCase().includes('ударение'),
     `word:${word.id}: без ударения — половинный ответ`,
   );
 }

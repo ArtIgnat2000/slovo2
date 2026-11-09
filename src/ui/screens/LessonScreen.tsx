@@ -1063,7 +1063,7 @@ function ClassWinMeta({ grade }: { grade: ClassId }) {
     <p className="tiny" style={{ margin: '0 0 10px' }}>
       {info.lessons} {plural(info.lessons, 'урок', 'урока', 'уроков')} позади · {info.mastered} из {info.words}{' '}
       {plural(info.words, 'слова', 'слов', 'слов')} освоено
-      {nextClass(grade) ? ` · дальше ${CLASS_META[nextClass(grade)!].title.toLowerCase()}` : ' · вся программа 1–4'}.
+      {nextClass(grade) ? ` · дальше ${CLASS_META[nextClass(grade)!].title.toLowerCase()}` : ' · вся программа 1–5'}.
     </p>
   );
 }
@@ -1086,7 +1086,7 @@ function buildQueue(profile: Profile | null, lessonId: string): Task[] {
     const list = (profile?.lists ?? []).find((l) => l.id === mode.listId);
     if (!list) return [];
     // Источник карточек: банк + свои слова профиля. Без этого «подлежащее»
-    // из списка не нашлось бы (его нет в банке 257 слов).
+    // из списка не нашлось бы (его нет в банке 367 слов).
     const lookup = lookupWith(profile?.customWords);
     const all = listWords(list, profile?.customWords ?? {});
     if (!all.length) return [];

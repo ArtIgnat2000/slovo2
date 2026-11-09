@@ -329,7 +329,7 @@ export async function runDictionaryUiChecks(): Promise<void> {
   // Компактный выбор класса не переключает программу профиля.
   const gradePicker = document.querySelector('.dict-grade-picker select') as HTMLSelectElement | null;
   check('UI словарика: один компактный выбор класса вместо ряда чипов',
-    !!gradePicker && gradePicker.options.length === 4 && gradePicker.value === '2');
+    !!gradePicker && gradePicker.options.length === 5 && gradePicker.value === '2');
   if (gradePicker) {
     gradePicker.value = '3';
     gradePicker.dispatchEvent(new window.Event('change', { bubbles: true }));

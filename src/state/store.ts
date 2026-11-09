@@ -318,7 +318,7 @@ function normalizeDays(raw: unknown, today: string): Record<string, DayStat> {
 
 /** Допустимый класс программы: всё остальное (в том числе из файла выгрузки) → 2. */
 export function isClassId(value: unknown): value is ClassId {
-  return value === 1 || value === 2 || value === 3 || value === 4;
+  return value === 1 || value === 2 || value === 3 || value === 4 || value === 5;
 }
 
 function normalizeProfile(raw: Partial<Profile> | null | undefined): Profile | null {
@@ -545,7 +545,7 @@ interface AppState {
   /** Изменить размер базовой очереди урока для текущего профиля. */
   setLessonSize: (size: LessonSize) => void;
   /**
-   * Класс программы (1–4). Меняет ТОЛЬКО activeClass и сбрасывает адаптивное
+   * Класс программы (1–5). Меняет ТОЛЬКО activeClass и сбрасывает адаптивное
    * окно: опыт, кристаллы, серия, награды, покупки и прогресс по словам
    * остаются. Никаких пересозданий профиля, сбросов дня и фильтрации слов.
    */

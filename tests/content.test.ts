@@ -38,7 +38,7 @@ for (const w of WORDS_BY_GRADE[2]) {
   assert.ok(w.id.startsWith('g2_'), `${w.text}: у слов 2 класса префикс g2_ (${w.id})`);
 }
 // Новые классы получают свой префикс; слово, попавшее в 2 класс позже, — тоже g2_.
-for (const g of [1, 3, 4] as const) {
+for (const g of [1, 3, 4, 5] as const) {
   for (const w of WORDS_BY_GRADE[g]) {
     const expect = w.grades.includes(2) ? 'g2_' : `g${Math.min(...w.grades)}_`;
     assert.ok(w.id.startsWith(expect), `${w.text}: ожидался префикс ${expect}, получен ${w.id}`);
@@ -47,11 +47,11 @@ for (const g of [1, 3, 4] as const) {
 
 // Ожидаемые объёмы: расхождение — сигнал, что словарик класса изменился,
 // и тогда нужно осознанно обновить и число, и релизную заметку.
-const EXPECTED = { 1: 30, 2: 94, 3: 72, 4: 94 };
+const EXPECTED = { 1: 30, 2: 94, 3: 72, 4: 94, 5: 127 };
 for (const g of CLASS_IDS) {
   assert.equal(WORDS_BY_GRADE[g].length, EXPECTED[g], `слов в ${g} классе`);
 }
-assert.equal(WORDS.length, 257, 'всего карточек в банке');
+assert.equal(WORDS.length, 367, 'всего карточек в банке');
 
 // ── Уроки ────────────────────────────────────────────────────────────────────
 
@@ -95,7 +95,7 @@ for (const g of CLASS_IDS) {
 
 // ── Доступность классов и тема слова ─────────────────────────────────────────
 
-assert.deepEqual(AVAILABLE_CLASSES, [1, 2, 3, 4], 'в сборке наполнены все классы 1–4');
+assert.deepEqual(AVAILABLE_CLASSES, [1, 2, 3, 4, 5], 'в сборке наполнены все классы 1–5');
 assert.deepEqual(CLASS_IDS.filter((g) => LESSONS_BY_GRADE[g].length > 0), AVAILABLE_CLASSES);
 
 assert.equal(availableClass(2), 2);
@@ -105,6 +105,7 @@ assert.equal(availableClass(1), 1);
 // Все четыре класса есть в сборке, поэтому подмены больше нет.
 assert.equal(availableClass(1), 1);
 assert.equal(availableClass(3), 3);
+assert.equal(availableClass(5), 5);
 
 // Новые слова получают тему первого урока, старые 94 сохраняют THEME_OF:
 // иначе фильтр словарика и подсказки при вычитке начнут врать.
@@ -118,6 +119,7 @@ assert.equal(WORD_BY_ID['g2_класс'].theme, 'school', 'старое слов
 
 assert.ok(WORDS_BY_GRADE[3].length === 72 && LESSONS_BY_GRADE[3].length === 13, '3 класс: 72 слова и 13 уроков');
 assert.ok(WORDS_BY_GRADE[4].length === 94 && LESSONS_BY_GRADE[4].length === 15, '4 класс: 94 слова и 15 уроков');
+assert.ok(WORDS_BY_GRADE[5].length === 127 && LESSONS_BY_GRADE[5].length === 22, '5 класс: 127 слов и 22 урока');
 
 // Слова, встречающиеся в двух словариках: одна карточка, один прогресс.
 for (const text of ['обед', 'тарелка', 'грамм', 'килограмм', 'интересно']) {
@@ -130,5 +132,5 @@ assert.deepEqual(WORD_BY_ID['g2_тарелка'].grades, [2, 4], 'тарелка
 assert.deepEqual(WORD_BY_ID['g3_грамм'].grades, [3, 4], 'грамм — 3 и 4 класс');
 
 console.log(
-  '✓ контент по классам: 257 карточек; 1 — 30 слов и 5 уроков, 2 — 94 и 16, 3 — 72 и 13, 4 — 94 и 15',
+  '✓ контент по классам: 367 карточек; 1 — 30 слов и 5 уроков, 2 — 94 и 16, 3 — 72 и 13, 4 — 94 и 15, 5 — 127 и 22',
 );
