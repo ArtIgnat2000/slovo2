@@ -35,8 +35,9 @@ export function GamesScreen({ onGoLessons }: { onGoLessons: () => void }) {
   return (
     <div className="screen games-screen">
       <h2 className="mb">🧩 Игры</h2>
-      <p className="tiny muted mb">Играй сколько хочешь — это не урок и не контрольная: ничего не сгорает и ничего не считается.</p>
+      <p className="tiny muted mb">Играй сколько хочешь: ничего не сгорает и ничего не считается.</p>
 
+      <div className="games-duo">
       <section className="games-section" aria-label="Свободная практика">
         <h3 className="games-section-title">Свободная практика</h3>
 
@@ -55,7 +56,7 @@ export function GamesScreen({ onGoLessons }: { onGoLessons: () => void }) {
               <div className="game-practice-emoji" aria-hidden="true">🧵</div>
               <div>
                 <h3 className="game-practice-title">Собери слово</h3>
-                <p className="tiny muted">Выбери знакомое слово и выложи его из карточек. Ошибиться можно сколько угодно — пока не получится.</p>
+                <p className="tiny muted">Выложи слово из карточек.</p>
               </div>
             </div>
             {word && (
@@ -85,6 +86,7 @@ export function GamesScreen({ onGoLessons }: { onGoLessons: () => void }) {
         <h3 className="games-section-title">Филворд</h3>
         <WordSearchGame pool={practice} grade={grade} onGoLessons={onGoLessons} />
       </section>
+      </div>
 
       <section className="games-section" aria-label="Скоро в играх">
         <h3 className="games-section-title">Скоро здесь</h3>

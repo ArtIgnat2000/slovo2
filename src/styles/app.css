@@ -10296,6 +10296,12 @@ img.product-photo {
 .games-section {
   margin: 14px 0 4px;
 }
+
+/* Две игровые секции рядом на планшете и десктопе; на телефоне — столбиком. */
+.games-duo {
+  display: flex;
+  flex-direction: column;
+}
 .games-section-title {
   font-size: 13px;
   font-weight: 800;
@@ -10332,6 +10338,9 @@ img.product-photo {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  align-content: flex-start;
+  max-height: 140px;
+  overflow-y: auto;
 }
 .game-pick {
   min-height: 44px;
@@ -10535,6 +10544,61 @@ img.product-photo {
     padding-left: 2px;
     padding-right: 2px;
     font-size: 11px;
+  }
+}
+
+/* ── «Игры»: телефон и планшет (0.94.1) ─────────────────────────────────
+   Минимум текста и никакой прокрутки «в никуда»: на телефоне карточки
+   поуже и плотнее, на планшете — две колонки и комфортная ширина. */
+@media (max-width: 480px) {
+  .games-screen {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .game-practice,
+  .ws-card {
+    padding: 12px 10px;
+    border-radius: 18px;
+  }
+  .game-practice-head {
+    gap: 10px;
+  }
+  .game-practice-emoji {
+    font-size: 32px;
+  }
+  .game-practice-title {
+    font-size: 17px;
+  }
+  .game-picks {
+    max-height: 128px;
+    overflow-y: auto;
+    align-content: flex-start;
+  }
+  .ws-words {
+    gap: 6px;
+  }
+  .ws-chip {
+    padding: 5px 8px;
+    font-size: 14px;
+  }
+}
+@media (min-width: 760px) {
+  .games-screen {
+    max-width: 980px;
+  }
+  .games-duo {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+  .games-duo .games-section {
+    margin: 10px 0 4px;
+  }
+  .game-picks {
+    max-height: 168px;
+    overflow-y: auto;
+    align-content: flex-start;
   }
 }
 
