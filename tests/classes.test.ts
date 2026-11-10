@@ -414,7 +414,7 @@ export async function runClassChecks() {
     );
     // Если карточка показывает слово — оно тоже из 1 класса (тип задания
     // выбирается перемешиванием, и не каждая карточка называет слово).
-    const word = currentWord();
+    const word = currentWord(host);
     if (word) {
       check(
         'карточка урока 1 класса показывает слово 1 класса',

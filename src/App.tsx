@@ -17,6 +17,7 @@ import { LessonScreen } from './ui/screens/LessonScreen';
 import { ShopScreen } from './ui/screens/ShopScreen';
 import type { Cat as ShopCat } from './ui/screens/ShopScreen';
 import { RatingScreen } from './ui/screens/RatingScreen';
+import { GamesScreen } from './ui/screens/GamesScreen';
 import { VlabsScreen } from './ui/screens/VlabsScreen';
 import { DiagnosticsScreen } from './ui/DiagnosticsScreen';
 import type { ParentTabId } from './ui/parent/ParentBits';
@@ -34,7 +35,7 @@ import {
 import { QUIET_MS, QuickSound } from './ui/QuickSound';
 import { applyTheme, applyThemeStyle, writeThemeMirror, writeThemeStyleMirror } from './platform/theme';
 
-type Tab = 'home' | 'words' | 'shop' | 'rating' | 'parent';
+type Tab = 'home' | 'words' | 'games' | 'shop' | 'rating' | 'parent';
 
 function diagnosticsRequested(): boolean {
   return typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('diag') === '1';
@@ -433,6 +434,8 @@ export default function App() {
         />
       ) : tab === 'words' ? (
         <WordsScreen />
+      ) : tab === 'games' ? (
+        <GamesScreen onGoLessons={() => switchTab('home')} />
       ) : tab === 'rating' ? (
         <RatingScreen />
       ) : tab === 'shop' ? (
@@ -552,6 +555,10 @@ export default function App() {
         <button className={`tab ${!profilesOpen && tab === 'words' ? 'on' : ''}`} onClick={() => switchTab('words')}>
           <span className="ico">📖</span>
           Слова
+        </button>
+        <button className={`tab ${!profilesOpen && tab === 'games' ? 'on' : ''}`} onClick={() => switchTab('games')}>
+          <span className="ico">🧩</span>
+          Игры
         </button>
         <button
           className={`tab ${!profilesOpen && tab === 'shop' ? 'on' : ''}`}
