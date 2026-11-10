@@ -51,6 +51,7 @@ import {
   normalizeLists,
   parseWordList,
   withStress,
+  withCapital,
 } from '../engine/word-lists';
 import { normalizeStudySessions, STUDY_SESSION_RETENTION_DAYS } from '../engine/study';
 import { normalizeBukFacts } from '../engine/buk-chat';
@@ -582,6 +583,8 @@ interface AppState {
   setListHidden: (listId: string, hidden: boolean) => void;
   /** Переставить ударение своего слова и пересчитать «опасные» буквы. */
   setCustomWordStress: (wordId: string, index: number) => void;
+  /** Дать своему слову заглавную первую букву (или снять её). Id не меняется. */
+  setCustomWordCapital: (wordId: string, on: boolean) => void;
   /** Отметить, что список тренировали (подпись «последний раз — вчера»). */
   touchList: (listId: string) => void;
   /**
@@ -1853,6 +1856,12 @@ export const useApp = create<AppState>()(
           const word = p.customWords?.[wordId];
           if (!word) return p;
           return { ...p, customWords: { ...p.customWords, [wordId]: withStress(word, index, true) } };
+        })),
+      setCustomWordCapital: (wordId, on) =>
+        set((s) => patchActive(s, (p) => {
+          const word = p.customWords?.[wordId];
+          if (!word) return p;
+          return { ...p, customWords: { ...p.customWords, [wordId]: withCapital(word, on) } };
         })),
       touchList: (listId) =>
         set((s) => patchActive(s, (p) => ({

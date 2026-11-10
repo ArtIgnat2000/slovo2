@@ -24,11 +24,12 @@ import {
   parseWordList,
   runHistory,
   trendOf,
+  withCapital,
   withStress,
   type ParsedList,
 } from '../../engine/word-lists';
 import { plural } from '../../engine/quests';
-import { GroupTitle } from './ParentBits';
+import { GroupTitle, Switch } from './ParentBits';
 import { PRESET_LISTS, presetText } from '../../content/preset-lists';
 
 interface Props {
@@ -120,7 +121,7 @@ function ListHistory({
 }
 
 export function ListsTab({ profile, onTrain }: Props) {
-  const { addList, removeList, renameList, setListHidden, setCustomWordStress, setListDrillSize } = useApp.getState();
+  const { addList, removeList, renameList, setListHidden, setCustomWordStress, setCustomWordCapital, setListDrillSize } = useApp.getState();
   const drill = drillSizeOf(profile);
   const lists = profile.lists ?? [];
   const customWords = profile.customWords ?? {};
@@ -133,6 +134,8 @@ export function ListsTab({ profile, onTrain }: Props) {
   const [parsed, setParsed] = useState<ParsedList | null>(null);
   /** Правки ударения до сохранения: id слова → индекс гласной. */
   const [stressFix, setStressFix] = useState<Record<string, number>>({});
+  /** Правки регистра до сохранения: id слова → «первая буква заглавная». */
+  const [capitalFix, setCapitalFix] = useState<Record<string, boolean>>({});
   const [error, setError] = useState('');
   /** Какой пресет только что добавили — чтобы показать «добавлен». */
   const [addedPreset, setAddedPreset] = useState<string | null>(null);
@@ -147,8 +150,12 @@ export function ListsTab({ profile, onTrain }: Props) {
     setRaw('');
     setParsed(null);
     setStressFix({});
+    setCapitalFix({});
     setError('');
   };
+
+  const capitalOf = (word: Word) =>
+    capitalFix[word.id] ?? [...word.text][0] !== [...word.text][0].toLowerCase();
 
   const preview = () => {
     const result = parseWordList(raw, customWords, grade);
@@ -161,7 +168,12 @@ export function ListsTab({ profile, onTrain }: Props) {
     setParsed({
       ...result,
       items: result.items.map((item) =>
-        item.word ? { ...item, word: withStress(item.word, stressFix[item.word.id] ?? item.word.stress) } : item,
+        item.word
+          ? {
+              ...item,
+              word: withCapital(withStress(item.word, stressFix[item.word.id] ?? item.word.stress), capitalOf(item.word)),
+            }
+          : item,
       ),
     });
   };
@@ -172,7 +184,8 @@ export function ListsTab({ profile, onTrain }: Props) {
     // карточки уходят в профиль уже с правильным ударением.
     const fixed: Record<string, (typeof customWords)[string]> = {};
     for (const [id, word] of Object.entries(parsed.customWords)) {
-      fixed[id] = stressFix[id] !== undefined ? withStress(word, stressFix[id]) : word;
+      const stressed = stressFix[id] !== undefined ? withStress(word, stressFix[id]) : word;
+      fixed[id] = withCapital(stressed, capitalOf(word));
     }
     const result = addList(title || 'Контрольная', raw, fixed);
     if (!result.list) {
@@ -448,24 +461,33 @@ export function ListsTab({ profile, onTrain }: Props) {
                         </li>
                       );
                     }
-                    // Своё слово: ударение ставится тапом по слогу.
-                    const stressed = word ? withStress(word, stressFix[word.id] ?? word.stress) : null;
+                    // Своё слово: ударение — тапом по слогу, регистр — переключателем.
+                    // Всё это слои поверх «сырого» разбора: сама `parsed` не меняется.
+                    const shown = word
+                      ? withCapital(withStress(word, stressFix[word.id] ?? word.stress), capitalOf(word))
+                      : null;
                     // 0.60.0: если ударение подставило автополе (слова нет в
                     // словаре), просим проверить, а не подаём догадку как факт.
                     const guessed = !!word?.stressGuessed && stressFix[word.id] === undefined;
                     return (
                       <li key={key} className="list-preview-item custom">
                         <span className="list-preview-badge" aria-hidden="true">＋</span>
-                        <span className="list-preview-word">{item.text}</span>
+                        <span className="list-preview-word">{shown?.text ?? item.text}</span>
                         <span className={guessed ? 'setting-hint list-guess' : 'setting-hint'}>
                           {guessed ? 'проверьте ударение:' : 'новое слово — выберите ударение:'}
                         </span>
+                        <Switch
+                          checked={capitalOf(item.word!)}
+                          onChange={(on) => item.word && setCapitalFix((prev) => ({ ...prev, [item.word!.id]: on }))}
+                          label={`С заглавной: ${shown?.text ?? item.text}`}
+                        />
+                        <span className="list-caps-hint">{capitalOf(item.word!) ? 'пишется с заглавной' : 'все строчные'}</span>
                         <span className="list-syllables">
-                          {stressed?.syllables.map((syl, idx) => {
+                          {shown?.syllables.map((syl, idx) => {
                             // Индекс ударной гласной в цельном слове: сумма длин прошлых слогов.
-                            const offset = stressed.syllables.slice(0, idx).reduce((n, s) => n + s.length, 0);
+                            const offset = shown.syllables.slice(0, idx).reduce((n, s) => n + s.length, 0);
                             const vowelIdx = offset + [...syl].findIndex((ch) => 'аеёиоуыэюя'.includes(ch.toLowerCase()));
-                            const on = stressed.stress === vowelIdx;
+                            const on = shown.stress === vowelIdx;
                             return (
                               <button
                                 key={`${syl}-${idx}`}
@@ -492,7 +514,7 @@ export function ListsTab({ profile, onTrain }: Props) {
                   <button type="button" className="btn primary" onClick={save} data-list-save>
                     Сохранить список
                   </button>
-                  <button type="button" className="btn ghost" onClick={() => { setParsed(null); setStressFix({}); }}>
+                  <button type="button" className="btn ghost" onClick={() => { setParsed(null); setStressFix({}); setCapitalFix({}); }}>
                     Изменить слова
                   </button>
                   <button type="button" className="btn ghost" onClick={close}>
@@ -579,6 +601,11 @@ export function ListsTab({ profile, onTrain }: Props) {
                     )}
                   </span>
                   <span className="setting-hint">ударная {stressLetter || '—'}</span>
+                  <Switch
+                    checked={[...word.text][0] === [...word.text][0].toUpperCase()}
+                    onChange={(on) => setCustomWordCapital(word.id, on)}
+                    label={`С заглавной: ${word.text}`}
+                  />
                   {word.stressGuessed && (
                     <span className="list-guess-badge" title="Ударение подставлено автоматически — проверьте">
                       проверьте
