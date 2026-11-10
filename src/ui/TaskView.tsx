@@ -9,6 +9,10 @@ import { Icon } from './Icon';
 
 export type SolveFn = (quality: number | null, given?: string) => void;
 
+/** В слове есть заглавная («Москва», «Родина») — показываем подсказку про ⇧. */
+const CAPS_RE = /[А-ЯЁA-Z]/;
+const needsCaps = (word: Word) => CAPS_RE.test(word.text);
+
 interface Props {
   task: Task;
   word: Word;
@@ -422,6 +426,9 @@ function Write({ word, task, onSolve, onAttempt }: Props) {
       <div className={`typed ${state}`} style={{ minHeight: 56 }}>
         {val || <span style={{ opacity: 0.3 }}>·</span>}
       </div>
+      {needsCaps(word) && !CAPS_RE.test(val) && (
+        <p className="tiny caps-tip">В слове есть заглавная — клавиша ⇧</p>
+      )}
       <Keyboard onKey={key} disabled={state !== 'idle'} />
       {state === 'idle' && (
         <div className="row" style={{ width: '100%' }}>
@@ -515,6 +522,9 @@ function Visual({ word, task, onSolve, onAttempt }: Props) {
         </div>
       )}
       <div className={`typed ${state}`}>{val || <span style={{ opacity: 0.3 }}>·</span>}</div>
+      {needsCaps(word) && !CAPS_RE.test(val) && (
+        <p className="tiny caps-tip">В слове есть заглавная — клавиша ⇧</p>
+      )}
       <Keyboard onKey={key} disabled={state !== 'idle' || peek} />
       {state === 'idle' && (
         <div className="row" style={{ width: '100%' }}>

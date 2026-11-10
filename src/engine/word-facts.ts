@@ -42,9 +42,24 @@ export function dangerSummary(word: Word): string {
  * раскладки, а другая буква. В заданиях с выбором буквы (окошко, «исправь
  * робота») ё тоже остаётся единственно верной: там ребёнок видит варианты,
  * и учится различать е/ё, а не борется с клавиатурой.
+ *
+ * 3) Если в ЦЕЛИ есть заглавная буква («Москва», «Родина», «Жостово»),
+ *    без заглавной ответ не засчитывается: иначе ребёнок заучивает
+ *    неправильное написание имени собственного. Строчные в цели заглавными
+ *    печатать можно — привычная вольность «Берёза» намеренно разрешена.
  */
 export function sameTypedWord(given: string, target: string): boolean {
-  const typed = given.trim().toLowerCase();
-  const right = target.trim().toLowerCase();
-  return typed === right || typed === right.replace(/ё/g, 'е');
+  // «е» за «ё» — да; «ё» за «е» — нет. Два варианта цели: сама цель и цель
+  // с «ё→е» — как и раньше, набранную «е» принимаем за цель с «ё».
+  // Заглавная из ЦЕЛИ обязательна в ответе (имена собственные).
+  const g = given.trim();
+  const w = target.trim();
+  const we = w.replace(/ё/g, 'е').replace(/Ё/g, 'Е');
+  if (w.toLowerCase() !== g.toLowerCase() && we.toLowerCase() !== g.toLowerCase()) return false;
+  for (let i = 0; i < we.length; i++) {
+    const c = we[i];
+    if (c === c.toLowerCase()) continue; // в цели строчная — регистр не требуем
+    if (g[i] !== c) return false;        // в цели заглавная — она обязательна
+  }
+  return true;
 }
