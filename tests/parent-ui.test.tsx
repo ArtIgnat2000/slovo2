@@ -9,6 +9,7 @@
 //  • ошибка в примере-замке показывается на месте, а не модальным окном.
 import { readFileSync } from 'node:fs';
 import { body, btnText, buttons, check, click, has, openParentSection, sleep } from './ui-helpers';
+import { pickRiskWords } from '../src/content/tts-trial';
 import { dayKey, useApp } from '../src/state/store';
 import { WORDS, WORDS_BY_GRADE } from '../src/content/words';
 import { runGemResetUiChecks } from './gem-reset-ui.test';
@@ -294,6 +295,65 @@ export async function runParentUiChecks(): Promise<void> {
   check('после проверки вкладка «Приложение» остаётся открытой',
     document.querySelector('#parent-tab-more[aria-selected="true"]') !== null &&
       document.querySelector('#parent-more-tab-app[aria-selected="true"]') !== null);
+  // 7а. «Проба озвучки»: встроенный экран живого прослушивания системных
+  // голосов (iPhone/Android) из «Ещё → Приложение». В jsdom синтеза нет,
+  // поэтому на время проверки подменяем window.speechSynthesis минимальной
+  // заглушкой — принимаем только то, что умеет API браузера.
+  const g = window as unknown as { speechSynthesis?: unknown; SpeechSynthesisUtterance?: unknown };
+  const savedSS = g.speechSynthesis;
+  const savedU = g.SpeechSynthesisUtterance;
+  g.speechSynthesis = {
+    getVoices: () => [],
+    speak: () => undefined,
+    cancel: () => undefined,
+    onvoiceschanged: null,
+  };
+  g.SpeechSynthesisUtterance = class {
+    text: string;
+    voice: unknown = null;
+    lang = '';
+    rate = 1;
+    constructor(text = '') {
+      this.text = text;
+    }
+  };
+  try {
+    const about = document.querySelector('.parent-app-about') as HTMLDetailsElement | null;
+    if (about && !about.open) click(about.querySelector('summary') as HTMLElement);
+    await sleep(40);
+    click(btnText('Проба озвучки'));
+    await sleep(80);
+    const trial = document.querySelector('.tts-screen');
+    check('проба озвучки: экран открылся из «Ещё → Приложение»', !!trial, body().slice(0, 200));
+    check('проба озвучки: все рискованные слова банка и школьные термины на месте',
+      trial?.querySelectorAll('.tts-card').length === pickRiskWords().length,
+      `карточек: ${trial?.querySelectorAll('.tts-card').length}, ожидали: ${pickRiskWords().length}`);
+    const firstOk = trial?.querySelector('.tts-card .tts-v-ok') as HTMLButtonElement | null;
+    click(firstOk);
+    await sleep(40);
+    check('проба озвучки: отметка ✓ переключается', firstOk?.getAttribute('aria-pressed') === 'true',
+      firstOk?.getAttribute('aria-pressed') ?? 'нет кнопки');
+    check('проба озвучки: счётчик отметок обновляется', body().includes(`Отмечено: 1 из ${pickRiskWords().length}`), body().slice(0, 240));
+    click(firstOk);
+    await sleep(40);
+    check('проба озвучки: повторный тап снимает отметку', firstOk?.getAttribute('aria-pressed') === 'false', '');
+    click(btnText('Скопировать сводку'));
+    await sleep(60);
+    const summary = document.querySelector('.tts-summary textarea') as HTMLTextAreaElement | null;
+    check('проба озвучки: сводка собирается и показывает голос и счётчик',
+      !!summary && summary.value.includes('СЛОВО 2.0 — проба озвучки') && summary.value.includes('Отмечено:'),
+      summary?.value.slice(0, 200) ?? 'сводки нет');
+    click(trial?.querySelector('.btn.ghost.sm'));
+    await sleep(60);
+    check('после пробы озвучки вкладка «Приложение» остаётся открытой',
+      document.querySelector('#parent-more-tab-app[aria-selected="true"]') !== null, '');
+  } finally {
+    if (savedSS === undefined) delete g.speechSynthesis;
+    else g.speechSynthesis = savedSS;
+    if (savedU === undefined) delete g.SpeechSynthesisUtterance;
+    else g.SpeechSynthesisUtterance = savedU;
+  }
+
   await openParentSection('Обучение');
   click(btnText('Статистика занятий'));
   await sleep(30);

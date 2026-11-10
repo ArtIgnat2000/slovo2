@@ -10403,3 +10403,225 @@ img.product-photo {
     font-size: 11px;
   }
 }
+
+/* ── «Родителям → Проба озвучки» (0.92.0) ────────────────────────────────
+   Инструмент взрослого: услышать системные голоса телефона на словах банка.
+   Никуда не ведёт и ничему не учит ребёнка — просто список с кнопками. */
+.tts-screen {
+  padding-bottom: 110px;
+}
+.tts-hero {
+  background: var(--primary);
+  color: #fff;
+  border-radius: 20px;
+  padding: 16px 16px 14px;
+  margin-bottom: 12px;
+  box-shadow: 0 10px 24px rgba(91, 62, 222, 0.28);
+}
+.tts-hero h1 {
+  margin: 0;
+  font-size: 21px;
+}
+.tts-hero p {
+  margin: 6px 0 0;
+  opacity: 0.92;
+  font-size: 13px;
+}
+.tts-plain {
+  text-align: center;
+}
+.tts-plain-title {
+  margin: 0 0 6px;
+  font-weight: 800;
+}
+.tts-how {
+  font-size: 13.5px;
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+  border: none;
+}
+.tts-how b {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14.5px;
+}
+.tts-how ol {
+  margin: 4px 0 0 18px;
+  padding: 0;
+}
+.tts-how li {
+  margin: 3px 0;
+}
+.tts-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tts-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.tts-row select {
+  flex: 1 1 180px;
+  min-height: 48px;
+  border-radius: 12px;
+  border: 1.5px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  font-size: 15px;
+  padding: 0 10px;
+  max-width: 100%;
+}
+.tts-toggles {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.tts-chip {
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line);
+  background: #fff;
+  font-size: 14px;
+  cursor: pointer;
+}
+.tts-chip[aria-pressed='true'] {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.tts-stats {
+  position: sticky;
+  top: 8px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+.tts-stats b {
+  font-size: 13.5px;
+}
+.tts-reset {
+  margin-left: auto;
+}
+.tts-ok {
+  color: var(--good-ink);
+  font-weight: 800;
+}
+.tts-bad {
+  color: var(--bad-ink);
+  font-weight: 800;
+}
+.tts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tts-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow: 0 2px 8px rgba(36, 31, 54, 0.05);
+}
+.tts-word-line {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.tts-idx {
+  color: var(--ink-2);
+  font-size: 12px;
+  min-width: 24px;
+}
+.tts-term {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+.tts-tag {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  border-radius: 8px;
+  font-size: 11px;
+  padding: 2px 7px;
+}
+.tts-meta {
+  color: var(--ink-2);
+  font-size: 12px;
+  margin: 2px 0 8px 34px;
+}
+.tts-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.tts-play {
+  min-height: 48px;
+  min-width: 112px;
+  border: none;
+  border-radius: 14px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 0 14px;
+  cursor: pointer;
+  box-shadow: 0 3px 0 var(--primary-depth);
+}
+.tts-play:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--primary-depth);
+}
+.tts-play-phrase {
+  background: #fff;
+  color: var(--primary-depth);
+  box-shadow: inset 0 0 0 1.5px var(--primary);
+}
+.tts-verdict {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+.tts-vbtn {
+  width: 52px;
+  height: 48px;
+  border-radius: 12px;
+  border: 1.5px solid var(--line);
+  background: #fff;
+  font-size: 20px;
+  cursor: pointer;
+}
+.tts-vbtn.tts-v-ok.on {
+  background: var(--green-soft);
+  border-color: var(--green);
+}
+.tts-vbtn.tts-v-bad.on {
+  background: var(--red-soft);
+  border-color: var(--red);
+}
+.tts-footer {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.tts-summary textarea {
+  width: 100%;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  padding: 8px;
+  margin-top: 6px;
+}

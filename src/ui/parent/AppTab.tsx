@@ -6,9 +6,10 @@ import { UpdateCheck } from './UpdateCheck';
 interface Props {
   onOpenVlabs: () => void;
   onOpenDiagnostics: () => void;
+  onOpenTts: () => void;
 }
 
-export function AppTab({ onOpenVlabs, onOpenDiagnostics }: Props) {
+export function AppTab({ onOpenVlabs, onOpenDiagnostics, onOpenTts }: Props) {
   return (
     <div className="parent-stack">
       <ShareApp />
@@ -25,6 +26,16 @@ export function AppTab({ onOpenVlabs, onOpenDiagnostics }: Props) {
       <div className="card">
         <GroupTitle title="Обновления" hint={`Версия v${import.meta.env.VITE_APP_VERSION}`} />
         <UpdateCheck />
+      </div>
+
+      <div className="card">
+        <GroupTitle title="Проба озвучки" hint="слушаем системные голоса на этом телефоне" />
+        <p className="setting-hint">
+          54 самых рискованных слова банка и 2 школьных термина («подлежащее», «сказуемое») — с двумя
+          прослушиваниями и отметками ✓/✗. Никуда не отправляется: отметки остаются на устройстве,
+          сводка копируется вручную.
+        </p>
+        <button type="button" className="btn ghost wide mt" onClick={onOpenTts}>🔊 Проба озвучки</button>
       </div>
 
       <details className="card parent-app-about">

@@ -21,7 +21,7 @@ const dir = mkdtempSync(join(tmpdir(), 'slovo-tts-'));
 try {
   const bundle = join(dir, 'data.mjs');
   await build({
-    entryPoints: ['tests/fixtures/tts-trial-data.ts'],
+    entryPoints: ['src/content/tts-trial.ts'],
     outfile: bundle,
     bundle: true,
     platform: 'node',
