@@ -4,7 +4,7 @@
 import { useApp } from '../src/state/store';
 import { WORDS_BY_GRADE } from '../src/content/words';
 import { MASTERED_SCORE } from '../src/engine/classes';
-import { buttons, check, click, has, sleep } from './ui-helpers';
+import { btnText, buttons, check, click, has, sleep } from './ui-helpers';
 
 async function goTab(name: string) {
   const tab = buttons().find((b) => (b.textContent ?? '').includes(name) && b.className.includes('tab'));
@@ -45,7 +45,7 @@ export async function runGamesUiChecks() {
 
   // «Скоро»-карточки: есть, но честно помечены, что их ещё нет.
   const soonNotes = Array.from(document.querySelectorAll('.game-soon-note')).map((el) => el.textContent ?? '');
-  check('игры: «скоро»-карточки помечены честно', soonNotes.length >= 2 && soonNotes.every((t) => t.includes('проверяем на детях')),
+  check('игры: «скоро»-карточки помечены честно', soonNotes.length >= 1 && soonNotes.every((t) => t.includes('проверяем на детях')),
     soonNotes.join(' | '));
 
   // Собираем показанное слово тапами по плиткам в порядке букв.
@@ -72,4 +72,104 @@ export async function runGamesUiChecks() {
     check('игры: у нового слова — чистая доска', document.querySelectorAll('.tileboard-slot.filled').length === 0,
       `заполнено: ${document.querySelectorAll('.tileboard-slot.filled').length}`);
   }
+}
+
+// «Филворд» (0.94.0): поле отрисовано, слова вычитаются сканом сетки, игра
+// честно считает найденные слова и завершается баннером. Ничего не считает
+// в SRS и XP — чистая свободная игра.
+export async function runWordSearchUiChecks() {
+  console.log('\n── Филворд: буквенное поле ──');
+  await goTab('Игры');
+  await sleep(60);
+
+  const cells = () => Array.from(document.querySelectorAll('.ws-cell')) as HTMLButtonElement[];
+  check('филворд: раздел и поле есть на экране', !!document.querySelector('.ws-grid'), '');
+  if (cells().length === 0) return;
+
+  const n = cells().length;
+  const size = Math.round(Math.sqrt(n));
+  check('филворд: поле 8×8 или больше (растёт на бедном срезе)', size >= 8 && size * size === n, `клеток: ${n}`);
+
+  const counter = () => (document.querySelector('.ws-count')?.textContent ?? '').trim();
+  check('филворд: счётчик «Найдено: 0 из N»', /^Найдено: 0 из \d+$/.test(counter()), counter());
+
+  const chips = () => Array.from(document.querySelectorAll('.ws-chip')) as HTMLElement[];
+  check('филворд: целей не меньше трёх', chips().length >= 3, `чипов: ${chips().length}`);
+
+  // Скан сетки: все ровные линии под слова целей (горизонтали/вертикали/диагонали).
+  const grid = new Map<string, string>();
+  for (const cell of cells()) {
+    grid.set(`${cell.dataset.wsRow},${cell.dataset.wsCol}`, (cell.textContent ?? '').trim().toLowerCase());
+  }
+  const linesFor = (text: string): Array<Array<[number, number]>> => {
+    const letters = [...text.toLowerCase()];
+    const dirs = [[0, 1], [1, 0], [1, 1], [1, -1]];
+    const out: Array<Array<[number, number]>> = [];
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        for (const [dr, dc] of dirs) {
+          const path: Array<[number, number]> = [];
+          for (let i = 0; i < letters.length; i++) {
+            const rr = r + dr * i;
+            const cc = c + dc * i;
+            if (rr < 0 || rr >= size || cc < 0 || cc >= size) break;
+            if ((grid.get(`${rr},${cc}`) ?? '') !== letters[i]) break;
+            path.push([rr, cc]);
+          }
+          if (path.length === letters.length) out.push(path);
+        }
+      }
+    }
+    return out;
+  };
+  const cellAt = (row: number, col: number) =>
+    cells().find((b) => Number(b.dataset.wsRow) === row && Number(b.dataset.wsCol) === col);
+  const foundCount = () => Number(counter().match(/Найдено: (\d+)/)?.[1] ?? '0');
+
+  // Находим первое слово: тап по первой клетке + тап по последней.
+  const firstTarget = (chips()[0]?.dataset.wsText ?? '').trim();
+  check('филворд: у чипа есть слово', firstTarget.length > 1, firstTarget);
+  const firstLines = linesFor(firstTarget);
+  check('филворд: первое слово ищется на поле', firstLines.length > 0, firstTarget);
+  for (const line of firstLines) {
+    click(cellAt(line[0][0], line[0][1]));
+    await sleep(15);
+    click(cellAt(line[line.length - 1][0], line[line.length - 1][1]));
+    await sleep(30);
+    if (foundCount() === 1) break;
+  }
+  check('филворд: слово найдено тапами', foundCount() === 1, counter());
+
+  // Добиваем остальные цели — пока не появится баннер победы.
+  for (const chip of chips()) {
+    const target = (chip.dataset.wsText ?? '').trim();
+    if (chip.className.includes('ws-chip-found')) continue;
+    for (const line of linesFor(target)) {
+      const before = foundCount();
+      click(cellAt(line[0][0], line[0][1]));
+      await sleep(15);
+      click(cellAt(line[line.length - 1][0], line[line.length - 1][1]));
+      await sleep(30);
+      if (foundCount() > before) break;
+    }
+  }
+  const totalChips = chips().length;
+  check('филворд: все слова найдены — счётчик дошёл до конца',
+    document.querySelectorAll('.ws-chip-found').length === totalChips, `${document.querySelectorAll('.ws-chip-found').length}/${totalChips}`);
+  await sleep(120);
+  check('филворд: баннер «Все слова найдены!»', has('Все слова найдены'), document.body.textContent?.slice(0, 300) ?? '');
+
+  // «Ещё сетку» — новая доска с чистым счётчиком.
+  const again = btnText('Ещё сетку');
+  click(again);
+  await sleep(80);
+  check('филворд: «Ещё сетку» очищает счётчик', /^Найдено: 0 из \d+$/.test(counter()), counter());
+  check('филворд: найденные клетки больше не подсвечены', document.querySelectorAll('.ws-chip-found').length === 0, '');
+
+  // Промах не падает и не ломает игру: тап по двум далёким неровным клеткам.
+  click(cellAt(0, 0));
+  await sleep(15);
+  click(cellAt(1, 2)); // не линия → якорь просто переезжает, ничего не падает
+  await sleep(30);
+  check('филворд: неровная линия не роняет игру', !!document.querySelector('.ws-grid'), '');
 }

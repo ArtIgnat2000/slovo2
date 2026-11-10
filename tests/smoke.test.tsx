@@ -37,6 +37,8 @@ import { runWorldUiChecks } from './world-ui.test';
 import { runBaseTourUiChecks } from './base-tour-ui.test';
 import { runRatingUiChecks } from './rating-ui.test';
 import { runGamesUiChecks } from './games-ui.test';
+import { runWordSearchUiChecks } from './games-ui.test';
+import { runWordSearchChecks } from './word-search.test';
 import { runWordBoardChecks } from './word-board.test';
 // Смена цвета купленной вещи не должна включать музыку (регрессия магазина).
 import './recolor-music.test';
@@ -2133,6 +2135,8 @@ async function main() {
 
   // Игры: вкладка, свободная практика и честные «скоро»-карточки (0.92.0).
   await runGamesUiChecks();
+  await runWordSearchChecks();
+  await runWordSearchUiChecks();
 
   // Карточки букв: движок сборки и живая доска свободной игры (0.92.0).
   await runWordBoardChecks();
