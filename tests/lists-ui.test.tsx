@@ -34,6 +34,7 @@ import {
   parseWordList,
   splitListText,
   splitSyllables,
+  withCapital,
   withStress,
 } from '../src/engine/word-lists';
 import { WORDS, WORDS_BY_GRADE } from '../src/content/words';
@@ -262,6 +263,26 @@ export async function runListsChecks(): Promise<void> {
     knownAfterReload.c_abc?.stress === 5 && !knownAfterReload.c_abc?.stressGuessed,
     JSON.stringify({ stress: knownAfterReload.c_abc?.stress, guessed: knownAfterReload.c_abc?.stressGuessed }),
   );
+
+  // ── 2e. «Слово с заглавной»: переключатель регистра для своих слов ────────
+  const pushkin = makeCustomWord('Пушкин', 2);
+  check('регистр: «Пушкин» из чата становится строчным (переключатель, а не автоматика)',
+    pushkin.text === 'пушкин', pushkin.text);
+  const cap = withCapital(pushkin, true);
+  check('регистр: переключатель ставит заглавную первой букве', cap.text === 'Пушкин', cap.text);
+  check('регистр: id слова не меняется — прогресс SRS сохраняется',
+    cap.id === pushkin.id && cap.id.startsWith('c_'), `${cap.id} vs ${pushkin.id}`);
+  check('регистр: ударение и «опасные» буквы не сдвигаются',
+    cap.stress === pushkin.stress && cap.danger.join(',') === pushkin.danger.join(','),
+    `stress=${cap.stress} danger=${cap.danger.join(',')}`);
+  check('регистр: внутренней правки не требуется — внутренняя заглавная остаётся',
+    withCapital(makeCustomWord('Иван Иванович', 2), true).text === 'Иван Иванович',
+    withCapital(makeCustomWord('Иван Иванович', 2), true).text);
+  check('регистр: снятие заглавной не трогает внутреннюю',
+    withCapital(makeCustomWord('Иван Иванович', 2), false).text === 'иван Иванович',
+    withCapital(makeCustomWord('Иван Иванович', 2), false).text);
+  check('регистр: снять обратно — снова строчная',
+    withCapital(cap, false).text === 'пушкин', withCapital(cap, false).text);
 
   // ── 2d. У КАЖДОГО слова контрольной есть картинка и понятная подсказка ────
   // Отклик 2026-10-24: у своих слов не было картинки (общая книга), а подсказка
@@ -499,6 +520,28 @@ export async function runListsChecks(): Promise<void> {
       !!document.querySelector('.list-preview-item.custom .list-syl'),
       body().slice(0, 200),
     );
+    // 0.93.0: «с заглавной» — переключатель на каждое своё слово, по умолчанию выкл.
+    const customRows = preview ? Array.from(preview.querySelectorAll<HTMLLIElement>('.list-preview-item.custom')) : [];
+    const rowSwitch = customRows[0]?.querySelector('.switch') as HTMLButtonElement | null;
+    const wordSpan = customRows[0]?.querySelector('.list-preview-word') as HTMLElement | null;
+    const beforeCaps = wordSpan?.textContent ?? '';
+    check('списки: у своего слова есть переключатель «с заглавной» (по умолчанию выкл)',
+      !!rowSwitch && rowSwitch.getAttribute('aria-checked') === 'false' && beforeCaps[0] === beforeCaps[0].toLowerCase(),
+      `aria-checked=${rowSwitch?.getAttribute('aria-checked')}, слово=${beforeCaps}`);
+    if (rowSwitch) click(rowSwitch);
+    await sleep(30);
+    const afterCaps = customRows[0]?.querySelector('.list-preview-word')?.textContent ?? '';
+    check('списки: тап по переключателю ставит заглавную',
+      afterCaps[0] === (beforeCaps[0] ?? '').toUpperCase() && afterCaps.slice(1) === beforeCaps.slice(1),
+      afterCaps);
+    if (rowSwitch) click(rowSwitch);
+    await sleep(30);
+    check('списки: повторный тап снимает заглавную',
+      (customRows[0]?.querySelector('.list-preview-word')?.textContent ?? '') === beforeCaps,
+      customRows[0]?.querySelector('.list-preview-word')?.textContent ?? '');
+    // И включаем обратно: сохраним «Подлежащее» с большой буквой.
+    if (rowSwitch) click(rowSwitch);
+    await sleep(30);
     const save = document.querySelector('[data-list-save]') as HTMLButtonElement | null;
     if (save) {
       click(save);
@@ -510,6 +553,21 @@ export async function runListsChecks(): Promise<void> {
       !!made && made.words.length === 4,
       JSON.stringify((active().lists ?? []).map((l) => [l.title, l.words.length])),
     );
+    const savedCustom = Object.values(active().customWords ?? {}).find((w) => matchKey(w.text) === 'подлежащее');
+    check('списки: «Подлежащее» сохранено с заглавной (выбор родителя в предпросмотре)',
+      savedCustom?.text === 'Подлежащее', savedCustom?.text ?? 'нет слова');
+    check('списки: id своего слова не изменился (слаг по нижнему регистру)',
+      savedCustom?.id === 'c_podlezhashchee', savedCustom?.id ?? 'нет id');
+    // Исправить регистр можно и после сохранения, в «Свои слова».
+    const savedSwitch = document.querySelector(`[data-custom-word="${savedCustom?.id}"] .switch`) as HTMLButtonElement | null;
+    check('списки: в «Свои слова» переключатель показывает текущий регистр',
+      !!savedSwitch && savedSwitch.getAttribute('aria-checked') === 'true',
+      savedSwitch?.getAttribute('aria-checked') ?? 'свитча нет в «Свои слова»');
+    if (savedSwitch) click(savedSwitch);
+    await sleep(40);
+    check('списки: снятие заглавной после сохранения работает и id тот же',
+      active().customWords?.[savedCustom?.id ?? '']?.text === 'подлежащее',
+      active().customWords?.[savedCustom?.id ?? '']?.text ?? 'нет слова');
   }
 
   // ── 5b. Готовый список из школы: одна кнопка, без вставки текста ──────────

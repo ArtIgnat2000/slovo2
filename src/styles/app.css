@@ -10625,3 +10625,13 @@ img.product-photo {
   padding: 8px;
   margin-top: 6px;
 }
+
+/* Переключатель «С заглавной» в списке слов (0.93.0) */
+.list-caps-hint {
+  font-size: 11px;
+  color: var(--ink-2);
+  margin-left: -4px;
+}
+.list-preview-item .switch {
+  min-height: 40px;
+}

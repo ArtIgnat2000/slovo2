@@ -252,6 +252,26 @@ export function withStress(word: Word, index: number, manual = false): Word {
   };
 }
 
+/**
+ * Поставить или снять заглавную у ПЕРВОЙ буквы своего слова.
+ *
+ * Зачем: «Пушкин» из чата класса после `normalizeCustomText` стал бы строчным,
+ * а имя собственное пишется с большой — иначе ребёнок учит «пушкин». Банк
+ * этим не занимается: у банковских слов свой регистр, и он не переключается.
+ *
+ * Внутренние заглавные не трогаются («Иван Иванович» остаётся как ввели).
+ * Id слова не меняется (слаг строится по нижнему регистру) — прогресс по
+ * слову в SRS не теряется. По умолчанию выключено: регистр — решение родителя.
+ */
+export function withCapital(word: Word, on: boolean): Word {
+  const chars = [...word.text];
+  const first = chars[0];
+  if (!first) return word;
+  const next = on ? first.toUpperCase() : first.toLowerCase();
+  if (first === next) return word;
+  return { ...word, text: next + chars.slice(1).join('') };
+}
+
 export interface ParsedItem {
   /** Как слово было введено (для показа в предпросмотре). */
   text: string;
