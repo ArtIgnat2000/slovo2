@@ -10395,6 +10395,140 @@ img.product-photo {
   color: var(--ink-2);
 }
 
+/* ── «Филворд» в «Играх» (0.94.0) ───────────────────────────────────────
+   Буквенное поле 8×8 / 9×9 (растёт до 12×12 на бедном короткими словами срезе).
+   Клетка ≥ 40 px, вся доска — touch-action: none, чтобы палец не тянул страницу. */
+.ws-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-radius: 20px;
+  padding: 14px;
+  box-shadow: var(--shadow);
+}
+.ws-instruction {
+  margin: 0;
+}
+.ws-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--ws-size, 8), 1fr);
+  gap: 6px;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.ws-cell {
+  aspect-ratio: 1;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  border: 1.5px solid var(--line);
+  background: var(--bg-2);
+  color: var(--ink);
+  font-size: clamp(17px, 5vw, 24px);
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+.ws-cell.ws-anchor {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-soft);
+}
+.ws-cell.ws-in-sel {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  transform: scale(1.04);
+}
+.ws-cell.ws-found {
+  background: var(--green-soft);
+  border-color: color-mix(in srgb, var(--green-soft) 40%, #16a34a);
+}
+.ws-cell.ws-miss {
+  background: var(--orange-soft);
+  border-color: color-mix(in srgb, var(--orange-soft) 40%, #c2410c);
+  animation: ws-shake 0.42s ease;
+}
+@keyframes ws-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+.ws-words {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ws-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line);
+  background: var(--bg-2);
+  font-weight: 700;
+}
+.ws-chip-word {
+  letter-spacing: 0.02em;
+}
+.ws-chip-check {
+  color: #15803d;
+  font-weight: 900;
+}
+.ws-chip-found {
+  background: var(--green-soft);
+  border-color: color-mix(in srgb, var(--green-soft) 40%, #16a34a);
+  opacity: 0.85;
+}
+.ws-danger {
+  color: var(--orange-ink);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+.ws-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.ws-count {
+  margin: 0;
+  font-weight: 800;
+}
+.ws-win {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--green-soft);
+  border: 1.5px solid color-mix(in srgb, var(--green-soft) 40%, #16a34a);
+  border-radius: 16px;
+  padding: 12px 14px;
+  flex-wrap: wrap;
+}
+.ws-win-emoji {
+  font-size: 34px;
+}
+.ws-win-title {
+  margin: 0;
+  font-weight: 800;
+}
+.ws-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 12px;
+  border: 1.5px dashed var(--line);
+  border-radius: 20px;
+  text-align: center;
+}
+
 /* Шесть вкладок: на узком экране ужимаем подписи, цели остаются ≥ 44 px. */
 @media (max-width: 420px) {
   .tabs .tab {
