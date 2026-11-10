@@ -150,9 +150,13 @@ export async function openParentSection(title: string): Promise<HTMLButtonElemen
   return tab;
 }
 
-/** Какое слово сейчас в задании — по подсказке в блоке clue. */
-export function currentWord() {
-  const clue = document.querySelector('.clue-hint');
+/** Какое слово сейчас в задании — по подсказке в блоке clue.
+ *  `root` — свой корень при нескольких смонтированных приложениях (класс-тесты
+ *  рендерят собственное App рядом с основным; без корня запрос шёл по всему
+ *  документу и видел чужой открытый урок). */
+export function currentWord(root?: ParentNode) {
+  const scope: ParentNode = root ?? document;
+  const clue = scope.querySelector('.clue-hint');
   if (clue) {
     const txt = (clue.textContent ?? '').replace(/^💡\s*/, '').split('·')[0].trim();
     const fromClue = byHint.get(txt);
@@ -160,7 +164,7 @@ export function currentWord() {
   }
   // «Окошко» не показывает clue-hint: восстанавливаем слово по видимым буквам
   // и □, чтобы намеренная ошибка в smoke всегда была действительно ошибкой.
-  const spans = Array.from(document.querySelectorAll('.word-big > span'));
+  const spans = Array.from(scope.querySelectorAll('.word-big > span'));
   const pattern = spans.map((s) => (s.textContent ?? '').trim()).join('');
   // Карточка «Запомни слово» (визуальный диктант) показывает слово целиком,
   // без пропусков. Раньше helper возвращал null, и тест БУКа падал с

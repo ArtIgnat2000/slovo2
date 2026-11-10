@@ -1,8 +1,10 @@
-import { createContext, useContext, useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import type { Task, Word } from '../types';
 import { Sentence, WordCard, WordClue, WordLetters } from './WordView';
 import { dangerSummary, sameTypedWord } from '../engine/word-facts';
 import { Keyboard } from './Keyboard';
+import { HintBtn, HintCard, NoHintsContext } from './HintBits';
+import { WordTileBoard } from './WordTileBoard';
 import { sfx } from '../platform/sound';
 import { haptic } from '../platform/haptics';
 import { Icon } from './Icon';
@@ -25,9 +27,6 @@ interface Props {
    */
   noHints?: boolean;
 }
-
-/** Флаг «подсказки отключены» — читают HintBtn и HintCard. */
-const NoHintsContext = createContext(false);
 
 export function TaskView({ task, word, onSolve, onAttempt, noHints }: Props) {
   return (
@@ -67,44 +66,6 @@ function TaskBody({ task, word, onSolve, onAttempt }: Omit<Props, 'noHints'>) {
 //    подсказка должна учить, а не просто давать ответ.
 // 4. Ответ с подсказкой приносит меньше XP (quality 3 → XP.taskWithHint),
 //    но остаётся «правильным» — подсказка не наказывается жёстко.
-
-function HintBtn({
-  onClick,
-  label = 'Подсказка',
-  disabled,
-}: {
-  onClick: () => void;
-  label?: string;
-  disabled?: boolean;
-}) {
-  // В полном контроле подсказок нет: проверяем, а не учим.
-  if (useContext(NoHintsContext)) return null;
-  return (
-    <button
-      className="btn ghost sm"
-      data-hint=""
-      onClick={() => {
-        sfx.hint();
-        onClick();
-      }}
-      disabled={disabled}
-    >
-      {/* 0.54.0: лампочка — иконка вместо 💡. Текст «Подсказка» остаётся:
-          иконка не единственный носитель смысла (WCAG 1.4.1). */}
-      <Icon name="bulb" size={18} /> {label}
-    </button>
-  );
-}
-
-/** Мнемоника или объяснение опасных букв — второй слой каждой подсказки. */
-function HintCard({ word }: { word: Word }) {
-  if (useContext(NoHintsContext)) return null;
-  return (
-    <div className="banner">
-      <Icon name="bulb" size={18} /> {word.mnemonic ?? dangerSummary(word)}
-    </div>
-  );
-}
 
 // ── 1. Знакомство: LOOK → SAY → увидеть опасное место ────────────────────────
 
@@ -272,81 +233,6 @@ function Gap({ word, task, onSolve, onAttempt }: Props) {
 // ── 4. Собери слово ─────────────────────────────────────────────────────────
 
 function Build({ word, task, onSolve, onAttempt }: Props) {
-  const later = useTaskTimeout();
-  const letters = task.letters ?? [];
-  const [placed, setPlaced] = useState<(string | null)[]>(Array(word.text.length).fill(null));
-  const [used, setUsed] = useState<boolean[]>(letters.map(() => false));
-  const [hintUsed, setHintUsed] = useState(false);
-  const [bad, setBad] = useState(false);
-  const solved = useRef(false);
-
-  // usedHint передаём явно: подсказка может поставить последнюю букву и завершить
-  // задание в том же обработчике — state hintUsed к этому моменту ещё «старый».
-  const finish = (arr: (string | null)[], usedHint = hintUsed) => {
-    const s = arr.join('');
-    onAttempt?.(s === word.text ? (usedHint ? 3 : 5) : 0);
-    if (s === word.text) {
-      solved.current = true;
-      sfx.correct();
-      haptic.correct();
-      later(() => onSolve(usedHint ? 3 : 5), 700);
-    } else {
-      sfx.wrong();
-      haptic.wrong();
-      setBad(true);
-      later(() => {
-        setPlaced(Array(word.text.length).fill(null));
-        setUsed(letters.map(() => false));
-        setBad(false);
-      }, 900);
-    }
-  };
-
-  const tapLetter = (i: number) => {
-    if (solved.current || used[i] || bad) return;
-    const slot = placed.findIndex((p) => p === null);
-    if (slot < 0) return;
-    sfx.tap();
-    const np = [...placed];
-    np[slot] = letters[i];
-    const nu = [...used];
-    nu[i] = true;
-    setPlaced(np);
-    setUsed(nu);
-    if (!np.includes(null)) finish(np);
-  };
-
-  const tapSlot = (i: number) => {
-    if (solved.current || bad || placed[i] === null) return;
-    const l = placed[i]!;
-    let idx = -1;
-    for (let j = used.length - 1; j >= 0; j--) if (used[j] && letters[j] === l) idx = j;
-    const np = [...placed];
-    np[i] = null;
-    const nu = [...used];
-    if (idx >= 0) nu[idx] = false;
-    setPlaced(np);
-    setUsed(nu);
-    sfx.tap();
-  };
-
-  /** Подсказка ставит следующую букву на своё место; повторные нажатия — ещё букву. */
-  const hint = () => {
-    const slot = placed.findIndex((p) => p === null);
-    if (solved.current || slot < 0 || bad) return;
-    const need = word.text[slot];
-    const li = letters.findIndex((l, j) => !used[j] && l === need);
-    if (li < 0) return;
-    setHintUsed(true);
-    const np = [...placed];
-    np[slot] = need;
-    const nu = [...used];
-    nu[li] = true;
-    setPlaced(np);
-    setUsed(nu);
-    if (!np.includes(null)) finish(np, true);
-  };
-
   return (
     <div className="task task-build">
       {/* В сборке нет экранной клавиатуры, поэтому образ можно сделать главным:
@@ -354,28 +240,12 @@ function Build({ word, task, onSolve, onAttempt }: Props) {
           экране CSS сам возвращает эту карточку в горизонтальную компоновку. */}
       <WordClue word={word} compact layout="hero" />
       <p className="prompt">Собери слово из букв</p>
-      <div className={`slots ${bad ? 'shake' : ''}`}>
-        {placed.map((l, i) => (
-          <button
-            key={i}
-            className={`slot ${l ? 'filled' : ''} ${bad ? 'bad' : ''}`}
-            onClick={() => tapSlot(i)}
-          >
-            {l ?? ''}
-          </button>
-        ))}
-      </div>
-      <div className="letters">
-        {letters.map((l, i) => (
-          <button key={i} className={`letter ${used[i] ? 'used' : ''}`} onClick={() => tapLetter(i)}>
-            {l}
-          </button>
-        ))}
-      </div>
-      {!bad && placed.includes(null) && (
-        <HintBtn onClick={hint} label={hintUsed ? 'Ещё букву' : 'Подставить букву'} />
-      )}
-      {hintUsed && <HintCard word={word} />}
+      <WordTileBoard
+        word={word}
+        trayLetters={task.letters ?? undefined}
+        onAttempt={onAttempt}
+        onSolve={onSolve}
+      />
     </div>
   );
 }

@@ -17,8 +17,10 @@ import { LessonScreen } from './ui/screens/LessonScreen';
 import { ShopScreen } from './ui/screens/ShopScreen';
 import type { Cat as ShopCat } from './ui/screens/ShopScreen';
 import { RatingScreen } from './ui/screens/RatingScreen';
+import { GamesScreen } from './ui/screens/GamesScreen';
 import { VlabsScreen } from './ui/screens/VlabsScreen';
 import { DiagnosticsScreen } from './ui/DiagnosticsScreen';
+import { TtsTrialScreen } from './ui/TtsTrialScreen';
 import type { ParentTabId } from './ui/parent/ParentBits';
 import { setSoundEnabled, setSoundPack } from './platform/sound';
 import { MUSIC_BY_ID, MUSIC_TRACKS, STARTER_TRACK_IDS } from './engine/music';
@@ -34,7 +36,7 @@ import {
 import { QUIET_MS, QuickSound } from './ui/QuickSound';
 import { applyTheme, applyThemeStyle, writeThemeMirror, writeThemeStyleMirror } from './platform/theme';
 
-type Tab = 'home' | 'words' | 'shop' | 'rating' | 'parent';
+type Tab = 'home' | 'words' | 'games' | 'shop' | 'rating' | 'parent';
 
 function diagnosticsRequested(): boolean {
   return typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('diag') === '1';
@@ -104,6 +106,7 @@ export default function App() {
   /** Одноразовый запрос: после взрослой проверки раскрыть блок QR доната. */
   const [supportAutoOpen, setSupportAutoOpen] = useState(false);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(diagnosticsRequested);
+  const [ttsTrialOpen, setTtsTrialOpen] = useState(false);
   // Из установленного ярлыка нет адресной строки. После проверки темы
   // возвращаем взрослого в тот же раздел, откуда он открыл диагностику.
   const [parentReturnTab, setParentReturnTab] = useState<ParentTabId>('overview');
@@ -293,6 +296,15 @@ export default function App() {
     );
   }
 
+  if (ttsTrialOpen) {
+    return (
+      <div className="app">
+        <TtsTrialScreen onClose={() => setTtsTrialOpen(false)} />
+        <Toast />
+      </div>
+    );
+  }
+
   if (!profile) {
     return (
       <div className="app">
@@ -433,6 +445,8 @@ export default function App() {
         />
       ) : tab === 'words' ? (
         <WordsScreen />
+      ) : tab === 'games' ? (
+        <GamesScreen onGoLessons={() => switchTab('home')} />
       ) : tab === 'rating' ? (
         <RatingScreen />
       ) : tab === 'shop' ? (
@@ -464,6 +478,11 @@ export default function App() {
           onOpenVlabs={() => {
             setParentUnlocked(false);
             setVlabsOpen(true);
+          }}
+          onOpenTts={() => {
+            // Возвращаемся в «Ещё → Приложение», как после «Диагностики».
+            setParentReturnTab('app');
+            setTtsTrialOpen(true);
           }}
         />
       )}
@@ -552,6 +571,10 @@ export default function App() {
         <button className={`tab ${!profilesOpen && tab === 'words' ? 'on' : ''}`} onClick={() => switchTab('words')}>
           <span className="ico">📖</span>
           Слова
+        </button>
+        <button className={`tab ${!profilesOpen && tab === 'games' ? 'on' : ''}`} onClick={() => switchTab('games')}>
+          <span className="ico">🧩</span>
+          Игры
         </button>
         <button
           className={`tab ${!profilesOpen && tab === 'shop' ? 'on' : ''}`}

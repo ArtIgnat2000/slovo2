@@ -10163,3 +10163,465 @@ img.product-photo {
     transform: none;
   }
 }
+
+/* ── «Карточки букв»: настоящая механика переноса плиток (0.92.0) ───────────
+   Плитки — физически тёплые: бумажно-деревянный градиент, глубина тенью,
+   нажатие «проваливает» плитку. Лунка под подсвеченной плиткой — пунктирным
+   фиолетовым кольцом. Всё растительное дисплейное. */
+.word-board {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+.tileboard-slots {
+  min-height: 72px;
+  flex-wrap: wrap;
+}
+.tileboard-slot {
+  width: clamp(44px, 13.5vw, 58px);
+  height: clamp(54px, 16.5vw, 68px);
+  font-size: clamp(22px, 6.5vw, 30px);
+}
+.tileboard-slot.drop {
+  border-color: var(--primary);
+  border-style: dashed;
+  box-shadow: 0 0 0 3px var(--primary-soft), inset 0 0 0 2px var(--primary);
+  background: var(--primary-soft);
+}
+.tileboard-tile {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  cursor: grab;
+  width: clamp(50px, 14.5vw, 62px);
+  height: clamp(58px, 17vw, 72px);
+  border-radius: 14px;
+  border: 1px solid #e4cfa6;
+  background: linear-gradient(165deg, #fff8e8 0%, #ffedcb 55%, #f5ddba 100%);
+  color: #4a3a1e;
+  font-size: clamp(24px, 7vw, 32px);
+  font-weight: 900;
+  box-shadow: 0 4px 0 rgba(74, 58, 30, 0.22), 0 8px 16px rgba(36, 31, 54, 0.12),
+    inset 0 1px 0 #ffffff;
+}
+.tileboard-tile:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 rgba(74, 58, 30, 0.25), 0 2px 6px rgba(36, 31, 54, 0.12),
+    inset 0 1px 0 #ffffff;
+}
+.tileboard-tile:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.tileboard-slot {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.tileboard-slot.filled {
+  cursor: grab;
+  background: linear-gradient(165deg, #fff8e8 0%, #ffedcb 55%, #f5ddba 100%);
+  border: 1px solid #e4cfa6;
+  border-style: solid;
+  color: #4a3a1e;
+  font-weight: 900;
+  box-shadow: 0 4px 0 rgba(74, 58, 30, 0.22), 0 8px 16px rgba(36, 31, 54, 0.12),
+    inset 0 1px 0 #ffffff;
+}
+.tileboard-slot.filled:active {
+  transform: translateY(3px);
+}
+/* Пустая лунка — пунктирная, «бегущая строка явок», чтобы палец видел цель. */
+.tileboard-slot:not(.filled):not(.drop) {
+  border-style: dashed;
+}
+.tileboard-ghost {
+  position: fixed;
+  z-index: 60;
+  transform: translate(-50%, -58%) rotate(-4deg) scale(1.14);
+  width: 64px;
+  height: 74px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  border: 1px solid #e4cfa6;
+  background: linear-gradient(165deg, #fff8e8 0%, #ffedcb 55%, #f5ddba 100%);
+  color: #4a3a1e;
+  font-size: 34px;
+  font-weight: 900;
+  box-shadow: 0 14px 28px rgba(36, 31, 54, 0.35);
+  pointer-events: none;
+}
+.tileboard-tray {
+  padding: 12px 10px;
+  min-width: 260px;
+  min-height: 76px;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--orange-soft) 55%, #f3e3c8);
+  border: 1.5px solid #e4cfa6;
+  box-shadow: inset 0 2px 6px rgba(74, 58, 30, 0.15);
+}
+.tileboard-tray.tray-hot {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 2px var(--primary), 0 0 0 3px var(--primary-soft);
+}
+.tileboard-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 12px 16px;
+  border-radius: 18px;
+  background: var(--green-soft);
+  border: 1.5px solid var(--green);
+  text-align: center;
+  animation: tileboard-pop 0.35s ease;
+}
+.tileboard-banner-title {
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--good-ink);
+}
+@keyframes tileboard-pop {
+  0% { transform: scale(0.8); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ── Вкладка «Игры» ─────────────────────────────────────────────────────── */
+.games-section {
+  margin: 14px 0 4px;
+}
+.games-section-title {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  margin: 0 0 8px 2px;
+}
+.game-practice {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-radius: 20px;
+  padding: 14px;
+  box-shadow: var(--shadow);
+}
+.game-practice-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.game-practice-emoji {
+  font-size: 40px;
+  line-height: 1;
+}
+.game-practice-title {
+  font-size: 19px;
+  margin: 0;
+}
+.game-picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.game-pick {
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.game-pick.on {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary-ink);
+}
+.games-empty {
+  background: var(--card);
+  border-radius: 20px;
+  padding: 18px 14px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  border: 1.5px dashed var(--line);
+}
+.games-empty-emoji {
+  font-size: 44px;
+}
+.games-empty-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+}
+.game-soon-row {
+  display: flex;
+  gap: 10px;
+}
+.game-soon {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1.5px dashed var(--line);
+  background: var(--bg-2);
+  opacity: 0.9;
+}
+.game-soon-emoji {
+  font-size: 28px;
+}
+.game-soon-name {
+  font-weight: 800;
+}
+.game-soon-note {
+  font-size: 11.5px;
+  color: var(--ink-2);
+}
+
+/* Шесть вкладок: на узком экране ужимаем подписи, цели остаются ≥ 44 px. */
+@media (max-width: 420px) {
+  .tabs .tab {
+    padding-left: 2px;
+    padding-right: 2px;
+    font-size: 11px;
+  }
+}
+
+/* ── «Родителям → Проба озвучки» (0.92.0) ────────────────────────────────
+   Инструмент взрослого: услышать системные голоса телефона на словах банка.
+   Никуда не ведёт и ничему не учит ребёнка — просто список с кнопками. */
+.tts-screen {
+  padding-bottom: 110px;
+}
+.tts-hero {
+  background: var(--primary);
+  color: #fff;
+  border-radius: 20px;
+  padding: 16px 16px 14px;
+  margin-bottom: 12px;
+  box-shadow: 0 10px 24px rgba(91, 62, 222, 0.28);
+}
+.tts-hero h1 {
+  margin: 0;
+  font-size: 21px;
+}
+.tts-hero p {
+  margin: 6px 0 0;
+  opacity: 0.92;
+  font-size: 13px;
+}
+.tts-plain {
+  text-align: center;
+}
+.tts-plain-title {
+  margin: 0 0 6px;
+  font-weight: 800;
+}
+.tts-how {
+  font-size: 13.5px;
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+  border: none;
+}
+.tts-how b {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14.5px;
+}
+.tts-how ol {
+  margin: 4px 0 0 18px;
+  padding: 0;
+}
+.tts-how li {
+  margin: 3px 0;
+}
+.tts-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tts-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.tts-row select {
+  flex: 1 1 180px;
+  min-height: 48px;
+  border-radius: 12px;
+  border: 1.5px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  font-size: 15px;
+  padding: 0 10px;
+  max-width: 100%;
+}
+.tts-toggles {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.tts-chip {
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line);
+  background: #fff;
+  font-size: 14px;
+  cursor: pointer;
+}
+.tts-chip[aria-pressed='true'] {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.tts-stats {
+  position: sticky;
+  top: 8px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+.tts-stats b {
+  font-size: 13.5px;
+}
+.tts-reset {
+  margin-left: auto;
+}
+.tts-ok {
+  color: var(--good-ink);
+  font-weight: 800;
+}
+.tts-bad {
+  color: var(--bad-ink);
+  font-weight: 800;
+}
+.tts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tts-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow: 0 2px 8px rgba(36, 31, 54, 0.05);
+}
+.tts-word-line {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.tts-idx {
+  color: var(--ink-2);
+  font-size: 12px;
+  min-width: 24px;
+}
+.tts-term {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+.tts-tag {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  border-radius: 8px;
+  font-size: 11px;
+  padding: 2px 7px;
+}
+.tts-meta {
+  color: var(--ink-2);
+  font-size: 12px;
+  margin: 2px 0 8px 34px;
+}
+.tts-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.tts-play {
+  min-height: 48px;
+  min-width: 112px;
+  border: none;
+  border-radius: 14px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 0 14px;
+  cursor: pointer;
+  box-shadow: 0 3px 0 var(--primary-depth);
+}
+.tts-play:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--primary-depth);
+}
+.tts-play-phrase {
+  background: #fff;
+  color: var(--primary-depth);
+  box-shadow: inset 0 0 0 1.5px var(--primary);
+}
+.tts-verdict {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+.tts-vbtn {
+  width: 52px;
+  height: 48px;
+  border-radius: 12px;
+  border: 1.5px solid var(--line);
+  background: #fff;
+  font-size: 20px;
+  cursor: pointer;
+}
+.tts-vbtn.tts-v-ok.on {
+  background: var(--green-soft);
+  border-color: var(--green);
+}
+.tts-vbtn.tts-v-bad.on {
+  background: var(--red-soft);
+  border-color: var(--red);
+}
+.tts-footer {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.tts-summary textarea {
+  width: 100%;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  padding: 8px;
+  margin-top: 6px;
+}

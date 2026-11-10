@@ -17,6 +17,7 @@ interface Props {
   onOpenProfiles: () => void;
   onOpenVlabs: () => void;
   onOpenDiagnostics: (section: ParentTabId) => void;
+  onOpenTts: () => void;
   /** Вернуться в тот же раздел после диагностики, открытой из ярлыка. */
   initialTab?: ParentTabId;
   /** Списки к контрольной (0.58.0): тренировка, контроль, ошибки. */
@@ -42,7 +43,7 @@ interface Props {
  * стал честнее: ошибка показывается на месте, ответ не стирается, Enter
  * отправляет форму.
  */
-export function ParentScreen({ unlocked, onUnlock, supportAutoOpen = false, onSupportAutoOpened, onOpenProfiles, onOpenVlabs, onOpenDiagnostics, initialTab = 'overview', onStartList }: Props) {
+export function ParentScreen({ unlocked, onUnlock, supportAutoOpen = false, onSupportAutoOpened, onOpenProfiles, onOpenVlabs, onOpenDiagnostics, onOpenTts, initialTab = 'overview', onStartList }: Props) {
   const profile = useActiveProfile();
   const [tab, setTab] = useState<ParentTabId>(initialTab === 'app' || initialTab === 'progress' ? 'more' : initialTab);
   const [moreSection, setMoreSection] = useState<'progress' | 'app'>(initialTab === 'app' ? 'app' : 'progress');
@@ -108,7 +109,7 @@ export function ParentScreen({ unlocked, onUnlock, supportAutoOpen = false, onSu
               </section>
             ) : (
               <section role="tabpanel" id="parent-more-panel-app" aria-labelledby="parent-more-tab-app">
-                <AppTab onOpenVlabs={onOpenVlabs} onOpenDiagnostics={() => onOpenDiagnostics('app')} />
+                <AppTab onOpenVlabs={onOpenVlabs} onOpenDiagnostics={() => onOpenDiagnostics('app')} onOpenTts={onOpenTts} />
               </section>
             )}
           </div>

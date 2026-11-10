@@ -36,6 +36,8 @@ import { runClassChecks } from './classes.test';
 import { runWorldUiChecks } from './world-ui.test';
 import { runBaseTourUiChecks } from './base-tour-ui.test';
 import { runRatingUiChecks } from './rating-ui.test';
+import { runGamesUiChecks } from './games-ui.test';
+import { runWordBoardChecks } from './word-board.test';
 // Смена цвета купленной вещи не должна включать музыку (регрессия магазина).
 import './recolor-music.test';
 import { LESSONS, WORDS } from '../src/content/words';
@@ -2128,6 +2130,12 @@ async function main() {
 
   // Рейтинг: место игрока среди воображаемых соперников.
   await runRatingUiChecks();
+
+  // Игры: вкладка, свободная практика и честные «скоро»-карточки (0.92.0).
+  await runGamesUiChecks();
+
+  // Карточки букв: движок сборки и живая доска свободной игры (0.92.0).
+  await runWordBoardChecks();
 
   const failures = failureCount();
   console.log(failures ? `\n✗ ошибок: ${failures}` : '\n✓ все проверки пройдены');

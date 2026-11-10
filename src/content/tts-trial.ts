@@ -1,7 +1,10 @@
-// Отбор слов для пробы озвучки: по риску ошибки TTS, детерминированно.
-// Экспортирует массив карточек-строк для docs/tts/tts-trial.html.
-import { WORDS } from '../../src/content/words';
-import { KNOWN_STRESS } from '../../src/content/stress-dict';
+/**
+ * Отбор слов для пробы озвучки — общий для автономной страницы
+ * (docs/tts/tts-trial.html) и встроенного экрана «Родителям → Проба озвучки».
+ * Данные берутся из банка: ударение никогда не вписывается руками.
+ */
+import { WORDS } from './words';
+import { KNOWN_STRESS } from './stress-dict';
 
 export interface TtsItem {
   /** Слово как в банке (может быть фразой); из школьного списка — помечено. */
