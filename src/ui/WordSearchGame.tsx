@@ -208,8 +208,7 @@ export function WordSearchGame({ pool, grade, onGoLessons }: WordSearchGameProps
   return (
     <div className="ws-card">
       <p className="tiny muted ws-instruction">
-        Веди пальцем по буквам — от первой до последней, по горизонтали и вертикали
-        {grade >= 5 ? ' и по диагонали' : ''}. Опасные буквы выделены оранжевым.
+        Веди по буквам: найди все слова{grade >= 5 ? ', включая диагонали' : ''}. Опасные буквы — оранжевым.
       </p>
 
       <div
@@ -289,7 +288,7 @@ export function WordSearchGame({ pool, grade, onGoLessons }: WordSearchGameProps
           <div className="ws-win-emoji" aria-hidden="true">🎉</div>
           <div>
             <p className="ws-win-title">Все слова найдены!</p>
-            <p className="tiny muted">Для похвальбы вслух — {board.words.length} из {board.words.length}. Или собери новую сетку.</p>
+            <p className="tiny muted">Или собери новую сетку.</p>
           </div>
           <button type="button" className="btn primary" onClick={newGrid}>
             🔄 Ещё сетку
