@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Проба озвучки — СЛОВО 2.0</title>
+<style>
+  :root {
+    --bg: #fff8ec;
+    --card: #ffffff;
+    --ink: #241f36;
+    --ink-2: #6b6480;
+    --primary: #7757fb;
+    --primary-depth: #5b3ede;
+    --primary-soft: #ece7ff;
+    --accent: #ff9f0a;
+    --accent-soft: #ffedd5;
+    --accent-ink: #915b06;
+    --good: #22c55e;
+    --good-soft: #dcfce7;
+    --bad: #f43f5e;
+    --bad-soft: #ffe4e6;
+    --line: #efe9dd;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 16px;
+    line-height: 1.45;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 14px 14px 120px; }
+
+  header.hero {
+    background: var(--primary);
+    color: #fff;
+    border-radius: 20px;
+    padding: 18px 18px 16px;
+    margin: 6px 0 14px;
+    box-shadow: 0 10px 24px rgba(91, 62, 222, .28);
+  }
+  header.hero h1 { margin: 0; font-size: 22px; line-height: 1.25; }
+  header.hero p { margin: 8px 0 0; opacity: .92; font-size: 14px; }
+
+  .how {
+    background: var(--accent-soft);
+    color: var(--accent-ink);
+    border-radius: 16px;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+    font-size: 14px;
+  }
+  .how b { display: block; margin-bottom: 6px; font-size: 15px; }
+  .how ol { margin: 6px 0 0 18px; padding: 0; }
+  .how li { margin: 3px 0; }
+
+  .panel {
+    background: var(--card);
+    border-radius: 16px;
+    box-shadow: 0 4px 14px rgba(36,31,54,.07);
+    padding: 12px;
+    margin-bottom: 14px;
+  }
+  .panel h2 { font-size: 16px; margin: 0 0 10px; }
+  .row-controls { display: flex; gap: 8px; flex-wrap: wrap; }
+  select, .btn {
+    min-height: 48px;
+    border-radius: 12px;
+    border: 1.5px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    font-size: 15px;
+    padding: 0 12px;
+    max-width: 100%;
+  }
+  select { flex: 1 1 200px; }
+  .toggles { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .chip-toggle {
+    min-height: 44px; padding: 0 14px; border-radius: 999px;
+    border: 1.5px solid var(--line); background: #fff; font-size: 14px; cursor: pointer;
+  }
+  .chip-toggle[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+  .sticky-stats {
+    position: sticky; top: 8px; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    background: rgba(255,248,236,.92);
+    backdrop-filter: blur(6px);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    font-size: 13px;
+  }
+  .sticky-stats b { font-size: 14px; }
+  .sticky-stats .ok { color: #157a3a; }
+  .sticky-stats .bad { color: #b93047; }
+
+  .word-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 12px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 8px rgba(36,31,54,.05);
+  }
+  .word-line { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .idx { color: var(--ink-2); font-size: 12px; min-width: 26px; }
+  .term { font-size: 26px; font-weight: 800; letter-spacing: .2px; }
+  .meta { color: var(--ink-2); font-size: 12.5px; }
+  .tag { display: inline-block; background: var(--primary-soft); color: var(--primary-depth); border-radius: 8px; font-size: 11px; padding: 2px 7px; margin-left: 6px; vertical-align: 2px; }
+  .tag.manual { background: var(--accent-soft); color: var(--accent-ink); }
+
+  .actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+  .play {
+    min-height: 48px; min-width: 118px; border: none; border-radius: 14px;
+    background: var(--primary); color: #fff; font-size: 15px; font-weight: 700;
+    padding: 0 14px; cursor: pointer; box-shadow: 0 3px 0 var(--primary-depth);
+  }
+  .play.phrase { background: #fff; color: var(--primary-depth); box-shadow: inset 0 0 0 1.5px var(--primary); }
+  .play:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--primary-depth); }
+  .verdict { display: flex; gap: 6px; margin-left: auto; }
+  .vbtn {
+    width: 52px; height: 48px; border-radius: 12px; border: 1.5px solid var(--line);
+    background: #fff; font-size: 20px; cursor: pointer;
+  }
+  .vbtn.ok[aria-pressed="true"] { background: var(--good-soft); border-color: var(--good); }
+  .vbtn.bad[aria-pressed="true"] { background: var(--bad-soft); border-color: var(--bad); }
+
+  .footer-bar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+    background: var(--ink); color: #fff;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  }
+  .footer-inner { max-width: 720px; margin: 0 auto; display: flex; gap: 8px; }
+  .fbtn { flex: 1; min-height: 48px; border: none; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; }
+  .fbtn.primary { background: var(--accent); color: #3a2600; }
+  .fbtn.ghost { background: rgba(255,255,255,.14); color: #fff; }
+
+  dialog { border: none; border-radius: 16px; padding: 16px; max-width: 560px; width: calc(100vw - 40px); }
+  dialog textarea { width: 100%; min-height: 240px; font-family: ui-monospace, monospace; font-size: 12px; border-radius: 10px; border: 1px solid var(--line); padding: 8px; }
+  dialog .dlg-actions { display: flex; gap: 8px; margin-top: 10px; }
+
+  @media print {
+    .actions, .footer-bar, select, .toggles, .sticky-stats, .how, .panel { display: none !important; }
+    body { background: #fff; }
+    header.hero { box-shadow: none; background: #fff; color: #000; border: 1px solid #ccc; }
+    .word-card { break-inside: avoid; box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>🔊 Проба озвучки</h1>
+    <p>СЛОВО 2.0 · голоса системного синтеза (iOS / Android / Chrome) · слова банка и школьные термины</p>
+  </header>
+
+  <section class="how">
+    <b>Как слушать (честно, без подсказок себе)</b>
+    <ol>
+      <li>Выберите голос и скорость. «Выпустить ударный знак» включено — так мог бы звучать родной движок подсказок.</li>
+      <li>Нажмите «слово» или «в предложении» один раз и <u>не нажимайте второй</u> — первое впечатление важнее.</li>
+      <li>✓ — ударение точно на своём месте. ✗ — не там или неразборчиво. Сомневаетесь — это ✗.</li>
+      <li>Отметки сохраняются на этом устройстве. В конце — «Скопировать сводку» и вставить в чат.</li>
+    </ol>
+  </section>
+
+  <section class="panel">
+    <h2>Голос и настройки</h2>
+    <div class="row-controls">
+      <select id="voice" aria-label="Голос"></select>
+      <select id="rate" aria-label="Скорость">
+        <option value="0.75">медленно (0.75)</option>
+        <option value="0.9" selected>спокойно (0.9)</option>
+        <option value="1">обычно (1.0)</option>
+      </select>
+    </div>
+    <div class="toggles">
+      <button class="chip-toggle" id="only-ru" aria-pressed="true">только русские голоса</button>
+      <button class="chip-toggle" id="stress-mark" aria-pressed="true">ударный знак U+0301</button>
+    </div>
+  </section>
+
+  <div class="sticky-stats" role="status">
+    <span><b>Отмечено:</b> <span id="marked-count">0</span> из <span id="total-count"></span></span>
+    <span><b class="ok">✓ <span id="ok-count">0</span></b> · <b class="bad">✗ <span id="bad-count">0</span></b></span>
+  </div>
+
+  <div id="list"></div>
+
+</div>
+
+<div class="footer-bar">
+  <div class="footer-inner">
+    <button class="fbtn primary" id="export">Скопировать сводку</button>
+    <button class="fbtn ghost" id="print">Печать</button>
+    <button class="fbtn ghost" id="reset">Сбросить</button>
+  </div>
+</div>
+
+<dialog id="summary-dlg" aria-labelledby="summary-title">
+  <h2 id="summary-title" style="margin:0 0 8px">Сводка пробы</h2>
+  <p style="margin:0 0 8px; color: var(--ink-2); font-size: 13px;">Текст ниже уже выделен — можно скопировать вручную, если «Копировать» не сработает.</p>
+  <textarea id="summary-text" readonly></textarea>
+  <div class="dlg-actions">
+    <button class="fbtn primary" id="copy-btn" style="min-height:48px; flex:1; border:none; border-radius:10px;">Копировать</button>
+    <button class="fbtn ghost" id="close-dlg" style="min-height:48px; flex:1; border:none; border-radius:10px; background:#ece7ff; color:#241f36;">Закрыть</button>
+  </div>
+</dialog>
+
+<script>
+'use strict';
+const WORDS = [
+ {
+  "text": "Москва",
+  "marked": "Москва́",
+  "syllables": "Мос-ква",
+  "sentence": "Москва́ — столица России.",
+  "grades": [
+   1,
+   2
+  ]
+ },
+ {
+  "text": "здравствуйте",
+  "marked": "здра́вствуйте",
+  "syllables": "здрав-ствуй-те",
+  "sentence": "Скажи здра́вствуйте, когда заходишь в класс.",
+  "grades": [
+   2
+  ]
+ },
+ {
+  "text": "учительница",
+  "marked": "учи́тельница",
+  "syllables": "у-чи-тель-ни-ца",
+  "sentence": "Наша учи́тельница добрая.",
+  "grades": [
+   2
+  ]
+ },
+ {
+  "text": "берёза",
+  "marked": "берёза",
+  "syllables": "бе-рё-за",
+  "sentence": "Белая берёза стоит у дома.",
+  "grades": [
+   2
+  ]
+ },
+ {
+  "text": "Родина",
+  "marked": "Ро́дина",
+  "syllables": "Ро-ди-на",
+  "sentence": "Ро́дина начинается с семьи.",
+  "grades": [
+   2
+  ]
+ },
+ {
+  "text": "Россия",
+  "marked": "Росси́я",
+  "syllables": "Рос-си-я",
+  "sentence": "Росси́я — наша страна.",
+  "grades": [
+   2
+  ]
+ },
+ {
+  "text": "Московский Кремль",
+  "marked": "Моско́вский Кремль",
+  "syllables": "Мос-ков-ский-Кремль",
+  "sentence": "Моско́вский Кремль стоит над Москвой-рекой.",
+  "grades": [
+   3
+  ]
+ },
+ {
+  "text": "Красная площадь",
+  "marked": "Кра́сная площадь",
+  "syllables": "Крас-на-я-пло-щадь",
+  "sentence": "Кра́сная площадь — главное место Москвы.",
+  "grades": [
+   3
+  ]
+ },
+ {
+  "text": "воскресенье",
+  "marked": "воскресе́нье",
+  "syllables": "вос-кре-се-нье",
+  "sentence": "воскресе́нье — день отдыха в конце недели.",
+  "grades": [
+   3
+  ]
+ },
+ {
+  "text": "понедельник",
+  "marked": "понеде́льник",
+  "syllables": "по-не-дель-ник",
+  "sentence": "понеде́льник — первый день недели.",
+  "grades": [
+   3
+  ]
+ },
+ {
+  "text": "самолёт",
+  "marked": "самолёт",
+  "syllables": "са-мо-лёт",
+  "sentence": "самолёт летит высоко в облаках.",
+  "grades": [
+   3
+  ]
+ },
+ {
+  "text": "чёрный",
+  "marked": "чёрный",
+  "syllables": "чёр-ный",
+  "sentence": "У меня чёрный рюкзак.",
+  "grades": [
+   3
+  ]
+ },
+ {
+  "text": "овёс",
+  "marked": "овёс",
+  "syllables": "о-вёс",
+  "sentence": "овёс растёт на поле.",
+  "grades": [
+   3
+  ]
+ },
+ {
+  "text": "путешественник",
+  "marked": "путеше́ственник",
+  "syllables": "пу-те-ше-ствен-ник",
+  "sentence": "путеше́ственник объехал полмира.",
+  "grades": [
+   4
+  ]
+ },
+ {
+  "text": "металлический",
+  "marked": "металли́ческий",
+  "syllables": "ме-тал-ли-че-ский",
+  "sentence": "металли́ческий звук звенит в тишине.",
+  "grades": [
+   4
+  ]
+ },
+ {
+  "text": "правительство",
+  "marked": "прави́тельство",
+  "syllables": "пра-ви-тель-ство",
+  "sentence": "прави́тельство приняло новый закон.",
+  "grades": [
+   4
+  ]
+ },
+ {
+  "text": "электрический",
+  "marked": "электри́ческий",
+  "syllables": "э-лек-три-че-ский",
+  "sentence": "электри́ческий чайник быстро греет воду.",
+  "grades": [
+   4
+  ]
+ },
+ {
+  "text": "электричество",
+  "marked": "электри́чество",
+  "syllables": "э-лек-три-че-ство",
+  "sentence": "электри́чество бежит по проводам.",
+  "grades": [
+   4
+  ]
+ },
+ {
+  "text": "библиотекарь",
+  "marked": "библиоте́карь",
+  "syllables": "биб-ли-о-те-карь",
+  "sentence": "библиоте́карь выдаёт книги читателям.",
+  "grades": [
+   4
+  ]
+ },
+ {
+  "text": "пассажирский",
+  "marked": "пассажи́рский",
+  "syllables": "пас-са-жир-ский",
+  "sentence": "пассажи́рский поезд прибыл на вокзал.",
+  "grades": [
+   4
+  ]
+ },
+ {
+  "text": "председатель",
+  "marked": "председа́тель",
+  "syllables": "пред-се-да-тель",
+  "sentence": "председа́тель открыл собрание.",
+  "grades": [
+   4
+  ]
+ },
+ {
+  "text": "телепередача",
+  "marked": "телепереда́ча",
+  "syllables": "те-ле-пе-ре-да-ча",
+  "sentence": "Вечером началась интересная телепереда́ча.",
+  "grades": [
+   4
+  ]
+ },
+ {
+  "text": "космический",
+  "marked": "косми́ческий",
+  "syllables": "кос-ми-че-ский",
+  "sentence": "косми́ческий корабль летит к Луне.",
+  "grades": [
+   4
+  ]
+ },
+ {
+  "text": "одиннадцать",
+  "marked": "оди́ннадцать",
+  "syllables": "о-дин-над-цать",
+  "sentence": "оди́ннадцать игроков на поле.",
+  "grades": [
+   4
+  ]
+ },
+ {
+  "text": "путешествие",
+  "marked": "путеше́ствие",
+  "syllables": "пу-те-ше-стви-е",
+  "sentence": "путеше́ствие длилось целую неделю.",
+  "grades": [
+   4
+  ]
+ },
+ {
+  "text": "шестнадцать",
+  "marked": "шестна́дцать",
+  "syllables": "шест-над-цать",
+  "sentence": "шестна́дцать лет — возраст выпускника.",
+  "grades": [
+   4
+  ]
+ },
+ {
+  "text": "комбайнёр",
+  "marked": "комбайнёр",
+  "syllables": "ком-бай-нёр",
+  "sentence": "комбайнёр ведёт комбайн.",
+  "grades": [
+   4
+  ]
+ },
+ {
+  "text": "вперёд",
+  "marked": "вперёд",
+  "syllables": "впе-рёд",
+  "sentence": "Мы идём вперёд к цели.",
+  "grades": [
+   4
+  ]
+ },
+ {
+  "text": "костёр",
+  "marked": "костёр",
+  "syllables": "кос-тёр",
+  "sentence": "костёр трещит и светит.",
+  "grades": [
+   4
+  ]
+ },
+ {
+  "text": "шофёр",
+  "marked": "шофёр",
+  "syllables": "шо-фёр",
+  "sentence": "шофёр ведёт автобус.",
+  "grades": [
+   4,
+   5
+  ]
+ },
+ {
+  "text": "ещё",
+  "marked": "ещё",
+  "syllables": "ещё",
+  "sentence": "Дай мне ещё одну минуту.",
+  "grades": [
+   4
+  ]
+ },
+ {
+  "text": "Великая Отечественная война",
+  "marked": "Вели́кая Отечественная война",
+  "syllables": "Ве-ли-ка-я-О-те-чес-твен-на-я-вой-на",
+  "sentence": "Вели́кая Отечественная война началась в июне 1941 года.",
+  "grades": [
+   5
+  ]
+ },
+ {
+  "text": "повествовательный",
+  "marked": "повествова́тельный",
+  "syllables": "по-вест-во-ва-тель-ный",
+  "sentence": "повествова́тельный текст рассказывает историю.",
+  "grades": [
+   5
+  ]
+ },
+ {
+  "text": "восклицательный",
+  "marked": "восклица́тельный",
+  "syllables": "вос-кли-ца-тель-ный",
+  "sentence": "восклица́тельный знак стоит в конце приказа.",
+  "grades": [
+   5
+  ]
+ },
+ {
+  "text": "интересоваться",
+  "marked": "интересова́ться",
+  "syllables": "и-нте-ре-со-ва-ться",
+  "sentence": "Младший брат стал интересова́ться звёздами.",
+  "grades": [
+   5
+  ]
+ },
+ {
+  "text": "необыкновенный",
+  "marked": "необыкнове́нный",
+  "syllables": "не-обык-но-вен-ный",
+  "sentence": "необыкнове́нный случай произошёл в школе.",
+  "grades": [
+   5
+  ]
+ },
+ {
+  "text": "поразительный",
+  "marked": "порази́тельный",
+  "syllables": "по-ра-зи-тель-ный",
+  "sentence": "порази́тельный успех ждал команду в финале.",
+  "grades": [
+   5
+  ]
+ },
+ {
+  "text": "соревноваться",
+  "marked": "соревнова́ться",
+  "syllables": "со-рев-но-ва-ться",
+  "sentence": "Мы будем соревнова́ться за кубок школы.",
+  "grades": [
+   5
+  ]
+ },
+ {
+  "text": "тренироваться",
+  "marked": "тренирова́ться",
+  "syllables": "тре-ни-ро-ва-ться",
+  "sentence": "Каждый день я буду тренирова́ться в зале.",
+  "grades": [
+   5
+  ]
+ },
+ {
+  "text": "изумительный",
+  "marked": "изуми́тельный",
+  "syllables": "и-зу-ми-тель-ный",
+  "sentence": "изуми́тельный вид открылся с холма.",
+  "grades": [
+   5
+  ]
+ },
+ {
+  "text": "справедливый",
+  "marked": "справедли́вый",
+  "syllables": "спра-вед-ли-вый",
+  "sentence": "справедли́вый судья рассудил спор верно.",
+  "grades": [
+   5
+  ]
+ },
+ {
+  "text": "благородный",
+  "marked": "благоро́дный",
+  "syllables": "бла-го-род-ный",
+  "sentence": "благоро́дный поступок совершил не каждый.",
+  "grades": [
+   5
+  ]
+ },
+ {
+  "text": "недоумевать",
+  "marked": "недоумева́ть",
+  "syllables": "не-до-уме-вать",
+  "sentence": "Ребята стали недоумева́ть: почему урок отменили.",
+  "grades": [
+   5
+  ]
+ },
+ {
+  "text": "расчётливый",
+  "marked": "расчётливый",
+  "syllables": "рас-чёт-ли-вый",
+  "sentence": "расчётливый человек всё взвесит заранее.",
+  "grades": [
+   5
+  ]
+ },
+ {
+  "text": "состязаться",
+  "marked": "состяза́ться",
+  "syllables": "со-стя-за-ться",
+  "sentence": "состяза́ться будут лучшие пловцы страны.",
+  "grades": [
+   5
+  ]
+ },
+ {
+  "text": "спартакиада",
+  "marked": "спартакиа́да",
+  "syllables": "спар-та-ки-а-да",
+  "sentence": "спартакиа́да школьников собрала участников со всей страны.",
+  "grades": [
+   5
+  ]
+ },
+ {
+  "text": "фотоаппарат",
+  "marked": "фотоаппара́т",
+  "syllables": "фо-то-ап-па-рат",
+  "sentence": "Дедушка достал старый фотоаппара́т.",
+  "grades": [
+   5
+  ]
+ },
+ {
+  "text": "расписание",
+  "marked": "расписа́ние",
+  "syllables": "рас-пи-са-ни-е",
+  "sentence": "расписа́ние уроков изменилось в среду.",
+  "grades": [
+   5
+  ]
+ },
+ {
+  "text": "Жостово",
+  "marked": "Жо́стово",
+  "syllables": "Жо-сто-во",
+  "sentence": "Жо́стово славится расписными подносами.",
+  "grades": [
+   5
+  ]
+ },
+ {
+  "text": "вдвоём",
+  "marked": "вдвоём",
+  "syllables": "вдво-ём",
+  "sentence": "Мы пошли гулять вдвоём.",
+  "grades": [
+   5
+  ]
+ },
+ {
+  "text": "втроём",
+  "marked": "втроём",
+  "syllables": "втро-ём",
+  "sentence": "Мы пошли гулять втроём.",
+  "grades": [
+   5
+  ]
+ },
+ {
+  "text": "расчёт",
+  "marked": "расчёт",
+  "syllables": "рас-чёт",
+  "sentence": "Мой расчёт оказался верным.",
+  "grades": [
+   5
+  ]
+ },
+ {
+  "text": "подлежащее",
+  "marked": "подлежа́щее",
+  "syllables": "под-ле-жа-ще-е",
+  "sentence": "Подлежа́щее — главный член предложения.",
+  "grades": [
+   3,
+   4,
+   5
+  ],
+  "note": "школьный список"
+ },
+ {
+  "text": "сказуемое",
+  "marked": "сказу́емое",
+  "syllables": "ска-зу-е-мо-е",
+  "sentence": "Сказу́емое — главный член предложения.",
+  "grades": [
+   3,
+   4,
+   5
+  ],
+  "note": "школьный список"
+ }
+];
+// WORDS — сгенерировано из src/content/words.ts (scripts/make-tts-trial.mjs).
+const state = { voiceURI: null, rate: 0.9, onlyRu: true, stress: true, votes: {} };
+const $ = (sel) => document.querySelector(sel);
+
+function loadVotes() {
+  try { state.votes = JSON.parse(localStorage.getItem('tts-trial-votes') || '{}'); }
+  catch { state.votes = {}; }
+}
+function saveVotes() {
+  try { localStorage.setItem('tts-trial-votes', JSON.stringify(state.votes)); } catch {}
+}
+function voteKey(voice) { return (voice && (voice.voiceURI || voice.name)) || 'no-voice'; }
+
+function voicesFor(onlyRu) {
+  const all = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+  const ru = all.filter((v) => (v.lang || '').toLowerCase().startsWith('ru'));
+  return onlyRu ? ru : all;
+}
+
+function renderVoices() {
+  const sel = $('#voice');
+  const list = voicesFor(state.onlyRu);
+  const prev = state.voiceURI;
+  sel.innerHTML = '';
+  if (!list.length) {
+    const opt = document.createElement('option');
+    opt.textContent = 'голоса не найдены — нажмите «слово» на любом, подгрузим';
+    sel.appendChild(opt);
+    return;
+  }
+  for (const v of list) {
+    const opt = document.createElement('option');
+    opt.value = v.voiceURI || v.name;
+    opt.textContent = `${v.name} · ${v.lang}${v.default ? ' · по умолчанию' : ''}`;
+    sel.appendChild(opt);
+  }
+  const keep = list.find((v) => (v.voiceURI || v.name) === prev) || list.find((v) => v.default) || list[0];
+  sel.value = keep.voiceURI || keep.name;
+  state.voiceURI = sel.value;
+}
+function currentVoice() {
+  const all = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+  return all.find((v) => (v.voiceURI || v.name) === state.voiceURI) || null;
+}
+
+function speak(text) {
+  if (!window.speechSynthesis) { alert('Этот браузер не умеет speechSynthesis'); return; }
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(state.stress ? text : text.replace(/́/g, ''));
+  u.voice = currentVoice();
+  u.lang = (u.voice && u.voice.lang) || 'ru-RU';
+  u.rate = Number(state.rate);
+  window.speechSynthesis.speak(u);
+}
+
+function counts() {
+  const key = voteKey(currentVoice());
+  const votes = state.votes[key] || {};
+  let ok = 0, bad = 0;
+  for (const v of Object.values(votes)) (v === 1 ? ok++ : bad++);
+  return { ok, bad, marked: ok + bad };
+}
+function refreshStats() {
+  const { ok, bad, marked } = counts();
+  $('#marked-count').textContent = marked;
+  $('#ok-count').textContent = ok;
+  $('#bad-count').textContent = bad;
+  $('#total-count').textContent = WORDS.length;
+}
+
+function renderList() {
+  const host = $('#list');
+  host.innerHTML = '';
+  const key = voteKey(currentVoice());
+  const votes = state.votes[key] || {};
+  WORDS.forEach((w, i) => {
+    const card = document.createElement('div');
+    card.className = 'word-card';
+    const gradeTxt = w.grades.map((g) => g + ' класс').join(', ');
+    card.innerHTML = `
+      <div class="word-line">
+        <span class="idx">${i + 1}.</span>
+        <span class="term">${escapeHtml(w.marked)}${w.note ? `<span class="tag manual">${escapeHtml(w.note)}</span>` : ''}</span>
+      </div>
+      <div class="meta">${escapeHtml(w.syllables)} · ${escapeHtml(gradeTxt)}${w.note ? '' : ''}</div>
+      <div class="actions">
+        <button class="play" data-do="word">🔊 слово</button>
+        <button class="play phrase" data-do="phrase">🔊 в предложении</button>
+        <div class="verdict">
+          <button class="vbtn ok" data-vote="1" aria-pressed="${votes[w.text] === 1}" aria-label="Ударение верно">✓</button>
+          <button class="vbtn bad" data-vote="-1" aria-pressed="${votes[w.text] === -1}" aria-label="Ударение неверно">✗</button>
+        </div>
+      </div>`;
+    card.querySelector('[data-do="word"]').addEventListener('click', () => speak(w.marked));
+    card.querySelector('[data-do="phrase"]').addEventListener('click', () => speak(w.sentence));
+    for (const btn of card.querySelectorAll('.vbtn')) {
+      btn.addEventListener('click', () => {
+        const v = Number(btn.dataset.vote);
+        const k = voteKey(currentVoice());
+        state.votes[k] = state.votes[k] || {};
+        state.votes[k][w.text] = state.votes[k][w.text] === v ? undefined : v;
+        if (state.votes[k][w.text] === undefined) delete state.votes[k][w.text];
+        saveVotes();
+        // обновляем оба тумблера этой карточки, чтобы не перерисовывать всё
+        for (const b of card.querySelectorAll('.vbtn')) {
+          b.setAttribute('aria-pressed', String(state.votes[k][w.text] === Number(b.dataset.vote)));
+        }
+        refreshStats();
+      });
+    }
+    host.appendChild(card);
+  });
+  $('#total-count').textContent = WORDS.length;
+  refreshStats();
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+function buildSummary() {
+  const voice = currentVoice();
+  const { ok, bad, marked } = counts();
+  const key = voteKey(voice);
+  const votes = state.votes[key] || {};
+  const lines = [];
+  lines.push('СЛОВО 2.0 — проба озвучки (TTS)');
+  lines.push(`Дата: ${new Date().toLocaleString('ru-RU')}`);
+  lines.push(`Устройство: ${navigator.userAgent}`);
+  lines.push(`Голос: ${voice ? voice.name + ' · ' + voice.lang : 'нет голоса'} (rate ${state.rate})`);
+  lines.push(`Ударный знак U+0301: ${state.stress ? 'включён' : 'выключен'}`);
+  lines.push(`Отмечено: ${marked} из ${WORDS.length} · верно: ${ok} · неверно: ${bad}`);
+  lines.push('');
+  for (const w of WORDS) {
+    const v = votes[w.text];
+    const mark = v === 1 ? '✓' : v === -1 ? '✗' : '·';
+    lines.push(`${mark} ${w.text} — ${w.marked}`);
+  }
+  return lines.join('\n');
+}
+
+$('#voice').addEventListener('change', (e) => { state.voiceURI = e.target.value; renderList(); });
+$('#rate').addEventListener('change', (e) => { state.rate = e.target.value; });
+$('#only-ru').addEventListener('click', (e) => {
+  state.onlyRu = e.currentTarget.getAttribute('aria-pressed') !== 'true';
+  e.currentTarget.setAttribute('aria-pressed', String(state.onlyRu));
+  renderVoices(); renderList();
+});
+$('#stress-mark').addEventListener('click', (e) => {
+  state.stress = e.currentTarget.getAttribute('aria-pressed') !== 'true';
+  e.currentTarget.setAttribute('aria-pressed', String(state.stress));
+});
+$('#export').addEventListener('click', async () => {
+  $('#summary-text').value = buildSummary();
+  $('#summary-dlg').showModal();
+});
+$('#close-dlg').addEventListener('click', () => $('#summary-dlg').close());
+$('#copy-btn').addEventListener('click', async () => {
+  const ta = $('#summary-text');
+  ta.select();
+  try { await navigator.clipboard.writeText(ta.value); }
+  catch { document.execCommand('copy'); }
+});
+$('#print').addEventListener('click', () => window.print());
+$('#reset').addEventListener('click', () => {
+  if (confirm('Очистить отметки по этому голосу на этом устройстве?')) {
+    const k = voteKey(currentVoice());
+    delete state.votes[k]; saveVotes(); renderList();
+  }
+});
+
+loadVotes();
+if (window.speechSynthesis) {
+  window.speechSynthesis.onvoiceschanged = () => { renderVoices(); };
+}
+renderVoices();
+renderList();
+</script>
+</body>
+</html>

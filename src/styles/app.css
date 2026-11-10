@@ -5368,6 +5368,24 @@ img.product-photo {
   background: var(--primary-soft);
   color: var(--primary-ink);
 }
+/* «⇧» для заглавных букв слов-имён («Москва», «Родина»): мягкая подсветка
+   в покое, залитая — когда заглавные включены. */
+.caps-tip {
+  color: var(--primary-ink);
+  font-weight: 700;
+  text-align: center;
+  margin: 2px 0;
+}
+.key.shift {
+  background: var(--primary-soft);
+  color: var(--primary-ink);
+  font-size: 19px;
+}
+.key.shift.on {
+  background: var(--primary);
+  color: var(--on-primary);
+  box-shadow: 0 3px 0 var(--primary-depth);
+}
 
 /* ── Обратная связь ──────────────────────────────────────────────────────── */
 
