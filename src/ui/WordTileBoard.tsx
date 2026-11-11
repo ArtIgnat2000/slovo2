@@ -12,7 +12,7 @@
  * лунке возвращает букву в лоток — поэтому клавиатурой и скринридером всё
  * работает точно так же.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { Word } from '../types';
 import {
   dropSlotAt,
@@ -42,8 +42,13 @@ export interface WordTileBoardProps {
   onAttempt?: (quality: number) => void;
   /** Урок: полный балл (5) или 3 с подсказкой — как в старой сборке. */
   onSolve?: (quality: number) => void;
-  /** unscored: позвать после успешной сборки (экран решает, что дальше). */
-  onSolved?: () => void;
+  /**
+   * unscored: в баннере победы появится кнопка «Дальше» — в свободной игре
+   * ребёнок собирает слово за словом, не возвращаясь глазами к ленте чипов.
+   * Сам баннер экран не закрывает: сначала похвала, потом уже переход.
+   */
+  onNext?: () => void;
+  nextLabel?: string;
 }
 
 interface PendingDrag {
@@ -61,13 +66,42 @@ interface DragState extends PendingDrag {
 
 const DRAG_START = 7;
 
+/**
+ * Сколько плиток ставить в ряд.
+ *
+ * Раньше лунки и лоток были flex-wrap с фиксированными 46–58 px: слово из 10
+ * букв занимало две строки «как получится», а из 14–17 — три, и доска уезжала
+ * за экран. Теперь число колонок считается от длины слова, а размер плитки
+ * выводит CSS из ширины экрана: плитка никогда не становится меньше ~40 px
+ * (палец ребёнка) и никогда не вылезает за карточку.
+ */
+export function boardColumns(letters: number): number {
+  const n = Math.max(1, Math.floor(letters));
+  if (n <= 7) return n;
+  let best = 7;
+  let bestScore = Number.POSITIVE_INFINITY;
+  // Перебираем 4–7 колонок: меньше строк — лучше; при равных строках лучше
+  // та раскладка, где последний ряд полнее (нет «сирот» из одной буквы).
+  for (let cols = 4; cols <= 7; cols++) {
+    const rows = Math.ceil(n / cols);
+    const inLastRow = n - (rows - 1) * cols;
+    const score = rows * 10 + (cols - inLastRow);
+    if (score < bestScore) {
+      bestScore = score;
+      best = cols;
+    }
+  }
+  return best;
+}
+
 export function WordTileBoard({
   word,
   trayLetters,
   unscored = false,
   onAttempt,
   onSolve,
-  onSolved,
+  onNext,
+  nextLabel,
 }: WordTileBoardProps) {
   const later = useRef<number[]>([]);
   const schedule = (fn: () => void, ms: number) => {
@@ -113,7 +147,8 @@ export function WordTileBoard({
       sfx.correct();
       haptic.correct();
       if (unscored) {
-        onSolved?.();
+        // Баннер победы остаётся на экране: дальше ребёнок идёт сам —
+        // кнопкой «Другое слово» или тапом по чипу в ленте.
       } else {
         const q = usedHint ? 3 : 5;
         onAttempt?.(q);
@@ -223,8 +258,18 @@ export function WordTileBoard({
   const slotAria = (t: BoardTile | null, i: number) =>
     t ? `Буква ${t.ch} на позиции ${i + 1} из ${word.text.length}. Тап — убрать` : `Пустая лунка ${i + 1} из ${word.text.length}`;
 
+  // Лоток рисуем по «местам» исходной выдачи: убранная буква оставляет за
+  // собой пустое место, поэтому оставшиеся плитки не перескакивают с места на
+  // место после каждого тапа.
+  const traySlots: Array<BoardTile | null> = Array.from({ length: word.text.length }, (_, id) =>
+    state.tray.find((t) => t.id === id) ?? null,
+  );
+  const boardStyle = {
+    '--slot-cols': boardColumns(word.text.length),
+  } as CSSProperties;
+
   return (
-    <div className="word-board">
+    <div className="word-board" style={boardStyle}>
       <div
         className={`slots tileboard-slots ${bad ? 'shake' : ''}`}
         aria-label="Слово из плиток"
@@ -268,23 +313,29 @@ export function WordTileBoard({
         className={`letters tileboard-tray ${drag?.overTray ? 'tray-hot' : ''}`}
         aria-label="Буквы"
       >
-        {state.tray.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            className={`letter tileboard-tile`}
-            disabled={solved || bad}
-            aria-label={`Буква ${t.ch}. Тап — поставить в слово`}
-            onPointerDown={(e) => beginDrag(e, t, 'tray')}
-            onPointerMove={movePointer}
-            onPointerUp={endPointer}
-            onPointerCancel={endPointer}
-            onClick={() => tapTray(t)}
-          >
-            {t.ch}
-          </button>
-        ))}
-        {state.tray.length === 0 && !solved && <p className="tiny muted">Буквы разобраны</p>}
+        {traySlots.map((t, i) =>
+          t ? (
+            <button
+              key={t.id}
+              type="button"
+              className={`letter tileboard-tile`}
+              disabled={solved || bad}
+              aria-label={`Буква ${t.ch}. Тап — поставить в слово`}
+              onPointerDown={(e) => beginDrag(e, t, 'tray')}
+              onPointerMove={movePointer}
+              onPointerUp={endPointer}
+              onPointerCancel={endPointer}
+              onClick={() => tapTray(t)}
+            >
+              {t.ch}
+            </button>
+          ) : (
+            <span key={`empty-${i}`} className="tileboard-gap" aria-hidden="true" />
+          ),
+        )}
+        {state.tray.length === 0 && !solved && (
+          <p className="tiny muted tileboard-tray-note">Буквы разобраны</p>
+        )}
       </div>
 
       {/* Призрак буквы под пальцем/указателем во время переноса */}
@@ -308,9 +359,16 @@ export function WordTileBoard({
           <div className="tileboard-banner-title">✨ Слово собрано!</div>
           <WordLetters word={word} markDanger small stress />
           <div className="tiny muted">Оранжевым — та буква, которая тут хитрит</div>
-          <button className="btn primary" type="button" onClick={reshuffle}>
-            Ещё раз
-          </button>
+          <div className="tileboard-banner-actions">
+            {onNext && (
+              <button className="btn primary" type="button" onClick={onNext}>
+                {nextLabel ?? 'Дальше →'}
+              </button>
+            )}
+            <button className="btn ghost" type="button" onClick={reshuffle}>
+              🔄 Ещё раз
+            </button>
+          </div>
         </div>
       )}
     </div>

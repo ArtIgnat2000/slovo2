@@ -5,6 +5,14 @@
  *  • нерешающие игры не пишут в SRS и не дают XP — чистое повторение;
  *  • ничего не сгорает: «Собери слово», «Филворд» и «Кроссворд дня» доступны
  *    сколь угодно часто.
+ *
+ * Раскладка (0.96.0, по замечанию «не помещается и неудобно»):
+ *  • игры больше не лежат друг под другом «простынёй» — на экране всегда
+ *    ровно одна игра, остальные переключаются сегментом сверху;
+ *  • экран держит высоту окна: шапка и переключатель фиксированы, игровое
+ *    поле занимает остаток и только оно прокручивается при нехватке места;
+ *  • слово для сборки выбирается горизонтальной лентой (одна строка, палец
+ *    ведёт вбок) — раньше 60 чипов раздували карточку на пол-экрана.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { availableClass, WORDS_BY_GRADE } from '../../content/words';
@@ -14,6 +22,14 @@ import { WordClue } from '../WordView';
 import { WordTileBoard } from '../WordTileBoard';
 import { WordSearchGame } from '../WordSearchGame';
 import { CrosswordGame } from '../CrosswordGame';
+
+type GameId = 'build' | 'search' | 'crossword';
+
+const GAMES: Array<{ id: GameId; emoji: string; title: string; oneline: string }> = [
+  { id: 'build', emoji: '🧵', title: 'Собери слово', oneline: 'Выложи слово из карточек.' },
+  { id: 'search', emoji: '🔎', title: 'Филворд', oneline: 'Найди слова в буквенном поле.' },
+  { id: 'crossword', emoji: '✏️', title: 'Кроссворд', oneline: 'Собери слова в решётке.' },
+];
 
 export function GamesScreen({ onGoLessons }: { onGoLessons: () => void }) {
   const profile = useActiveProfile();
@@ -27,71 +43,107 @@ export function GamesScreen({ onGoLessons }: { onGoLessons: () => void }) {
     return (mastered.length >= 3 ? mastered : met).slice(0, 60);
   }, [grade, profile]);
   const [wordId, setWordId] = useState<string | null>(null);
+  const [game, setGame] = useState<GameId>('build');
+
   useEffect(() => {
     setWordId((cur) => (cur && practice.some((w) => w.id === cur) ? cur : practice[0]?.id ?? null));
   }, [practice]);
+
   const word = practice.find((w) => w.id === wordId) ?? practice[0] ?? null;
+
+  /** Следующее слово в ленте — чтобы после сборки не искать чип заново. */
+  const nextWord = () => {
+    if (practice.length < 2) return;
+    const at = practice.findIndex((w) => w.id === word?.id);
+    setWordId(practice[(at + 1) % practice.length].id);
+  };
+
+  const current = GAMES.find((g) => g.id === game) ?? GAMES[0];
 
   return (
     <div className="screen games-screen">
-      <h2 className="mb">🧩 Игры</h2>
-      <p className="tiny muted mb">Играй сколько хочешь: ничего не сгорает и ничего не считается.</p>
+      <header className="games-head">
+        <h2 className="games-title">🧩 Игры</h2>
+        <p className="games-sub">Играй сколько хочешь: ничего не сгорает и ничего не считается.</p>
+      </header>
 
-      <div className="games-duo">
-      <section className="games-section" aria-label="Свободная практика">
-        <h3 className="games-section-title">Свободная практика</h3>
-
-        {practice.length === 0 ? (
-          <div className="games-empty">
-            <div className="games-empty-emoji" aria-hidden="true">🧶</div>
-            <p className="games-empty-title">Пока нечего собирать</p>
-            <p className="tiny muted">Сначала пройди пару уроков — и здесь появятся слова, которые ты уже встречал.</p>
-            <button type="button" className="btn primary wide" onClick={onGoLessons}>
-              К урокам →
-            </button>
-          </div>
-        ) : (
-          <div className="game-card game-practice">
-            <div className="game-practice-head">
-              <div className="game-practice-emoji" aria-hidden="true">🧵</div>
-              <div>
-                <h3 className="game-practice-title">Собери слово</h3>
-                <p className="tiny muted">Выложи слово из карточек.</p>
-              </div>
-            </div>
-            {word && (
-              <>
-                <WordClue word={word} compact />
-                <WordTileBoard key={word.id} word={word} unscored />
-                <div className="game-picks" role="group" aria-label="Выбери слово">
-                  {practice.map((w) => (
-                    <button
-                      key={w.id}
-                      type="button"
-                      className={`game-pick${w.id === word.id ? ' on' : ''}`}
-                      aria-pressed={w.id === word.id}
-                      onClick={() => setWordId(w.id)}
-                    >
-                      {w.text}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        )}
-      </section>
-
-      <section className="games-section" aria-label="Филворд">
-        <h3 className="games-section-title">Филворд</h3>
-        <WordSearchGame pool={practice} grade={grade} onGoLessons={onGoLessons} />
-      </section>
+      <div className="games-switch" role="tablist" aria-label="Выбери игру">
+        {GAMES.map((g) => (
+          <button
+            key={g.id}
+            type="button"
+            role="tab"
+            id={`games-tab-${g.id}`}
+            aria-selected={game === g.id}
+            aria-controls="games-stage"
+            className={`games-switch-btn${game === g.id ? ' on' : ''}`}
+            onClick={() => setGame(g.id)}
+          >
+            <span className="games-switch-emoji" aria-hidden="true">
+              {g.emoji}
+            </span>
+            <span className="games-switch-label">{g.title}</span>
+          </button>
+        ))}
       </div>
 
-      <section className="games-section" aria-label="Кроссворд дня">
-        <h3 className="games-section-title">Кроссворд дня</h3>
-        <CrosswordGame pool={practice} onGoLessons={onGoLessons} />
-      </section>
+      <p className="games-oneline tiny muted">{current.oneline}</p>
+
+      <div
+        className="games-stage"
+        id="games-stage"
+        role="tabpanel"
+        aria-labelledby={`games-tab-${current.id}`}
+      >
+        {game === 'build' &&
+          (practice.length === 0 ? (
+            <div className="games-empty">
+              <div className="games-empty-emoji" aria-hidden="true">🧶</div>
+              <p className="games-empty-title">Пока нечего собирать</p>
+              <p className="tiny muted">Сначала пройди пару уроков — и здесь появятся слова, которые ты уже встречал.</p>
+              <button type="button" className="btn primary wide" onClick={onGoLessons}>
+                К урокам →
+              </button>
+            </div>
+          ) : (
+            <div className="game-card game-practice">
+              {/* Лента слов: одна строка с горизонтальной прокруткой — не
+                  съедает высоту у игрового поля. */}
+              <div className="game-picks" role="group" aria-label="Выбери слово">
+                {practice.map((w) => (
+                  <button
+                    key={w.id}
+                    type="button"
+                    className={`game-pick${w.id === word?.id ? ' on' : ''}`}
+                    aria-pressed={w.id === word?.id}
+                    onClick={() => setWordId(w.id)}
+                  >
+                    {w.text}
+                  </button>
+                ))}
+              </div>
+
+              {word && (
+                <div className="game-board">
+                  <div className="game-clue">
+                    <WordClue word={word} compact />
+                  </div>
+                  <WordTileBoard
+                    key={word.id}
+                    word={word}
+                    unscored
+                    onNext={nextWord}
+                    nextLabel="Другое слово →"
+                  />
+                </div>
+              )}
+            </div>
+          ))}
+
+        {game === 'search' && <WordSearchGame pool={practice} grade={grade} onGoLessons={onGoLessons} />}
+
+        {game === 'crossword' && <CrosswordGame pool={practice} onGoLessons={onGoLessons} />}
+      </div>
     </div>
   );
 }

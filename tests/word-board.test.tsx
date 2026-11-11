@@ -3,7 +3,7 @@
 import './setup';
 import { createElement } from 'react';
 import { createRoot } from 'react-dom/client';
-import { WordTileBoard } from '../src/ui/WordTileBoard';
+import { WordTileBoard, boardColumns } from '../src/ui/WordTileBoard';
 import {
   dropSlotAt,
   firstEmpty,
@@ -17,7 +17,7 @@ import {
   type BoardState,
 } from '../src/engine/word-board';
 import { WORDS } from '../src/content/words';
-import { check, sleep } from './ui-helpers';
+import { check, click, sleep } from './ui-helpers';
 
 const frozen = () => WORDS.find((w) => w.text === 'мороз')!;
 
@@ -106,4 +106,45 @@ export async function runWordBoardChecks(): Promise<void> {
   check('игра: все лунки заполнены нужными буквами', filled === word.text.length, `заполнено: ${filled}`);
   root.unmount();
   box.remove();
+
+  // ── 3. Раскладка доски на телефоне (0.96.0) ─────────────────────────────
+  // Слово из 10–17 букв раньше уезжало за экран: плитки были фиксированной
+  // ширины, а перенос строк «как получится». Теперь колонок ровно столько,
+  // сколько нужно, и каждая строка полная.
+  check('доска: короткое слово — все буквы в одну строку', boardColumns(5) === 5, String(boardColumns(5)));
+  check('доска: 7 букв — ещё одна строка', boardColumns(7) === 7, String(boardColumns(7)));
+  const ten = boardColumns(10);
+  check('доска: 10 букв — две полные строки по 5', ten === 5 && 10 % ten === 0, String(ten));
+  for (let n = 8; n <= 17; n++) {
+    const cols = boardColumns(n);
+    const rows = Math.ceil(n / cols);
+    const inLast = n - (rows - 1) * cols;
+    // «Сирот» быть не должно: в последнем ряду минимум 4 плитки, а рядов —
+    // не больше, чем нужно самой компактной раскладке.
+    const minRows = Math.ceil(n / 7);
+    const full = inLast >= 4;
+    check(`доска: ${n} букв — ${cols} колонок, ряд без «сирот»`,
+      cols >= 4 && cols <= 7 && full && rows === minRows, `${cols}×${rows}, в ряду ${inLast}`);
+  }
+  check('доска: колонки не больше 7 (плитка остаётся пальцевой)', boardColumns(40) <= 7, String(boardColumns(40)));
+
+  // Живая доска длинного слова: убранная буква оставляет пустое место, а не
+  // сдвигает лоток — иначе ребёнок «теряет» плитки из-под пальца.
+  const longWord = WORDS.find((w) => w.text.length === 10 && !w.text.includes(' '))!;
+  const box2 = document.createElement('div');
+  document.body.appendChild(box2);
+  const root2 = createRoot(box2);
+  root2.render(createElement(WordTileBoard, { word: longWord, unscored: true }));
+  await sleep(60);
+  const before = box2.querySelectorAll('.tileboard-tile').length;
+  const style = (box2.querySelector('.word-board') as HTMLElement | null)?.getAttribute('style') ?? '';
+  check('доска: длинное слово задаёт число колонок доске', style.includes('--slot-cols'), style);
+  const firstTile = box2.querySelector('.tileboard-tile') as HTMLButtonElement | null;
+  click(firstTile);
+  await sleep(30);
+  check('доска: убранная из лотка плитка оставляет место (не сдвигает остальные)',
+    box2.querySelectorAll('.tileboard-gap').length === 1,
+    `дырок: ${box2.querySelectorAll('.tileboard-gap').length}, плиток было ${before}`);
+  root2.unmount();
+  box2.remove();
 }

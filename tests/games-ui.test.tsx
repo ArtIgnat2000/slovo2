@@ -12,6 +12,21 @@ async function goTab(name: string) {
   await sleep(60);
 }
 
+/**
+ * С 0.96.0 на экране «Игры» ровно одна игра за раз: её выбирают сегментом
+ * (.games-switch-btn). Тесты переключают игру так же, как ребёнок — тапом.
+ */
+async function goGame(title: string) {
+  const seg = Array.from(document.querySelectorAll('.games-switch-btn')).find((b) =>
+    (b.textContent ?? '').includes(title),
+  ) as HTMLButtonElement | undefined;
+  if (seg) {
+    click(seg);
+    await sleep(60);
+  }
+  return !!seg;
+}
+
 export async function runGamesUiChecks() {
   console.log('\n── Игры: вкладка и свободная практика ──');
   useApp.getState().createProfile('Тест игр', '🧩');
@@ -43,6 +58,20 @@ export async function runGamesUiChecks() {
     `плиток: ${document.querySelectorAll('.tileboard-tile').length}`);
   check('игры: плитки несут буквы слова', !!document.querySelector('.word-board'), '');
 
+  // ── Раскладка «один экран — одна игра» (0.96.0) ─────────────────────────
+  check('игры: сверху сегмент выбора игры', document.querySelectorAll('.games-switch-btn').length === 3,
+    `кнопок: ${document.querySelectorAll('.games-switch-btn').length}`);
+  check('игры: открыта ровно одна игра («Собери слово»)', !!document.querySelector('.game-practice'), '');
+  check('игры: поле игры — прокручиваемая сцена остатка экрана', !!document.querySelector('.games-stage'), '');
+  check('игры: чипы слов — одна лента вбок, без «стены» на пол-экрана',
+    document.querySelectorAll('.game-picks .game-pick').length === learned.length,
+    `чипов: ${document.querySelectorAll('.game-pick').length}`);
+  check('игры: экран помечает выбранную игру для скринридера',
+    document.querySelector('.games-switch-btn[aria-selected="true"]') !== null, '');
+  const cols = document.querySelector('.word-board')?.getAttribute('style') ?? '';
+  check('игры: число колонок доски считается от длины слова (--slot-cols)', cols.includes('--slot-cols'),
+    cols);
+
   // «Скоро»-карточек больше нет: все три механики P0–P1 запущены.
   check('игры: «скоро»-карточки больше не нужны — все механики в игре', !document.querySelector('.game-soon'), '');
 
@@ -59,6 +88,18 @@ export async function runGamesUiChecks() {
   await sleep(120);
   check('игры: после сборки — баннер «Слово собрано!»', has('Слово собрано'), document.body.textContent?.slice(0, 260) ?? '');
   check('игры: сборка не записала XP (счёта нет по определению)', !!document.querySelector('.tileboard-banner'), '');
+
+  // «Другое слово» в баннере победы: свободная игра ведёт слово за словом,
+  // не заставляя искать чип в ленте (0.96.0).
+  const nextBtn = btnText('Другое слово');
+  if (nextBtn) {
+    const wasWord = (document.querySelector('.game-pick.on')?.textContent ?? '').trim();
+    click(nextBtn);
+    await sleep(80);
+    check('игры: «Другое слово» ведёт к следующему слову',
+      (document.querySelector('.game-pick.on')?.textContent ?? '').trim() !== wasWord,
+      `было «${wasWord}»`);
+  }
 
   // Тап по другому чипу — доска переключается на то слово.
   const other = Array.from(document.querySelectorAll('.game-pick')).find((b) => !(b as HTMLButtonElement).className.includes('on')) as HTMLButtonElement | undefined;
@@ -79,6 +120,7 @@ export async function runWordSearchUiChecks() {
   console.log('\n── Филворд: буквенное поле ──');
   await goTab('Игры');
   await sleep(60);
+  check('филворд: игра выбирается сегментом', await goGame('Филворд'), '');
 
   const cells = () => Array.from(document.querySelectorAll('.ws-cell')) as HTMLButtonElement[];
   check('филворд: раздел и поле есть на экране', !!document.querySelector('.ws-grid'), '');
@@ -178,6 +220,7 @@ export async function runCrosswordUiChecks() {
   console.log('\n── Кроссворд дня: решётка и пул ──');
   await goTab('Игры');
   await sleep(60);
+  check('кроссворд: игра выбирается сегментом', await goGame('Кроссворд'), '');
 
   const cells = () => Array.from(document.querySelectorAll('.cw-cell')) as HTMLButtonElement[];
   const tiles = () => Array.from(document.querySelectorAll('.cw-tile')) as HTMLButtonElement[];
