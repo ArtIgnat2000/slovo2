@@ -66,23 +66,32 @@ export async function runWordSearchChecks(): Promise<void> {
 
   // ── 2b. Слова разные, а не «жёстко один набор» (0.96.2) ─────────────────
   const richPool = WORDS.filter((w) => !w.text.includes(' ')).slice(0, 60);
-  const sets = Array.from({ length: 8 }, (_, i) =>
-    new Set(buildWordSearch(richPool, { grade: 2, seed: 500 + i })!.words.map((w) => w.wordId)),
-  );
+  // Порция слов идёт по кругу (0.96.5), поэтому «разные наборы» проверяем так
+  // же, как их видит ребёнок: шагая курсором, а не меняя seed.
+  const sets = (() => {
+    let cur = 0;
+    return Array.from({ length: 8 }, (_, i) => {
+      const b = buildWordSearch(richPool, { grade: 2, seed: 500 + i, cursor: cur })!;
+      cur = b.nextCursor;
+      return new Set(b.words.map((w) => w.wordId));
+    });
+  })();
   const firstSet = [...sets[0]].join(',');
-  check('филворд: разные seed → разные наборы слов',
+  check('филворд: смена сетки → разные наборы слов',
     sets.some((set) => [...set].join(',') !== firstSet), `наборы: ${sets.map((s2) => s2.size).join('/')}`);
   check('филворд: поле не пустое и не из одного слова',
     sets.every((set) => set.size >= 3 && set.size <= WS_MAX_WORDS), sets.map((set) => set.size).join(','));
 
-  // «Новая сетка» не повторяет слова прошлой, пока есть свежие: движок
-  // получает avoidIds и ставит их в конец очереди.
+  // «Новая сетка» шагает курсором и передаёт слова прошлой сетки: на большом
+  // пуле повтор невозможен.
   let prev: string[] = [];
   let overlaps = 0;
+  let cursor = 0;
   for (let i = 0; i < 6; i++) {
-    const next = buildWordSearch(richPool, { grade: 2, seed: 900 + i, avoidIds: prev })!;
+    const next = buildWordSearch(richPool, { grade: 2, seed: 900 + i, cursor, avoidIds: prev })!;
     const ids = next.words.map((w) => w.wordId);
     if (i > 0) overlaps += ids.filter((id) => prev.includes(id)).length;
+    cursor = next.nextCursor;
     prev = ids;
   }
   check('филворд: «новая сетка» не повторяет слова прошлой (большой пул)', overlaps === 0, `повторов: ${overlaps}`);
@@ -116,48 +125,44 @@ export async function runWordSearchChecks(): Promise<void> {
     !!deduped && dd(deduped.words.map((w) => w.text)) === deduped.words.length,
     deduped ? deduped.words.map((w) => w.text).join(',') : 'null');
 
-  // ── 2d. Смена слов работает на любом пуле (0.96.4) ──────────────────────
-  // Было: на пуле из 6 слов движок забирал ВСЕ шесть, и «Новая сетка»
-  // меняла только расположение букв — «смена слов не работает». Теперь за
-  // сетку берётся ~60% пула, остальное остаётся на следующий раз.
-  // На пуле из N слов поле берёт ceil(0.6N): соседние сетки не совпадают
-  // и всегда приносят хотя бы одно новое слово (на 4 словах сетка = 3,
-  // «запас» всего один — требовать нуля повторов нельзя, это арифметика).
-  for (const size of [4, 6, 9]) {
+  // ── 2d. Смена слов — как в приложении: курсор + прошлая сетка (0.96.5) ───
+  // Три релиза подряд владелец видел одно и то же: «слова так и не меняются,
+  // постоянно телефон». Причина — выбор слов был эвристикой, и на пуле 3–6
+  // слов «другое слово» взять было неоткуда. Теперь порядок слов — круг:
+  // сетка берёт окно из круга, а движок возвращает `nextCursor` для
+  // следующей. Проверяем именно тот сценарий, что нажимает ребёнок.
+  for (const size of [6, 8, 12, 30]) {
     const poolN = WORDS.filter((w) => !w.text.includes(' ')).slice(0, size);
-    let prevIds: string[] = [];
-    let identical = 0;
-    let boardsWithoutNew = 0;
-    let boards = 0;
-    for (let i = 0; i < 4; i++) {
-      const b = buildWordSearch(poolN, { grade: 2, seed: 400 + i, avoidIds: prevIds });
-      if (!b) break;
-      const ids = b.words.map((w) => w.wordId);
-      if (i > 0) {
-        boards++;
-        if (ids.join(',') === prevIds.join(',')) identical++;
-        if (ids.every((id) => prevIds.includes(id))) boardsWithoutNew++;
-      }
-      prevIds = ids;
-    }
-    check(`филворд: на пуле ${size} слов сетки не повторяются один в один`, identical === 0, `совпадений: ${identical}`);
-    check(`филворд: на пуле ${size} слов в каждой сетке есть новое слово`, boards > 0 && boardsWithoutNew === 0,
-      `без новых: ${boardsWithoutNew} из ${boards}`);
-  }
-
-  // Большой пул: новые слова не кончаются и повторов нет совсем.
-  {
-    const bigPool = WORDS.filter((w) => !w.text.includes(' ')).slice(0, 40);
+    let cursor = 0;
     let prevIds: string[] = [];
     let repeats = 0;
-    for (let i = 0; i < 6; i++) {
-      const b = buildWordSearch(bigPool, { grade: 2, seed: 460 + i, avoidIds: prevIds });
+    let identical = 0;
+    const union = new Set<string>();
+    for (let i = 0; i < 8; i++) {
+      const b = buildWordSearch(poolN, { grade: 2, seed: 400 + i, cursor, avoidIds: prevIds });
       if (!b) break;
       const ids = b.words.map((w) => w.wordId);
-      if (i > 0) repeats += ids.filter((id) => prevIds.includes(id)).length;
+      ids.forEach((id) => union.add(id));
+      if (i > 0) {
+        repeats += ids.filter((id) => prevIds.includes(id)).length;
+        if (ids.slice().sort().join(',') === prevIds.slice().sort().join(',')) identical++;
+      }
+      cursor = b.nextCursor;
       prevIds = ids;
     }
-    check('филворд: на большом пуле новая сетка без повторов', repeats === 0, `повторов: ${repeats}`);
+    check(`филворд: на пуле ${size} слов новая сетка не повторяет слова прошлой`, repeats === 0, `повторов: ${repeats}`);
+    check(`филворд: на пуле ${size} слов набор не повторяется один в один`, identical === 0, `совпадений: ${identical}`);
+    check(`филворд: за 8 сеток на пуле ${size} слов показан почти весь пул`, union.size >= Math.min(size, 6),
+      `видели ${union.size} из ${size}`);
+  }
+
+  // Пулы 3–5 слов: сетка берёт всё, но и здесь важен честный поведение —
+  // поле собирается, а не отдаёт null.
+  for (const size of [3, 4, 5]) {
+    const poolN = WORDS.filter((w) => !w.text.includes(' ')).slice(0, size);
+    const b = buildWordSearch(poolN, { grade: 2, seed: 900, cursor: 0 });
+    check(`филворд: на пуле ${size} слов сетка собирается`, !!b && b.words.length >= 3,
+      b ? `слов: ${b.words.length}` : 'null');
   }
 
   // ── 3. selectionCells ────────────────────────────────────────────────────

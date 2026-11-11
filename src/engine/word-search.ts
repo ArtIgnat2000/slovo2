@@ -39,6 +39,14 @@ export interface WordSearchBoard {
   /** size × size, русские строчные буквы. */
   cells: string[][];
   words: WsPlacedWord[];
+  /**
+   * Курсор для СЛЕДУЮЩЕЙ сетки (0.96.5). Считается здесь, а не на экране:
+   * курсор ходит по кругу той выборки, из которой движок реально берёт слова
+   * (длинные «телепередача» и «библиотекарь» отсеиваются по длине), а экран
+   * знал бы только длину исходного пула — шаги расходились бы и слова
+   * повторялись.
+   */
+  nextCursor: number;
 }
 
 /** Минимум слов, ради которых игра вообще имеет смысл. */
@@ -96,15 +104,27 @@ function lettersOf(text: string): string[] {
 /** Сколько слов хотим видеть на поле: меньше — поле «пустое», больше — каша. */
 const WORDS_TARGET = 5;
 /**
- * Доля пула, которую поле забирает за один раз. Остальное остаётся на
- * следующую сетку: иначе движок забирает все выученные слова и «Новая сетка»
- * меняет только расположение букв (замечание 2026-11-11).
+ * Доля пула, которую поле забирает за один раз (0.96.5).
+ *
+ * Ровно половина — не «на глаз»: следующая сетка начинается ровно с того места
+ * круга, где кончилась прошлая, поэтому при половине пула две соседние сетки
+ * вообще не пересекаются словами, а слово возвращается лишь после полного
+ * обхода. Раньше (0.96.4) доска брала 60 % и «хвост» повторялся через раз:
+ * владелец видел «постоянно телефон» (замечание 2026-11-11).
  */
-const BOARD_SHARE = 0.6;
+const BOARD_SHARE = 0.5;
+
+import { pickBoardWords } from './pool-cursor';
 
 export interface BuildWordSearchOptions {
   grade: number;
   seed: number;
+  /**
+   * С какого места круга начинать выбор слов (0.96.5). Экран сдвигает курсор
+   * на число показанных слов, поэтому каждая новая сетка начинается с новых
+   * слов, а весь пул проходится по кругу (см. `engine/pool-cursor.ts`).
+   */
+  cursor?: number;
   /**
    * Слова прошлой сетки: в новом поле они берутся в последнюю очередь.
    * «Новая сетка» должна менять не только расположение букв, но и слова
@@ -173,90 +193,49 @@ export function buildWordSearch(pool: ReadonlyArray<{
    * забирал ВСЕ — и «Новая сетка» не могла показать другие слова, ей просто
    * нечего было менять (замечание 2026-11-11: «так и не работает смена
    * слов»). Теперь смена работает на любом пуле:
-   *   пул 3–5 слов → все (иначе сетки не собрать);
-   *   пул 6–8       → 4 (остальные придут в следующий раз);
-   *   пул 9+        → 4–5; при этом хотя бы ATTEMPTS_SLACK слов остаётся
-   *                   «в запасе», чтобы в следующей сетке были именно новые.
+   *   пул 3–7 слов → 3 (иначе сетки не собрать);
+   *   пул 8–9      → 4;
+   *   пул 10+      → 5 (предел поля).
+   * Две соседние сетки при этом не пересекаются словами: курсор сдвигается
+   * ровно на число показанных слов.
    */
   const placedLimit = Math.min(
     WORDS_MAX,
     WORDS_TARGET,
-    Math.max(WS_MIN_WORDS, Math.ceil(placeable.length * BOARD_SHARE)),
+    Math.max(WS_MIN_WORDS, Math.floor(placeable.length * BOARD_SHARE)),
   );
 
-  // Пробуем несколько составов слов: если первая порция упёрлась в границы
-  // поля и не легла, берём следующую — поле всё равно должно получиться,
-  // иначе сетка окажется пустым экраном.
-  for (const window of wordWindows(placeable, rng, opts.avoidIds)) {
-    for (const word of window) {
-      if (placed.length >= placedLimit) break;
-      // Страховка от повторов: одно слово — одна позиция, что бы ни пришло
-      // в списке (см. uniqueById выше).
-      if (placedIds.has(word.id)) continue;
-      const letters = lettersOf(word.text);
-      const placedWord = tryPlace(grid, word, letters, directions, rng);
-      if (placedWord) {
-        placed.push(placedWord);
-        placedIds.add(word.id);
-      }
+  // Слова идут по кругу с курсором: порция — первые `placedLimit` слов.
+  // Курсор следующей сетки сдвигается ровно на размер порции, поэтому
+  // соседние сетки начинаются с новых слов (замечание 2026-11-11).
+  const pickedResult = pickBoardWords(placeable, placedLimit, {
+    cursor: opts.cursor,
+    avoidIds: opts.avoidIds,
+    rng,
+  });
+  const picked = pickedResult.chosen;
+
+  for (const word of picked) {
+    if (placed.length >= placedLimit) break;
+    // Страховка от повторов: одно слово — одна позиция, что бы ни пришло
+    // в списке (см. uniqueById выше).
+    if (placedIds.has(word.id)) continue;
+    const letters = lettersOf(word.text);
+    const placedWord = tryPlace(grid, word, letters, directions, rng);
+    if (placedWord) {
+      placed.push(placedWord);
+      placedIds.add(word.id);
     }
-    if (placed.length >= Math.min(placedLimit, WORDS_TARGET)) break;
   }
 
   if (placed.length < WS_MIN_WORDS) return null;
 
   const cells = grid.map((row) => row.map((cell) => cell ?? pickFillerLetter(rng)));
-  return { size, cells, words: placed };
-}
-
-/**
- * Составы слов для поля — от самого «богатого» к самому простому.
- *
- * Было: слова брались строго по длине (`sort` по убыванию), поэтому каждый
- * заход на «Филворд» показывал один и тот же набор — самые длинные слова пула
- * (замечание владельца 2026-11-11: «чтобы были разные слова, а не жёстко один
- * набор»).
- *
- * Стало: порядок слов случайный, а «якорь» (первое, самое длинное слово)
- * каждый раз новый. Слова прошлой сетки (`avoidIds`) уходят в самый конец —
- * «Новая сетка» меняет и слова, а не только расположение букв. Порядок здесь
- * не косметика: `tryPlace` идёт по списку сверху вниз и прячет то, что легло,
- * поэтому список = приоритет.
- *
- *  • первое окно — якорь + свежие слова вперемешку (разные длины: филворд не
- *    должен состоять из одних 8-буквенных «извините» и «обезьяна»);
- *  • второе — весь пул, включая прошлую сетку: если пул крошечный, лучше
- *    повторить слово, чем показать пустой экран.
- */
-function wordWindows(
-  placeable: ReadonlyArray<{ id: string; text: string; danger?: number[] }>,
-  rng: () => number,
-  avoidIds?: ReadonlyArray<string>,
-): Array<Array<{ id: string; text: string; danger?: number[] }>> {
-  type Candidate = { id: string; text: string; danger?: number[] };
-  const avoid = new Set(avoidIds ?? []);
-  const len = (w: { text: string }) => lettersOf(w.text).length;
-  const shuffled = <T,>(list: readonly T[]): T[] => {
-    const out = [...list];
-    for (let i = out.length - 1; i > 0; i--) {
-      const j = Math.floor(rng() * (i + 1));
-      [out[i], out[j]] = [out[j], out[i]];
-    }
-    return out;
-  };
-
-  const fresh: Candidate[] = shuffled(placeable.filter((w) => !avoid.has(w.id)));
-  const old: Candidate[] = shuffled(placeable.filter((w) => avoid.has(w.id)));
-  // Якорь — случайное из самых длинных свежих слов: его заметнее всего искать,
-  // а класть в пустое поле проще всего.
-  const longest = Math.max(0, ...fresh.map(len));
-  const anchorPool = fresh.filter((w) => len(w) === longest);
-  const anchor = anchorPool.length > 0 ? anchorPool[Math.floor(rng() * anchorPool.length)] : fresh[0] ?? null;
-  const rest = shuffled(fresh.filter((w) => w.id !== anchor?.id));
-
-  const primary: Candidate[] = [...(anchor ? [anchor] : []), ...rest];
-  const all: Candidate[] = [...new Map([...primary, ...old].map((w) => [w.id, w])).values()];
-  return [primary, all];
+  // Курсор приходит из выбора слов: он ставится за последним выбранным в
+  // круге (по пригодной выборке — ровно по тому кругу, откуда брали слова),
+  // поэтому следующая сетка начинается с новых слов.
+  const nextCursor = pickedResult.cursor;
+  return { size, cells, words: placed, nextCursor };
 }
 
 function tryPlace(
