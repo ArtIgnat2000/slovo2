@@ -112,6 +112,27 @@ export interface BuildWordSearchOptions {
 const WORDS_MAX = WS_MAX_WORDS;
 
 /**
+ * Дубликаты на поле запрещены физически (0.96.3).
+ *
+ * Даже если движок получит список с повторами (ошибка в вызывающем коде —
+ * именно так на телефоне появились три «телефон», три «беседа» и три
+ * «человек» в одной сетке, замечание 2026-11-11), доска не покажет одно слово
+ * дважды: клетки у повтора указывают на тот же wordId, `matchSelection`
+ * засчитывает первое найденное и остальные оставляет «ненайденными», и
+ * ребёнок видит нерешаемый чип.
+ */
+function uniqueById<T extends { id: string }>(list: ReadonlyArray<T>): T[] {
+  const seen = new Set<string>();
+  const out: T[] = [];
+  for (const item of list) {
+    if (seen.has(item.id)) continue;
+    seen.add(item.id);
+    out.push(item);
+  }
+  return out;
+}
+
+/**
  * Собираем доску из переданного пула (это уже «встреченные ребёнком» слова).
  * Возвращает null, если спрятать нечего — UI показывает честную заглушку.
  */
@@ -121,13 +142,9 @@ export function buildWordSearch(pool: ReadonlyArray<{
   danger?: number[];
 }>, opts: BuildWordSearchOptions): WordSearchBoard | null {
   const { grade, seed } = opts;
-  // Свежих слов должно хватать на доску целиком: 4–5 найденных, ещё пара —
-  // «страховка» на случай, если слово не ляжет в поле. Иначе новые слова
-  // закончатся на третьей сетке и поле начнёт повторяться.
-  const freshEnough = opts.avoidIds
-    ? pool.filter((w) => !opts.avoidIds!.includes(w.id) && !w.text.includes(' ')).length >= WORDS_TARGET + 2
-    : false;
-  const candidates = pool.filter((w) => !w.text.includes(' ') && lettersOf(w.text).length >= 2);
+  // Пул без повторов: одно слово — одна позиция в сетке.
+  const uniquePool = uniqueById(pool);
+  const candidates = uniquePool.filter((w) => !w.text.includes(' ') && lettersOf(w.text).length >= 2);
 
   // Базовый размер по классу; если коротких слов не хватает — растим поле.
   let size = grade >= 4 ? 9 : 8;
@@ -141,16 +158,25 @@ export function buildWordSearch(pool: ReadonlyArray<{
   const directions = grade >= 5 ? DIRECTIONS_WITH_DIAGONALS : DIRECTIONS_STRAIGHT;
   const grid: Array<Array<string | null>> = Array.from({ length: size }, () => Array.from({ length: size }, () => null));
   const placed: WsPlacedWord[] = [];
+  const placedIds = new Set<string>();
 
   // Пробуем несколько составов слов: если первая порция упёрлась в границы
   // поля и не легла, берём следующую — поле всё равно должно получиться,
   // иначе сетка окажется пустым экраном.
-  for (const window of wordWindows(placeable, rng, freshEnough ? opts.avoidIds : undefined)) {
+  // `avoidIds` передаём всегда: свежие слова идут первыми, прошлые — в конце
+  // очереди (и попадут на поле, только если свежих не хватило).
+  for (const window of wordWindows(placeable, rng, opts.avoidIds)) {
     for (const word of window) {
       if (placed.length >= WORDS_MAX) break;
+      // Страховка от повторов: одно слово — одна позиция, что бы ни пришло
+      // в списке (см. uniqueById выше).
+      if (placedIds.has(word.id)) continue;
       const letters = lettersOf(word.text);
       const placedWord = tryPlace(grid, word, letters, directions, rng);
-      if (placedWord) placed.push(placedWord);
+      if (placedWord) {
+        placed.push(placedWord);
+        placedIds.add(word.id);
+      }
     }
     if (placed.length >= WORDS_TARGET) break;
   }

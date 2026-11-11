@@ -43,7 +43,15 @@ interface Tile {
 
 export function CrosswordGame({ pool, onGoLessons }: CrosswordGameProps) {
   const [seed, setSeed] = useState(randSeed);
-  const board = useMemo(() => buildCrossword(pool, { seed }), [pool, seed]);
+  /**
+   * Слова прошлой решётки. «Ещё кроссворд» / «Новая сетка» меняет и слова,
+   * а не только их расположение (замечание 2026-11-11).
+   */
+  const [avoidIds, setAvoidIds] = useState<string[]>([]);
+  const board = useMemo(
+    () => buildCrossword(pool, { seed, avoidIds }),
+    [pool, seed, avoidIds],
+  );
 
   const [fills, setFills] = useState<Record<string, string>>({});
   const [activeSlot, setActiveSlot] = useState<number>(1);
@@ -153,7 +161,17 @@ export function CrosswordGame({ pool, onGoLessons }: CrosswordGameProps) {
     activateSlot(here[(idx + 1) % here.length].slot);
   };
 
-  const newGrid = () => setSeed(randSeed());
+  /**
+   * Новая решётка — с другими словами.
+   *
+   * Если пул большой (в «Играх» до 60 слов), слова прошлой сетки уходят в
+   * конец очереди и вернутся позже. Если слов мало, движок сам возьмёт их
+   * снова: пустая решётка хуже повтора.
+   */
+  const newGrid = () => {
+    setAvoidIds(board?.slots.map((s) => s.wordId) ?? []);
+    setSeed(randSeed());
+  };
 
   if (!board) {
     return (

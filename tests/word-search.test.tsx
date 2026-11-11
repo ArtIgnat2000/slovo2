@@ -15,6 +15,9 @@ import { check } from './ui-helpers';
 const poolOf = (n: number) =>
   WORDS.filter((w) => !w.text.includes(' ')).slice(0, n);
 
+/** Сколько уникальных значений в списке (для проверки повторов). */
+const dd = (list: string[]) => new Set(list).size;
+
 const someShortWords = () =>
   WORDS.filter((w) => !w.text.includes(' ') && [...w.text].length <= 8).slice(0, 5);
 
@@ -88,6 +91,30 @@ export async function runWordSearchChecks(): Promise<void> {
   const tiny = WORDS.filter((w) => !w.text.includes(' ')).slice(0, 4);
   const tinyBoard = buildWordSearch(tiny, { grade: 2, seed: 1, avoidIds: tiny.map((w) => w.id) });
   check('филворд: на крошечном пуле доска всё равно собирается', !!tinyBoard, tinyBoard ? tinyBoard.words.length.toString() : 'null');
+
+  // ── 2c. Ошибка «три телефон в одной сетке» (0.96.3) ─────────────────────
+  // На телефоне владельца в одном поле стояли три «телефон», три «беседа» и
+  // три «человек»: слово повторялось, а matchSelection засчитывает первое,
+  // поэтому остальные чипы становились нерешаемыми. Движок обязан не класть
+  // слово дважды ни на каком пуле и ни с какими avoidIds.
+  const six = WORDS.filter((w) => !w.text.includes(' ')).slice(0, 6);
+  let dupes = 0;
+  for (let i = 0; i < 12; i++) {
+    const b = buildWordSearch(six, { grade: 2, seed: 300 + i, avoidIds: six.map((w) => w.id) });
+    if (!b) continue;
+    const ids = b.words.map((w) => w.wordId);
+    dupes += ids.length - new Set(ids).size;
+  }
+  check('филворд: одно слово не появляется в сетке дважды (малый пул)', dupes === 0, `повторов: ${dupes}`);
+
+  const doubled = [...six, ...six];
+  const deduped = buildWordSearch(doubled, { grade: 2, seed: 11 });
+  check('филворд: дубликаты во входном пуле тоже не дают повторов на поле',
+    !!deduped && deduped.words.length === new Set(deduped.words.map((w) => w.wordId)).size,
+    deduped ? deduped.words.map((w) => w.text).join(',') : 'null');
+  check('филворд: чипы на поле уникальны по тексту',
+    !!deduped && dd(deduped.words.map((w) => w.text)) === deduped.words.length,
+    deduped ? deduped.words.map((w) => w.text).join(',') : 'null');
 
   // ── 3. selectionCells ────────────────────────────────────────────────────
   const line = selectionCells({ row: 2, col: 1 }, { row: 2, col: 6 });

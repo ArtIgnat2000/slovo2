@@ -173,6 +173,8 @@ export async function runWordSearchUiChecks() {
 
   const chips = () => Array.from(document.querySelectorAll('.ws-chip')) as HTMLElement[];
   check('филворд: целей не меньше трёх', chips().length >= 3, `чипов: ${chips().length}`);
+  const wsTargets = chips().map((c) => (c as HTMLElement).dataset.wsText ?? '');
+  check('филворд: слова на поле не повторяются', wsTargets.length === new Set(wsTargets).size, wsTargets.join(','));
 
   // Скан сетки: все ровные линии под слова целей (горизонтали/вертикали/диагонали).
   const grid = new Map<string, string>();
@@ -334,10 +336,18 @@ export async function runCrosswordUiChecks() {
   check('кроссворд: все слова зеленые', document.querySelectorAll('.cw-chip-good').length === chips().length,
     `зеленых: ${document.querySelectorAll('.cw-chip-good').length} / ${chips().length}`);
 
-  // «Ещё кроссворд» — новая сетка, чистый счётчик.
+  // «Ещё кроссворд» — новая сетка, чистый счётчик и ДРУГИЕ слова.
+  const cwWords = () =>
+    Array.from(document.querySelectorAll('.cw-chip')).map((c) => (c as HTMLElement).dataset.cwAnswer ?? '').sort().join(',');
+  const cwBefore = cwWords();
   const again = btnText('Ещё кроссворд');
   click(again);
   await sleep(80);
   check('кроссворд: «Ещё кроссворд» очищает счётчик', /^Собрано: 0 из [2-9]\d*$/.test(counter()), counter());
+  check('кроссворд: «Ещё кроссворд» меняет и слова, а не только решётку',
+    cwWords() !== cwBefore, `было: ${cwBefore} / стало: ${cwWords()}`);
+  const cwAnswers = Array.from(document.querySelectorAll('.cw-chip')).map((c) => (c as HTMLElement).dataset.cwAnswer ?? '');
+  check('кроссворд: слова в решётке не повторяются',
+    cwAnswers.length === new Set(cwAnswers).size, cwAnswers.join(','));
   check('кроссворд: все плитки снова доступны', tiles().every((b) => !b.disabled), '');
 }

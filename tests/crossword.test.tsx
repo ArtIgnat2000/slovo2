@@ -61,6 +61,34 @@ export async function runCrosswordChecks(): Promise<void> {
     s.cells.every((c: CrosswordCell) => c.row >= 0 && c.row < a.rows && c.col >= 0 && c.col < a.cols));
   check('кроссворд: все клетки внутри поля', inside, '');
 
+  // ── 2b. Набор слов меняется, повторов нет (0.96.3) ──────────────────────
+  const richPool2 = WORDS_BY_GRADE[2].filter((w) => !w.text.includes(' ') && !w.text.includes(' ')).slice(0, 30);
+  const setOf = (b: NonNullable<ReturnType<typeof buildCrossword>>) => b.slots.map((s) => s.wordId);
+  const boards = Array.from({ length: 6 }, (_, i) => buildCrossword(richPool2, { seed: 700 + i })).filter(
+    (b): b is NonNullable<typeof b> => !!b,
+  );
+  check('кроссворд: разные seed → разные наборы слов',
+    boards.length > 1 && boards.some((b) => setOf(b).join(',') !== setOf(boards[0]).join(',')),
+    boards.map((b) => setOf(b).length).join('/'));
+  check('кроссворд: одно слово не занимает два слота',
+    boards.every((b) => setOf(b).length === new Set(setOf(b)).size), '');
+  const dupPool = [...richPool2, ...richPool2];
+  const dedup = buildCrossword(dupPool, { seed: 3 });
+  check('кроссворд: дубликаты во входном пуле не дают двойных слотов',
+    !!dedup && setOf(dedup).length === new Set(setOf(dedup)).size, '');
+
+  // «Ещё кроссворд» не повторяет слова прошлой сетки, пока есть свежие.
+  let prevIds: string[] = [];
+  let cwOverlap = 0;
+  for (let i = 0; i < 5; i++) {
+    const next = buildCrossword(richPool2, { seed: 800 + i, avoidIds: prevIds });
+    if (!next) continue;
+    const ids = setOf(next);
+    if (i > 0) cwOverlap += ids.filter((id) => prevIds.includes(id)).length;
+    prevIds = ids;
+  }
+  check('кроссворд: новая сетка не повторяет слова прошлой', cwOverlap === 0, `повторов: ${cwOverlap}`);
+
   // ── 3. Входной фильтр ────────────────────────────────────────────────────
   const tooFew = buildCrossword(poolOf(2, 2), { seed: 1 });
   check('кроссворд: меньше трёх слов — честный null', tooFew === null, '');
