@@ -10351,17 +10351,18 @@ img.product-photo {
 
 .games-head {
   flex: none;
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  min-width: 0;
 }
+/* Заголовок — одна строка. Правило «ничего не сгорает» и описание игры
+   переехали в подсказку/скринридер: на телефоне две строки текста над полем
+   стоили дороже, чем пользы (замечание 2026-11-11). */
 .games-title {
   margin: 0;
   font-size: var(--fs-lg);
-  line-height: 1.2;
-}
-.games-sub {
-  margin: 2px 0 0;
-  font-size: var(--fs-xs);
-  color: var(--ink-2);
-  line-height: 1.35;
+  line-height: 1.15;
 }
 
 /* Сегмент «Собери слово · Филворд · Кроссворд».
@@ -10379,13 +10380,13 @@ img.product-photo {
 .games-switch-btn {
   flex: 1 1 0;
   min-width: 0;
-  min-height: 46px;
-  padding: 4px 6px;
+  min-height: 44px;
+  padding: 6px 8px;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 1px;
+  gap: 6px;
   border: none;
   border-radius: var(--r-pill);
   background: transparent;
@@ -10417,13 +10418,6 @@ img.product-photo {
   white-space: nowrap;
   max-width: 100%;
 }
-/* Одна строка описания вместо абзаца: ребёнку хватает подсказки «что тут
-   делать», а место нужно самому полю. */
-.games-oneline {
-  flex: none;
-  margin: 0;
-}
-
 /* Сцена игры: занимает остаток высоты экрана и прокручивается сама. */
 .games-stage {
   flex: 1 1 auto;
@@ -10625,9 +10619,6 @@ img.product-photo {
   padding: 14px;
   box-shadow: var(--shadow);
 }
-.ws-instruction {
-  margin: 0;
-}
 .ws-grid {
   display: grid;
   grid-template-columns: repeat(var(--ws-size, 8), 1fr);
@@ -10711,8 +10702,16 @@ img.product-photo {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
+  /* Строка состояния над полем: ниже поля на телефоне её съедало меню. */
+  margin-bottom: -2px;
+}
+.ws-foot .btn,
+.cw-foot .btn {
+  min-height: 40px;
+  padding: 6px 12px;
+  font-size: var(--fs-xs);
 }
 .ws-count {
   margin: 0;
@@ -10778,16 +10777,17 @@ img.product-photo {
   padding: 14px;
   box-shadow: var(--shadow);
 }
-.cw-instruction {
-  margin: 0;
-}
 .cw-grid {
   display: grid;
+  /* Колонки равные, ширина решётки ограничена суммой потолков клеток: на
+     телефоне решётка 8–9 клеток растягивалась на всю карточку (60+ px на
+     клетку) и вытесняла пул букв и вопросы за экран (замечание 2026-11-11).
+     --cw-cell — потолок ширины клетки: 42 px на телефоне, 48 px на планшете
+     (цель пальца ≥ 40 px). */
   grid-template-columns: repeat(var(--cw-cols, 10), minmax(0, 1fr));
-  gap: 4px;
-  max-width: 480px;
+  max-width: calc(var(--cw-cols, 10) * var(--cw-cell, 42px) + (var(--cw-cols, 10) - 1) * 3px);
   margin-inline: auto;
-  width: 100%;
+  gap: 3px;
   user-select: none;
   -webkit-user-select: none;
 }
@@ -10804,7 +10804,9 @@ img.product-photo {
   border: 1.5px solid var(--line);
   background: var(--bg-2);
   color: var(--ink);
-  font-size: clamp(14px, 4.6vw, 21px);
+  /* Кегль следует за клеткой: у решётки 12–13 клеток буква не должна быть
+     крупнее самой клетки (0.96.1). */
+  font-size: calc(var(--cw-cell, 42px) * 0.46);
   font-weight: 800;
   cursor: pointer;
   padding: 0;
@@ -10857,21 +10859,38 @@ img.product-photo {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-height: 168px;
-  overflow-y: auto;
+  /* Список вопросов больше не «прокручивается в себе»: на телефоне высота
+     карточки ограничена, и вместе с внутренней прокруткой получались две
+     вложенные прокрутки. Теперь список живёт в общей прокрутке сцены
+     (.games-stage), а на всю длину экрана его ограничивает она сама. */
   align-content: flex-start;
 }
 .cw-chip {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px;
+  padding: 6px 10px;
   border-radius: 14px;
   border: 1.5px solid var(--line);
   background: var(--bg-2);
   text-align: left;
   cursor: pointer;
   min-height: 44px;
+}
+/* Эмодзи + текст в два уровня: подсказка жирным сверху, «N букв» тихо под
+   ней. Раньше три колонки (номер, эмодзи, текст, длина) в сумме были шире
+   карточки, и подсказки обрезались многоточием. */
+.cw-chip-emoji {
+  flex: none;
+  font-size: 20px;
+  line-height: 1;
+}
+.cw-chip-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
 }
 .cw-chip-active {
   border-color: var(--primary);
@@ -10899,12 +10918,13 @@ img.product-photo {
   color: var(--ink-2);
 }
 .cw-chip-hint {
-  flex: 1;
   font-size: 14px;
-  line-height: 1.3;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--ink);
 }
 .cw-chip-len {
-  font-size: 12px;
+  font-size: 11.5px;
   color: var(--ink-2);
   white-space: nowrap;
 }
@@ -10916,8 +10936,10 @@ img.product-photo {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
+  /* Строка состояния над решёткой (см. .ws-foot). */
+  margin-bottom: -2px;
 }
 .cw-count {
   margin: 0;
@@ -10970,7 +10992,9 @@ img.product-photo {
   }
   .games-switch-btn {
     min-height: 44px;
-    font-size: 11.5px;
+    font-size: 12px;
+    gap: 4px;
+    padding: 6px 4px;
   }
   .games-switch-emoji {
     font-size: 15px;
@@ -10995,8 +11019,23 @@ img.product-photo {
     height: 42px;
     font-size: 18px;
   }
-  .cw-words {
-    max-height: 132px;
+  .cw-grid {
+    --cw-cell: 38px;
+    gap: 3px;
+  }
+  .cw-tile {
+    width: 36px;
+    height: 42px;
+    font-size: 18px;
+    border-radius: 9px;
+  }
+  .cw-chip {
+    padding: 5px 8px;
+    gap: 6px;
+    border-radius: 12px;
+  }
+  .cw-chip-emoji {
+    font-size: 18px;
   }
 }
 
@@ -11006,6 +11045,14 @@ img.product-photo {
 @media (min-width: 760px) {
   .screen.games-screen {
     max-width: 720px;
+  }
+  .cw-grid {
+    --cw-cell: 48px;
+  }
+  .cw-words {
+    max-width: 560px;
+    margin-inline: auto;
+    width: 100%;
   }
   .games-switch {
     align-self: flex-start;
@@ -11048,9 +11095,6 @@ img.product-photo {
   }
 }
 @media (max-height: 560px) {
-  .games-sub {
-    display: none;
-  }
   .game-clue .clue-hint {
     display: none;
   }

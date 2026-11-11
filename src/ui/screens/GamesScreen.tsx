@@ -13,6 +13,16 @@
  *    поле занимает остаток и только оно прокручивается при нехватке места;
  *  • слово для сборки выбирается горизонтальной лентой (одна строка, палец
  *    ведёт вбок) — раньше 60 чипов раздували карточку на пол-экрана.
+ *
+ * Шапка (0.96.1, замечание «избыток слов в шапке страницы»): на телефоне
+ * остался один заголовок «Игры» и сегмент выбора игры. Правило «ничего не
+ * сгорает» и описание игры переехали в `title`/`aria-label` — ребёнку они не
+ * нужны каждый раз, а месту над полем каждый пиксель на счету. Исключение —
+ * пустое состояние: когда играть нечего, экран честно объясняет почему.
+ *
+ * Строка состояния игры (счётчик, «Новая сетка») стоит ПЕРЕД полем, а не под
+ * ним: под полем её съедало нижнее меню (замечание 2026-11-11, скриншот:
+ * строки подсказок уезжали под вкладки).
  */
 import { useEffect, useMemo, useState } from 'react';
 import { availableClass, WORDS_BY_GRADE } from '../../content/words';
@@ -24,6 +34,9 @@ import { WordSearchGame } from '../WordSearchGame';
 import { CrosswordGame } from '../CrosswordGame';
 
 type GameId = 'build' | 'search' | 'crossword';
+
+/** Правило свободной практики — для взрослого, не для постоянной строки. */
+const PLAY_RULE = 'Играй сколько хочешь: ничего не сгорает и ничего не считается.';
 
 const GAMES: Array<{ id: GameId; emoji: string; title: string; oneline: string }> = [
   { id: 'build', emoji: '🧵', title: 'Собери слово', oneline: 'Выложи слово из карточек.' },
@@ -62,9 +75,12 @@ export function GamesScreen({ onGoLessons }: { onGoLessons: () => void }) {
 
   return (
     <div className="screen games-screen">
+      {/* Заголовок в одну строку: «Игры». Правило рамки («ничего не сгорает»)
+          живёт в title — взрослому доступно, у поля не отнимает высоту. */}
       <header className="games-head">
-        <h2 className="games-title">🧩 Игры</h2>
-        <p className="games-sub">Играй сколько хочешь: ничего не сгорает и ничего не считается.</p>
+        <h2 className="games-title" title={PLAY_RULE}>
+          🧩 Игры
+        </h2>
       </header>
 
       <div className="games-switch" role="tablist" aria-label="Выбери игру">
@@ -83,11 +99,10 @@ export function GamesScreen({ onGoLessons }: { onGoLessons: () => void }) {
               {g.emoji}
             </span>
             <span className="games-switch-label">{g.title}</span>
+            <span className="sr-only">{g.oneline}</span>
           </button>
         ))}
       </div>
-
-      <p className="games-oneline tiny muted">{current.oneline}</p>
 
       <div
         className="games-stage"

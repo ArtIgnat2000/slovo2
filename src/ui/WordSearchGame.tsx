@@ -207,11 +207,28 @@ export function WordSearchGame({ pool, grade, onGoLessons }: WordSearchGameProps
 
   return (
     <div className="ws-card">
-      {/* Инструкция одной строкой: на телефоне каждый абзац над полем
-          отнимает у поля высоту (замечание 2026-11-11). */}
-      <p className="tiny muted ws-instruction">
-        Найди все слова{grade >= 5 ? ' (и по диагонали)' : ''}. Опасные буквы — оранжевым.
-      </p>
+      {/* Строка состояния стоит ПЕРЕД полем: под полем её съедало нижнее
+          меню, а слова-цели после победы заменяются плашкой «всё найдено». */}
+      {isWin ? (
+        <div className="ws-win" role="status">
+          <div className="ws-win-emoji" aria-hidden="true">🎉</div>
+          <div className="ws-win-body">
+            <p className="ws-win-title">Все слова найдены!</p>
+          </div>
+          <button type="button" className="btn primary" onClick={newGrid}>
+            🔄 Ещё сетку
+          </button>
+        </div>
+      ) : (
+        <div className="ws-foot">
+          <p className="ws-count" aria-live="polite">
+            Найдено: {foundIds.length} из {board.words.length}
+          </p>
+          <button type="button" className="btn ghost sm" onClick={newGrid}>
+            🔄 Новая сетка
+          </button>
+        </div>
+      )}
 
       <div
         className="ws-grid"
@@ -285,26 +302,6 @@ export function WordSearchGame({ pool, grade, onGoLessons }: WordSearchGameProps
         })}
       </div>
 
-      {isWin ? (
-        <div className="ws-win" role="status">
-          <div className="ws-win-emoji" aria-hidden="true">🎉</div>
-          <div className="ws-win-body">
-            <p className="ws-win-title">Все слова найдены!</p>
-          </div>
-          <button type="button" className="btn primary" onClick={newGrid}>
-            🔄 Ещё сетку
-          </button>
-        </div>
-      ) : (
-        <div className="ws-foot">
-          <p className="ws-count" aria-live="polite">
-            Найдено: {foundIds.length} из {board.words.length}
-          </p>
-          <button type="button" className="btn ghost" onClick={newGrid}>
-            🔄 Новая сетка
-          </button>
-        </div>
-      )}
     </div>
   );
 }

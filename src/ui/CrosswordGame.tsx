@@ -172,11 +172,32 @@ export function CrosswordGame({ pool, onGoLessons }: CrosswordGameProps) {
 
   return (
     <div className="cw-card">
-      {/* Инструкция одной строкой: на телефоне каждый абзац над решёткой
-          отнимает у решётки высоту (замечание 2026-11-11). */}
-      <p className="tiny muted cw-instruction">
-        Тапни букву — она встанет в выбранное слово. Ошибку исправит тап по клетке.
-      </p>
+      {/* Строка состояния стоит ПЕРЕД решёткой: под решёткой её съедало
+          нижнее меню (замечание 2026-11-11). */}
+      {isWin ? (
+        <div className="cw-win" role="status" data-cw-win="1">
+          <div className="cw-win-emoji" aria-hidden="true">🎉</div>
+          <div className="cw-win-body">
+            <p className="cw-win-title">Кроссворд собран!</p>
+          </div>
+          <button type="button" className="btn primary" onClick={newGrid}>
+            🔄 Ещё кроссворд
+          </button>
+        </div>
+      ) : (
+        <div className="cw-foot">
+          <p className="cw-count" aria-live="polite">
+            Собрано: {goodCount} из {totalSlots}
+          </p>
+          <button type="button" className="btn ghost sm" onClick={newGrid}>
+            🔄 Новая сетка
+          </button>
+        </div>
+      )}
+
+      {/* Инструкция не нужна: игра объясняет себя сама (выбранное слово
+          подсвечено, буквы лежат в пуле). На телефоне каждая строка над
+          решёткой отнимала у решётки высоту — замечание 2026-11-11. */}
 
       <div
         className="cw-grid"
@@ -264,35 +285,17 @@ export function CrosswordGame({ pool, onGoLessons }: CrosswordGameProps) {
               onClick={() => activateSlot(slot.slot)}
             >
               <span className="cw-slot-no" aria-hidden="true">{slot.slot}</span>
-              <span aria-hidden="true">{source?.emoji ?? '📝'}</span>
-              <span className="cw-chip-hint">{source?.hint ?? 'слово из банка'}</span>
-              <span className="cw-chip-len">{[...slot.text].length} букв</span>
+              <span className="cw-chip-emoji" aria-hidden="true">{source?.emoji ?? '📝'}</span>
+              <span className="cw-chip-text">
+                <span className="cw-chip-hint">{source?.hint ?? 'слово из банка'}</span>
+                <span className="cw-chip-len">{[...slot.text].length} букв</span>
+              </span>
               {state === 'good' && <span className="cw-chip-check" aria-hidden="true">✓</span>}
             </button>
           );
         })}
       </div>
 
-      {isWin ? (
-        <div className="cw-win" role="status" data-cw-win="1">
-          <div className="cw-win-emoji" aria-hidden="true">🎉</div>
-          <div className="cw-win-body">
-            <p className="cw-win-title">Кроссворд собран!</p>
-          </div>
-          <button type="button" className="btn primary" onClick={newGrid}>
-            🔄 Ещё кроссворд
-          </button>
-        </div>
-      ) : (
-        <div className="cw-foot">
-          <p className="cw-count" aria-live="polite">
-            Собрано: {goodCount} из {totalSlots}
-          </p>
-          <button type="button" className="btn ghost" onClick={newGrid}>
-            🔄 Новая сетка
-          </button>
-        </div>
-      )}
     </div>
   );
 }

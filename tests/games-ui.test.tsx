@@ -50,7 +50,19 @@ export async function runGamesUiChecks() {
 
   await goTab('Игры');
   check('игры: вкладка открылась', !!document.querySelector('.games-screen'), document.body.textContent?.slice(0, 200) ?? '');
-  check('игры: честно сказано, что ничего не считается', has('ничего не считается'), '');
+  // С 0.96.1 правило рамки живёт подсказкой заголовка, а не строкой на экране:
+  // на телефоне текст над полем стоил дороже, чем пользы (замечание «избыток
+  // слов в шапке страницы»).
+  check(
+    'игры: правило «ничего не сгорает» доступно из заголовка',
+    (document.querySelector('.games-title')?.getAttribute('title') ?? '').includes('ничего не сгорает'),
+    document.querySelector('.games-title')?.getAttribute('title') ?? 'подсказки нет',
+  );
+  check(
+    'игры: в шапке не осталось абзаца-описания',
+    !document.querySelector('.games-sub') && !document.querySelector('.games-oneline'),
+    document.querySelector('.games-head')?.textContent ?? '',
+  );
   check('игры: свободная практика есть на экране', has('Собери слово'), '');
   check('игры: изученные слова видны чипами', document.querySelectorAll('.game-pick').length === learned.length,
     `чипов: ${document.querySelectorAll('.game-pick').length}`);
@@ -132,6 +144,11 @@ export async function runWordSearchUiChecks() {
 
   const counter = () => (document.querySelector('.ws-count')?.textContent ?? '').trim();
   check('филворд: счётчик «Найдено: 0 из N»', /^Найдено: 0 из \d+$/.test(counter()), counter());
+  const wsGrid = document.querySelector('.ws-grid');
+  const wsFoot = document.querySelector('.ws-foot');
+  check('филворд: счётчик стоит над полем, а не под ним',
+    !!wsGrid && !!wsFoot && (wsFoot.compareDocumentPosition(wsGrid) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0,
+    wsFoot?.className ?? 'строки нет');
 
   const chips = () => Array.from(document.querySelectorAll('.ws-chip')) as HTMLElement[];
   check('филворд: целей не меньше трёх', chips().length >= 3, `чипов: ${chips().length}`);
@@ -235,6 +252,18 @@ export async function runCrosswordUiChecks() {
   check('кроссворд: не меньше девяти клеток', cells().length >= 9, `клеток: ${cells().length}`);
   check('кроссворд: счетчик «Собрано: 0 из N»', /^Собрано: 0 из [2-9]\d*$/.test(counter()), counter());
   check('кроссворд: подсказок не меньше трёх', chips().length >= 3, `чипов: ${chips().length}`);
+  // Эргономика (0.96.1): подсказка и «N букв» — в две строки внутри чипа,
+  // иначе три колонки в сумме шире карточки и текст обрезался многоточием.
+  const chipText = chips()[0]?.querySelector('.cw-chip-text');
+  check('кроссворд: подсказка и длина слова — двухуровневый текст чипа',
+    !!chipText?.querySelector('.cw-chip-hint') && !!chipText?.querySelector('.cw-chip-len'),
+    chips()[0]?.textContent ?? '');
+  // Строка состояния стоит над решёткой: под ней её съедало нижнее меню.
+  const grid = document.querySelector('.cw-grid');
+  const foot = document.querySelector('.cw-foot, .cw-win');
+  check('кроссворд: счётчик стоит над решёткой, а не под ней',
+    !!grid && !!foot && (foot.compareDocumentPosition(grid) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0,
+    foot?.className ?? 'строки нет');
   // Пул — точное мультимножество УНИКАЛЬНЫХ клеток (пересекающиеся — один раз).
   check('кроссворд: лишних плиток нет — букв ровно под клетки', tiles().length === cells().length,
     `плиток ${tiles().length}, клеток ${cells().length}`);
