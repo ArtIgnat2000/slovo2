@@ -38,6 +38,8 @@ import { runBaseTourUiChecks } from './base-tour-ui.test';
 import { runRatingUiChecks } from './rating-ui.test';
 import { runGamesUiChecks } from './games-ui.test';
 import { runWordSearchUiChecks } from './games-ui.test';
+import { runCrosswordUiChecks } from './games-ui.test';
+import { runCrosswordChecks } from './crossword.test';
 import { runWordSearchChecks } from './word-search.test';
 import { runWordBoardChecks } from './word-board.test';
 // Смена цвета купленной вещи не должна включать музыку (регрессия магазина).
@@ -2137,6 +2139,8 @@ async function main() {
   await runGamesUiChecks();
   await runWordSearchChecks();
   await runWordSearchUiChecks();
+  await runCrosswordChecks();
+  await runCrosswordUiChecks();
 
   // Карточки букв: движок сборки и живая доска свободной игры (0.92.0).
   await runWordBoardChecks();

@@ -43,10 +43,8 @@ export async function runGamesUiChecks() {
     `плиток: ${document.querySelectorAll('.tileboard-tile').length}`);
   check('игры: плитки несут буквы слова', !!document.querySelector('.word-board'), '');
 
-  // «Скоро»-карточки: есть, но честно помечены, что их ещё нет.
-  const soonNotes = Array.from(document.querySelectorAll('.game-soon-note')).map((el) => el.textContent ?? '');
-  check('игры: «скоро»-карточки помечены честно', soonNotes.length >= 1 && soonNotes.every((t) => t.includes('проверяем на детях')),
-    soonNotes.join(' | '));
+  // «Скоро»-карточек больше нет: все три механики P0–P1 запущены.
+  check('игры: «скоро»-карточки больше не нужны — все механики в игре', !document.querySelector('.game-soon'), '');
 
   // Собираем показанное слово тапами по плиткам в порядке букв.
   const chip = document.querySelector('.game-pick.on') as HTMLButtonElement | null;
@@ -172,4 +170,73 @@ export async function runWordSearchUiChecks() {
   click(cellAt(1, 2)); // не линия → якорь просто переезжает, ничего не падает
   await sleep(30);
   check('филворд: неровная линия не роняет игру', !!document.querySelector('.ws-grid'), '');
+}
+
+// «Кроссворд дня» (0.95.0): доска отрисована, пул букв точен, все слова
+// собираются тапами, «Ещё кроссворд» чистит доску. Без SRS/XP.
+export async function runCrosswordUiChecks() {
+  console.log('\n── Кроссворд дня: решётка и пул ──');
+  await goTab('Игры');
+  await sleep(60);
+
+  const cells = () => Array.from(document.querySelectorAll('.cw-cell')) as HTMLButtonElement[];
+  const tiles = () => Array.from(document.querySelectorAll('.cw-tile')) as HTMLButtonElement[];
+  const chips = () => Array.from(document.querySelectorAll('.cw-chip')) as HTMLButtonElement[];
+  const counter = () => (document.querySelector('.cw-count')?.textContent ?? '').trim();
+
+  check('кроссворд: раздел и поле есть на экране', !!document.querySelector('.cw-grid'), '');
+  if (cells().length === 0) return;
+  const rows = Math.max(...cells().map((b) => Number(b.dataset.cwRow))) + 1;
+  const cols = Math.max(...cells().map((b) => Number(b.dataset.cwCol))) + 1;
+  check('кроссворд: поле ≤ 13×12', cols <= 13 && rows <= 12, `${rows}×${cols}`);
+  check('кроссворд: не меньше девяти клеток', cells().length >= 9, `клеток: ${cells().length}`);
+  check('кроссворд: счетчик «Собрано: 0 из N»', /^Собрано: 0 из [2-9]\d*$/.test(counter()), counter());
+  check('кроссворд: подсказок не меньше трёх', chips().length >= 3, `чипов: ${chips().length}`);
+  // Пул — точное мультимножество УНИКАЛЬНЫХ клеток (пересекающиеся — один раз).
+  check('кроссворд: лишних плиток нет — букв ровно под клетки', tiles().length === cells().length,
+    `плиток ${tiles().length}, клеток ${cells().length}`);
+
+  // Тап по плитке кладёт букву в первое пустое место выбранного слова.
+  const firstTile = tiles()[0];
+  click(firstTile);
+  await sleep(20);
+  check('кроссворд: буква легла в клетку', cells().filter((b) => b.dataset.filled === '1').length === 1, '');
+  // Тап по той клетке возвращает букву в пул.
+  const filled = cells().find((b) => b.dataset.filled === '1');
+  click(filled);
+  await sleep(20);
+  check('кроссворд: тап по клетке возвращает букву', cells().filter((b) => b.dataset.filled === '1').length === 0, '');
+
+  // ── Полная сборка: как идеальный игрок — смотрим на первую пустую клетку
+  // каждого слота и кладём нужную букву (пропуская уже заполненные перекрёстки) ──
+  const cellAt = (row: number, col: number) =>
+    cells().find((b) => Number(b.dataset.cwRow) === row && Number(b.dataset.cwCol) === col);
+  const filledAt = (row: number, col: number) => cellAt(row, col)?.dataset.filled === '1';
+  for (const chip of chips()) {
+    const answer = (chip.dataset.cwAnswer ?? '').toLowerCase();
+    const slotCells = (chip.dataset.cwCells ?? '').split(';').filter(Boolean);
+    if (!answer || slotCells.length !== [...answer].length) continue;
+    click(chip); // активируем слово
+    await sleep(15);
+    for (let i = 0; i < slotCells.length; i++) {
+      const [r, c] = slotCells[i].split(',').map(Number);
+      if (filledAt(r, c)) continue; // букву сюда уже положили перекрёстным словом
+      const ch = [...answer][i];
+      const tile = tiles().find((b) => !b.disabled && (b.textContent ?? '').trim() === ch);
+      if (!tile) continue;
+      click(tile);
+      await sleep(10);
+    }
+  }
+  await sleep(150);
+  check('кроссворд: баннер «Кроссворд собран!»', has('Кроссворд собран'), document.body.textContent?.slice(0, 300) ?? '');
+  check('кроссворд: все слова зеленые', document.querySelectorAll('.cw-chip-good').length === chips().length,
+    `зеленых: ${document.querySelectorAll('.cw-chip-good').length} / ${chips().length}`);
+
+  // «Ещё кроссворд» — новая сетка, чистый счётчик.
+  const again = btnText('Ещё кроссворд');
+  click(again);
+  await sleep(80);
+  check('кроссворд: «Ещё кроссворд» очищает счётчик', /^Собрано: 0 из [2-9]\d*$/.test(counter()), counter());
+  check('кроссворд: все плитки снова доступны', tiles().every((b) => !b.disabled), '');
 }

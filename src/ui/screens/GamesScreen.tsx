@@ -3,9 +3,8 @@
  *
  * Правила рамки:
  *  • нерешающие игры не пишут в SRS и не дают XP — чистое повторение;
- *  • ничего не сгорает: «Собери слово» и «Филворд» доступны сколь угодно часто;
- *  • честность: «скоро»-карточка с кроссвордом явно помечена, пока его нет
- *    и пока мы не проверили его на детях.
+ *  • ничего не сгорает: «Собери слово», «Филворд» и «Кроссворд дня» доступны
+ *    сколь угодно часто.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { availableClass, WORDS_BY_GRADE } from '../../content/words';
@@ -14,6 +13,7 @@ import { useActiveProfile } from '../../state/store';
 import { WordClue } from '../WordView';
 import { WordTileBoard } from '../WordTileBoard';
 import { WordSearchGame } from '../WordSearchGame';
+import { CrosswordGame } from '../CrosswordGame';
 
 export function GamesScreen({ onGoLessons }: { onGoLessons: () => void }) {
   const profile = useActiveProfile();
@@ -88,15 +88,9 @@ export function GamesScreen({ onGoLessons }: { onGoLessons: () => void }) {
       </section>
       </div>
 
-      <section className="games-section" aria-label="Скоро в играх">
-        <h3 className="games-section-title">Скоро здесь</h3>
-        <div className="game-soon-row">
-          <div className="game-soon">
-            <span className="game-soon-emoji" aria-hidden="true">🧩</span>
-            <span className="game-soon-name">Кроссворд дня</span>
-            <span className="game-soon-note">скоро — проверяем на детях</span>
-          </div>
-        </div>
+      <section className="games-section" aria-label="Кроссворд дня">
+        <h3 className="games-section-title">Кроссворд дня</h3>
+        <CrosswordGame pool={practice} onGoLessons={onGoLessons} />
       </section>
     </div>
   );
