@@ -50,7 +50,17 @@ export interface BuildCrosswordOptions {
   seed: number;
   /** Максимум слов в сетке (по умолчанию 6). */
   maxWords?: number;
+  /**
+   * Слова прошлой сетки (0.96.3). «Ещё кроссворд» должен менять и слова:
+   * раньше берулись первые по длине, поэтому решётка повторялась набором.
+   * Если свежих слов не хватает на сетку, слова возвращаются — пустая
+   * решётка хуже повтора.
+   */
+  avoidIds?: ReadonlyArray<string>;
 }
+
+/** Сколько свежих слов нужно, чтобы полностью обойтись без прошлой сетки. */
+const FRESH_RESERVE = 2;
 
 const CANVAS = 31;
 const CENTER = Math.floor(CANVAS / 2);
@@ -277,21 +287,45 @@ export function buildCrossword(
   opts: BuildCrosswordOptions,
 ): CrosswordBoard | null {
   const { seed, maxWords = 6 } = opts;
+  const avoid = new Set(opts.avoidIds ?? []);
+  // Пул без повторов: одно слово — один слот решётки (иначе в сетке могло
+  // оказаться два одинаковых слова, а пул букв — двойным).
+  const seen = new Set<string>();
   const candidates = pool
     .filter((w) => !w.text.includes(' '))
     .map((w) => ({ id: w.id, text: w.text }))
     .filter((w) => {
+      if (seen.has(w.id)) return false;
       const n = lettersOf(w.text).length;
-      return n >= MIN_LEN && n <= MAX_LEN;
+      const ok = n >= MIN_LEN && n <= MAX_LEN;
+      if (ok) seen.add(w.id);
+      return ok;
     });
   if (candidates.length < 3) return null;
 
-  const ordered = [...candidates].sort(
-    (a, b) => lettersOf(b.text).length - lettersOf(a.text).length || a.text.localeCompare(b.text, 'ru'),
-  );
-  const chosen = ordered.slice(0, maxWords);
-
   const rng = mulberry32(seed);
+  const shuffled = <T,>(list: readonly T[]): T[] => {
+    const out = [...list];
+    for (let i = out.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [out[i], out[j]] = [out[j], out[i]];
+    }
+    return out;
+  };
+  const byLength = (list: ReadonlyArray<{ id: string; text: string }>) =>
+    [...list].sort(
+      (a, b) => lettersOf(b.text).length - lettersOf(a.text).length || a.text.localeCompare(b.text, 'ru'),
+    );
+
+  const fresh = shuffled(candidates.filter((w) => !avoid.has(w.id)));
+  const stale = shuffled(byLength(candidates.filter((w) => avoid.has(w.id))));
+  // Порядок = приоритет размещения: сперва свежие (перемешаны, чтобы якорь
+  // каждый раз был другой), и только если их не хватает — слова прошлой сетки.
+  const chosen =
+    fresh.length >= Math.min(maxWords, 3) + FRESH_RESERVE
+      ? fresh.slice(0, maxWords)
+      : [...fresh, ...stale].slice(0, maxWords);
+
   let best: AttemptResult | null = null;
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const result = attemptPlacement(chosen, rng);
