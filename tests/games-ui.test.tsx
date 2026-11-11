@@ -130,8 +130,8 @@ export async function runGamesUiChecks() {
 // в SRS и XP — чистая свободная игра.
 export async function runWordSearchUiChecks() {
   console.log('\n── Филворд: буквенное поле ──');
-  // Пул побольше: тогда «Новая сетка» обязана показать ДРУГИЕ слова
-  // (на шести словах без повторов сетку не собрать — и это честное поведение).
+  // Пул побольше: с 0.96.4 поле берёт ~60% пула, поэтому смена слов работает
+  // на любом пуле, а на большом — совсем без повторов.
   const activeNow = useApp.getState().profiles.find((p) => p.id === useApp.getState().activeId);
   const gradeNow = (activeNow?.activeClass ?? 2) as keyof typeof WORDS_BY_GRADE;
   const wide = (WORDS_BY_GRADE[gradeNow] ?? []).filter((w) => !w.text.includes(' ')).slice(0, 24);

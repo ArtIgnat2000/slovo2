@@ -89,6 +89,34 @@ export async function runCrosswordChecks(): Promise<void> {
   }
   check('кроссворд: новая сетка не повторяет слова прошлой', cwOverlap === 0, `повторов: ${cwOverlap}`);
 
+  // ── 2c. Смена набора работает на любом пуле (0.96.4) ────────────────────
+  // Было: решётка забирала весь пул (и даже добавляла в «лестницу» слова,
+  // не поместившиеся в лимит), поэтому «Ещё кроссворд» не менял слова.
+  for (const size of [4, 6, 9]) {
+    const poolN = WORDS_BY_GRADE[2].filter((w) => !w.text.includes(' ') && [...w.text].length <= 9).slice(0, size);
+    let prevIds: string[] = [];
+    let firstSlots = 0;
+    let sameSet = 0;
+    let withoutNew = 0;
+    let boards = 0;
+    for (let i = 0; i < 4; i++) {
+      const b = buildCrossword(poolN, { seed: 600 + i, avoidIds: prevIds });
+      if (!b) break;
+      const ids = b.slots.map((s) => s.wordId);
+      if (i === 0) firstSlots = ids.length;
+      if (i > 0) {
+        boards++;
+        if (ids.slice().sort().join(',') === prevIds.slice().sort().join(',')) sameSet++;
+        if (ids.every((id) => prevIds.includes(id))) withoutNew++;
+      }
+      prevIds = ids;
+    }
+    check(`кроссворд: на пуле ${size} слов набор не повторяется один в один`, sameSet === 0, `совпадений: ${sameSet}`);
+    check(`кроссворд: на пуле ${size} слов в каждой сетке есть новое слово`, boards > 0 && withoutNew === 0,
+      `без новых: ${withoutNew} из ${boards}`);
+    check(`кроссворд: на пуле ${size} слов сетка не забирает весь пул`, firstSlots < size, `слотов: ${firstSlots}`);
+  }
+
   // ── 3. Входной фильтр ────────────────────────────────────────────────────
   const tooFew = buildCrossword(poolOf(2, 2), { seed: 1 });
   check('кроссворд: меньше трёх слов — честный null', tooFew === null, '');

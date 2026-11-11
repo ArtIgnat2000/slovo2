@@ -10785,6 +10785,11 @@ img.product-photo {
      --cw-cell — потолок ширины клетки: 42 px на телефоне, 48 px на планшете
      (цель пальца ≥ 40 px). */
   grid-template-columns: repeat(var(--cw-cols, 10), minmax(0, 1fr));
+  /* width: 100% обязателен: без него grid с auto-шириной схлопывался в
+     «точки» — колонки 1fr не получали свободного места, и решётка выглядела
+     сломанной (замечание 2026-11-11: «кроссворд сломался»). max-width всё
+     равно не даёт клетке вырасти больше потолка. */
+  width: 100%;
   max-width: calc(var(--cw-cols, 10) * var(--cw-cell, 42px) + (var(--cw-cols, 10) - 1) * 3px);
   margin-inline: auto;
   gap: 3px;
