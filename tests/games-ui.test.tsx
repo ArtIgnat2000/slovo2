@@ -130,8 +130,8 @@ export async function runGamesUiChecks() {
 // в SRS и XP — чистая свободная игра.
 export async function runWordSearchUiChecks() {
   console.log('\n── Филворд: буквенное поле ──');
-  // Пул побольше: с 0.96.4 поле берёт ~60% пула, поэтому смена слов работает
-  // на любом пуле, а на большом — совсем без повторов.
+  // Пул побольше: так виднее, меняются ли слова. Но у владельца пул был
+  // крошечным, поэтому ниже есть отдельная проверка на малом пуле.
   const activeNow = useApp.getState().profiles.find((p) => p.id === useApp.getState().activeId);
   const gradeNow = (activeNow?.activeClass ?? 2) as keyof typeof WORDS_BY_GRADE;
   const wide = (WORDS_BY_GRADE[gradeNow] ?? []).filter((w) => !w.text.includes(' ')).slice(0, 24);
@@ -249,6 +249,26 @@ export async function runWordSearchUiChecks() {
   await sleep(80);
   check('филворд: «Ещё сетку» очищает счётчик', /^Найдено: 0 из \d+$/.test(counter()), counter());
   const wordsAfter = wordsOf();
+  // Три нажатия подряд: слова не «залипают» — жалоба владельца «постоянно
+  // телефон» проверяется именно так, как её видит ребёнок.
+  {
+    let prev = wordsAfter;
+    let stuck = 0;
+    const seenSets = new Set<string>([prev]);
+    for (let i = 0; i < 3; i++) {
+      // После победы кнопка называется «Ещё сетку», в игре — «Новая сетка».
+      const b = btnText('Ещё сетку') ?? btnText('Новая сетка');
+      if (!b) break;
+      click(b);
+      await sleep(80);
+      const now = wordsOf();
+      if (now === prev) stuck++;
+      seenSets.add(now);
+      prev = now;
+    }
+    check('филворд: три «Ещё сетку» подряд каждый раз дают новый набор слов',
+      stuck === 0 && seenSets.size >= 4, `наборов: ${seenSets.size}, залипаний: ${stuck}`);
+  }
   check('филворд: «Ещё сетку» меняет слова, а не только их места',
     wordsAfter !== wordsBefore && !wordsAfter.split(',').some((w) => wordsBefore.split(',').includes(w)),
     `было: ${wordsBefore} / стало: ${wordsAfter}`);
@@ -264,6 +284,77 @@ export async function runWordSearchUiChecks() {
 
 // «Кроссворд дня» (0.95.0): доска отрисована, пул букв точен, все слова
 // собираются тапами, «Ещё кроссворд» чистит доску. Без SRS/XP.
+/**
+ * Пулы «Игр» (0.96.5). Главная причина жалобы «слова не меняются, постоянно
+ * телефон»: у ребёнка в начале пути встреченных слов всего три, и никакая
+ * ротация не может показать «другие слова» из трёх. Поэтому сеточные игры
+ * добирают пул словами своего класса, а «Собери слово» по-прежнему работает
+ * только со встреченными.
+ */
+export async function runGamesPoolChecks() {
+  console.log('\n── Игры: пул слов ──');
+  const active = useApp.getState().profiles.find((p) => p.id === useApp.getState().activeId);
+  const gradeNow = (active?.activeClass ?? 2) as keyof typeof WORDS_BY_GRADE;
+  const scope = (WORDS_BY_GRADE[gradeNow] ?? []).filter((w) => !w.text.includes(' '));
+  // Ровно как на скриншотах владельца: три встреченных слова (класс у
+  // владельца — 4-й, где живут «телефон», «беседа» и «человек»; если профиль
+  // другого класса — берём первые три слова его программы).
+  const screenshot = scope.filter((w) => ['телефон', 'беседа', 'человек'].includes(w.text));
+  const met = screenshot.length >= 3 ? screenshot : scope.slice(0, 3);
+  const onlyMet: Record<string, { s: number; due: number; iv: number; n: number; seen: number; ok: number; wrong: number }> = {};
+  for (const w of met) onlyMet[w.id] = { s: MASTERED_SCORE, due: 0, iv: 4, n: 3, seen: 3, ok: 3, wrong: 0 };
+  useApp.setState((s) => ({
+    profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, words: { ...onlyMet } } : p)),
+  }));
+  await sleep(60);
+  await goTab('Игры');
+  await sleep(60);
+
+  if (met.length > 0) {
+    await goGame('Собери слово');
+    await sleep(40);
+    check('игры: «Собери слово» показывает только встреченные слова',
+      document.querySelectorAll('.game-pick').length === met.length,
+      `чипов: ${document.querySelectorAll('.game-pick').length}, встречено: ${met.length}`);
+  }
+
+  check('игры: филворд открывается', await goGame('Филворд'), '');
+  const wsWords = () =>
+    Array.from(document.querySelectorAll('.ws-chip')).map((c) => (c as HTMLElement).dataset.wsText ?? '').sort().join(',');
+  let wsSeen = new Set<string>();
+  let wsOk = true;
+  for (let i = 0; i < 3; i++) {
+    const b = btnText('Ещё сетку') ?? btnText('Новая сетка');
+    if (!b) {
+      wsOk = false;
+      break;
+    }
+    click(b);
+    await sleep(80);
+    wsSeen = new Set([...wsSeen, ...wsWords().split(',')]);
+  }
+  check('игры: при трёх встреченных словах филворд всё равно меняет слова',
+    wsOk && wsSeen.size > met.length, `уникальных слов на поле: ${wsSeen.size} (встречено ${met.length})`);
+
+  check('игры: кроссворд открывается', await goGame('Кроссворд'), '');
+  const cwWords = () =>
+    Array.from(document.querySelectorAll('.cw-chip')).map((c) => (c as HTMLElement).dataset.cwAnswer ?? '').sort().join(',');
+  let cwSeen = new Set<string>();
+  let cwOk = true;
+  for (let i = 0; i < 3; i++) {
+    const b = btnText('Ещё кроссворд') ?? btnText('Новая сетка');
+    if (!b) {
+      cwOk = false;
+      break;
+    }
+    click(b);
+    await sleep(80);
+    cwSeen = new Set([...cwSeen, ...cwWords().split(',')]);
+  }
+  check('игры: при трёх встреченных словах кроссворд всё равно меняет слова',
+    cwOk && cwSeen.size > met.length, `уникальных слов: ${cwSeen.size} (встречено ${met.length})`);
+}
+
 export async function runCrosswordUiChecks() {
   console.log('\n── Кроссворд дня: решётка и пул ──');
   await goTab('Игры');
@@ -346,6 +437,25 @@ export async function runCrosswordUiChecks() {
   check('кроссворд: «Ещё кроссворд» очищает счётчик', /^Собрано: 0 из [2-9]\d*$/.test(counter()), counter());
   check('кроссворд: «Ещё кроссворд» меняет и слова, а не только решётку',
     cwWords() !== cwBefore, `было: ${cwBefore} / стало: ${cwWords()}`);
+  // Три нажатия подряд: слова не должны «залипать» (жалоба владельца:
+  // «в кроссворде тоже слова не меняются»).
+  {
+    let prev = cwWords();
+    let stuck = 0;
+    const seenSets = new Set<string>([prev]);
+    for (let i = 0; i < 3; i++) {
+      const b = btnText('Ещё кроссворд') ?? btnText('Новая сетка');
+      if (!b) break;
+      click(b);
+      await sleep(80);
+      const now = cwWords();
+      if (now === prev) stuck++;
+      seenSets.add(now);
+      prev = now;
+    }
+    check('кроссворд: три нажатия подряд каждый раз дают новый набор слов',
+      stuck === 0 && seenSets.size >= 4, `наборов: ${seenSets.size}, залипаний: ${stuck}`);
+  }
   const cwAnswers = Array.from(document.querySelectorAll('.cw-chip')).map((c) => (c as HTMLElement).dataset.cwAnswer ?? '');
   check('кроссворд: слова в решётке не повторяются',
     cwAnswers.length === new Set(cwAnswers).size, cwAnswers.join(','));

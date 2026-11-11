@@ -20,6 +20,8 @@
  *  • фразы («Великая Отечественная война») в сетку не идут.
  */
 
+import { advanceCursor, pickBoardWords } from './pool-cursor';
+
 export interface CrosswordCell {
   row: number;
   col: number;
@@ -44,10 +46,22 @@ export interface CrosswordBoard {
   slots: CrosswordSlot[];
   /** Перемешанный (детерминированно) мультимножество букв решения. */
   pool: string[];
+  /**
+   * Курсор для следующей решётки (0.96.5): считается по тому же кругу, из
+   * которого выбраны слова, поэтому «Ещё кроссворд» всегда начинает с новых
+   * слов (см. `engine/pool-cursor.ts`).
+   */
+  nextCursor: number;
 }
 
 export interface BuildCrosswordOptions {
   seed: number;
+  /**
+   * С какого места круга начинать выбор слов (0.96.5). «Ещё кроссворд»
+   * сдвигает курсор на число показанных слов, поэтому следующая решётка
+   * начинается с новых слов (см. `engine/pool-cursor.ts`).
+   */
+  cursor?: number;
   /** Максимум слов в сетке (по умолчанию 6). */
   maxWords?: number;
   /**
@@ -58,9 +72,6 @@ export interface BuildCrosswordOptions {
    */
   avoidIds?: ReadonlyArray<string>;
 }
-
-/** Сколько свежих слов нужно, чтобы полностью обойтись без прошлой сетки. */
-const FRESH_RESERVE = 2;
 
 /**
  * Сколько слов брать в сетку, чтобы «Ещё кроссворд» реально менял набор.
@@ -73,14 +84,16 @@ const FRESH_RESERVE = 2;
  */
 function wordsPerBoard(size: number, maxWords: number): number {
   const cap = Math.max(MIN_SLOTS, maxWords);
-  // ~60% пула за сетку: оставшиеся 40% — это и есть «другие слова» для
-  // следующей решётки. На большом пуле упираемся в maxWords (6).
-  return Math.min(cap, Math.max(MIN_SLOTS, Math.ceil(size * BOARD_SHARE)));
+  // Половина пула за сетку: курсор сдвигается ровно на число выбранных слов,
+  // поэтому две соседние решётки не пересекаются словами, а слово
+  // возвращается только после полного обхода пула. На большом пуле упираемся
+  // в maxWords (6).
+  return Math.min(cap, Math.max(MIN_SLOTS, Math.floor(size * BOARD_SHARE)));
 }
 
 const MIN_SLOTS = 3;
-/** Доля пула, которую сетка забирает за один раз. */
-const BOARD_SHARE = 0.6;
+/** Доля пула, которую сетка забирает за один раз (0.96.5 — половина). */
+const BOARD_SHARE = 0.5;
 
 const CANVAS = 31;
 const CENTER = Math.floor(CANVAS / 2);
@@ -307,7 +320,6 @@ export function buildCrossword(
   opts: BuildCrosswordOptions,
 ): CrosswordBoard | null {
   const { seed, maxWords = 6 } = opts;
-  const avoid = new Set(opts.avoidIds ?? []);
   // Пул без повторов: одно слово — один слот решётки (иначе в сетке могло
   // оказаться два одинаковых слова, а пул букв — двойным).
   const seen = new Set<string>();
@@ -323,30 +335,26 @@ export function buildCrossword(
     });
   if (candidates.length < 3) return null;
 
-  const rng = mulberry32(seed);
-  const shuffled = <T,>(list: readonly T[]): T[] => {
-    const out = [...list];
-    for (let i = out.length - 1; i > 0; i--) {
-      const j = Math.floor(rng() * (i + 1));
-      [out[i], out[j]] = [out[j], out[i]];
-    }
-    return out;
-  };
-  const byLength = (list: ReadonlyArray<{ id: string; text: string }>) =>
-    [...list].sort(
-      (a, b) => lettersOf(b.text).length - lettersOf(a.text).length || a.text.localeCompare(b.text, 'ru'),
-    );
-
-  const fresh = shuffled(candidates.filter((w) => !avoid.has(w.id)));
-  const stale = shuffled(byLength(candidates.filter((w) => avoid.has(w.id))));
   // Сколько слов просим у сетки: меньше пула, чтобы следующей было что менять.
   const limit = wordsPerBoard(candidates.length, maxWords);
-  // Порядок = приоритет размещения: сперва свежие (перемешаны, чтобы якорь
-  // каждый раз был другой), и только если их не хватает — слова прошлой сетки.
-  const chosen =
-    fresh.length >= limit
-      ? fresh.slice(0, limit)
-      : [...fresh, ...stale].slice(0, Math.min(limit, FRESH_RESERVE + fresh.length));
+  // Порядок = приоритет размещения. Круг по стабильно перемешанному пулу,
+  // повёрнутый на курсор: слова прошлой сетки физически не попадают в
+  // выборку, пока не пройден весь круг (см. `engine/pool-cursor.ts`).
+  // Окно круга чуть шире сетки, слова из окна — вперемешку, набор обязан
+  // заметно отличаться от прошлого (см. `pickBoardWords`).
+  const rngPick = mulberry32(seed ^ 0x5f3759df);
+  const pickedResult = pickBoardWords(candidates, limit, {
+    cursor: opts.cursor,
+    avoidIds: opts.avoidIds,
+    rng: rngPick,
+  });
+  const chosen = pickedResult.chosen;
+
+
+  // `rng` перемешивает порядок размещения и стартовые позиции; сами слова
+  // выбирает курсор, поэтому одинаковый seed при разных курсорах даёт разные
+  // наборы.
+  const rng = mulberry32(seed ^ (Math.imul(Math.trunc(opts.cursor ?? 0) + 1, 0x9e3779b1) >>> 0));
 
   let best: AttemptResult | null = null;
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
@@ -394,7 +402,13 @@ export function buildCrossword(
     [bag[i], bag[j]] = [bag[j], bag[i]];
   }
 
-  return { rows, cols, letters, slots, pool: bag };
+  // Курсор шагает ровно на число слов, реально попавших в решётку (включая
+  // «лестницу»): иначе соседние решётки пересекались бы словами.
+  // Курсор — за последним выбранным словом: следующая решётка начнётся с
+  // новых слов. Если какое-то выбранное слово не легло даже в «лестницу»,
+  // допускаем сдвиг ещё на единицу, чтобы оно не вернулось на экран сразу.
+  const nextCursor = advanceCursor(pickedResult.cursor, Math.max(0, chosen.length - slots.length), candidates.length);
+  return { rows, cols, letters, slots, pool: bag, nextCursor };
 }
 
 export interface EvaluateFillsResult {

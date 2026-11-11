@@ -44,13 +44,16 @@ interface Tile {
 export function CrosswordGame({ pool, onGoLessons }: CrosswordGameProps) {
   const [seed, setSeed] = useState(randSeed);
   /**
-   * Слова прошлой решётки. «Ещё кроссворд» / «Новая сетка» меняет и слова,
-   * а не только их расположение (замечание 2026-11-11).
+   * Курсор по пулу: сколько слов уже показали. «Ещё кроссворд» сдвигает его на
+   * число слотов прошлой решётки — следующая начинается с новых слов
+   * (замечание 2026-11-11: «в кроссворде тоже слова не меняются»).
    */
+  const [cursor, setCursor] = useState(0);
+  /** Слова ровно прошлой решётки — страховка от повтора (не накапливается). */
   const [avoidIds, setAvoidIds] = useState<string[]>([]);
   const board = useMemo(
-    () => buildCrossword(pool, { seed, avoidIds }),
-    [pool, seed, avoidIds],
+    () => buildCrossword(pool, { seed, cursor, avoidIds }),
+    [pool, seed, cursor, avoidIds],
   );
 
   const [fills, setFills] = useState<Record<string, string>>({});
@@ -164,12 +167,15 @@ export function CrosswordGame({ pool, onGoLessons }: CrosswordGameProps) {
   /**
    * Новая решётка — с другими словами.
    *
-   * Если пул большой (в «Играх» до 60 слов), слова прошлой сетки уходят в
-   * конец очереди и вернутся позже. Если слов мало, движок сам возьмёт их
-   * снова: пустая решётка хуже повтора.
+   * Курсор сдвигается на число слотов прошлой решётки: пул проходится по
+   * кругу, слово возвращается только после полного обхода. Раньше здесь был
+   * список «избегаемых» слов, но на пуле из трёх слов он просто замыкался на
+   * себя — решётка повторялась набором снова и снова.
    */
   const newGrid = () => {
-    setAvoidIds(board?.slots.map((s) => s.wordId) ?? []);
+    // Курсор считает движок — по той же выборке, из которой выбраны слова.
+    setCursor(board?.nextCursor ?? 0);
+    setAvoidIds([...new Set(board?.slots.map((s) => s.wordId) ?? [])]);
     setSeed(randSeed());
   };
 

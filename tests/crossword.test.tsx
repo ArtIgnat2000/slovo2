@@ -64,10 +64,19 @@ export async function runCrosswordChecks(): Promise<void> {
   // ── 2b. Набор слов меняется, повторов нет (0.96.3) ──────────────────────
   const richPool2 = WORDS_BY_GRADE[2].filter((w) => !w.text.includes(' ') && !w.text.includes(' ')).slice(0, 30);
   const setOf = (b: NonNullable<ReturnType<typeof buildCrossword>>) => b.slots.map((s) => s.wordId);
-  const boards = Array.from({ length: 6 }, (_, i) => buildCrossword(richPool2, { seed: 700 + i })).filter(
-    (b): b is NonNullable<typeof b> => !!b,
-  );
-  check('кроссворд: разные seed → разные наборы слов',
+  // Набор слов двигает курсор (0.96.5), поэтому идём по нему, как ребёнок.
+  const boards = (() => {
+    let cur = 0;
+    const out: NonNullable<ReturnType<typeof buildCrossword>>[] = [];
+    for (let i = 0; i < 6; i++) {
+      const b = buildCrossword(richPool2, { seed: 700 + i, cursor: cur });
+      if (!b) break;
+      out.push(b);
+      cur = b.nextCursor;
+    }
+    return out;
+  })();
+  check('кроссворд: смена сетки → разные наборы слов',
     boards.length > 1 && boards.some((b) => setOf(b).join(',') !== setOf(boards[0]).join(',')),
     boards.map((b) => setOf(b).length).join('/'));
   check('кроссворд: одно слово не занимает два слота',
@@ -80,41 +89,53 @@ export async function runCrosswordChecks(): Promise<void> {
   // «Ещё кроссворд» не повторяет слова прошлой сетки, пока есть свежие.
   let prevIds: string[] = [];
   let cwOverlap = 0;
+  let cwCursor = 0;
   for (let i = 0; i < 5; i++) {
-    const next = buildCrossword(richPool2, { seed: 800 + i, avoidIds: prevIds });
+    const next = buildCrossword(richPool2, { seed: 800 + i, cursor: cwCursor, avoidIds: prevIds });
     if (!next) continue;
     const ids = setOf(next);
     if (i > 0) cwOverlap += ids.filter((id) => prevIds.includes(id)).length;
+    cwCursor = next.nextCursor;
     prevIds = ids;
   }
   check('кроссворд: новая сетка не повторяет слова прошлой', cwOverlap === 0, `повторов: ${cwOverlap}`);
 
-  // ── 2c. Смена набора работает на любом пуле (0.96.4) ────────────────────
-  // Было: решётка забирала весь пул (и даже добавляла в «лестницу» слова,
-  // не поместившиеся в лимит), поэтому «Ещё кроссворд» не менял слова.
-  for (const size of [4, 6, 9]) {
+  // ── 2c. Смена набора как в приложении: курсор + прошлая сетка (0.96.5) ──
+  // Владелец: «в кроссворде тоже слова не меняются». Проверяем сценарий
+  // «Ещё кроссворд»: курсор из движка + слова прошлой решётки.
+  for (const size of [6, 8, 12, 30]) {
     const poolN = WORDS_BY_GRADE[2].filter((w) => !w.text.includes(' ') && [...w.text].length <= 9).slice(0, size);
+    let cursor = 0;
     let prevIds: string[] = [];
-    let firstSlots = 0;
+    let repeats = 0;
     let sameSet = 0;
-    let withoutNew = 0;
-    let boards = 0;
-    for (let i = 0; i < 4; i++) {
-      const b = buildCrossword(poolN, { seed: 600 + i, avoidIds: prevIds });
+    const union = new Set<string>();
+    for (let i = 0; i < 6; i++) {
+      const b = buildCrossword(poolN, { seed: 600 + i, cursor, avoidIds: prevIds });
       if (!b) break;
       const ids = b.slots.map((s) => s.wordId);
-      if (i === 0) firstSlots = ids.length;
+      ids.forEach((id) => union.add(id));
       if (i > 0) {
-        boards++;
+        repeats += ids.filter((id) => prevIds.includes(id)).length;
         if (ids.slice().sort().join(',') === prevIds.slice().sort().join(',')) sameSet++;
-        if (ids.every((id) => prevIds.includes(id))) withoutNew++;
       }
+      cursor = b.nextCursor;
       prevIds = ids;
     }
+    check(`кроссворд: на пуле ${size} слов новая сетка не повторяет слова прошлой`, repeats === 0, `повторов: ${repeats}`);
     check(`кроссворд: на пуле ${size} слов набор не повторяется один в один`, sameSet === 0, `совпадений: ${sameSet}`);
-    check(`кроссворд: на пуле ${size} слов в каждой сетке есть новое слово`, boards > 0 && withoutNew === 0,
-      `без новых: ${withoutNew} из ${boards}`);
-    check(`кроссворд: на пуле ${size} слов сетка не забирает весь пул`, firstSlots < size, `слотов: ${firstSlots}`);
+    check(`кроссворд: на пуле ${size} слов сетка не забирает весь пул`, union.size > 0 && union.size <= size,
+      `видели ${union.size} из ${size}`);
+  }
+
+  // Курсор обязан реально вести вперёд: два шага подряд не дают один набор.
+  {
+    const poolN = WORDS_BY_GRADE[2].filter((w) => !w.text.includes(' ') && [...w.text].length <= 9).slice(0, 12);
+    const first = buildCrossword(poolN, { seed: 21, cursor: 0 })!;
+    const second = buildCrossword(poolN, { seed: 21, cursor: first.nextCursor, avoidIds: first.slots.map((s) => s.wordId) })!;
+    check('кроссворд: nextCursor сдвигает набор вперёд',
+      second.slots.every((s) => !first.slots.some((f) => f.wordId === s.wordId)),
+      second.slots.map((s) => s.text).join(','));
   }
 
   // ── 3. Входной фильтр ────────────────────────────────────────────────────

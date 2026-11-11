@@ -35,6 +35,16 @@ import { CrosswordGame } from '../CrosswordGame';
 
 type GameId = 'build' | 'search' | 'crossword';
 
+/**
+ * Минимальный пул для сеточных игр. Меньше шести слов — и «Новая сетка»
+ * физически не может показать другие слова: на трёх словах любая сетка
+ * состоит из этих трёх (замечание 2026-11-11, «постоянно телефон»).
+ */
+const GAMES_MIN_POOL = 12;
+
+/** Длина слова в буквах — для отсева «телепередача» и подобных. */
+const lettersCount = (text: string) => [...text].filter((ch) => ch !== ' ' && ch !== '-').length;
+
 /** Правило свободной практики — для взрослого, не для постоянной строки. */
 const PLAY_RULE = 'Играй сколько хочешь: ничего не сгорает и ничего не считается.';
 
@@ -47,14 +57,41 @@ const GAMES: Array<{ id: GameId; emoji: string; title: string; oneline: string }
 export function GamesScreen({ onGoLessons }: { onGoLessons: () => void }) {
   const profile = useActiveProfile();
   const grade = availableClass(profile?.activeClass ?? 2);
-  const practice = useMemo(() => {
+  const met = useMemo(() => {
     const scope = WORDS_BY_GRADE[grade].filter((w) => !w.text.includes(' '));
     const states = profile?.words ?? {};
-    const met = scope.filter((w) => (states[w.id]?.s ?? 0) > 0);
-    const mastered = met.filter((w) => (states[w.id]?.s ?? 0) >= MASTERED_SCORE);
-    // Осваиваем то, что знаем лучше всего; если освоено мало — всё встреченное.
-    return (mastered.length >= 3 ? mastered : met).slice(0, 60);
+    return scope.filter((w) => (states[w.id]?.s ?? 0) > 0);
   }, [grade, profile]);
+
+  /**
+   * Пул «Собери слово» — слова, которые ребёнок уже встречал (освоенные, если
+   * их хотя бы три, иначе все встреченные).
+   */
+  const practice = useMemo(() => {
+    const states = profile?.words ?? {};
+    const mastered = met.filter((w) => (states[w.id]?.s ?? 0) >= MASTERED_SCORE);
+    return (mastered.length >= 3 ? mastered : met).slice(0, 60);
+  }, [met, profile]);
+
+  /**
+   * Пул «Филворда» и «Кроссворда» (0.96.5) — с добором слов класса.
+   *
+   * Ошибка, из-за которой слова «не менялись» три релиза подряд: пул игр
+   * состоял только из встреченных слов, а у ребёнка в начале пути их три
+   * (`беседа`, `телефон`, `человек` — ровно как на скриншотах). Из трёх слов
+   * невозможна сетка «другими словами»: какие три взял, такие и показал.
+   * Поэтому, если знакомых слов меньше GAMES_MIN_POOL, добираем по порядку
+   * классовой программы — это те же слова, которые скоро встретятся в уроках,
+   * и они не вытесняют знакомые (те идут первыми).
+   */
+  const gamesPool = useMemo(() => {
+    if (met.length >= GAMES_MIN_POOL) return met.slice(0, 60);
+    const ids = new Set(met.map((w) => w.id));
+    const filler = WORDS_BY_GRADE[grade].filter(
+      (w) => !w.text.includes(' ') && !ids.has(w.id) && lettersCount(w.text) <= 9,
+    );
+    return [...met, ...filler].slice(0, Math.max(GAMES_MIN_POOL, met.length));
+  }, [grade, met]);
   const [wordId, setWordId] = useState<string | null>(null);
   const [game, setGame] = useState<GameId>('build');
 
@@ -155,9 +192,17 @@ export function GamesScreen({ onGoLessons }: { onGoLessons: () => void }) {
             </div>
           ))}
 
-        {game === 'search' && <WordSearchGame pool={practice} grade={grade} onGoLessons={onGoLessons} />}
+        {/* `key` по пулу: когда набор знакомых слов вырос (ребёнок прошёл
+            урок), игра начинается с первой сетки нового пула, а не с курсора
+            старого размера. Без этого курсор мог указывать в середину нового
+            пула и первые слова выглядели «пропущенными». */}
+        {game === 'search' && (
+          <WordSearchGame key={`ws-${gamesPool.length}`} pool={gamesPool} grade={grade} onGoLessons={onGoLessons} />
+        )}
 
-        {game === 'crossword' && <CrosswordGame pool={practice} onGoLessons={onGoLessons} />}
+        {game === 'crossword' && (
+          <CrosswordGame key={`cw-${gamesPool.length}`} pool={gamesPool} onGoLessons={onGoLessons} />
+        )}
       </div>
     </div>
   );
