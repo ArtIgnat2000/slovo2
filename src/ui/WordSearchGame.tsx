@@ -36,7 +36,16 @@ const randSeed = () => Math.floor(Math.random() * 2 ** 31);
 
 export function WordSearchGame({ pool, grade, onGoLessons }: WordSearchGameProps) {
   const [seed, setSeed] = useState(randSeed);
-  const board = useMemo(() => buildWordSearch(pool, { grade, seed }), [pool, grade, seed]);
+  /**
+   * Слова прошлой сетки. «Новая сетка» меняет и сами слова, а не только их
+   * расположение (замечание 2026-11-11): движок получает этот список и берёт
+   * такие слова в последнюю очередь.
+   */
+  const [avoidIds, setAvoidIds] = useState<string[]>([]);
+  const board = useMemo(
+    () => buildWordSearch(pool, { grade, seed, avoidIds }),
+    [pool, grade, seed, avoidIds],
+  );
 
   const [anchor, setAnchor] = useState<WsCell | null>(null);
   const [head, setHead] = useState<WsCell | null>(null);
@@ -186,7 +195,18 @@ export function WordSearchGame({ pool, grade, onGoLessons }: WordSearchGameProps
     }
   };
 
-  const newGrid = () => setSeed(randSeed());
+  /**
+   * «Ещё сетку» / «Новая сетка»: новое поле с новыми словами.
+   *
+   * Если пул большой (в «Играх» до 60 слов), прошлые слова просто уходят в
+   * конец очереди — они вернутся позже, когда свежие закончатся. Если слов
+   * мало и без прошлых сетку не собрать, движок сам возьмёт их (иначе —
+   * пустой экран).
+   */
+  const newGrid = () => {
+    setAvoidIds(board?.words.map((w) => w.wordId) ?? []);
+    setSeed(randSeed());
+  };
 
   if (!board) {
     return (

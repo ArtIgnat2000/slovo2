@@ -93,10 +93,23 @@ function lettersOf(text: string): string[] {
   return [...text.toLowerCase()];
 }
 
+/** Сколько слов хотим видеть на поле: меньше — поле «пустое», больше — каша. */
+const WORDS_TARGET = 5;
+
 export interface BuildWordSearchOptions {
   grade: number;
   seed: number;
+  /**
+   * Слова прошлой сетки: в новом поле они берутся в последнюю очередь.
+   * «Новая сетка» должна менять не только расположение букв, но и слова
+   * (замечание 2026-11-11). Если свежих слов не хватает на доску, они
+   * возвращаются — пустой экран хуже повтора.
+   */
+  avoidIds?: ReadonlyArray<string>;
 }
+
+/** Сколько слов прячем на поле: не меньше трёх, не больше детского предела. */
+const WORDS_MAX = WS_MAX_WORDS;
 
 /**
  * Собираем доску из переданного пула (это уже «встреченные ребёнком» слова).
@@ -108,6 +121,12 @@ export function buildWordSearch(pool: ReadonlyArray<{
   danger?: number[];
 }>, opts: BuildWordSearchOptions): WordSearchBoard | null {
   const { grade, seed } = opts;
+  // Свежих слов должно хватать на доску целиком: 4–5 найденных, ещё пара —
+  // «страховка» на случай, если слово не ляжет в поле. Иначе новые слова
+  // закончатся на третьей сетке и поле начнёт повторяться.
+  const freshEnough = opts.avoidIds
+    ? pool.filter((w) => !opts.avoidIds!.includes(w.id) && !w.text.includes(' ')).length >= WORDS_TARGET + 2
+    : false;
   const candidates = pool.filter((w) => !w.text.includes(' ') && lettersOf(w.text).length >= 2);
 
   // Базовый размер по классу; если коротких слов не хватает — растим поле.
@@ -119,26 +138,77 @@ export function buildWordSearch(pool: ReadonlyArray<{
   if (placeable.length < WS_MIN_WORDS) return null;
 
   const rng = mulberry32(seed);
-  // Длинные слова первыми: их сложнее впихнуть, пока поле пустое.
-  const ordered = [...placeable].sort(
-    (a, b) => lettersOf(b.text).length - lettersOf(a.text).length || a.text.localeCompare(b.text, 'ru'),
-  );
-
   const directions = grade >= 5 ? DIRECTIONS_WITH_DIAGONALS : DIRECTIONS_STRAIGHT;
   const grid: Array<Array<string | null>> = Array.from({ length: size }, () => Array.from({ length: size }, () => null));
   const placed: WsPlacedWord[] = [];
 
-  for (const word of ordered) {
-    if (placed.length >= WS_MAX_WORDS) break;
-    const letters = lettersOf(word.text);
-    const placedWord = tryPlace(grid, word, letters, directions, rng);
-    if (placedWord) placed.push(placedWord);
+  // Пробуем несколько составов слов: если первая порция упёрлась в границы
+  // поля и не легла, берём следующую — поле всё равно должно получиться,
+  // иначе сетка окажется пустым экраном.
+  for (const window of wordWindows(placeable, rng, freshEnough ? opts.avoidIds : undefined)) {
+    for (const word of window) {
+      if (placed.length >= WORDS_MAX) break;
+      const letters = lettersOf(word.text);
+      const placedWord = tryPlace(grid, word, letters, directions, rng);
+      if (placedWord) placed.push(placedWord);
+    }
+    if (placed.length >= WORDS_TARGET) break;
   }
 
   if (placed.length < WS_MIN_WORDS) return null;
 
   const cells = grid.map((row) => row.map((cell) => cell ?? pickFillerLetter(rng)));
   return { size, cells, words: placed };
+}
+
+/**
+ * Составы слов для поля — от самого «богатого» к самому простому.
+ *
+ * Было: слова брались строго по длине (`sort` по убыванию), поэтому каждый
+ * заход на «Филворд» показывал один и тот же набор — самые длинные слова пула
+ * (замечание владельца 2026-11-11: «чтобы были разные слова, а не жёстко один
+ * набор»).
+ *
+ * Стало: порядок слов случайный, а «якорь» (первое, самое длинное слово)
+ * каждый раз новый. Слова прошлой сетки (`avoidIds`) уходят в самый конец —
+ * «Новая сетка» меняет и слова, а не только расположение букв. Порядок здесь
+ * не косметика: `tryPlace` идёт по списку сверху вниз и прячет то, что легло,
+ * поэтому список = приоритет.
+ *
+ *  • первое окно — якорь + свежие слова вперемешку (разные длины: филворд не
+ *    должен состоять из одних 8-буквенных «извините» и «обезьяна»);
+ *  • второе — весь пул, включая прошлую сетку: если пул крошечный, лучше
+ *    повторить слово, чем показать пустой экран.
+ */
+function wordWindows(
+  placeable: ReadonlyArray<{ id: string; text: string; danger?: number[] }>,
+  rng: () => number,
+  avoidIds?: ReadonlyArray<string>,
+): Array<Array<{ id: string; text: string; danger?: number[] }>> {
+  type Candidate = { id: string; text: string; danger?: number[] };
+  const avoid = new Set(avoidIds ?? []);
+  const len = (w: { text: string }) => lettersOf(w.text).length;
+  const shuffled = <T,>(list: readonly T[]): T[] => {
+    const out = [...list];
+    for (let i = out.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [out[i], out[j]] = [out[j], out[i]];
+    }
+    return out;
+  };
+
+  const fresh: Candidate[] = shuffled(placeable.filter((w) => !avoid.has(w.id)));
+  const old: Candidate[] = shuffled(placeable.filter((w) => avoid.has(w.id)));
+  // Якорь — случайное из самых длинных свежих слов: его заметнее всего искать,
+  // а класть в пустое поле проще всего.
+  const longest = Math.max(0, ...fresh.map(len));
+  const anchorPool = fresh.filter((w) => len(w) === longest);
+  const anchor = anchorPool.length > 0 ? anchorPool[Math.floor(rng() * anchorPool.length)] : fresh[0] ?? null;
+  const rest = shuffled(fresh.filter((w) => w.id !== anchor?.id));
+
+  const primary: Candidate[] = [...(anchor ? [anchor] : []), ...rest];
+  const all: Candidate[] = [...new Map([...primary, ...old].map((w) => [w.id, w])).values()];
+  return [primary, all];
 }
 
 function tryPlace(
