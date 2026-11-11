@@ -489,6 +489,9 @@ export default function App() {
 
       {!profilesOpen &&
         !chatOpen &&
+        // В «Играх» БУК не летает: он висел в правом нижнем углу поверх
+        // лотка с буквами и закрывал плитки (замечание 2026-11-11).
+        tab !== 'games' &&
         tab !== 'shop' &&
         settings.mascot !== 'off' &&
         (settings.mascot !== 'home' || tab === 'home') && (

@@ -7164,7 +7164,8 @@ img.product-photo {
   font-size: 20px;
 }
 .lesson-screen .slot,
-.lesson-screen .letter {
+.lesson-screen .letter,
+.lesson-screen .tileboard-gap {
   width: 44px;
   height: 52px;
   font-size: 23px;
@@ -10239,6 +10240,17 @@ img.product-photo {
 .tileboard-slot:not(.filled):not(.drop) {
   border-style: dashed;
 }
+/* Пустое место от убранной буквы. В уроке лоток — флекс-строка, поэтому
+   «дырка» держит те же 46×58 px, что и плитка; в «Играх» размер задаёт сетка. */
+.tileboard-gap {
+  display: block;
+  flex: none;
+  width: 46px;
+  height: 58px;
+  border-radius: 12px;
+  border: 2px dashed color-mix(in srgb, var(--line) 70%, transparent);
+  opacity: 0.55;
+}
 .tileboard-ghost {
   position: fixed;
   z-index: 60;
@@ -10292,65 +10304,211 @@ img.product-photo {
   100% { transform: scale(1); opacity: 1; }
 }
 
-/* ── Вкладка «Игры» ─────────────────────────────────────────────────────── */
-.games-section {
-  margin: 14px 0 4px;
-}
+/* ── Вкладка «Игры» (0.96.0: один экран — одна игра) ─────────────────────
+   Замечание владельца: «не помещается и неудобно». Что было не так:
+     • три игры лежали друг под другом — вкладка превращалась в простыню,
+       и «Собери слово» на телефоне занимало больше экрана, чем было видно;
+     • картинка-подсказка брала --art-clue-hero (до 220 px) и выдавливала
+       лунки и лоток вниз, за нижнее меню;
+     • 60 чипов-слов раздували карточку ещё на 130–170 px.
+   Что стало:
+     • сверху сегмент-переключатель игр, ниже — ровно одна игра;
+     • экран держит высоту окна (шапка и переключатель фиксированы), поле
+       игры занимает остаток и прокручивается только оно;
+     • слово выбирается лентой в одну строку с горизонтальной прокруткой;
+     • лунки и плитки раскладываются по колонкам от длины слова, размер
+       плитки выводится из ширины экрана (см. --slot-col-w ниже).
+   Почему так, а не «ещё плотнее»: у детей 7–9 лет палец крупнее, чем у
+   взрослого, а Material и Apple требуют цель ≥ 48 pt — поэтому плотность
+   добираем не уменьшением плиток, а сменой композиции. */
 
-/* Две игровые секции рядом на планшете и десктопе; на телефоне — столбиком. */
-.games-duo {
+.screen.games-screen {
+  /* Один экран: шапка и переключатель не прокручиваются, игровое поле — да.
+     Высоту не прибиваем числом: .app — флекс-колонка с min-height: 100dvh,
+     поэтому экран занимает остаток под баннерами (обновление, установка) и
+     ничего не уезжает под нижнее меню. min-height: 0 разрешает экрану
+     сжаться, а прокрутку тогда берёт на себя сцена игры. */
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
+  gap: var(--sp-2);
+  /* Низ экрана оставляем нижнему меню (оно fixed и ~68 px): без запаса
+     последняя строка лотка уезжала под вкладки. */
+  padding-bottom: calc(76px + var(--safe-b));
+  overflow: hidden;
+  /* Токены раскладки игры: ширина карточки минус её поля и зазоры сетки.
+     Раньше размеры плиток были фиксированными (46–62 px), и длинное слово
+     просто не влезало; теперь колонок ровно столько, сколько нужно (число
+     ставит --slot-cols из UI), а плитка делит ширину поровну. */
+  --game-card-pad: var(--sp-3);
+  --game-gap: 6px;
+  --game-cols: var(--slot-cols, 8);
+  /* Потолок плитки: 62 px — как в уроке; меньше 34 px буква перестаёт
+     читаться, поэтому на тесном экране доска прокручивается, а не сжимается. */
+  --game-tile-max: 62px;
 }
-.games-section-title {
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+
+.games-head {
+  flex: none;
+}
+.games-title {
+  margin: 0;
+  font-size: var(--fs-lg);
+  line-height: 1.2;
+}
+.games-sub {
+  margin: 2px 0 0;
+  font-size: var(--fs-xs);
   color: var(--ink-2);
-  margin: 0 0 8px 2px;
+  line-height: 1.35;
 }
+
+/* Сегмент «Собери слово · Филворд · Кроссворд».
+   Тот же материал, что у нижних вкладок и у сегмента магазина: активный
+   пункт — заливка --primary и --on-primary (в тёмных темах чернила тёмные). */
+.games-switch {
+  flex: none;
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--bg-2);
+}
+.games-switch-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 46px;
+  padding: 4px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  border: none;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--ink-2);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 800;
+  line-height: 1.1;
+  cursor: pointer;
+}
+.games-switch-btn.on {
+  background: var(--primary);
+  color: var(--on-primary);
+  box-shadow: 0 2px 0 var(--primary-depth);
+}
+/* Светящийся neon даёт собственную яркую заливку --primary: белые чернила
+   на ней не читаются, поэтому берём тёмный оттенок акцента — как у кнопок
+   `.btn.primary` в этом стиле. */
+:root[data-theme-style='neon'] .games-switch-btn.on {
+  color: var(--neon-primary-ink);
+}
+.games-switch-emoji {
+  font-size: 17px;
+  line-height: 1;
+}
+.games-switch-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+/* Одна строка описания вместо абзаца: ребёнку хватает подсказки «что тут
+   делать», а место нужно самому полю. */
+.games-oneline {
+  flex: none;
+  margin: 0;
+}
+
+/* Сцена игры: занимает остаток высоты экрана и прокручивается сама. */
+.games-stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: var(--sp-2);
+}
+
 .game-practice {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  gap: 12px;
+  gap: var(--sp-2);
   background: var(--card);
   border: 1.5px solid var(--line);
   border-radius: 20px;
-  padding: 14px;
+  padding: var(--game-card-pad);
   box-shadow: var(--shadow);
 }
-.game-practice-head {
+.game-board {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  gap: var(--sp-3);
 }
-.game-practice-emoji {
-  font-size: 40px;
-  line-height: 1;
+/* Подсказка в свободной игре — компактная: картинка меньше, чем в уроке,
+   потому что главное на экране — плитки. Текст примера и объём слова
+   остаются: по ним ребёнок понимает, что собирать. */
+.game-clue {
+  display: flex;
+  justify-content: center;
 }
-.game-practice-title {
-  font-size: 19px;
+.game-clue {
+  /* WordClue ставит на плиту инлайн `--art-size: var(--art-clue)`, поэтому
+     размер задаём не самой плите, а токеном: инлайн-стиль перебить нельзя,
+     а переменную он читает из окружения. Значения заданы в px (а не в svh):
+     в calc() при вычислении padding доля svh недопустима и плита теряла
+     отступ. В игре картинка — подсказка, а не главный объект: она меньше,
+     чем в уроке (там до 192 px). Потолок 152 px ≈ 40% высоты iPhone 13. */
+  --art-clue: clamp(88px, 26vw, 152px);
+}
+.game-clue .clue {
+  gap: var(--sp-2);
+}
+.game-clue .clue-body {
+  gap: 2px;
+}
+.game-clue .sentence {
+  padding: 8px 12px;
+  font-size: var(--fs-sm);
+  line-height: 1.35;
+}
+.game-clue .clue-hint {
   margin: 0;
 }
+
+/* Лента слов: одна строка, палец ведёт вбок. Скроллбар спрятан, но
+   прокрутка настоящая — колесом, тачем и клавиатурой (Tab). */
 .game-picks {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 6px;
-  align-content: flex-start;
-  max-height: 140px;
-  overflow-y: auto;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+  margin: 0 calc(-1 * var(--game-card-pad));
+  padding-inline: var(--game-card-pad);
+  scroll-snap-type: x proximity;
+}
+.game-picks::-webkit-scrollbar {
+  display: none;
 }
 .game-pick {
-  min-height: 44px;
-  padding: 0 14px;
+  flex: none;
+  scroll-snap-align: start;
+  min-height: 40px;
+  padding: 0 12px;
   border-radius: 999px;
   border: 1.5px solid var(--line);
-  background: #fff;
+  background: var(--bg-2);
   color: var(--ink);
-  font-size: 15px;
+  font-size: var(--fs-sm);
   font-weight: 700;
+  white-space: nowrap;
   cursor: pointer;
 }
 .game-pick.on {
@@ -10358,6 +10516,82 @@ img.product-photo {
   background: var(--primary-soft);
   color: var(--primary-ink);
 }
+
+/* ── Доска с плитками в свободной игре ────────────────────────────────────
+   Раскладка по колонкам (--slot-cols из UI), плитка делит ширину карточки.
+   Потолок 62 px, пол 34 px: ниже 34 px буква перестаёт читаться, выше 62 px
+   десять плиток уже не влезают в телефон. На планшете потолок тот же —
+   иначе доска выглядела бы гигантской относительно текста. */
+.games-screen .word-board {
+  gap: var(--sp-2);
+  margin-top: 0;
+}
+.games-screen .tileboard-slots,
+.games-screen .tileboard-tray {
+  display: grid;
+  grid-template-columns: repeat(var(--game-cols), minmax(0, 1fr));
+  justify-content: center;
+  align-items: center;
+  gap: var(--game-gap);
+  /* Доска не растягивается шире, чем нужно: плитки упираются в --game-tile-max
+     и дальше на планшете просто центрируются, а не раздуваются. */
+  width: min(
+    100%,
+    calc(var(--game-cols) * var(--game-tile-max) + (var(--game-cols) - 1) * var(--game-gap))
+  );
+  margin-inline: auto;
+  flex-wrap: nowrap;
+}
+.games-screen .tileboard-slots {
+  min-height: 0;
+}
+/* Плитка делит ширину поровну; высота выводится из неё через aspect-ratio,
+   поэтому буква всегда стоит по центру ровной карточки — и при одной строке,
+   и при трёх. Шире --game-tile-max плитка не становится (см. width доски). */
+.games-screen .tileboard-slot,
+.games-screen .tileboard-tile {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 0.86;
+  /* Потолок по высоте важнее «квадратности»: два ряда по 62 px + лоток
+     должны укладываться в экран телефона, иначе плитки уезжают под меню. */
+  max-height: var(--game-tile-max);
+  padding: 0;
+  font-size: clamp(18px, calc(46vw / var(--game-cols)), 30px);
+  border-radius: 12px;
+}
+/* Убранная буква оставляет пустое место — плитки не перескакивают с места
+   на место после каждого тапа. */
+.games-screen .tileboard-gap {
+  width: 100%;
+  aspect-ratio: 0.86;
+  max-height: var(--game-tile-max);
+  border-radius: 12px;
+  border: 2px dashed color-mix(in srgb, var(--line) 70%, transparent);
+  opacity: 0.5;
+}
+.games-screen .tileboard-tray {
+  min-width: 0;
+  min-height: 0;
+  padding: 8px;
+  border-radius: 16px;
+}
+/* «Буквы разобраны» — подпись под сеткой, а не элемент сетки. */
+.games-screen .tileboard-tray-note {
+  grid-column: 1 / -1;
+  text-align: center;
+  margin: 0;
+}
+.tileboard-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--sp-2);
+}
+.tileboard-banner-actions .btn {
+  min-height: 46px;
+}
+
 .games-empty {
   background: var(--card);
   border-radius: 20px;
@@ -10510,6 +10744,16 @@ img.product-photo {
   border: 1.5px dashed var(--line);
   border-radius: 20px;
   text-align: center;
+}
+/* Победа — компактная плашка: текст одной строкой, кнопка рядом. */
+.ws-win-body,
+.cw-win-body {
+  flex: 1 1 140px;
+  min-width: 0;
+}
+.ws-win,
+.cw-win {
+  gap: 10px;
 }
 
 /* Шесть вкладок: на узком экране ужимаем подписи, цели остаются ≥ 44 px. */
@@ -10707,32 +10951,29 @@ img.product-photo {
   text-align: center;
 }
 
-/* ── «Игры»: телефон и планшет (0.94.1) ─────────────────────────────────
-   Минимум текста и никакой прокрутки «в никуда»: на телефоне карточки
-   поуже и плотнее, на планшете — две колонки и комфортная ширина. */
+/* ── «Игры»: телефон, планшет и короткий экран (0.96.0) ──────────────────
+   Экран уже держит высоту окна, поэтому здесь только подгонка плотности:
+   на маленьком телефоне поля поуже, на планшете контент не расползается
+   на всю ширину, на коротком экране подсказка становится меньше. */
 @media (max-width: 480px) {
-  .games-screen {
+  .screen.games-screen {
     padding-left: 12px;
     padding-right: 12px;
+    --game-card-pad: 10px;
   }
   .game-practice,
-  .ws-card {
-    padding: 12px 10px;
+  .ws-card,
+  .cw-card {
+    padding: 10px;
     border-radius: 18px;
+    gap: var(--sp-2);
   }
-  .game-practice-head {
-    gap: 10px;
+  .games-switch-btn {
+    min-height: 44px;
+    font-size: 11.5px;
   }
-  .game-practice-emoji {
-    font-size: 32px;
-  }
-  .game-practice-title {
-    font-size: 17px;
-  }
-  .game-picks {
-    max-height: 128px;
-    overflow-y: auto;
-    align-content: flex-start;
+  .games-switch-emoji {
+    font-size: 15px;
   }
   .ws-words {
     gap: 6px;
@@ -10741,24 +10982,77 @@ img.product-photo {
     padding: 5px 8px;
     font-size: 14px;
   }
+  .ws-grid {
+    gap: 4px;
+  }
+  .ws-cell {
+    min-height: 0;
+    border-radius: 9px;
+    font-size: clamp(14px, 4.4vw, 20px);
+  }
+  .cw-tile {
+    width: 38px;
+    height: 42px;
+    font-size: 18px;
+  }
+  .cw-words {
+    max-height: 132px;
+  }
 }
+
+/* Планшет и десктоп: та же одноколоночная сцена, но не «на всю доску».
+   Две игры рядом (как было в 0.94.1) больше не нужны: на экране одна игра,
+   а слишком широкое поле кроссворда и филворда читается хуже. */
 @media (min-width: 760px) {
-  .games-screen {
-    max-width: 980px;
+  .screen.games-screen {
+    max-width: 720px;
   }
-  .games-duo {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-    align-items: start;
+  .games-switch {
+    align-self: flex-start;
+    width: 100%;
+    max-width: 520px;
   }
-  .games-duo .games-section {
-    margin: 10px 0 4px;
+  .games-switch-btn {
+    min-height: 50px;
+    font-size: 14px;
   }
-  .game-picks {
-    max-height: 168px;
-    overflow-y: auto;
-    align-content: flex-start;
+  .games-switch-emoji {
+    font-size: 19px;
+  }
+  .game-clue {
+    --art-clue: clamp(104px, 18vw, 168px);
+  }
+  .ws-cell {
+    font-size: clamp(18px, 2.6vw, 24px);
+  }
+  .cw-tile {
+    width: 46px;
+    height: 50px;
+    font-size: 22px;
+  }
+}
+
+/* Ландшафт телефона и низкие окна: вертикали мало — сжимаем подсказку,
+   чтобы лунки и лоток остались на экране целиком. */
+@media (max-height: 700px) {
+  .game-clue {
+    --art-clue: 96px;
+  }
+  .game-clue .sentence {
+    padding: 6px 10px;
+    font-size: var(--fs-xs);
+  }
+  .screen.games-screen {
+    --game-tile-max: 50px;
+    --game-gap: 5px;
+  }
+}
+@media (max-height: 560px) {
+  .games-sub {
+    display: none;
+  }
+  .game-clue .clue-hint {
+    display: none;
   }
 }
 

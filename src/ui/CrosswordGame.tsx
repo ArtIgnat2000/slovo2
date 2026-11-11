@@ -172,8 +172,10 @@ export function CrosswordGame({ pool, onGoLessons }: CrosswordGameProps) {
 
   return (
     <div className="cw-card">
+      {/* Инструкция одной строкой: на телефоне каждый абзац над решёткой
+          отнимает у решётки высоту (замечание 2026-11-11). */}
       <p className="tiny muted cw-instruction">
-        Тапни букву — она встанет в выбранное слово. Неверное слово подсветится — исправится в один тап.
+        Тапни букву — она встанет в выбранное слово. Ошибку исправит тап по клетке.
       </p>
 
       <div
@@ -274,9 +276,8 @@ export function CrosswordGame({ pool, onGoLessons }: CrosswordGameProps) {
       {isWin ? (
         <div className="cw-win" role="status" data-cw-win="1">
           <div className="cw-win-emoji" aria-hidden="true">🎉</div>
-          <div>
+          <div className="cw-win-body">
             <p className="cw-win-title">Кроссворд собран!</p>
-            <p className="tiny muted">Все слова класса вспомнились сами. Или возьми новую сетку.</p>
           </div>
           <button type="button" className="btn primary" onClick={newGrid}>
             🔄 Ещё кроссворд
