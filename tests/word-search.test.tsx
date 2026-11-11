@@ -61,6 +61,34 @@ export async function runWordSearchChecks(): Promise<void> {
   const noPhrases = buildWordSearch([...someShortWords(), ...phraseOnly], { grade: 2, seed: 1 });
   check('филворд: фразы не попадают на поле', !!noPhrases && noPhrases.words.every((w) => !w.text.includes(' ')), '');
 
+  // ── 2b. Слова разные, а не «жёстко один набор» (0.96.2) ─────────────────
+  const richPool = WORDS.filter((w) => !w.text.includes(' ')).slice(0, 60);
+  const sets = Array.from({ length: 8 }, (_, i) =>
+    new Set(buildWordSearch(richPool, { grade: 2, seed: 500 + i })!.words.map((w) => w.wordId)),
+  );
+  const firstSet = [...sets[0]].join(',');
+  check('филворд: разные seed → разные наборы слов',
+    sets.some((set) => [...set].join(',') !== firstSet), `наборы: ${sets.map((s2) => s2.size).join('/')}`);
+  check('филворд: поле не пустое и не из одного слова',
+    sets.every((set) => set.size >= 3 && set.size <= WS_MAX_WORDS), sets.map((set) => set.size).join(','));
+
+  // «Новая сетка» не повторяет слова прошлой, пока есть свежие: движок
+  // получает avoidIds и ставит их в конец очереди.
+  let prev: string[] = [];
+  let overlaps = 0;
+  for (let i = 0; i < 6; i++) {
+    const next = buildWordSearch(richPool, { grade: 2, seed: 900 + i, avoidIds: prev })!;
+    const ids = next.words.map((w) => w.wordId);
+    if (i > 0) overlaps += ids.filter((id) => prev.includes(id)).length;
+    prev = ids;
+  }
+  check('филворд: «новая сетка» не повторяет слова прошлой (большой пул)', overlaps === 0, `повторов: ${overlaps}`);
+
+  // Малый пул: без прошлых слов сетку не собрать — лучше повтор, чем пустота.
+  const tiny = WORDS.filter((w) => !w.text.includes(' ')).slice(0, 4);
+  const tinyBoard = buildWordSearch(tiny, { grade: 2, seed: 1, avoidIds: tiny.map((w) => w.id) });
+  check('филворд: на крошечном пуле доска всё равно собирается', !!tinyBoard, tinyBoard ? tinyBoard.words.length.toString() : 'null');
+
   // ── 3. selectionCells ────────────────────────────────────────────────────
   const line = selectionCells({ row: 2, col: 1 }, { row: 2, col: 6 });
   check('филворд: горизонтальная линия из 6 клеток', !!line && line.length === 6 && line.every((c) => c.row === 2), '');

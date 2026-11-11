@@ -130,6 +130,27 @@ export async function runGamesUiChecks() {
 // в SRS и XP — чистая свободная игра.
 export async function runWordSearchUiChecks() {
   console.log('\n── Филворд: буквенное поле ──');
+  // Пул побольше: тогда «Новая сетка» обязана показать ДРУГИЕ слова
+  // (на шести словах без повторов сетку не собрать — и это честное поведение).
+  const activeNow = useApp.getState().profiles.find((p) => p.id === useApp.getState().activeId);
+  const gradeNow = (activeNow?.activeClass ?? 2) as keyof typeof WORDS_BY_GRADE;
+  const wide = (WORDS_BY_GRADE[gradeNow] ?? []).filter((w) => !w.text.includes(' ')).slice(0, 24);
+  useApp.setState((s) => ({
+    profiles: s.profiles.map((p) =>
+      p.id === s.activeId
+        ? {
+            ...p,
+            words: {
+              ...p.words,
+              ...Object.fromEntries(
+                wide.map((w) => [w.id, { s: MASTERED_SCORE, due: 0, iv: 4, n: 3, seen: 3, ok: 3, wrong: 0 }]),
+              ),
+            },
+          }
+        : p,
+    ),
+  }));
+  await sleep(60);
   await goTab('Игры');
   await sleep(60);
   check('филворд: игра выбирается сегментом', await goGame('Филворд'), '');
@@ -216,11 +237,19 @@ export async function runWordSearchUiChecks() {
   await sleep(120);
   check('филворд: баннер «Все слова найдены!»', has('Все слова найдены'), document.body.textContent?.slice(0, 300) ?? '');
 
-  // «Ещё сетку» — новая доска с чистым счётчиком.
+  // «Ещё сетку» — новая доска с чистым счётчиком и ДРУГИМИ словами
+  // (замечание 2026-11-11: «смена сетки меняет и слова»).
+  const wordsOf = () =>
+    Array.from(document.querySelectorAll('.ws-chip')).map((c) => (c as HTMLElement).dataset.wsText ?? '').sort().join(',');
+  const wordsBefore = wordsOf();
   const again = btnText('Ещё сетку');
   click(again);
   await sleep(80);
   check('филворд: «Ещё сетку» очищает счётчик', /^Найдено: 0 из \d+$/.test(counter()), counter());
+  const wordsAfter = wordsOf();
+  check('филворд: «Ещё сетку» меняет слова, а не только их места',
+    wordsAfter !== wordsBefore && !wordsAfter.split(',').some((w) => wordsBefore.split(',').includes(w)),
+    `было: ${wordsBefore} / стало: ${wordsAfter}`);
   check('филворд: найденные клетки больше не подсвечены', document.querySelectorAll('.ws-chip-found').length === 0, '');
 
   // Промах не падает и не ломает игру: тап по двум далёким неровным клеткам.
