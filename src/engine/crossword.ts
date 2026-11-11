@@ -62,6 +62,26 @@ export interface BuildCrosswordOptions {
 /** Сколько свежих слов нужно, чтобы полностью обойтись без прошлой сетки. */
 const FRESH_RESERVE = 2;
 
+/**
+ * Сколько слов брать в сетку, чтобы «Ещё кроссворд» реально менял набор.
+ *
+ * Было: `slice(0, maxWords)` при maxWords = 6, то есть на пуле из шести
+ * изученных слов решётка забирала ВСЕ слова и следующая сетка не могла
+ * отличаться набором — только расположением (замечание 2026-11-11:
+ * «в обоих играх так и не работает смена слов»).
+ * Теперь минимум два слова пула остаются «в запасе».
+ */
+function wordsPerBoard(size: number, maxWords: number): number {
+  const cap = Math.max(MIN_SLOTS, maxWords);
+  // ~60% пула за сетку: оставшиеся 40% — это и есть «другие слова» для
+  // следующей решётки. На большом пуле упираемся в maxWords (6).
+  return Math.min(cap, Math.max(MIN_SLOTS, Math.ceil(size * BOARD_SHARE)));
+}
+
+const MIN_SLOTS = 3;
+/** Доля пула, которую сетка забирает за один раз. */
+const BOARD_SHARE = 0.6;
+
 const CANVAS = 31;
 const CENTER = Math.floor(CANVAS / 2);
 const MAX_ATTEMPTS = 120;
@@ -319,12 +339,14 @@ export function buildCrossword(
 
   const fresh = shuffled(candidates.filter((w) => !avoid.has(w.id)));
   const stale = shuffled(byLength(candidates.filter((w) => avoid.has(w.id))));
+  // Сколько слов просим у сетки: меньше пула, чтобы следующей было что менять.
+  const limit = wordsPerBoard(candidates.length, maxWords);
   // Порядок = приоритет размещения: сперва свежие (перемешаны, чтобы якорь
   // каждый раз был другой), и только если их не хватает — слова прошлой сетки.
   const chosen =
-    fresh.length >= Math.min(maxWords, 3) + FRESH_RESERVE
-      ? fresh.slice(0, maxWords)
-      : [...fresh, ...stale].slice(0, maxWords);
+    fresh.length >= limit
+      ? fresh.slice(0, limit)
+      : [...fresh, ...stale].slice(0, Math.min(limit, FRESH_RESERVE + fresh.length));
 
   let best: AttemptResult | null = null;
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
@@ -333,7 +355,10 @@ export function buildCrossword(
   }
   if (!best) return null;
 
-  // «Лестница» для тех, кто не лёг в сеть.
+  // «Лестница» — только для выбранных слов, которые не легли в сеть. Слова,
+  // не вошедшие в лимит (`limit`), остаются «в запасе» на следующий раз:
+  // иначе решётка забирает весь пул и набор не меняется никогда (замечание
+  // 2026-11-11: «так и не работает смена слов»).
   const placedIds = new Set(best.placements.map((p) => p.wordId));
   const unplaced = chosen.filter((w) => !placedIds.has(w.id));
   const all = ladderPlacements(best.placements, unplaced);

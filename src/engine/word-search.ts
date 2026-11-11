@@ -95,6 +95,12 @@ function lettersOf(text: string): string[] {
 
 /** Сколько слов хотим видеть на поле: меньше — поле «пустое», больше — каша. */
 const WORDS_TARGET = 5;
+/**
+ * Доля пула, которую поле забирает за один раз. Остальное остаётся на
+ * следующую сетку: иначе движок забирает все выученные слова и «Новая сетка»
+ * меняет только расположение букв (замечание 2026-11-11).
+ */
+const BOARD_SHARE = 0.6;
 
 export interface BuildWordSearchOptions {
   grade: number;
@@ -160,14 +166,30 @@ export function buildWordSearch(pool: ReadonlyArray<{
   const placed: WsPlacedWord[] = [];
   const placedIds = new Set<string>();
 
+  /**
+   * Сколько слов берём за сетку.
+   *
+   * Было: движок прятал до семи слов, то есть на пуле из шести изученных слов
+   * забирал ВСЕ — и «Новая сетка» не могла показать другие слова, ей просто
+   * нечего было менять (замечание 2026-11-11: «так и не работает смена
+   * слов»). Теперь смена работает на любом пуле:
+   *   пул 3–5 слов → все (иначе сетки не собрать);
+   *   пул 6–8       → 4 (остальные придут в следующий раз);
+   *   пул 9+        → 4–5; при этом хотя бы ATTEMPTS_SLACK слов остаётся
+   *                   «в запасе», чтобы в следующей сетке были именно новые.
+   */
+  const placedLimit = Math.min(
+    WORDS_MAX,
+    WORDS_TARGET,
+    Math.max(WS_MIN_WORDS, Math.ceil(placeable.length * BOARD_SHARE)),
+  );
+
   // Пробуем несколько составов слов: если первая порция упёрлась в границы
   // поля и не легла, берём следующую — поле всё равно должно получиться,
   // иначе сетка окажется пустым экраном.
-  // `avoidIds` передаём всегда: свежие слова идут первыми, прошлые — в конце
-  // очереди (и попадут на поле, только если свежих не хватило).
   for (const window of wordWindows(placeable, rng, opts.avoidIds)) {
     for (const word of window) {
-      if (placed.length >= WORDS_MAX) break;
+      if (placed.length >= placedLimit) break;
       // Страховка от повторов: одно слово — одна позиция, что бы ни пришло
       // в списке (см. uniqueById выше).
       if (placedIds.has(word.id)) continue;
@@ -178,7 +200,7 @@ export function buildWordSearch(pool: ReadonlyArray<{
         placedIds.add(word.id);
       }
     }
-    if (placed.length >= WORDS_TARGET) break;
+    if (placed.length >= Math.min(placedLimit, WORDS_TARGET)) break;
   }
 
   if (placed.length < WS_MIN_WORDS) return null;
