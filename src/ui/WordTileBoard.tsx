@@ -308,6 +308,12 @@ export function WordTileBoard({
         )}
       </div>
 
+      {/* Решённое слово — лоток больше не нужен (0.96.6): все буквы стоят в
+          лунках, и «лоток» оставался пустым серым прямоугольником с пунктирами
+          на 78 px. На Android из-за него баннер уезжал под низ экрана
+          (замечание 2026-11-11, «не помещается игра»). В уроке лоток остаётся:
+          там он часть задания и стоит на своём месте. */}
+      {!(unscored && solved) && (
       <div
         ref={trayRef}
         className={`letters tileboard-tray ${drag?.overTray ? 'tray-hot' : ''}`}
@@ -337,6 +343,7 @@ export function WordTileBoard({
           <p className="tiny muted tileboard-tray-note">Буквы разобраны</p>
         )}
       </div>
+      )}
 
       {/* Призрак буквы под пальцем/указателем во время переноса */}
       {drag && (
@@ -355,10 +362,12 @@ export function WordTileBoard({
       {hintUsed && <HintCard word={word} />}
 
       {unscored && solved && (
-        <div className="tileboard-banner" role="status">
+        <div className="tileboard-banner tileboard-banner-compact" role="status">
           <div className="tileboard-banner-title">✨ Слово собрано!</div>
           <WordLetters word={word} markDanger small stress />
-          <div className="tiny muted">Оранжевым — та буква, которая тут хитрит</div>
+          {/* Пояснение к оранжевой букве оставляем: без него подсветка —
+              просто цвет. В компактном баннере строка мелкая и в одну строку. */}
+          <div className="tiny muted tileboard-banner-note">Оранжевым — та буква, которая тут хитрит</div>
           <div className="tileboard-banner-actions">
             {onNext && (
               <button className="btn primary" type="button" onClick={onNext}>

@@ -28,7 +28,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { availableClass, WORDS_BY_GRADE } from '../../content/words';
 import { MASTERED_SCORE } from '../../engine/classes';
 import { useActiveProfile } from '../../state/store';
-import { WordClue } from '../WordView';
+import { Sentence, WordArt, lengthLabel } from '../WordView';
 import { WordTileBoard } from '../WordTileBoard';
 import { WordSearchGame } from '../WordSearchGame';
 import { CrosswordGame } from '../CrosswordGame';
@@ -177,8 +177,24 @@ export function GamesScreen({ onGoLessons }: { onGoLessons: () => void }) {
 
               {word && (
                 <div className="game-board">
+                  {/* Подсказка «картинка + текст» в свободной игре (0.96.6).
+                      Раньше здесь стоял WordClue: картинка 152 px сверху,
+                      пример под ней, строка «💡 …» третьей строкой — ~214 px
+                      высоты. На Android это выдавливало кнопки под нижнее
+                      меню (замечание 2026-11-11, скриншот: «не помещается»).
+                      Теперь образ — компактная иконка 64 px слева, текст —
+                      справа: та же информация, ~76 px высоты. Композиция
+                      «картинка сверху» (docs/word-cards-design.md) остаётся
+                      нерушимой для карточек слов и заданий урока — здесь это
+                      не карточка, а подсказка-строка. */}
                   <div className="game-clue">
-                    <WordClue word={word} compact />
+                    <WordArt word={word} size={64} />
+                    <div className="game-clue-body">
+                      <Sentence word={word} />
+                      <p className="clue-hint">
+                        💡 {word.hint} · <b>{lengthLabel(word)}</b>
+                      </p>
+                    </div>
                   </div>
                   <WordTileBoard
                     key={word.id}

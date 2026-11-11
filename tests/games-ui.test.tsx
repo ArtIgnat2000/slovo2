@@ -101,6 +101,24 @@ export async function runGamesUiChecks() {
   check('игры: после сборки — баннер «Слово собрано!»', has('Слово собрано'), document.body.textContent?.slice(0, 260) ?? '');
   check('игры: сборка не записала XP (счёта нет по определению)', !!document.querySelector('.tileboard-banner'), '');
 
+  // ── Плотность экрана на Android (0.96.6) ────────────────────────────────
+  // Замечание владельца: «на андроиде не помещается игра» — кнопки уезжали
+  // под нижнее меню. Проверяем не пиксели (jsdom без раскладки), а состав:
+  // подсказка стала строкой «иконка + текст», а пустой лоток после сборки
+  // исчез — именно эти два блока и выдавливали баннер.
+  const clue = document.querySelector('.game-clue');
+  check('игры: подсказка — иконка и текст в одной строке, а не колонкой',
+    !!clue && !!clue.querySelector('.word-art-frame') && !!clue.querySelector('.game-clue-body'),
+    clue?.innerHTML.slice(0, 120) ?? 'подсказки нет');
+  check('игры: в подсказке остались пример и объём слова',
+    !!clue?.querySelector('.sentence') && (clue?.querySelector('.clue-hint')?.textContent ?? '').includes('букв'),
+    clue?.textContent ?? '');
+  check('игры: после сборки пустой лоток букв убран — баннер встаёт на его место',
+    !document.querySelector('.tileboard-tray'), `лотков: ${document.querySelectorAll('.tileboard-tray').length}`);
+  check('игры: пояснение к оранжевой букве осталось',
+    (document.querySelector('.tileboard-banner')?.textContent ?? '').includes('Оранжевым'),
+    document.querySelector('.tileboard-banner')?.textContent ?? '');
+
   // «Другое слово» в баннере победы: свободная игра ведёт слово за словом,
   // не заставляя искать чип в ленте (0.96.0).
   const nextBtn = btnText('Другое слово');

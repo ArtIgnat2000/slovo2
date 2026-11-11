@@ -345,8 +345,14 @@ export async function runLessonArtChecks() {
     /flex-direction:\s*column/.test(clueBase) && /align-items:\s*center/.test(clueBase),
     clueBase.replace(/\s+/g, ' ') || 'правило .clue не найдено',
   );
+  // 0.96.6: подсказка свободной игры «.game-clue» — намеренное исключение.
+  // Это не карточка слова и не подсказка задания урока, а строка «иконка +
+  // пример»: на Android колонка из картинки, примера и третьей строки занимала
+  // 214 px и выдавливала кнопки игры под нижнее меню (замечание 2026-11-11).
+  // Правило «картинка сверху» остаётся нерушимым для `.clue*`/`.wcard*` урока.
   const rowRules = Array.from(css.matchAll(/([^{}]+)\{([^}]*)\}/g))
     .filter(([, sel, body]) => /\bclue|wcard/.test(sel) && /flex-direction:\s*row/.test(body))
+    .filter(([, sel]) => !/\.game-clue/.test(sel))
     .map(([, sel]) => sel.trim());
   check(
     'картинка: ни одно правило подсказки или карточки не ставит картинку в строку',

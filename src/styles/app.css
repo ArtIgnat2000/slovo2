@@ -10299,6 +10299,29 @@ img.product-photo {
   font-weight: 900;
   color: var(--good-ink);
 }
+/* Баннер свободной игры (0.96.6) — одна плотная карточка: на Android он
+   добавлялся к уже собранной доске и выдавливал кнопку «Ещё раз» под нижнее
+   меню. Урок не трогаем: там баннер часть разбора, а не «ещё разок». */
+.tileboard-banner-compact {
+  gap: 4px;
+  margin-top: 2px;
+  padding: 8px 12px;
+  border-radius: 16px;
+}
+.tileboard-banner-compact .tileboard-banner-title {
+  font-size: 18px;
+}
+.tileboard-banner-compact .tileboard-banner-note {
+  font-size: 11.5px;
+  line-height: 1.25;
+}
+.tileboard-banner-compact .tileboard-banner-actions {
+  gap: 8px;
+  margin-top: 2px;
+}
+.tileboard-banner-compact .tileboard-banner-actions .btn {
+  min-height: 44px;
+}
 @keyframes tileboard-pop {
   0% { transform: scale(0.8); opacity: 0; }
   100% { transform: scale(1); opacity: 1; }
@@ -10344,9 +10367,10 @@ img.product-photo {
   --game-card-pad: var(--sp-3);
   --game-gap: 6px;
   --game-cols: var(--slot-cols, 8);
-  /* Потолок плитки: 62 px — как в уроке; меньше 34 px буква перестаёт
-     читаться, поэтому на тесном экране доска прокручивается, а не сжимается. */
-  --game-tile-max: 62px;
+  /* Потолок плитки: 56 px (0.96.6, было 62). Цель пальца Material — 48 dp,
+     так что 56 px с запасом; при этом два ряда плиток и лоток укладываются в
+     экран Android (~650–700 px полезной высоты) вместе с баннером. */
+  --game-tile-max: 56px;
 }
 
 .games-head {
@@ -10443,35 +10467,49 @@ img.product-photo {
   flex-direction: column;
   gap: var(--sp-3);
 }
-/* Подсказка в свободной игре — компактная: картинка меньше, чем в уроке,
-   потому что главное на экране — плитки. Текст примера и объём слова
-   остаются: по ним ребёнок понимает, что собирать. */
+/* Подсказка в свободной игре — СТРОКА, а не колонка (0.96.6).
+   Замечание владельца со скриншотом Android: «не помещается игра».
+   Было: WordClue колонкой — картинка 152 px, пример под ней, строка «💡 …»
+   третьей строкой, всего ~214 px; на экране 640–700 px это выдавливало
+   «Другое слово / Ещё раз» под нижнее меню.
+   Стало: образ — иконка 64 px слева, текст справа. Это НЕ нарушение правила
+   «картинка сверху» из docs/word-cards-design.md: там речь о карточках слов и
+   подсказках заданий урока (`.clue`, `.wcard`), а здесь подсказка-строка
+   свободной игры, где картинка — маркер слова, а не главный объект. Токен
+   --art-clue намеренно не трогаем — он принадлежит уроку. */
 .game-clue {
   display: flex;
-  justify-content: center;
-}
-.game-clue {
-  /* WordClue ставит на плиту инлайн `--art-size: var(--art-clue)`, поэтому
-     размер задаём не самой плите, а токеном: инлайн-стиль перебить нельзя,
-     а переменную он читает из окружения. Значения заданы в px (а не в svh):
-     в calc() при вычислении padding доля svh недопустима и плита теряла
-     отступ. В игре картинка — подсказка, а не главный объект: она меньше,
-     чем в уроке (там до 192 px). Потолок 152 px ≈ 40% высоты iPhone 13. */
-  --art-clue: clamp(88px, 26vw, 152px);
-}
-.game-clue .clue {
+  flex-direction: row;
+  align-items: center;
   gap: var(--sp-2);
+  justify-content: flex-start;
+  width: 100%;
 }
-.game-clue .clue-body {
+.game-clue > .word-art-frame {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  padding: 8px;
+}
+.game-clue-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 2px;
+  text-align: left;
 }
-.game-clue .sentence {
-  padding: 8px 12px;
+.game-clue-body .sentence {
+  padding: 6px 10px;
   font-size: var(--fs-sm);
-  line-height: 1.35;
+  line-height: 1.3;
+  text-align: left;
 }
-.game-clue .clue-hint {
+.game-clue-body .clue-hint {
   margin: 0;
+  font-size: var(--fs-xs);
+  text-align: left;
 }
 
 /* Лента слов: одна строка, палец ведёт вбок. Скроллбар спрятан, но
@@ -11071,8 +11109,13 @@ img.product-photo {
   .games-switch-emoji {
     font-size: 19px;
   }
-  .game-clue {
-    --art-clue: clamp(104px, 18vw, 168px);
+  .game-clue > .word-art-frame {
+    width: 72px;
+    height: 72px;
+  }
+  /* Пропуск в примере на планшете может быть короче: строка и так широкая. */
+  .game-clue-body .gap {
+    min-width: 64px;
   }
   .ws-cell {
     font-size: clamp(18px, 2.6vw, 24px);
@@ -11087,11 +11130,13 @@ img.product-photo {
 /* Ландшафт телефона и низкие окна: вертикали мало — сжимаем подсказку,
    чтобы лунки и лоток остались на экране целиком. */
 @media (max-height: 700px) {
-  .game-clue {
-    --art-clue: 96px;
+  .game-clue > .word-art-frame {
+    width: 56px;
+    height: 56px;
+    padding: 6px;
   }
-  .game-clue .sentence {
-    padding: 6px 10px;
+  .game-clue-body .sentence {
+    padding: 5px 9px;
     font-size: var(--fs-xs);
   }
   .screen.games-screen {
@@ -11100,7 +11145,7 @@ img.product-photo {
   }
 }
 @media (max-height: 560px) {
-  .game-clue .clue-hint {
+  .game-clue-body .clue-hint {
     display: none;
   }
 }
