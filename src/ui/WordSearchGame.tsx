@@ -10,8 +10,14 @@
  * Взаимодействие построено на указателе (drag) и на «тапе» (два клика);
  * клавиатурой: Tab на клетку → Enter ставит якорь → Enter на последней клетке
  * завершает линию. `touch-action: none` на поле — палец не уводит страницу.
+ *
+ * Раскладка (0.97.0): телефон — одна колонка (поле, слова-цели), планшет —
+ * две колонки: поле слева, слова-цели справа. Поле ещё и получило потолок
+ * ширины: без него оно растягивалось на всю карточку (на iPad клетка была
+ * по 100+ px) и вместе с целями не помещалось по вертикали (замечание
+ * 2026-11-12).
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import type { KeyboardEvent, PointerEvent as ReactPointerEvent } from 'react';
 import type { Word } from '../types';
 import {
@@ -25,6 +31,7 @@ import {
 import { sfx } from '../platform/sound';
 import { haptic } from '../platform/haptics';
 import { useApp } from '../state/store';
+import { useBoardCellCap } from './useBoardCellCap';
 
 export interface WordSearchGameProps {
   /** Изученные ребёнком слова (та же выборка, что у «Собери слово»). */
@@ -349,8 +356,16 @@ export function WordSearchGame({ pool, grade, priorityIds, onGoLessons }: WordSe
 
   const isWin = foundIds.length === board.words.length;
 
+  /**
+   * Потолок клетки по месту на экране (планшет/альбомный экран): поле не
+   * должно выпирать за экран. На телефоне сцену прокручивают
+   * (см. `useBoardCellCap`).
+   */
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  const cellCap = useBoardCellCap({ rows: board.size, gap: 6, cardRef });
+
   return (
-    <div className="ws-card">
+    <div className="ws-card" ref={cardRef}>
       {/* Строка состояния стоит ПЕРЕД полем: под полем её съедало нижнее
           меню, а слова-цели после победы заменяются плашкой «всё найдено». */}
       {isWin ? (
@@ -381,76 +396,90 @@ export function WordSearchGame({ pool, grade, priorityIds, onGoLessons }: WordSe
         </div>
       )}
 
-      <div
-        className="ws-grid"
-        role="group"
-        aria-label="Буквенное поле филворда"
-        style={{ ['--ws-size' as string]: board.size }}
-        onPointerMove={onGridPointerMove}
-        onPointerUp={onGridPointerUp}
-        onPointerCancel={onGridPointerUp}
-      >
-        {board.cells.map((row, r) =>
-          row.map((ch, c) => {
-            const key = `${r},${c}`;
-            const selected = selectionKeys.has(key);
-            const cls = [
-              'ws-cell',
-              foundCellKeys.has(key) ? 'ws-found' : '',
-              selected ? 'ws-in-sel' : '',
-              anchor && sameCell(anchor, { row: r, col: c }) ? 'ws-anchor' : '',
-              missKeys.has(key) ? 'ws-miss' : '',
-            ]
-              .filter(Boolean)
-              .join(' ');
-            return (
-              <button
-                key={key}
-                type="button"
-                className={cls}
-                data-ws-row={r}
-                data-ws-col={c}
-                aria-pressed={selected}
-                aria-label={`Клетка ${r + 1},${c + 1}: ${ch}`}
-                onPointerDown={onCellPointerDown({ row: r, col: c })}
-                onClick={onCellClick({ row: r, col: c })}
-                onKeyDown={onCellKeyDown({ row: r, col: c })}
-              >
-                {ch}
-              </button>
-            );
-          }),
-        )}
-      </div>
-
-      <div className="ws-words" role="group" aria-label="Найди эти слова">
-        {board.words.map((placed) => {
-          const found = foundIds.includes(placed.wordId);
-          const source = wordById.get(placed.wordId);
-          const danger = new Set(source?.danger ?? []);
-          return (
-            <span
-              key={placed.wordId}
-              className={`ws-chip${found ? ' ws-chip-found' : ''}`}
-              data-ws-text={placed.text}
-              data-ws-id={placed.wordId}
-            >
-              <span aria-hidden="true">{source?.emoji ?? '🔎'}</span>
-              <span className="ws-chip-word">
-                {[...placed.text].map((ch, i) => (
-                  <span key={i} className={danger.has(i) ? 'ws-danger' : undefined}>
+      {/* Тело карточки: на телефоне — одна колонка (поле, слова-цели), на
+          планшете — две (поле слева, слова-цели справа). Одна колонка была
+          причиной «не помещается по вертикали»: поле филворда занимало всю
+          ширину карточки (клетка по 100+ px на iPad) и уезжало за экран
+          вместе со списком целей (замечание 2026-11-12, скриншот iPad). */}
+      <div className="ws-body">
+        <div className="ws-board">
+          <div
+            className="ws-grid"
+            role="group"
+            aria-label="Буквенное поле филворда"
+            style={
+              {
+                ['--ws-size' as string]: board.size,
+                ...(cellCap ? { ['--ws-cell-cap' as string]: `${cellCap}px` } : {}),
+              } as CSSProperties
+            }
+            onPointerMove={onGridPointerMove}
+            onPointerUp={onGridPointerUp}
+            onPointerCancel={onGridPointerUp}
+          >
+            {board.cells.map((row, r) =>
+              row.map((ch, c) => {
+                const key = `${r},${c}`;
+                const selected = selectionKeys.has(key);
+                const cls = [
+                  'ws-cell',
+                  foundCellKeys.has(key) ? 'ws-found' : '',
+                  selected ? 'ws-in-sel' : '',
+                  anchor && sameCell(anchor, { row: r, col: c }) ? 'ws-anchor' : '',
+                  missKeys.has(key) ? 'ws-miss' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ');
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    className={cls}
+                    data-ws-row={r}
+                    data-ws-col={c}
+                    aria-pressed={selected}
+                    aria-label={`Клетка ${r + 1},${c + 1}: ${ch}`}
+                    onPointerDown={onCellPointerDown({ row: r, col: c })}
+                    onClick={onCellClick({ row: r, col: c })}
+                    onKeyDown={onCellKeyDown({ row: r, col: c })}
+                  >
                     {ch}
-                  </span>
-                ))}
-              </span>
-              {found && (
-                <span className="ws-chip-check" aria-hidden="true">
-                  ✓
+                  </button>
+                );
+              }),
+            )}
+          </div>
+        </div>
+
+        <div className="ws-words" role="group" aria-label="Найди эти слова">
+          {board.words.map((placed) => {
+            const found = foundIds.includes(placed.wordId);
+            const source = wordById.get(placed.wordId);
+            const danger = new Set(source?.danger ?? []);
+            return (
+              <span
+                key={placed.wordId}
+                className={`ws-chip${found ? ' ws-chip-found' : ''}`}
+                data-ws-text={placed.text}
+                data-ws-id={placed.wordId}
+              >
+                <span aria-hidden="true">{source?.emoji ?? '🔎'}</span>
+                <span className="ws-chip-word">
+                  {[...placed.text].map((ch, i) => (
+                    <span key={i} className={danger.has(i) ? 'ws-danger' : undefined}>
+                      {ch}
+                    </span>
+                  ))}
                 </span>
-              )}
-            </span>
-          );
-        })}
+                {found && (
+                  <span className="ws-chip-check" aria-hidden="true">
+                    ✓
+                  </span>
+                )}
+              </span>
+            );
+          })}
+        </div>
       </div>
 
     </div>

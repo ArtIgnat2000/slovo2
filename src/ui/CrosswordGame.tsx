@@ -14,8 +14,13 @@
  *    (тап по клетке возвращает букву в пул);
  *  • «опасный» выбор — слова класса: собрав кроссворд, ребёнок повторяет
  *    ровно те словарные слова, которые уже встречал.
+ *
+ * Раскладка (0.97.0): телефон — одна колонка (решётка, пул букв, вопросы
+ * друг под другом, сцену прокручивают); планшет — две колонки: решётка с
+ * пулом слева, вопросы справа. Одна колонка на iPad не помещалась по
+ * вертикали: вопросы уезжали под нижнее меню (замечание 2026-11-12).
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import type { Word } from '../types';
 import {
   buildCrossword,
@@ -27,6 +32,7 @@ import {
 import { sfx } from '../platform/sound';
 import { haptic } from '../platform/haptics';
 import { useApp } from '../state/store';
+import { useBoardCellCap } from './useBoardCellCap';
 import { readBoardMemo, writeBoardMemo, type BoardMemo } from './WordSearchGame';
 
 export interface CrosswordGameProps {
@@ -165,6 +171,21 @@ export function CrosswordGame({ pool, priorityIds, onGoLessons }: CrosswordGameP
 
   const active = board?.slots.find((s) => s.slot === activeSlot) ?? board?.slots[0] ?? null;
 
+  /**
+   * Потолок клетки по месту на экране (планшет/альбомный экран): решётка не
+   * должна выпирать за экран, иначе пул букв и список слов уезжают под
+   * нижнее меню. На телефоне потолок не нужен — сцену прокручивают
+   * (см. `useBoardCellCap`).
+   */
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  const tilesRef = useRef<HTMLDivElement | null>(null);
+  const cellCap = useBoardCellCap({
+    rows: board?.rows ?? 0,
+    gap: 3,
+    cardRef,
+    belowRef: tilesRef,
+  });
+
   const placeLetter = (tile: Tile) => {
     if (!board || isWin || tile.used) return;
     const letter = tile.ch;
@@ -239,7 +260,7 @@ export function CrosswordGame({ pool, priorityIds, onGoLessons }: CrosswordGameP
   }
 
   return (
-    <div className="cw-card">
+    <div className="cw-card" ref={cardRef}>
       {/* Строка состояния стоит ПЕРЕД решёткой: под решёткой её съедало
           нижнее меню (замечание 2026-11-11). */}
       {isWin ? (
@@ -274,101 +295,116 @@ export function CrosswordGame({ pool, priorityIds, onGoLessons }: CrosswordGameP
           подсвечено, буквы лежат в пуле). На телефоне каждая строка над
           решёткой отнимала у решётки высоту — замечание 2026-11-11. */}
 
-      <div
-        className="cw-grid"
-        role="group"
-        aria-label="Кроссворд слов класса"
-        style={{ ['--cw-cols' as string]: board.cols }}
-      >
-        {board.letters.map((row, r) =>
-          row.map((letter, c) => {
-            if (letter === null) return <div key={`${r},${c}`} className="cw-block" aria-hidden="true" />;
-            const key = cellKey({ row: r, col: c });
-            const placed = fills[key];
-            const cellSlots = slotAtCell.get(key) ?? [];
-            const inActive = active ? cellSlots.some((s) => s.slot === active.slot) : false;
-            const status = cellSlots
-              .map((s) => slotStatus.get(s.slot))
-              .filter(Boolean)
-              .sort((a, b) => (a === 'bad' ? -1 : b === 'bad' ? 1 : a === 'good' ? -1 : 1))[0];
+      {/* Тело карточки: на телефоне — одна колонка (решётка, пул букв,
+          вопросы), на планшете — две колонки: решётка с пулом букв слева,
+          вопросы справа. Именно из-за одной колонки кроссворд на iPad не
+          помещался по вертикали: решётка 9 строк + пул из трёх рядов + список
+          вопросов занимали больше экрана, и вопросы уезжали под нижнее меню
+          (замечание 2026-11-12, скриншот iPad). */}
+      <div className="cw-body">
+        <div className="cw-board">
+          <div
+            className="cw-grid"
+            role="group"
+            aria-label="Кроссворд слов класса"
+            style={
+              {
+                ['--cw-cols' as string]: board.cols,
+                ...(cellCap ? { ['--cw-cell-cap' as string]: `${cellCap}px` } : {}),
+              } as CSSProperties
+            }
+          >
+            {board.letters.map((row, r) =>
+              row.map((letter, c) => {
+                if (letter === null) return <div key={`${r},${c}`} className="cw-block" aria-hidden="true" />;
+                const key = cellKey({ row: r, col: c });
+                const placed = fills[key];
+                const cellSlots = slotAtCell.get(key) ?? [];
+                const inActive = active ? cellSlots.some((s) => s.slot === active.slot) : false;
+                const status = cellSlots
+                  .map((s) => slotStatus.get(s.slot))
+                  .filter(Boolean)
+                  .sort((a, b) => (a === 'bad' ? -1 : b === 'bad' ? 1 : a === 'good' ? -1 : 1))[0];
+                const cls = [
+                  'cw-cell',
+                  placed ? 'cw-filled' : '',
+                  inActive ? 'cw-active' : '',
+                  status === 'good' ? 'cw-good' : '',
+                  status === 'bad' ? 'cw-bad' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ');
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    className={cls}
+                    data-cw-cell={key}
+                    data-cw-row={r}
+                    data-cw-col={c}
+                    data-filled={placed ? '1' : '0'}
+                    aria-label={`Клетка ${r + 1},${c + 1}${placed ? `, буква ${placed}` : ', пусто'}`}
+                    onClick={() => tapCell({ row: r, col: c })}
+                  >
+                    {placed ?? ''}
+                  </button>
+                );
+              }),
+            )}
+          </div>
+        </div>
+
+        <div className="cw-tiles" ref={tilesRef} role="group" aria-label="Буквы для ответа">
+          {tiles.map((tile) => (
+            <button
+              key={tile.id}
+              type="button"
+              className="cw-tile"
+              data-cw-letter={tile.ch}
+              disabled={tile.used}
+              onClick={() => placeLetter(tile)}
+              aria-label={`Буква ${tile.ch}`}
+            >
+              {tile.ch}
+            </button>
+          ))}
+        </div>
+
+        <div className="cw-words" role="group" aria-label="Что за слова">
+          {board.slots.map((slot) => {
+            const source = wordById.get(slot.wordId);
+            const state = slotStatus.get(slot.slot);
+            const isActive = active?.slot === slot.slot;
             const cls = [
-              'cw-cell',
-              placed ? 'cw-filled' : '',
-              inActive ? 'cw-active' : '',
-              status === 'good' ? 'cw-good' : '',
-              status === 'bad' ? 'cw-bad' : '',
+              'cw-chip',
+              isActive ? 'cw-chip-active' : '',
+              state === 'good' ? 'cw-chip-good' : '',
+              state === 'bad' ? 'cw-chip-bad' : '',
             ]
               .filter(Boolean)
               .join(' ');
             return (
               <button
-                key={key}
+                key={slot.slot}
                 type="button"
                 className={cls}
-                data-cw-cell={key}
-                data-cw-row={r}
-                data-cw-col={c}
-                data-filled={placed ? '1' : '0'}
-                aria-label={`Клетка ${r + 1},${c + 1}${placed ? `, буква ${placed}` : ', пусто'}`}
-                onClick={() => tapCell({ row: r, col: c })}
+                data-cw-slot={slot.slot}
+                data-cw-answer={slot.text}
+                data-cw-cells={slot.cells.map((c) => `${c.row},${c.col}`).join(';')}
+                aria-pressed={isActive}
+                onClick={() => activateSlot(slot.slot)}
               >
-                {placed ?? ''}
+                <span className="cw-slot-no" aria-hidden="true">{slot.slot}</span>
+                <span className="cw-chip-emoji" aria-hidden="true">{source?.emoji ?? '📝'}</span>
+                <span className="cw-chip-text">
+                  <span className="cw-chip-hint">{source?.hint ?? 'слово из банка'}</span>
+                  <span className="cw-chip-len">{[...slot.text].length} букв</span>
+                </span>
+                {state === 'good' && <span className="cw-chip-check" aria-hidden="true">✓</span>}
               </button>
             );
-          }),
-        )}
-      </div>
-
-      <div className="cw-tiles" role="group" aria-label="Буквы для ответа">
-        {tiles.map((tile) => (
-          <button
-            key={tile.id}
-            type="button"
-            className="cw-tile"
-            data-cw-letter={tile.ch}
-            disabled={tile.used}
-            onClick={() => placeLetter(tile)}
-            aria-label={`Буква ${tile.ch}`}
-          >
-            {tile.ch}
-          </button>
-        ))}
-      </div>
-
-      <div className="cw-words" role="group" aria-label="Что за слова">
-        {board.slots.map((slot) => {
-          const source = wordById.get(slot.wordId);
-          const state = slotStatus.get(slot.slot);
-          const isActive = active?.slot === slot.slot;
-          const cls = [
-            'cw-chip',
-            isActive ? 'cw-chip-active' : '',
-            state === 'good' ? 'cw-chip-good' : '',
-            state === 'bad' ? 'cw-chip-bad' : '',
-          ]
-            .filter(Boolean)
-            .join(' ');
-          return (
-            <button
-              key={slot.slot}
-              type="button"
-              className={cls}
-              data-cw-slot={slot.slot}
-              data-cw-answer={slot.text}
-              data-cw-cells={slot.cells.map((c) => `${c.row},${c.col}`).join(';')}
-              aria-pressed={isActive}
-              onClick={() => activateSlot(slot.slot)}
-            >
-              <span className="cw-slot-no" aria-hidden="true">{slot.slot}</span>
-              <span className="cw-chip-emoji" aria-hidden="true">{source?.emoji ?? '📝'}</span>
-              <span className="cw-chip-text">
-                <span className="cw-chip-hint">{source?.hint ?? 'слово из банка'}</span>
-                <span className="cw-chip-len">{[...slot.text].length} букв</span>
-              </span>
-              {state === 'good' && <span className="cw-chip-check" aria-hidden="true">✓</span>}
-            </button>
-          );
-        })}
+          })}
+        </div>
       </div>
 
     </div>

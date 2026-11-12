@@ -38,7 +38,7 @@ import { runBaseTourUiChecks } from './base-tour-ui.test';
 import { runRatingUiChecks } from './rating-ui.test';
 import { runGamesUiChecks } from './games-ui.test';
 import { runWordSearchUiChecks } from './games-ui.test';
-import { runCrosswordUiChecks, runGamesPoolChecks } from './games-ui.test';
+import { runCrosswordUiChecks, runGamesPoolChecks, runGamesTabletLayoutChecks } from './games-ui.test';
 import { runCrosswordChecks } from './crossword.test';
 import { runWordSearchChecks } from './word-search.test';
 import { runWordBoardChecks } from './word-board.test';
@@ -2144,6 +2144,8 @@ async function main() {
   await runCrosswordUiChecks();
   // Главная причина жалобы «слова не меняются»: крошечный пул встреченных слов.
   await runGamesPoolChecks();
+  // Планшет: две колонки, иначе кроссворд и филворд не помещаются по вертикали.
+  await runGamesTabletLayoutChecks();
 
   // Карточки букв: движок сборки и живая доска свободной игры (0.92.0).
   await runWordBoardChecks();
