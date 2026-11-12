@@ -31,7 +31,10 @@ import {
 } from '../engine/crossword';
 import { sfx } from '../platform/sound';
 import { haptic } from '../platform/haptics';
-import { useApp } from '../state/store';
+import { gameAwardHint } from '../engine/game-awards';
+import { todayStat, useApp } from '../state/store';
+import { Confetti } from './Bits';
+import { prefersReducedMotion } from './motion';
 import { useBoardCellCap } from './useBoardCellCap';
 import { readBoardMemo, writeBoardMemo, type BoardMemo } from './WordSearchGame';
 
@@ -87,7 +90,11 @@ export function CrosswordGame({ pool, priorityIds, onGoLessons }: CrosswordGameP
     [poolKey, seed, cursor, avoidIds],
   );
   const playGame = useApp((s) => s.playGame);
+  const profile = useApp((s) => s.profiles.find((p) => p.id === s.activeId) ?? null);
   const [awarded, setAwarded] = useState<{ xp: number; gems: number } | null>(null);
+  /** Праздник победы (0.98.0): конфетти один раз на решётку и без «лишнего движения». */
+  const [confetti, setConfetti] = useState(false);
+  const celebratedRef = useRef(false);
 
   const [fills, setFills] = useState<Record<string, string>>({});
   const [activeSlot, setActiveSlot] = useState<number>(1);
@@ -155,6 +162,12 @@ export function CrosswordGame({ pool, priorityIds, onGoLessons }: CrosswordGameP
   const goodCount = evaluation?.correct.length ?? 0;
   const totalSlots = board?.slots.length ?? 0;
   const isWin = evaluation?.win ?? false;
+  /**
+   * Честная подпись о наградах (0.98.0): `gameAwardHint()` была написана ещё
+   * в 0.96.7 и не выводилась нигде. Теперь стоит в финале рядом с наградой и
+   * честно говорит «на сегодня хватит», когда потолок дня выбран.
+   */
+  const awardHint = awarded ? gameAwardHint(todayStat(profile).games ?? { xp: 0, correct: 0, words: 0 }) : '';
   const scoredRef = useRef(false);
   useEffect(() => {
     if (!board || !isWin || scoredRef.current) return;
@@ -163,11 +176,53 @@ export function CrosswordGame({ pool, priorityIds, onGoLessons }: CrosswordGameP
     // половинный вес слов в заданиях дня, символический кристалл за первую
     // сетку. SRS не трогаем — игра остаётся мягкой тренировкой.
     setAwarded(playGame(board.slots.length));
+    // Финал (0.98.0): те же фанфары и вибрация, что на результатах урока.
+    sfx.finish(3);
+    haptic.finish();
   }, [board, isWin, playGame]);
+
+  useEffect(() => {
+    if (!isWin || celebratedRef.current) return;
+    celebratedRef.current = true;
+    if (!prefersReducedMotion()) setConfetti(true);
+    const t = window.setTimeout(() => setConfetti(false), 2600);
+    return () => window.clearTimeout(t);
+  }, [isWin]);
+
   useEffect(() => {
     scoredRef.current = false;
+    celebratedRef.current = false;
     setAwarded(null);
+    setConfetti(false);
   }, [board]);
+
+  /**
+   * Звук на собранное слово (0.98.0).
+   *
+   * Раньше в кроссворде был только `sfx.tap()` на букву: момент «слово
+   * сошлось» проходил в полной тишине, хотя именно он здесь главный. Считаем
+   * переходы статусов слотов `good` и озвучиваем только НОВЫЕ — иначе при
+   * каждом тапе по клетке звучал бы весь уже собранный кроссворд.
+   */
+  const goodSlotsRef = useRef<Set<number>>(new Set());
+  useEffect(() => {
+    if (!board) return;
+    let fresh = 0;
+    for (const [slot, status] of slotStatus) {
+      if (status !== 'good') {
+        goodSlotsRef.current.delete(slot);
+        continue;
+      }
+      if (!goodSlotsRef.current.has(slot)) {
+        goodSlotsRef.current.add(slot);
+        fresh++;
+      }
+    }
+    if (fresh > 0) {
+      sfx.correct();
+      haptic.correct();
+    }
+  }, [board, slotStatus]);
 
   const active = board?.slots.find((s) => s.slot === activeSlot) ?? board?.slots[0] ?? null;
 
@@ -264,22 +319,26 @@ export function CrosswordGame({ pool, priorityIds, onGoLessons }: CrosswordGameP
       {/* Строка состояния стоит ПЕРЕД решёткой: под решёткой её съедало
           нижнее меню (замечание 2026-11-11). */}
       {isWin ? (
-        <div className="cw-win" role="status" data-cw-win="1">
-          <div className="cw-win-emoji" aria-hidden="true">🎉</div>
-          <div className="cw-win-body">
-            <p className="cw-win-title">Кроссворд собран!</p>
-            {awarded && (awarded.xp > 0 || awarded.gems > 0) && (
-              <p className="cw-win-award tiny">
-                {awarded.gems > 0 && <b>+{awarded.gems} 💎 </b>}
-                {awarded.xp > 0 && <b>+{awarded.xp} ⚡</b>}
-                <span className="muted"> · засчитано в задания дня</span>
-              </p>
-            )}
+        <>
+          <Confetti show={confetti} />
+          <div className="cw-win ws-win-party" role="status" data-cw-win="1">
+            <div className="cw-win-emoji" aria-hidden="true">🎉</div>
+            <div className="cw-win-body">
+              <p className="cw-win-title">Кроссворд собран!</p>
+              {awarded && (awarded.xp > 0 || awarded.gems > 0) && (
+                <p className="cw-win-award tiny">
+                  {awarded.gems > 0 && <b>+{awarded.gems} 💎 </b>}
+                  {awarded.xp > 0 && <b>+{awarded.xp} ⚡</b>}
+                  <span className="muted"> · засчитано в задания дня</span>
+                </p>
+              )}
+              {awardHint && <p className="ws-win-hint tiny muted">{awardHint}</p>}
+            </div>
+            <button type="button" className="btn primary" onClick={newGrid}>
+              🔄 Ещё кроссворд
+            </button>
           </div>
-          <button type="button" className="btn primary" onClick={newGrid}>
-            🔄 Ещё кроссворд
-          </button>
-        </div>
+        </>
       ) : (
         <div className="cw-foot">
           <p className="cw-count" aria-live="polite">

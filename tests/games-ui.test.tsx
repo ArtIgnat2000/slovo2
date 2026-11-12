@@ -272,6 +272,18 @@ export async function runWordSearchUiChecks() {
   await sleep(120);
   check('филворд: баннер «Все слова найдены!»', has('Все слова найдены'), document.body.textContent?.slice(0, 300) ?? '');
 
+  // ── Финал сетки как событие (0.98.0) ──────────────────────────────────────
+  // Было: победа — статичная зелёная плашка, звук и конфетти молчали. Стало:
+  // плашка «подпрыгивает» (.ws-win-party), рядом стоит честная строка о
+  // наградах из `gameAwardHint()`. Конфетти в jsdom не проверяем: ветка
+  // зависит от `prefers-reduced-motion` и от Web Animations.
+  check('филворд: победа отмечена праздничной плашкой',
+    !!document.querySelector('.ws-win-party'), document.querySelector('.ws-win')?.className ?? 'плашки нет');
+  check('филворд: в финале есть честная подпись о наградах',
+    !!document.querySelector('.ws-win-hint') &&
+      /⚡|кристалл|завтра/.test(document.querySelector('.ws-win-hint')?.textContent ?? ''),
+    document.querySelector('.ws-win-hint')?.textContent ?? 'строки нет');
+
   // «Ещё сетку» — новая доска с чистым счётчиком и ДРУГИМИ словами
   // (замечание 2026-11-11: «смена сетки меняет и слова»).
   const wordsOf = () =>
@@ -479,6 +491,12 @@ export async function runCrosswordUiChecks() {
   check('кроссворд: баннер «Кроссворд собран!»', has('Кроссворд собран'), document.body.textContent?.slice(0, 300) ?? '');
   check('кроссворд: все слова зеленые', document.querySelectorAll('.cw-chip-good').length === chips().length,
     `зеленых: ${document.querySelectorAll('.cw-chip-good').length} / ${chips().length}`);
+  // Финал (0.98.0): праздничная плашка и честная строка о наградах.
+  check('кроссворд: победа отмечена праздничной плашкой',
+    !!document.querySelector('.cw-win.ws-win-party'), document.querySelector('.cw-win')?.className ?? 'плашки нет');
+  check('кроссворд: в финале есть честная подпись о наградах',
+    !!document.querySelector('.cw-win .ws-win-hint'),
+    document.querySelector('.cw-win')?.textContent ?? '');
 
   // «Ещё кроссворд» — новая сетка, чистый счётчик и ДРУГИЕ слова.
   const cwWords = () =>
