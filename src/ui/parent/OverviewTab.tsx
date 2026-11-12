@@ -233,6 +233,17 @@ export function OverviewTab({ profile }: Props) {
                 <div className="study-today-lines">
                   <div className="kv"><span>Завершено уроков</span><b>{today.lessons}</b></div>
                   <div className="kv"><span>Опыт</span><b>⚡ {today.xp} XP</b></div>
+                  {/* Игры (0.96.7): отдельная строка, потому что родителю важно
+                      видеть, что ребёнок наиграл, а не только «уроки». Сам XP
+                      уже входит в общий счётчик выше (потолок — 6 в день). */}
+                  {(today.games?.words ?? 0) > 0 && (
+                    <div className="kv">
+                      <span>Из них в играх</span>
+                      <b>
+                        {today.games?.words} {plural(today.games?.words ?? 0, 'слово', 'слова', 'слов')} · ⚡ {today.games?.xp ?? 0} XP
+                      </b>
+                    </div>
+                  )}
                 </div>
                 {todayErrors.length > 0 && (
                   <div className="study-today-errors">

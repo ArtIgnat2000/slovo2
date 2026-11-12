@@ -24,37 +24,123 @@ import {
 } from '../engine/word-search';
 import { sfx } from '../platform/sound';
 import { haptic } from '../platform/haptics';
+import { useApp } from '../state/store';
 
 export interface WordSearchGameProps {
   /** Изученные ребёнком слова (та же выборка, что у «Собери слово»). */
   pool: Word[];
   grade: number;
+  /** Слова с ошибками (0.96.7): игра прячет их на поле первыми. */
+  priorityIds?: ReadonlyArray<string>;
   onGoLessons?: () => void;
 }
 
 const randSeed = () => Math.floor(Math.random() * 2 ** 31);
 
-export function WordSearchGame({ pool, grade, onGoLessons }: WordSearchGameProps) {
+/**
+ * Где остановился круг слов (0.96.7).
+ *
+ * Владелец: «повторение слов начинается со второго нажатия кнопки новая
+ * сетка». Причин было две: приоритет трудных слов прилипал к началу каждой
+ * сетки (лечится в `engine/pool-cursor.ts`) и — главное — курсор жил только в
+ * состоянии компонента. Любая пересборка экрана (`key` по длине пула, возврат
+ * на вкладку, смена профиля) обнуляла его, и круг начинался сначала: первая
+ * сетка после пересборки повторяла слова уже показанной.
+ *
+ * Поэтому место в круге запоминается на устройстве, отдельно для каждой игры и
+ * каждого пула: набор слов у профиля свой, и общий курсор прыгал бы между ними.
+ */
+const CURSOR_STORE = 'slovo2-game-cursor';
+
+export interface BoardMemo {
+  cursor: number;
+  /** Слова ровно прошлой сетки — страховка от повтора. */
+  avoidIds: string[];
+}
+const EMPTY_MEMO: BoardMemo = { cursor: 0, avoidIds: [] };
+
+export function readBoardMemo(key: string): BoardMemo {
+  try {
+    const raw = window.localStorage.getItem(CURSOR_STORE);
+    if (!raw) return EMPTY_MEMO;
+    const all = JSON.parse(raw) as Record<string, Partial<BoardMemo> | undefined>;
+    const mine = all[key];
+    if (!mine || !Number.isFinite(mine.cursor)) return EMPTY_MEMO;
+    return {
+      cursor: Math.max(0, Math.trunc(mine.cursor as number)),
+      avoidIds: Array.isArray(mine.avoidIds)
+        ? mine.avoidIds.filter((id): id is string => typeof id === 'string').slice(0, 20)
+        : [],
+    };
+  } catch {
+    // Приватный режим/запрет хранилища — игра работает, просто без памяти круга.
+    return EMPTY_MEMO;
+  }
+}
+
+export function writeBoardMemo(key: string, memo: BoardMemo): void {
+  try {
+    const raw = window.localStorage.getItem(CURSOR_STORE);
+    const all = raw ? (JSON.parse(raw) as Record<string, BoardMemo>) : {};
+    all[key] = { cursor: Math.max(0, Math.trunc(memo.cursor)), avoidIds: memo.avoidIds.slice(0, 20) };
+    window.localStorage.setItem(CURSOR_STORE, JSON.stringify(all));
+  } catch {
+    /* памяти нет — не повод ломать игру */
+  }
+}
+
+export function WordSearchGame({ pool, grade, priorityIds, onGoLessons }: WordSearchGameProps) {
   const [seed, setSeed] = useState(randSeed);
+  // Ключи по содержимому: стор пересоздаёт массив пула на каждом изменении
+  // профиля (например, когда игра начислила награду), и зависимость по ссылке
+  // пересобирала бы поле прямо во время игры — найденные слова обнулялись.
+  const poolKey = useMemo(() => pool.map((w) => w.id).join('|'), [pool]);
   /**
-   * Курсор по пулу: сколько слов уже показали. «Новая сетка» сдвигает его на
-   * число слов прошлой сетки, поэтому следующая сетка начинается с новых слов
-   * (замечание 2026-11-11: «слова так и не меняются, постоянно телефон»).
-   * В отличие от списка `avoidIds` курсор не теряется, когда словарь другой
-   * игры тоже двигается по тому же пулу.
+   * Ключ памяти круга: только игра и класс, БЕЗ содержимого пула.
+   *
+   * Так задумано: пул растёт каждый раз, когда ребёнок проходит урок (новые
+   * знакомые слова). Если бы ключ зависел от пула, память обнулялась бы после
+   * каждого урока — и первая сетка снова начиналась бы со слов, которые только
+   * что были на экране. С курсором «на игру» круг просто продолжается, а
+   * слова прошлой сетки отсекает `avoidIds`.
    */
-  const [cursor, setCursor] = useState(0);
+  const memoKey = `ws:${grade}`;
   /**
-   * Слова ровно прошлой сетки («слова надо удалять перед новой порцией»).
-   * Курсор задаёт круг, а этот список страхует от повтора: на пуле 6–8 слов
-   * окно выбора неизбежно пересекается с прошлым, и без него на поле снова
-   * попадал бы «телефон». Перезаписывается каждый раз, а не копится.
+   * Место в круге: сколько слов уже показали и какие были в прошлой сетке.
+   * Читается с устройства при входе (переживает пересборку экрана), пишется
+   * при каждой новой сетке. Так «Новая сетка» всегда идёт вперёд по кругу.
    */
-  const [avoidIds, setAvoidIds] = useState<string[]>([]);
+  const [memo, setMemo] = useState<BoardMemo>(() => readBoardMemo(memoKey));
+  const [memoOwner, setMemoOwner] = useState(memoKey);
+  if (memoOwner !== memoKey) {
+    // Пул сменился — другой круг и другая память.
+    setMemoOwner(memoKey);
+    setMemo(readBoardMemo(memoKey));
+  }
+  const cursor = memo.cursor;
+  const avoidIds = memo.avoidIds;
+  const priorityKey = useMemo(() => (priorityIds ?? []).join('|'), [priorityIds]);
+  /**
+   * Слова с ошибками фиксируем на момент входа на экран. Иначе первый же
+   * показ награды менял профиль и приоритет пересобирал поле.
+   */
+  const priorityAtStart = useRef<string | undefined>(undefined);
+  if (priorityAtStart.current === undefined) priorityAtStart.current = priorityKey;
   const board = useMemo(
-    () => buildWordSearch(pool, { grade, seed, cursor, avoidIds }),
-    [pool, grade, seed, cursor, avoidIds],
+    () =>
+      buildWordSearch(pool, {
+        grade,
+        seed,
+        cursor,
+        avoidIds,
+        priorityIds: priorityAtStart.current ? priorityAtStart.current.split('|') : undefined,
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [poolKey, grade, seed, cursor, avoidIds],
   );
+  const playGame = useApp((s) => s.playGame);
+  /** Что игра дала сегодня — для честной подписи на поле (0.96.7). */
+  const [awarded, setAwarded] = useState<{ xp: number; gems: number } | null>(null);
 
   const [anchor, setAnchor] = useState<WsCell | null>(null);
   const [head, setHead] = useState<WsCell | null>(null);
@@ -64,6 +150,23 @@ export function WordSearchGame({ pool, grade, onGoLessons }: WordSearchGameProps
 
   const swallowClickRef = useRef(false);
   const missTimer = useRef<number | null>(null);
+
+  /**
+   * Награда за сетку (0.96.7): когда найдено последнее слово, одно действие в
+   * сторе начисляет малый XP с суточным потолком, половинный вес в заданиях
+   * дня и символический кристалл за первую сетку. SRS не трогаем.
+   */
+  const scoredRef = useRef(false);
+  useEffect(() => {
+    if (!board || scoredRef.current) return;
+    if (foundIds.length === 0 || foundIds.length < board.words.length) return;
+    scoredRef.current = true;
+    setAwarded(playGame(foundIds.length));
+  }, [board, foundIds, playGame]);
+  useEffect(() => {
+    scoredRef.current = false;
+    setAwarded(null);
+  }, [board]);
 
   // Новая доска — новая игра: забываем выделение и найденные слова.
   useEffect(() => {
@@ -220,8 +323,12 @@ export function WordSearchGame({ pool, grade, onGoLessons }: WordSearchGameProps
   const newGrid = () => {
     // Курсор приходит из движка: он считает шаг по той выборке, из которой
     // реально брал слова (длинные слова отсеиваются), иначе шаги расходились.
-    setCursor(board?.nextCursor ?? 0);
-    setAvoidIds([...new Set(board?.words.map((w) => w.wordId) ?? [])]);
+    const next: BoardMemo = {
+      cursor: board?.nextCursor ?? 0,
+      avoidIds: [...new Set(board?.words.map((w) => w.wordId) ?? [])],
+    };
+    setMemo(next);
+    writeBoardMemo(memoKey, next);
     setSeed(randSeed());
   };
 
@@ -251,6 +358,13 @@ export function WordSearchGame({ pool, grade, onGoLessons }: WordSearchGameProps
           <div className="ws-win-emoji" aria-hidden="true">🎉</div>
           <div className="ws-win-body">
             <p className="ws-win-title">Все слова найдены!</p>
+            {awarded && (awarded.xp > 0 || awarded.gems > 0) && (
+              <p className="ws-win-award tiny">
+                {awarded.gems > 0 && <b>+{awarded.gems} 💎 </b>}
+                {awarded.xp > 0 && <b>+{awarded.xp} ⚡</b>}
+                <span className="muted"> · засчитано в задания дня</span>
+              </p>
+            )}
           </div>
           <button type="button" className="btn primary" onClick={newGrid}>
             🔄 Ещё сетку

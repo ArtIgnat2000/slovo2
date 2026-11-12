@@ -20,6 +20,13 @@
  * `avoidIds` остаётся, но уже как страховка: если вызывающий код передал слова
  * прошлой сетки, они уезжают в конец круга (на случай, когда курсор не
  * сдвинулся — например, экран пересоздали).
+ *
+ * `priorityIds` (0.96.7) — слова с ошибками — меняют порядок САМОГО КРУГА, а не
+ * окна. Это принципиально: если поднимать их поверх уже повёрнутого круга, они
+ * прилипают к началу каждой сетки и повторяются со второго нажатия «Новая
+ * сетка» (проверено на движке: `секунда, учитель, медведь` в сетках 1–4
+ * подряд). Приоритет в колоде даёт то, что нужно: трудные слова ребёнок увидит
+ * первыми, а дальше круг идёт ровно, без повторов.
  */
 
 export interface PoolWord {
@@ -52,14 +59,37 @@ function mulberry32(seed: number): () => number {
  * выборка слов всегда даёт один и тот же порядок — иначе курсор терял бы
  * смысл между сетками.
  */
-export function poolDeck<T extends PoolWord>(pool: ReadonlyArray<T>): T[] {
+export function poolDeck<T extends PoolWord>(
+  pool: ReadonlyArray<T>,
+  /**
+   * Слова, которые надо показать раньше остальных (0.96.7). Они ставятся в
+   * начало колоды ДО поворота на курсор, а не поверх него: иначе они висели бы
+   * в первой сетке каждый раз.
+   */
+  priorityIds?: ReadonlyArray<string>,
+): T[] {
   const out = [...pool];
   const rng = mulberry32(hashString(out.map((w) => w.id).join('|')) || 1);
   for (let i = out.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));
     [out[i], out[j]] = [out[j], out[i]];
   }
-  return out;
+  const priority = priorityIds ?? [];
+  if (priority.length === 0) return out;
+  // Порядок приоритета сохраняем как есть (вызывающий уже отсортировал:
+  // «больше всего ошибок» — первым), внутри колоды остальное не трогаем.
+  const rank = new Map<string, number>();
+  priority.forEach((id, index) => {
+    if (!rank.has(id)) rank.set(id, index);
+  });
+  const head: T[] = [];
+  const tail: T[] = [];
+  for (const word of out) {
+    if (rank.has(word.id)) head.push(word);
+    else tail.push(word);
+  }
+  head.sort((a, b) => (rank.get(a.id) ?? 0) - (rank.get(b.id) ?? 0));
+  return [...head, ...tail];
 }
 
 /**
@@ -69,9 +99,13 @@ export function poolDeck<T extends PoolWord>(pool: ReadonlyArray<T>): T[] {
  */
 export function boardOrder<T extends PoolWord>(
   pool: ReadonlyArray<T>,
-  opts: { cursor?: number; avoidIds?: ReadonlyArray<string> } = {},
+  opts: {
+    cursor?: number;
+    avoidIds?: ReadonlyArray<string>;
+    priorityIds?: ReadonlyArray<string>;
+  } = {},
 ): T[] {
-  const deck = poolDeck(pool);
+  const deck = poolDeck(pool, opts.priorityIds);
   if (deck.length === 0) return deck;
   const n = deck.length;
   const start = ((Math.trunc(opts.cursor ?? 0) % n) + n) % n;
@@ -101,6 +135,12 @@ export function pickBoardWords<T extends PoolWord>(
     avoidIds?: ReadonlyArray<string>;
     slack?: number;
     rng: () => number;
+    /**
+     * Слова, которые надо показать в первую очередь — те, в которых ребёнок
+     * ошибается (0.96.7). Не больше половины сетки, иначе игра превращается
+     * в наказание из одних трудных слов; остальное — обычный круг.
+     */
+    priorityIds?: ReadonlyArray<string>;
   },
 ): {
   chosen: T[];
@@ -112,8 +152,10 @@ export function pickBoardWords<T extends PoolWord>(
   const n = deck.length;
   if (n === 0 || limit <= 0) return { chosen: [], windowSize: 0, cursor: 0, fresh: 0 };
   const take = Math.min(limit, n);
-  let order = boardOrder(deck, { cursor: opts.cursor });
   const avoid = new Set(opts.avoidIds ?? []);
+  // Приоритет отдан колоде (см. `poolDeck`): круг остаётся кругом, а трудные
+  // слова просто идут первыми в очереди.
+  let order = boardOrder(deck, { cursor: opts.cursor, priorityIds: opts.priorityIds });
   // Круг идёт РОВНЫМ шагом: порция — первые `take` слов повёрнутого круга,
   // курсор сдвигается ровно на `take`. На пуле 10–30 слов это даёт длинный
   // цикл без повторов (на 12 словах и порции 5 соседние сетки не пересекаются,
@@ -122,7 +164,9 @@ export function pickBoardWords<T extends PoolWord>(
   // `avoidIds` — только страховка на вырожденный случай: если порция целиком
   // совпала с прошлой сеткой (крошечный пул), сдвигаем круг на одно слово.
   const avoidedSet = (list: ReadonlyArray<T>) => list.slice(0, take).every((w) => avoid.has(w.id));
-  if (take < n && avoidedSet(order)) order = boardOrder(deck, { cursor: (opts.cursor ?? 0) + 1 });
+  if (take < n && avoidedSet(order)) {
+    order = boardOrder(deck, { cursor: (opts.cursor ?? 0) + 1, priorityIds: opts.priorityIds });
+  }
   const chosen = order.slice(0, take);
   return {
     chosen,

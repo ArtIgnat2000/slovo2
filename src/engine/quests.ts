@@ -229,7 +229,10 @@ function hash(s: string): number {
 export function dayMetrics(day: DayStat | undefined): DayMetrics {
   return {
     lessons: day?.lessons ?? 0,
-    correct: day?.correct ?? 0,
+    // Слова из «Игр» (0.96.7) идут в задания дня с половинным весом: игра —
+    // мягкая тренировка, и одна сетка филворда не должна закрывать задание
+    // «12 верных ответов» вместо урока. Уроки и повторение игра не двигает.
+    correct: (day?.correct ?? 0) + Math.floor(day?.games?.correct ?? 0),
     flawless: day?.flawless ?? 0,
     reviewWords: day?.reviewWords?.length ?? 0,
   };

@@ -26,10 +26,14 @@ import {
 } from '../engine/crossword';
 import { sfx } from '../platform/sound';
 import { haptic } from '../platform/haptics';
+import { useApp } from '../state/store';
+import { readBoardMemo, writeBoardMemo, type BoardMemo } from './WordSearchGame';
 
 export interface CrosswordGameProps {
   /** Изученные ребёнком слова (та же выборка, что у «Филворда»). */
   pool: Word[];
+  /** Слова с ошибками (0.96.7): решётка собирается из них первыми. */
+  priorityIds?: ReadonlyArray<string>;
   onGoLessons?: () => void;
 }
 
@@ -41,20 +45,43 @@ interface Tile {
   used: boolean;
 }
 
-export function CrosswordGame({ pool, onGoLessons }: CrosswordGameProps) {
+export function CrosswordGame({ pool, priorityIds, onGoLessons }: CrosswordGameProps) {
   const [seed, setSeed] = useState(randSeed);
+  // Ключи по содержимому: иначе изменение профиля после награды пересобирало
+  // бы решётку посреди игры (тот же корень, что в филворде).
+  const poolKey = useMemo(() => pool.map((w) => w.id).join('|'), [pool]);
   /**
-   * Курсор по пулу: сколько слов уже показали. «Ещё кроссворд» сдвигает его на
-   * число слотов прошлой решётки — следующая начинается с новых слов
-   * (замечание 2026-11-11: «в кроссворде тоже слова не меняются»).
+   * Место в круге переживает пересборку экрана (0.96.7, замечание «повторение
+   * слов начинается со второго нажатия»): раньше курсор жил только в
+   * состоянии компонента, и после `key`-пересборки круг начинался сначала.
+   * Память общая с филвордом, но ключ свой: у игр разная выборка слов.
    */
-  const [cursor, setCursor] = useState(0);
-  /** Слова ровно прошлой решётки — страховка от повтора (не накапливается). */
-  const [avoidIds, setAvoidIds] = useState<string[]>([]);
+  const memoKey = 'cw';
+  const [memo, setMemo] = useState<BoardMemo>(() => readBoardMemo(memoKey));
+  const [memoOwner, setMemoOwner] = useState(memoKey);
+  if (memoOwner !== memoKey) {
+    setMemoOwner(memoKey);
+    setMemo(readBoardMemo(memoKey));
+  }
+  const cursor = memo.cursor;
+  const avoidIds = memo.avoidIds;
+  const priorityKey = useMemo(() => (priorityIds ?? []).join('|'), [priorityIds]);
+  /** Приоритет фиксируем на входе: награда меняет профиль, решётка — нет. */
+  const priorityAtStart = useRef<string | undefined>(undefined);
+  if (priorityAtStart.current === undefined) priorityAtStart.current = priorityKey;
   const board = useMemo(
-    () => buildCrossword(pool, { seed, cursor, avoidIds }),
-    [pool, seed, cursor, avoidIds],
+    () =>
+      buildCrossword(pool, {
+        seed,
+        cursor,
+        avoidIds,
+        priorityIds: priorityAtStart.current ? priorityAtStart.current.split('|') : undefined,
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [poolKey, seed, cursor, avoidIds],
   );
+  const playGame = useApp((s) => s.playGame);
+  const [awarded, setAwarded] = useState<{ xp: number; gems: number } | null>(null);
 
   const [fills, setFills] = useState<Record<string, string>>({});
   const [activeSlot, setActiveSlot] = useState<number>(1);
@@ -122,6 +149,19 @@ export function CrosswordGame({ pool, onGoLessons }: CrosswordGameProps) {
   const goodCount = evaluation?.correct.length ?? 0;
   const totalSlots = board?.slots.length ?? 0;
   const isWin = evaluation?.win ?? false;
+  const scoredRef = useRef(false);
+  useEffect(() => {
+    if (!board || !isWin || scoredRef.current) return;
+    scoredRef.current = true;
+    // Награда за собранную решётку (0.96.7): малый XP с суточным потолком,
+    // половинный вес слов в заданиях дня, символический кристалл за первую
+    // сетку. SRS не трогаем — игра остаётся мягкой тренировкой.
+    setAwarded(playGame(board.slots.length));
+  }, [board, isWin, playGame]);
+  useEffect(() => {
+    scoredRef.current = false;
+    setAwarded(null);
+  }, [board]);
 
   const active = board?.slots.find((s) => s.slot === activeSlot) ?? board?.slots[0] ?? null;
 
@@ -174,8 +214,12 @@ export function CrosswordGame({ pool, onGoLessons }: CrosswordGameProps) {
    */
   const newGrid = () => {
     // Курсор считает движок — по той же выборке, из которой выбраны слова.
-    setCursor(board?.nextCursor ?? 0);
-    setAvoidIds([...new Set(board?.slots.map((s) => s.wordId) ?? [])]);
+    const next: BoardMemo = {
+      cursor: board?.nextCursor ?? 0,
+      avoidIds: [...new Set(board?.slots.map((s) => s.wordId) ?? [])],
+    };
+    setMemo(next);
+    writeBoardMemo(memoKey, next);
     setSeed(randSeed());
   };
 
@@ -203,6 +247,13 @@ export function CrosswordGame({ pool, onGoLessons }: CrosswordGameProps) {
           <div className="cw-win-emoji" aria-hidden="true">🎉</div>
           <div className="cw-win-body">
             <p className="cw-win-title">Кроссворд собран!</p>
+            {awarded && (awarded.xp > 0 || awarded.gems > 0) && (
+              <p className="cw-win-award tiny">
+                {awarded.gems > 0 && <b>+{awarded.gems} 💎 </b>}
+                {awarded.xp > 0 && <b>+{awarded.xp} ⚡</b>}
+                <span className="muted"> · засчитано в задания дня</span>
+              </p>
+            )}
           </div>
           <button type="button" className="btn primary" onClick={newGrid}>
             🔄 Ещё кроссворд

@@ -62,6 +62,8 @@ export interface BuildCrosswordOptions {
    * начинается с новых слов (см. `engine/pool-cursor.ts`).
    */
   cursor?: number;
+  /** Слова с ошибками (0.96.7) — в решётку идут первыми. */
+  priorityIds?: ReadonlyArray<string>;
   /** Максимум слов в сетке (по умолчанию 6). */
   maxWords?: number;
   /**
@@ -346,6 +348,7 @@ export function buildCrossword(
   const pickedResult = pickBoardWords(candidates, limit, {
     cursor: opts.cursor,
     avoidIds: opts.avoidIds,
+    priorityIds: opts.priorityIds,
     rng: rngPick,
   });
   const chosen = pickedResult.chosen;

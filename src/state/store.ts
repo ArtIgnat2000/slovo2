@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { BukFacts, ClassId, DailyState, DayStat, LessonSize, LessonState, ListRun, ListRunMode, PracticeList, Profile, ShopState, ShopSlot, ShopTuning, StudyAnswerMeta, StudySession, StudySessionStatus, WeeklyState, Word, WordState } from '../types';
 import { applyAnswer, initState } from '../engine/srs';
+import { EMPTY_GAME_AWARDS, GAME_XP_CAP, gameAward, type GameAwardState } from '../engine/game-awards';
 import { idbStorage } from '../platform/storage';
 import { GEMS_PER_STREAK, levelOf } from '../engine/rewards';
 import { dayKey, prevDay } from '../engine/day';
@@ -307,7 +308,7 @@ function normalizeDays(raw: unknown, today: string): Record<string, DayStat> {
   const cutoff = dayKey(cutoffDate);
   return Object.fromEntries(Object.entries(raw as Record<string, unknown>).map(([key, value]) => {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return [key, value as DayStat];
-    const stat = value as DayStat;
+    const stat = normalizeDayGames(value as DayStat);
     if (key >= cutoff) return [key, stat];
     // Сохраняем дневные итоги, но удаляем подробные слова ошибок старше 30 дней.
     const aggregate = { ...stat };
@@ -315,6 +316,26 @@ function normalizeDays(raw: unknown, today: string): Record<string, DayStat> {
     delete aggregate.recoveredWords;
     return [key, aggregate];
   }));
+}
+
+/**
+ * Санитайзер игровых наград дня (0.96.7): в профиле и в выгрузке может
+ * оказаться что угодно, а потолки XP из игр держатся именно на этих числах.
+ * Отрицательные, дробные и «бесконечные» значения не принимаем.
+ */
+function normalizeDayGames(stat: DayStat): DayStat {
+  const raw = stat.games;
+  if (!raw || typeof raw !== 'object') return stat;
+  const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : 0);
+  return {
+    ...stat,
+    games: {
+      xp: Math.min(GAME_XP_CAP, Math.floor(num(raw.xp))),
+      correct: Math.floor(num(raw.correct) * 2) / 2,
+      words: Math.floor(num(raw.words)),
+      dayGemTaken: !!raw.dayGemTaken,
+    },
+  };
 }
 
 /** Допустимый класс программы: всё остальное (в том числе из файла выгрузки) → 2. */
@@ -453,6 +474,12 @@ interface AppState {
   addStudyTime: (sessionId: string, seconds: number) => void;
   finishStudySession: (sessionId: string, status: Exclude<StudySessionStatus, 'active' | 'interrupted'>) => void;
   answer: (wordId: string, quality: number, review?: boolean, tracking?: StudyAnswerMeta) => void;
+  /**
+   * Игры (0.96.7): ребёнок закрыл `words` слов в филворде/кроссворде/сборке.
+   * Начисляет малый XP с суточным потолком и половинный вес в заданиях дня;
+   * кристаллы — символический бонус за первую сетку дня. SRS не трогает.
+   */
+  playGame: (words: number) => { xp: number; gems: number };
   /** Завершённый обычный урок открывает бонусный сундук и может выдать пороги недели. */
   finishLesson: (lessonId: string, pct: number) => WeeklyMilestone[];
   addXp: (n: number) => void;
@@ -1207,6 +1234,36 @@ export const useApp = create<AppState>()(
         set((s) =>
           patchActive(s, (p) => (n === 0 ? p : { ...p, freezes: Math.max(0, p.freezes + n) })),
         ),
+
+      playGame: (words) => {
+        const current = getActive(get());
+        if (!current || !Number.isFinite(words) || words <= 0) return { xp: 0, gems: 0 };
+        const today = dayKey();
+        const day = readDay(current, today);
+        const award = gameAward({ words, today: (day.games ?? EMPTY_GAME_AWARDS) as GameAwardState });
+        if (award.xp === 0 && award.gems === 0 && award.correct === 0 && award.next === day.games) {
+          return { xp: 0, gems: 0 };
+        }
+        set((s) =>
+          patchActive(s, (p) => {
+            const d = readDay(p, today);
+            return {
+              ...p,
+              xp: p.xp + award.xp,
+              gems: award.gems ? p.gems + award.gems : p.gems,
+              days: {
+                ...p.days,
+                [today]: {
+                  ...d,
+                  xp: d.xp + award.xp,
+                  games: award.next,
+                },
+              },
+            };
+          }),
+        );
+        return { xp: award.xp, gems: award.gems };
+      },
 
       claimQuest: (id, gems) =>
         set((s) =>
