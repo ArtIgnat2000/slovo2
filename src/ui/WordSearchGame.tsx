@@ -30,7 +30,10 @@ import {
 } from '../engine/word-search';
 import { sfx } from '../platform/sound';
 import { haptic } from '../platform/haptics';
-import { useApp } from '../state/store';
+import { gameAwardHint } from '../engine/game-awards';
+import { todayStat, useApp } from '../state/store';
+import { Confetti } from './Bits';
+import { prefersReducedMotion } from './motion';
 import { useBoardCellCap } from './useBoardCellCap';
 
 export interface WordSearchGameProps {
@@ -146,8 +149,21 @@ export function WordSearchGame({ pool, grade, priorityIds, onGoLessons }: WordSe
     [poolKey, grade, seed, cursor, avoidIds],
   );
   const playGame = useApp((s) => s.playGame);
+  const profile = useApp((s) => s.profiles.find((p) => p.id === s.activeId) ?? null);
   /** Что игра дала сегодня — для честной подписи на поле (0.96.7). */
   const [awarded, setAwarded] = useState<{ xp: number; gems: number } | null>(null);
+  /**
+   * Праздник победы (0.98.0). Раньше финал сетки был статичной зелёной
+   * плашкой: ребёнок видел «Все слова найдены!» и тишину. Теперь на последнем
+   * слове звучат те же фанфары, что в уроке (`sfx.finish`), срабатывает
+   * вибрация и один раз вылетает конфетти.
+   *
+   * Конфетти — один раз на сетку (`celebratedRef`), и только если система не
+   * просила «меньше движения»: это не украшение, а забота о тех, кому
+   * анимация мешает (`ui/motion.ts`).
+   */
+  const [confetti, setConfetti] = useState(false);
+  const celebratedRef = useRef(false);
 
   const [anchor, setAnchor] = useState<WsCell | null>(null);
   const [head, setHead] = useState<WsCell | null>(null);
@@ -164,15 +180,33 @@ export function WordSearchGame({ pool, grade, priorityIds, onGoLessons }: WordSe
    * дня и символический кристалл за первую сетку. SRS не трогаем.
    */
   const scoredRef = useRef(false);
+  const won = !!board && foundIds.length > 0 && foundIds.length >= board.words.length;
   useEffect(() => {
     if (!board || scoredRef.current) return;
-    if (foundIds.length === 0 || foundIds.length < board.words.length) return;
+    if (!won) return;
     scoredRef.current = true;
     setAwarded(playGame(foundIds.length));
-  }, [board, foundIds, playGame]);
+    // Праздник: те же фанфары и вибрация, что на результатах урока, — игра
+    // заканчивается «событием», а не просто галочкой.
+    sfx.finish(3);
+    haptic.finish();
+  }, [board, won, foundIds, playGame]);
+
+  // Конфетти отдельным эффектом: оно не должно зависеть от того, успел ли
+  // сработать `playGame` (например, когда потолок дня уже выбран и награда 0).
+  useEffect(() => {
+    if (!won || celebratedRef.current) return;
+    celebratedRef.current = true;
+    if (!prefersReducedMotion()) setConfetti(true);
+    const t = window.setTimeout(() => setConfetti(false), 2600);
+    return () => window.clearTimeout(t);
+  }, [won]);
+
   useEffect(() => {
     scoredRef.current = false;
+    celebratedRef.current = false;
     setAwarded(null);
+    setConfetti(false);
   }, [board]);
 
   // Новая доска — новая игра: забываем выделение и найденные слова.
@@ -354,7 +388,14 @@ export function WordSearchGame({ pool, grade, priorityIds, onGoLessons }: WordSe
     );
   }
 
-  const isWin = foundIds.length === board.words.length;
+  const isWin = won;
+  /**
+   * Честная подпись о наградах (0.96.7 → 0.98.0). `gameAwardHint()` была
+   * написана, но не выводилась нигде: ребёнок видел «+1 💎 +2 ⚡» без
+   * объяснения, почему дальше не капает. Теперь рядом стоит строка из
+   * движка — и она же говорит «на сегодня хватит», когда потолок выбран.
+   */
+  const awardHint = awarded ? gameAwardHint(todayStat(profile).games ?? { xp: 0, correct: 0, words: 0 }) : '';
 
   /**
    * Потолок клетки по месту на экране (планшет/альбомный экран): поле не
@@ -369,22 +410,26 @@ export function WordSearchGame({ pool, grade, priorityIds, onGoLessons }: WordSe
       {/* Строка состояния стоит ПЕРЕД полем: под полем её съедало нижнее
           меню, а слова-цели после победы заменяются плашкой «всё найдено». */}
       {isWin ? (
-        <div className="ws-win" role="status">
-          <div className="ws-win-emoji" aria-hidden="true">🎉</div>
-          <div className="ws-win-body">
-            <p className="ws-win-title">Все слова найдены!</p>
-            {awarded && (awarded.xp > 0 || awarded.gems > 0) && (
-              <p className="ws-win-award tiny">
-                {awarded.gems > 0 && <b>+{awarded.gems} 💎 </b>}
-                {awarded.xp > 0 && <b>+{awarded.xp} ⚡</b>}
-                <span className="muted"> · засчитано в задания дня</span>
-              </p>
-            )}
+        <>
+          <Confetti show={confetti} />
+          <div className="ws-win ws-win-party" role="status">
+            <div className="ws-win-emoji" aria-hidden="true">🎉</div>
+            <div className="ws-win-body">
+              <p className="ws-win-title">Все слова найдены!</p>
+              {awarded && (awarded.xp > 0 || awarded.gems > 0) && (
+                <p className="ws-win-award tiny">
+                  {awarded.gems > 0 && <b>+{awarded.gems} 💎 </b>}
+                  {awarded.xp > 0 && <b>+{awarded.xp} ⚡</b>}
+                  <span className="muted"> · засчитано в задания дня</span>
+                </p>
+              )}
+              {awardHint && <p className="ws-win-hint tiny muted">{awardHint}</p>}
+            </div>
+            <button type="button" className="btn primary" onClick={newGrid}>
+              🔄 Ещё сетку
+            </button>
           </div>
-          <button type="button" className="btn primary" onClick={newGrid}>
-            🔄 Ещё сетку
-          </button>
-        </div>
+        </>
       ) : (
         <div className="ws-foot">
           <p className="ws-count" aria-live="polite">
