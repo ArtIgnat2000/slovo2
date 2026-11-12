@@ -1,6 +1,7 @@
 // «Игры» через настоящий UI (0.92.0): вкладка открывается, свободная практика
 // живёт по правилам рамки — ничего не сгорает, ничего не считается, словечки
 // ребёнку показывают только изученные. «Скоро»-карточки помечены честно.
+import { readFileSync } from 'node:fs';
 import { useApp } from '../src/state/store';
 import { WORDS_BY_GRADE } from '../src/content/words';
 import { MASTERED_SCORE } from '../src/engine/classes';
@@ -176,6 +177,20 @@ export async function runWordSearchUiChecks() {
   const cells = () => Array.from(document.querySelectorAll('.ws-cell')) as HTMLButtonElement[];
   check('филворд: раздел и поле есть на экране', !!document.querySelector('.ws-grid'), '');
   if (cells().length === 0) return;
+
+  // ── Раскладка планшета (0.97.0): поле и слова-цели рядом ────────────────
+  // Замечание владельца (2026-11-12, iPad): «филворд не помещается по
+  // вертикали». Одна колонка не лечится — нужен второй столбец, иначе
+  // раскладка тихо откатится и вопросы снова уедут под нижнее меню.
+  const wsBody = document.querySelector('.ws-body');
+  const wsBoard = document.querySelector('.ws-board');
+  const wsWords = document.querySelector('.ws-words');
+  check('филворд: тело игры разделено на доску и цели (две колонки)',
+    !!wsBody && !!wsBoard && !!wsWords &&
+      wsBoard.contains(document.querySelector('.ws-grid') as Node) &&
+      wsBody.contains(wsWords as Node) &&
+      wsBoard !== wsWords,
+    `тело: ${wsBody?.className ?? '—'}, доска: ${wsBoard?.className ?? '—'}`);
 
   const n = cells().length;
   const size = Math.round(Math.sqrt(n));
@@ -386,6 +401,26 @@ export async function runCrosswordUiChecks() {
 
   check('кроссворд: раздел и поле есть на экране', !!document.querySelector('.cw-grid'), '');
   if (cells().length === 0) return;
+
+  // ── Раскладка планшета (0.97.0): решётка, пул букв и вопросы по местам ──
+  // Замечание владельца (2026-11-12, скриншот iPad): «на планшете кроссворд
+  // не помещается по вертикали» — вопросы уезжали под нижнее меню. Лечится
+  // двумя колонками: решётка с пулом слева, вопросы справа.
+  const cwBody = document.querySelector('.cw-body');
+  const cwBoard = document.querySelector('.cw-board');
+  const cwTilesEl = document.querySelector('.cw-tiles');
+  const cwWordsEl = document.querySelector('.cw-words');
+  check('кроссворд: тело игры разделено на решётку, пул и вопросы',
+    !!cwBody && !!cwBoard && !!cwTilesEl && !!cwWordsEl &&
+      cwBoard.contains(document.querySelector('.cw-grid') as Node) &&
+      cwBody.contains(cwTilesEl as Node) &&
+      cwBody.contains(cwWordsEl as Node),
+    `тело: ${cwBody?.className ?? '—'}`);
+  // Потолок клетки по высоте окна: без него решётка на низком экране
+  // выпирает за экран (см. `useBoardCellCap`).
+  const capStyle = document.querySelector('.cw-grid')?.getAttribute('style') ?? '';
+  check('кроссворд: клетке задан потолок по высоте окна (--cw-cell-cap)',
+    capStyle.includes('--cw-cell-cap'), capStyle || 'style не задан');
   const rows = Math.max(...cells().map((b) => Number(b.dataset.cwRow))) + 1;
   const cols = Math.max(...cells().map((b) => Number(b.dataset.cwCol))) + 1;
   check('кроссворд: поле ≤ 13×12', cols <= 13 && rows <= 12, `${rows}×${cols}`);
@@ -478,4 +513,56 @@ export async function runCrosswordUiChecks() {
   check('кроссворд: слова в решётке не повторяются',
     cwAnswers.length === new Set(cwAnswers).size, cwAnswers.join(','));
   check('кроссворд: все плитки снова доступны', tiles().every((b) => !b.disabled), '');
+}
+
+/**
+ * Раскладка «Игр» на планшете (0.97.0) — страж правил CSS.
+ *
+ * Замечание владельца (2026-11-12, скриншот iPad): «на планшете кроссворд и
+ * филворд не помещаются по вертикали. Очень неудобно». Починили двумя
+ * колонками: поле (с пулом букв) слева, вопросы справа.
+ *
+ * Стражаем именно CSS, а не только DOM: раскладка уже откатывалась один раз
+ * (0.94.1 — две игры рядом отменили, сцена сузилась до 720 px), и молча
+ * вернуть её в один столбец легко. Здесь проверяем, что правила на месте.
+ */
+export async function runGamesTabletLayoutChecks() {
+  console.log('\n── Игры: раскладка на планшете ──');
+  const css = readFileSync('src/styles/app.css', 'utf8');
+  const start = css.indexOf('@media (min-width: 720px)');
+  const wide = start >= 0 ? css.slice(start, start + 4000) : '';
+  const rule = (sel: string, from: string) =>
+    from.match(new RegExp(`([^{}]*${sel.replace(/\./g, '\\.')}[^{}]*)\\{[^}]*\\}`))?.[0] ?? '';
+  const flat = (s: string) => s.replace(/\s+/g, ' ').trim();
+
+  const cwBody = rule('.cw-body', wide);
+  const wsBody = rule('.ws-body', wide);
+  const cwGrid = rule('.cw-grid', wide);
+  const wsGrid = rule('.ws-grid', wide);
+  const screenRule = rule('.screen.games-screen', wide);
+  const cwBodyBase = rule('.cw-body', css);
+  const wsGridBase = rule('.ws-grid', css);
+
+  check('игры: на планшете кроссворд — две колонки (вопросы рядом с решёткой)',
+    /display:\s*grid/.test(cwBody) && /grid-template-areas/.test(cwBody) &&
+      /'grid words'/.test(cwBody) && /'tiles words'/.test(cwBody),
+    flat(cwBody).slice(0, 160) || 'правило .cw-body не найдено');
+  check('игры: на планшете филворд — две колонки (поле и слова-цели рядом)',
+    /display:\s*grid/.test(wsBody) && /grid-template-columns/.test(wsBody),
+    flat(wsBody).slice(0, 160) || 'правило .ws-body не найдено');
+  check('игры: на телефоне игра остаётся в одну колонку (сцену прокручивают)',
+    /flex-direction:\s*column/.test(cwBodyBase),
+    flat(cwBodyBase).slice(0, 120) || 'правило .cw-body не найдено');
+  check('игры: клетка кроссворда на планшете не крупнее 48 px и не выше экрана',
+    /--cw-cell:\s*min\(48px,\s*var\(--cw-cell-cap/.test(cwGrid),
+    flat(cwGrid).slice(0, 160) || 'правило .cw-grid не найдено');
+  check('игры: клетка филворда на планшете не крупнее 52 px и не выше экрана',
+    /--ws-cell:\s*min\(52px,\s*var\(--ws-cell-cap/.test(wsGrid),
+    flat(wsGrid).slice(0, 160) || 'правило .ws-grid не найдено');
+  check('игры: поле филворда не растягивается на всю карточку (потолок ширины)',
+    /max-width:\s*calc\(var\(--ws-size/.test(wsGridBase),
+    flat(wsGridBase).slice(0, 200) || 'правило .ws-grid не найдено');
+  check('игры: на планшете сцена шире 720 px — иначе колонкам негде стоять',
+    /max-width:\s*1040px/.test(screenRule),
+    flat(screenRule).slice(0, 120) || 'правило .screen.games-screen не найдено');
 }

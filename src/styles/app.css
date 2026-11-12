@@ -10658,8 +10658,15 @@ img.product-photo {
   box-shadow: var(--shadow);
 }
 .ws-grid {
+  /* Потолок клетки: без него поле филворда растягивалось на всю ширину
+     карточки (на iPad клетка выходила 100+ px) и не помещалось по
+     вертикали — замечание 2026-11-12. */
+  --ws-cell: 46px;
   display: grid;
   grid-template-columns: repeat(var(--ws-size, 8), 1fr);
+  width: 100%;
+  max-width: calc(var(--ws-size, 8) * var(--ws-cell) + (var(--ws-size, 8) - 1) * 6px);
+  margin-inline: auto;
   gap: 6px;
   touch-action: none;
   user-select: none;
@@ -10814,6 +10821,28 @@ img.product-photo {
   border-radius: 20px;
   padding: 14px;
   box-shadow: var(--shadow);
+}
+/* ── Тело игровой карточки ────────────────────────────────────────────────
+   Доска и «бок» (пул букв + вопросы к кроссворду, слова-цели у филворда).
+   На телефоне — одна колонка: сцену прокручивают, порядок «доска → пул →
+   вопросы» не меняется с 0.95.0. На планшете те же блоки встают в две
+   колонки (медиазапрос ниже): одна колонка не помещалась по вертикали
+   (замечание 2026-11-12, скриншот iPad). */
+.cw-body,
+.ws-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  min-height: 0;
+}
+.cw-board,
+.ws-board {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 0;
 }
 .cw-grid {
   display: grid;
@@ -11033,6 +11062,12 @@ img.product-photo {
     border-radius: 18px;
     gap: var(--sp-2);
   }
+  /* Зазор внутри тела игры — такой же, как у карточки (иначе телефон
+     «поедет» на несколько пикселей после 0.97.0). */
+  .cw-body,
+  .ws-body {
+    gap: var(--sp-2);
+  }
   .games-switch-btn {
     min-height: 44px;
     font-size: 12px;
@@ -11082,20 +11117,64 @@ img.product-photo {
   }
 }
 
-/* Планшет и десктоп: та же одноколоночная сцена, но не «на всю доску».
-   Две игры рядом (как было в 0.94.1) больше не нужны: на экране одна игра,
-   а слишком широкое поле кроссворда и филворда читается хуже. */
-@media (min-width: 760px) {
+/* Планшет и десктоп: сцена шире, а игра внутри разложена в две колонки.
+   Две ИГРЫ рядом (как было в 0.94.1) по-прежнему не нужны: на экране одна
+   игра — но две колонки ВНУТРИ неё решают другую задачу: на iPad одна
+   колонка не помещалась по вертикали, вопросы уезжали под нижнее меню
+   (замечание 2026-11-12).
+   Порог 720 px, а не 760: iPad mini в портрете — 744 px, и он тоже должен
+   получать две колонки. */
+@media (min-width: 720px) {
   .screen.games-screen {
-    max-width: 720px;
+    /* Планшет: сцена шире, потому что игра теперь в две колонки (решётка
+       и список вопросов рядом). С прежними 720 px и одной колонкой
+       кроссворд и филворд не помещались по вертикали — замечание
+       2026-11-12 (скриншот iPad): вопросы уезжали под нижнее меню. */
+    max-width: 1040px;
   }
-  .cw-grid {
-    --cw-cell: 48px;
+  /* Две колонки: доска и пул букв слева, вопросы справа — как в обычном
+     кроссворде. Порядок блоков на телефоне не меняется (доска → пул →
+     вопросы), здесь те же элементы просто разложены по сетке. */
+  .cw-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(240px, 30%, 320px);
+    grid-template-areas:
+      'grid words'
+      'tiles words';
+    gap: 12px 20px;
+    align-items: start;
+  }
+  .cw-board {
+    grid-area: grid;
+  }
+  .cw-tiles {
+    grid-area: tiles;
   }
   .cw-words {
-    max-width: 560px;
-    margin-inline: auto;
-    width: 100%;
+    grid-area: words;
+  }
+  .ws-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(200px, 26%, 300px);
+    gap: 20px;
+    align-items: start;
+  }
+  .ws-board {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .ws-words {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .cw-grid {
+    /* Потолок клетки — два ограничения сразу: ширина (48 px) и высота
+       (--cw-cell-cap считает `useBoardCellCap` от высоты окна). Что
+       теснее — то и важнее: решётка не должна выпирать за экран. */
+    --cw-cell: min(48px, var(--cw-cell-cap, 48px));
+  }
+  .ws-grid {
+    --ws-cell: min(52px, var(--ws-cell-cap, 52px));
   }
   .games-switch {
     align-self: flex-start;
@@ -11120,10 +11199,12 @@ img.product-photo {
   .ws-cell {
     font-size: clamp(18px, 2.6vw, 24px);
   }
+  /* Плитки пула стоят под решёткой в левой колонке — берём чуть меньше,
+     чем раньше, чтобы в ряд влезало больше шести. */
   .cw-tile {
-    width: 46px;
-    height: 50px;
-    font-size: 22px;
+    width: 42px;
+    height: 46px;
+    font-size: 20px;
   }
 }
 
