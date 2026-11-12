@@ -126,6 +126,11 @@ export interface BuildWordSearchOptions {
    */
   cursor?: number;
   /**
+   * Слова, в которых ребёнок ошибается (0.96.7): игра — это тренировка, а не
+   * случайная выборка, поэтому такие слова идут на поле первыми.
+   */
+  priorityIds?: ReadonlyArray<string>;
+  /**
    * Слова прошлой сетки: в новом поле они берутся в последнюю очередь.
    * «Новая сетка» должна менять не только расположение букв, но и слова
    * (замечание 2026-11-11). Если свежих слов не хватает на доску, они
@@ -211,6 +216,7 @@ export function buildWordSearch(pool: ReadonlyArray<{
   const pickedResult = pickBoardWords(placeable, placedLimit, {
     cursor: opts.cursor,
     avoidIds: opts.avoidIds,
+    priorityIds: opts.priorityIds,
     rng,
   });
   const picked = pickedResult.chosen;

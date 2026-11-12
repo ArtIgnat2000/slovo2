@@ -175,9 +175,23 @@ function correctOption(options: HTMLButtonElement[], word: NonNullable<ReturnTyp
 let seenTask: Element | null = null;
 let hintClicked = false;
 
+/**
+ * Карточки-сборки, уже дошедшие до вердикта (по узлу DOM). Набор, а не счётчик:
+ * вердикт висит на экране несколько тактов, и считать его каждый такт нельзя.
+ */
+let buildVerdictCards = new WeakSet<Element>();
+/**
+ * Сколько сборок реально было в прогоне. Состав урока не детерминирован
+ * (очередь собирает `Math.random`), поэтому проверка «подсказки ставили буквы
+ * именно в сборках» не может требовать фиксированных пяти сборок: она
+ * сверяет подсказанные сборки с теми, что в этом прогоне вообще были.
+ */
+let buildCardsSeen = 0;
+
 function syncCard() {
   const el = document.querySelector('.task');
   if (el !== seenTask) {
+    if (el && el.className.includes('task-build')) buildCardsSeen++;
     seenTask = el;
     hintClicked = false;
   }
@@ -185,6 +199,8 @@ function syncCard() {
 
 /** Сколько карточек-сборок в текущем прогоне решено подсказкой. */
 let hintBuildCards = 0;
+/** Сколько карточек-сборок дошли до вердикта. */
+let buildVerdicts = 0;
 
 /** Один шаг по текущей карточке. true — что-то нажали (прогресс есть). */
 function solveStep(mode: Mode): boolean {
@@ -277,6 +293,9 @@ interface RunInfo {
   stuck: boolean;
   /** Из verdicts — сколько пришлось на сборки, решённые подсказкой. */
   hintBuildCards: number;
+  /** Сколько сборок было в прогоне и сколько из них дошли до вердикта. */
+  buildCards: number;
+  buildVerdicts: number;
   /** Текст карточки, на которой застряли — чтобы падение теста было разбираемым. */
   card?: string;
 }
@@ -287,8 +306,15 @@ interface RunInfo {
  * stopAfterVerdicts>0 — остановиться, когда на экране показан вердикт (для выхода).
  */
 async function playLesson(mode: Mode, stopAfterVerdicts = 0): Promise<RunInfo> {
-  const info: RunInfo = { verdicts: 0, reachedResults: false, stuck: false, hintBuildCards: 0 };
+  const info: RunInfo = { verdicts: 0, reachedResults: false, stuck: false, hintBuildCards: 0, buildCards: 0, buildVerdicts: 0 };
   hintBuildCards = 0;
+  // Узел .task от прошлого прогона не должен «съесть» первую сборку нового:
+  // без сброса syncCard считал бы её уже виденной.
+  seenTask = null;
+  hintClicked = false;
+  buildCardsSeen = 0;
+  buildVerdicts = 0;
+  buildVerdictCards = new WeakSet<Element>();
   let lastVerdict = false;
   let idle = 0;
   for (let steps = 0; steps < 2000; steps++) {
@@ -298,6 +324,11 @@ async function playLesson(mode: Mode, stopAfterVerdicts = 0): Promise<RunInfo> {
     const verdict = !!document.querySelector('.footer-bar') && !!btnText('Далее');
     if (verdict && !lastVerdict) {
       info.verdicts++;
+      const card = document.querySelector('.task');
+      if (card && card.className.includes('task-build') && !buildVerdictCards.has(card)) {
+        buildVerdictCards.add(card);
+        buildVerdicts++;
+      }
       if (stopAfterVerdicts && info.verdicts >= stopAfterVerdicts) return info;
     }
     lastVerdict = verdict;
@@ -313,6 +344,8 @@ async function playLesson(mode: Mode, stopAfterVerdicts = 0): Promise<RunInfo> {
     }
     const acted = solveStep(mode);
     info.hintBuildCards = hintBuildCards;
+    info.buildCards = buildCardsSeen;
+    info.buildVerdicts = buildVerdicts;
     idle = acted ? 0 : idle + 1;
     // Пауза без действий: показ слова в зрительном диктанте длится до ~4 с,
     // поэтому «застряли» объявляем только после 7 секунд тишины.
@@ -496,9 +529,14 @@ export async function runAdaptiveUiChecks(): Promise<void> {
     `${buildOnly}, карточек ${buildCounter}`,
   );
   const hintedBuilds = await playLesson('hint');
+  // Проверяем не «сборок было ровно пять» (состав урока не детерминирован), а
+  // смысл: подсказка нажималась именно в сборках и каждая такая сборка всё
+  // равно дошла до вердикта — подсказка не «съедала» ответ.
   check(
     'адаптация: в уроке подсказки ставили буквы именно в сборках',
-    hintedBuilds.hintBuildCards >= 4 && hintedBuilds.hintBuildCards === hintedBuilds.verdicts,
+    hintedBuilds.buildCards > 0 &&
+      hintedBuilds.hintBuildCards > 0 &&
+      hintedBuilds.hintBuildCards === hintedBuilds.buildVerdicts,
     JSON.stringify(hintedBuilds),
   );
   check('адаптация: урок с подсказками дошёл до экрана результатов', hintedBuilds.reachedResults, JSON.stringify(hintedBuilds));

@@ -42,6 +42,7 @@ import { runCrosswordUiChecks, runGamesPoolChecks, runGamesTabletLayoutChecks } 
 import { runCrosswordChecks } from './crossword.test';
 import { runWordSearchChecks } from './word-search.test';
 import { runWordBoardChecks } from './word-board.test';
+import { runGameAwardChecks } from './game-awards.test';
 // Смена цвета купленной вещи не должна включать музыку (регрессия магазина).
 import './recolor-music.test';
 import { LESSONS, WORDS } from '../src/content/words';
@@ -2148,6 +2149,7 @@ async function main() {
 
   // Карточки букв: движок сборки и живая доска свободной игры (0.92.0).
   await runWordBoardChecks();
+  await runGameAwardChecks();
 
   const failures = failureCount();
   console.log(failures ? `\n✗ ошибок: ${failures}` : '\n✓ все проверки пройдены');

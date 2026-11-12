@@ -2,7 +2,9 @@
  * «Игры» — отдельная вкладка со свободными механиками (P0, H-рамка).
  *
  * Правила рамки:
- *  • нерешающие игры не пишут в SRS и не дают XP — чистое повторение;
+ *  • игры не пишут в SRS (мягкая тренировка), но с 0.96.7 дают малый XP с
+ *    суточным потолком и засчитываются в задания дня с половинным весом
+ *    (`engine/game-awards.ts`, решение пользователя 2026-11-11);
  *  • ничего не сгорает: «Собери слово», «Филворд» и «Кроссворд дня» доступны
  *    сколь угодно часто.
  *
@@ -31,6 +33,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { availableClass, WORDS_BY_GRADE } from '../../content/words';
+import { troubleWords } from '../../engine/game-awards';
 import { MASTERED_SCORE } from '../../engine/classes';
 import { useActiveProfile } from '../../state/store';
 import { Sentence, WordArt, lengthLabel } from '../WordView';
@@ -41,17 +44,25 @@ import { CrosswordGame } from '../CrosswordGame';
 type GameId = 'build' | 'search' | 'crossword';
 
 /**
- * Минимальный пул для сеточных игр. Меньше шести слов — и «Новая сетка»
- * физически не может показать другие слова: на трёх словах любая сетка
- * состоит из этих трёх (замечание 2026-11-11, «постоянно телефон»).
+ * Минимальный пул для сеточных игр. Меньше двенадцати слов — и «Новая сетка»
+ * физически не может долго показывать другие слова: на трёх словах любая
+ * сетка состоит из этих трёх (замечание 2026-11-11, «постоянно телефон»).
  */
 const GAMES_MIN_POOL = 12;
+
 
 /** Длина слова в буквах — для отсева «телепередача» и подобных. */
 const lettersCount = (text: string) => [...text].filter((ch) => ch !== ' ' && ch !== '-').length;
 
 /** Правило свободной практики — для взрослого, не для постоянной строки. */
-const PLAY_RULE = 'Играй сколько хочешь: ничего не сгорает и ничего не считается.';
+/**
+ * Правило рамки (0.96.7). Раньше здесь было «ничего не считается» — после
+ * согласования наград это неправда, а честная подпись важнее красивой:
+ * игры засчитываются в задания дня с половинным весом, XP — малый и с
+ * суточным потолком, уроки и повторения игра не заменяет.
+ */
+const PLAY_RULE =
+  'Играй сколько хочешь: ничего не сгорает. Одна игра не заменяет урок — прогресс в задания дня небольшой. Слова для игр берутся из тех, где были ошибки.';
 
 const GAMES: Array<{ id: GameId; emoji: string; title: string; oneline: string }> = [
   { id: 'build', emoji: '🧵', title: 'Собери слово', oneline: 'Выложи слово из карточек.' },
@@ -97,6 +108,12 @@ export function GamesScreen({ onGoLessons }: { onGoLessons: () => void }) {
     );
     return [...met, ...filler].slice(0, Math.max(GAMES_MIN_POOL, met.length));
   }, [grade, met]);
+  /**
+   * Слова, в которых ребёнок ошибается (0.96.7): игры показывают их первыми.
+   * Берём из профиля (не из дня): «ошибся вчера» — тоже повод потренировать.
+   * SRS при этом не меняется — игра остаётся мягкой тренировкой.
+   */
+  const priorityIds = useMemo(() => troubleWords(profile?.words ?? {}), [profile]);
   const [wordId, setWordId] = useState<string | null>(null);
   const [game, setGame] = useState<GameId>('build');
 
@@ -218,11 +235,22 @@ export function GamesScreen({ onGoLessons }: { onGoLessons: () => void }) {
             старого размера. Без этого курсор мог указывать в середину нового
             пула и первые слова выглядели «пропущенными». */}
         {game === 'search' && (
-          <WordSearchGame key={`ws-${gamesPool.length}`} pool={gamesPool} grade={grade} onGoLessons={onGoLessons} />
+          <WordSearchGame
+            key={`ws-${gamesPool.length}`}
+            pool={gamesPool}
+            grade={grade}
+            priorityIds={priorityIds}
+            onGoLessons={onGoLessons}
+          />
         )}
 
         {game === 'crossword' && (
-          <CrosswordGame key={`cw-${gamesPool.length}`} pool={gamesPool} onGoLessons={onGoLessons} />
+          <CrosswordGame
+            key={`cw-${gamesPool.length}`}
+            pool={gamesPool}
+            priorityIds={priorityIds}
+            onGoLessons={onGoLessons}
+          />
         )}
       </div>
     </div>

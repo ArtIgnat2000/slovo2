@@ -99,6 +99,24 @@ export interface DayStat {
   errorWords?: Record<string, number>;
   /** Уникальные слова, которые после ошибки были правильно отработаны. */
   recoveredWords?: string[];
+  /**
+   * Награды из «Игр» за этот день (0.96.7): малый XP с суточным потолком и
+   * половинный вес слова в заданиях дня. Отдельно от `xp`/`correct`, потому
+   * что у игр свои правила и свой потолок (см. `engine/game-awards.ts`).
+   */
+  games?: GameDayAwards;
+}
+
+/** Учёт наград за игры в рамках одного календарного дня. */
+export interface GameDayAwards {
+  /** XP, уже выданный за игры сегодня (потолок — `GAME_XP_CAP`). */
+  xp: number;
+  /** «Верные ответы», добавленные играми в задания дня (дробные, 0.5). */
+  correct: number;
+  /** Слов найдено/собрано в играх за день. */
+  words: number;
+  /** Взят ли символический бонус кристаллов за сетку дня. */
+  dayGemTaken?: boolean;
 }
 
 export type StudySessionStatus = 'active' | 'completed' | 'stopped' | 'interrupted';

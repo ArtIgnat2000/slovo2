@@ -138,6 +138,29 @@ export async function runCrosswordChecks(): Promise<void> {
       second.slots.map((s) => s.text).join(','));
   }
 
+  // ── 2d. Приоритет «слова с ошибками» не прилипает к решёткам (0.96.7) ────
+  // Та же регрессия, что дала владельцу «повторение слов со второго нажатия»:
+  // приоритет поднимался поверх повёрнутого круга и оказывался в каждой сетке.
+  {
+    const poolP = WORDS_BY_GRADE[2].filter((w) => !w.text.includes(' ') && [...w.text].length <= 9).slice(0, 40);
+    const priority = poolP.slice(0, 5).map((w) => w.id);
+    let cursor = 0;
+    let prevIds: string[] = [];
+    let repeats = 0;
+    const union = new Set<string>();
+    for (let i = 0; i < 6; i++) {
+      const b = buildCrossword(poolP, { seed: 1500 + i, cursor, avoidIds: prevIds, priorityIds: priority });
+      if (!b) break;
+      const ids = b.slots.map((s) => s.wordId);
+      ids.forEach((id) => union.add(id));
+      if (i > 0) repeats += ids.filter((id) => prevIds.includes(id)).length;
+      cursor = b.nextCursor;
+      prevIds = ids;
+    }
+    check('кроссворд: слова с ошибками не повторяются в соседних решётках', repeats === 0, `повторов: ${repeats}`);
+    check('кроссворд: с приоритетом круг доходит до всего пула', union.size >= 20, `видели ${union.size} из ${poolP.length}`);
+  }
+
   // ── 3. Входной фильтр ────────────────────────────────────────────────────
   const tooFew = buildCrossword(poolOf(2, 2), { seed: 1 });
   check('кроссворд: меньше трёх слов — честный null', tooFew === null, '');

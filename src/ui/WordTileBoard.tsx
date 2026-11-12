@@ -29,6 +29,7 @@ import {
   type BoardTile,
 } from '../engine/word-board';
 import { HintBtn, HintCard } from './HintBits';
+import { useApp } from '../state/store';
 import { WordLetters } from './WordView';
 import { sfx } from '../platform/sound';
 import { haptic } from '../platform/haptics';
@@ -132,8 +133,16 @@ export function WordTileBoard({
     setResolved(false);
     setDrag(null);
     pendingRef.current = null;
+    scoredRef.current = false;
+    setAward(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [word.id]);
+
+  const playGame = useApp((st) => st.playGame);
+  /** Награда именно за это слово — состояние, а не ref: баннер должен обновиться. */
+  const [award, setAward] = useState<{ xp: number; gems: number } | null>(null);
+  /** Решённое слово уже засчитано в награды дня — ровно один раз на слово. */
+  const scoredRef = useRef(false);
 
   const finishIfComplete = (next: BoardState, usedHint: boolean) => {
     if (!isFull(next.slots)) {
@@ -149,6 +158,14 @@ export function WordTileBoard({
       if (unscored) {
         // Баннер победы остаётся на экране: дальше ребёнок идёт сам —
         // кнопкой «Другое слово» или тапом по чипу в ленте.
+        // Награда (0.96.7): одно слово игры = половинка «верного ответа» в
+        // заданиях дня и малый XP с суточным потолком (см. game-awards).
+        // `scoredRef` защищает от повторного начисления, если родитель
+        // пере-рендерит доску (профиль изменился → componentDidUpdate).
+        if (!scoredRef.current) {
+          scoredRef.current = true;
+          setAward(playGame(1));
+        }
       } else {
         const q = usedHint ? 3 : 5;
         onAttempt?.(q);
@@ -249,6 +266,7 @@ export function WordTileBoard({
   };
 
   const reshuffle = () => {
+    setAward(null);
     setState({ tray: shuffledTiles(word.text), slots: Array(word.text.length).fill(null) });
     setHintUsed(false);
     setBad(false);
@@ -368,6 +386,13 @@ export function WordTileBoard({
           {/* Пояснение к оранжевой букве оставляем: без него подсветка —
               просто цвет. В компактном баннере строка мелкая и в одну строку. */}
           <div className="tiny muted tileboard-banner-note">Оранжевым — та буква, которая тут хитрит</div>
+          {award && (award.xp > 0 || award.gems > 0) && (
+            <p className="tileboard-banner-award tiny">
+              {award.gems > 0 && <b>+{award.gems} 💎 </b>}
+              {award.xp > 0 && <b>+{award.xp} ⚡</b>}
+              <span className="muted"> · засчитано в задания дня</span>
+            </p>
+          )}
           <div className="tileboard-banner-actions">
             {onNext && (
               <button className="btn primary" type="button" onClick={onNext}>

@@ -165,6 +165,35 @@ export async function runWordSearchChecks(): Promise<void> {
       b ? `слов: ${b.words.length}` : 'null');
   }
 
+  // ── 2e. Приоритет «слова с ошибками» не должен прилипать к сеткам (0.96.7) ──
+  // Регрессия, которую владелец увидел как «повторение слов начинается со
+  // второго нажатия новой сетки»: приоритетные слова поднимались ПОВЕРХ уже
+  // повёрнутого круга и оказывались в первой сетке каждый раз. Симуляция на
+  // движке: «секунда, учитель, медведь» в сетках 1–4 подряд.
+  {
+    const poolP = WORDS.filter((w) => !w.text.includes(' ')).slice(0, 30);
+    const priority = poolP.slice(0, 5).map((w) => w.id);
+    let cursor = 0;
+    let prevIds: string[] = [];
+    let repeats = 0;
+    let firstSet: string[] = [];
+    const union = new Set<string>();
+    for (let i = 0; i < 8; i++) {
+      const b = buildWordSearch(poolP, { grade: 2, seed: 1200 + i, cursor, avoidIds: prevIds, priorityIds: priority });
+      if (!b) break;
+      const ids = b.words.map((w) => w.wordId);
+      ids.forEach((id) => union.add(id));
+      if (i === 0) firstSet = ids;
+      if (i > 0) repeats += ids.filter((id) => prevIds.includes(id)).length;
+      cursor = b.nextCursor;
+      prevIds = ids;
+    }
+    check('филворд: слова с ошибками не повторяются в соседних сетках', repeats === 0, `повторов: ${repeats}`);
+    check('филворд: приоритетные слова стоят в первой сетке (тренировка идёт первой)',
+      firstSet.some((id) => priority.includes(id)), `первая сетка: ${firstSet.join(',')}`);
+    check('филворд: с приоритетом круг доходит до всего пула', union.size >= 20, `видели ${union.size} из ${poolP.length}`);
+  }
+
   // ── 3. selectionCells ────────────────────────────────────────────────────
   const line = selectionCells({ row: 2, col: 1 }, { row: 2, col: 6 });
   check('филворд: горизонтальная линия из 6 клеток', !!line && line.length === 6 && line.every((c) => c.row === 2), '');
