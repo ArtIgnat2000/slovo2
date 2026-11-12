@@ -64,6 +64,29 @@ export function SettingsTab({ profile, onOpenDiagnostics }: { profile: Profile; 
         </SettingRow>
 
         <SettingRow
+          title="Игры за успехи"
+          hint="Открывать игры по мере успехов дня или оставить все доступными."
+        >
+          <Choice
+            label="Доступ к играм"
+            value={settings.gamesGates}
+            onChange={(gamesGates) => setSettings({ gamesGates })}
+            options={[
+              {
+                value: 'points',
+                label: 'за успехи дня',
+                hint: 'Одна игра открыта всегда; остальные — за уроки, задания дня и баллы (рекомендуем)',
+              },
+              {
+                value: 'open',
+                label: 'все открыты',
+                hint: 'Как было до 0.99.0: любая игра доступна в любой момент',
+              },
+            ]}
+          />
+        </SettingRow>
+
+        <SettingRow
           title="Подсказки в уроке"
           hint="Как БУК помогает в задании."
         >

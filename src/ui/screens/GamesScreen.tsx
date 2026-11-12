@@ -34,14 +34,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import { availableClass, WORDS_BY_GRADE } from '../../content/words';
 import { troubleWords } from '../../engine/game-awards';
+import { dayGameAccess, isGameOpen, lockHint, pluralGames } from '../../engine/game-access';
+import { dayKey } from '../../engine/day';
+import { planOf } from '../../engine/quests';
 import { MASTERED_SCORE } from '../../engine/classes';
-import { useActiveProfile } from '../../state/store';
+import { todayStat, useActiveProfile, useApp } from '../../state/store';
 import { Sentence, WordArt, lengthLabel } from '../WordView';
 import { WordTileBoard } from '../WordTileBoard';
 import { WordSearchGame } from '../WordSearchGame';
 import { CrosswordGame } from '../CrosswordGame';
 
 type GameId = 'build' | 'search' | 'crossword';
+/** Группа по времени игры, а не по «жанру»: ребёнку так понятнее (§4-B). */
+type GameGroup = 'fast' | 'think';
 
 /**
  * Минимальный пул для сеточных игр. Меньше двенадцати слов — и «Новая сетка»
@@ -62,12 +67,30 @@ const lettersCount = (text: string) => [...text].filter((ch) => ch !== ' ' && ch
  * суточным потолком, уроки и повторения игра не заменяет.
  */
 const PLAY_RULE =
-  'Играй сколько хочешь: ничего не сгорает. Одна игра не заменяет урок — прогресс в задания дня небольшой. Слова для игр берутся из тех, где были ошибки.';
+  'Ничего не сгорает: одна игра открыта всегда, остальные — за успехи дня (уроки, задания дня и баллы). Уже открытое не отнимается, ошибки и подсказки доступ не уменьшают. Одна игра не заменяет урок — прогресс в задания дня небольшой. Слова для игр берутся из тех, где были ошибки.';
 
-const GAMES: Array<{ id: GameId; emoji: string; title: string; oneline: string }> = [
-  { id: 'build', emoji: '🧵', title: 'Собери слово', oneline: 'Выложи слово из карточек.' },
-  { id: 'search', emoji: '🔎', title: 'Филворд', oneline: 'Найди слова в буквенном поле.' },
-  { id: 'crossword', emoji: '✏️', title: 'Кроссворд', oneline: 'Собери слова в решётке.' },
+/**
+ * Витрина игр (0.99.0, решение владельца — вариант B из §4).
+ *
+ * Порядок в массиве — это и есть порядок открытия: индекс 0 открыт всегда,
+ * 1 — после первого ключа дня и так далее (`engine/game-access.ts`). Поэтому
+ * базовая игра («Собери слово») стоит первой: без игры ребёнок не остаётся
+ * никогда, даже если сегодня не было ни урока, ни задания.
+ *
+ * Группы — по времени: «Быстро» на 1–2 минуты и «Подумать» на 3–5. Две
+ * группы вместо трёх кнопок в один ряд — чтобы на 360 px подписи читались,
+ * и чтобы четвёртая игра не ломала полосу (см. §4 плана).
+ */
+const GAMES: Array<{ id: GameId; emoji: string; title: string; oneline: string; group: GameGroup }> = [
+  { id: 'build', emoji: '🧵', title: 'Собери слово', oneline: 'Выложи слово из карточек.', group: 'fast' },
+  { id: 'search', emoji: '🔎', title: 'Филворд', oneline: 'Найди слова в буквенном поле.', group: 'think' },
+  { id: 'crossword', emoji: '✏️', title: 'Кроссворд', oneline: 'Собери слова в решётке.', group: 'think' },
+];
+
+/** Две группы вкладки: подписи короткие, цели ≥ 44 px. */
+const GROUPS: Array<{ id: GameGroup; emoji: string; title: string }> = [
+  { id: 'fast', emoji: '⚡', title: 'Быстро' },
+  { id: 'think', emoji: '🧠', title: 'Подумать' },
 ];
 
 export function GamesScreen({ onGoLessons }: { onGoLessons: () => void }) {
@@ -115,7 +138,61 @@ export function GamesScreen({ onGoLessons }: { onGoLessons: () => void }) {
    */
   const priorityIds = useMemo(() => troubleWords(profile?.words ?? {}), [profile]);
   const [wordId, setWordId] = useState<string | null>(null);
+  const settings = useApp((s) => s.settings);
+
+  /**
+   * Доступ за успехи дня (0.99.0, §8 плана). Считается на лету из уже
+   * сохранённого дня: в профиле ничего нового не лежит, поэтому нет миграции,
+   * а полночь сбрасывает шкалу сама.
+   *
+   * Ключи: уроки (≤ 2) + закрытые задания дня + 1 за баллы дня без наград игр.
+   * По умолчанию `points`; взрослый может вернуть старое поведение (`open`).
+   */
+  const access = useMemo(() => {
+    const day = dayKey();
+    return dayGameAccess({
+      day: profile ? todayStat(profile) : undefined,
+      dailyGoal: settings.dailyGoal,
+      plan: profile ? planOf(profile, day) : [],
+      totalGames: GAMES.length,
+      gates: settings.gamesGates,
+    });
+  }, [profile, settings.dailyGoal, settings.gamesGates]);
+
+  /**
+   * Открытая игра. Замок — не «нельзя», а «ещё не сейчас»: если выбранная
+   * игра закрыта (например, день переключился с утра), показываем первую
+   * открытую, а не пустой экран.
+   */
+  const openGame = (id: GameId): GameId => {
+    const idx = GAMES.findIndex((g) => g.id === id);
+    if (idx >= 0 && isGameOpen(access, idx)) return id;
+    const firstOpen = GAMES.findIndex((_, i) => isGameOpen(access, i));
+    return GAMES[Math.max(0, firstOpen)]?.id ?? 'build';
+  };
   const [game, setGame] = useState<GameId>('build');
+  /** Группа, которую видно сейчас. Запоминается в сессии, как и игра. */
+  const [group, setGroup] = useState<GameGroup>(() => GAMES.find((g) => g.id === 'build')?.group ?? 'fast');
+  /** Условие для закрытой карточки: показываем строкой, а не «молчанием». */
+  const [lockNote, setLockNote] = useState('');
+  // Открылась игра или сменился день — старая подсказка про замок больше не нужна.
+  useEffect(() => {
+    setLockNote('');
+  }, [access.openCount]);
+  // Выбрали другую группу — подсказка про замок из прошлой группы не относится.
+  useEffect(() => {
+    setLockNote('');
+  }, [group]);
+
+  // Выбранная игра может оказаться закрытой (новый день, настройка родителя):
+  // тогда мягко переводим на первую открытую и показываем её группу.
+  useEffect(() => {
+    const safe = openGame(game);
+    if (safe !== game) setGame(safe);
+    const g = GAMES.find((it) => it.id === safe);
+    if (g && g.group !== group) setGroup(g.group);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [access.openCount, settings.gamesGates]);
 
   useEffect(() => {
     setWordId((cur) => (cur && practice.some((w) => w.id === cur) ? cur : practice[0]?.id ?? null));
@@ -131,6 +208,9 @@ export function GamesScreen({ onGoLessons }: { onGoLessons: () => void }) {
   };
 
   const current = GAMES.find((g) => g.id === game) ?? GAMES[0];
+  /** Игры видимой группы: карточки 2×2 внутри неё. */
+  const groupGames = GAMES.filter((g) => g.group === group);
+  const groupAllLocked = groupGames.every((g) => !isGameOpen(access, GAMES.indexOf(g)));
 
   return (
     <div className="screen games-screen">
@@ -142,32 +222,98 @@ export function GamesScreen({ onGoLessons }: { onGoLessons: () => void }) {
         </h2>
       </header>
 
-      <div className="games-switch" role="tablist" aria-label="Выбери игру">
-        {GAMES.map((g) => (
+      {/* Две группы вместо трёх кнопок в один ряд (0.99.0, §4-B): подписи
+          читаются на 360 px и место остаётся для новых игр. */}
+      <div className="games-switch" role="tablist" aria-label="Выбери, как играть">
+        {GROUPS.map((gr) => (
           <button
-            key={g.id}
+            key={gr.id}
             type="button"
             role="tab"
-            id={`games-tab-${g.id}`}
-            aria-selected={game === g.id}
+            id={`games-group-${gr.id}`}
+            aria-selected={group === gr.id}
             aria-controls="games-stage"
-            className={`games-switch-btn${game === g.id ? ' on' : ''}`}
-            onClick={() => setGame(g.id)}
+            className={`games-switch-btn${group === gr.id ? ' on' : ''}`}
+            onClick={() => setGroup(gr.id)}
           >
-            <span className="games-switch-emoji" aria-hidden="true">
-              {g.emoji}
-            </span>
-            <span className="games-switch-label">{g.title}</span>
-            <span className="sr-only">{g.oneline}</span>
+            <span className="games-switch-emoji" aria-hidden="true">{gr.emoji}</span>
+            <span className="games-switch-label">{gr.title}</span>
           </button>
         ))}
       </div>
 
+      {/* Шкала дня (0.99.0): одна строка, что открыто и что откроется.
+          Спокойная, без «нельзя» и без счёта проигрышей. */}
+      <p className="games-meter" data-games-meter data-games-keys={access.keys}>
+        {access.nextHint}
+      </p>
+
+      {/* Карточки игр выбранной группы: 2×2 на любой ширине. Тап по карточке
+          сразу запускает игру — отдельного экрана игры нет, поэтому «лишнего
+          тапа» против сегмента не появляется. Замок — не красный и не
+          «нельзя»: нейтральная карточка с одним условием. */}
+      <div className="games-cards" role="group" aria-label="Игры в группе">
+        {groupGames.map((g) => {
+          const index = GAMES.indexOf(g);
+          const open = isGameOpen(access, index);
+          // Внутри группы карточка — это и выбор, и запуск: отдельного шага
+          // «выбрать, потом играть» нет, иначе к сегменту добавился бы лишний
+          // тап (о чём предупреждал §4). Сцену показываем сразу.
+          const isCurrent = open && game === g.id;
+          return (
+            <button
+              key={g.id}
+              type="button"
+              id={`games-tab-${g.id}`}
+              aria-controls="games-stage"
+              aria-pressed={isCurrent}
+              aria-disabled={!open}
+              data-game-card={g.id}
+              data-game-open={open ? '1' : '0'}
+              className={`games-card${isCurrent ? ' on' : ''}${open ? '' : ' locked'}`}
+              title={open ? g.oneline : lockHint(access, index)}
+              onClick={() => {
+                if (!open) {
+                  // Тап по замку ничего не ломает и не ругается: показываем
+                  // то же условие крупной строкой ниже.
+                  setLockNote(lockHint(access, index));
+                  return;
+                }
+                setGame(g.id);
+                setLockNote('');
+              }}
+            >
+              <span className="games-card-emoji" aria-hidden="true">
+                {open ? g.emoji : '🔒'}
+              </span>
+              <span className="games-card-title">{g.title}</span>
+              <span className="games-card-note">
+                {open ? g.oneline : lockHint(access, index)}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {lockNote && (
+        <p className="games-lock-note" role="status">
+          {lockNote} · <span className="muted">тапни игру, когда откроется</span>
+        </p>
+      )}
+
+      {groupAllLocked && (
+        <p className="games-lock-note" role="status">
+          {group === 'fast'
+            ? 'Эта игра откроется, когда наберёшь ключи дня.'
+            : `Откроется за урок — сейчас доступно ${access.openCount} ${pluralGames(access.openCount)}.`}
+        </p>
+      )}
+
       <div
         className="games-stage"
         id="games-stage"
-        role="tabpanel"
-        aria-labelledby={`games-tab-${current.id}`}
+        role="region"
+        aria-label={`Игра: ${current.title}`}
       >
         {game === 'build' &&
           (practice.length === 0 ? (

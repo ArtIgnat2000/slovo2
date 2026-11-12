@@ -2,7 +2,7 @@
 // живёт по правилам рамки — ничего не сгорает, ничего не считается, словечки
 // ребёнку показывают только изученные. «Скоро»-карточки помечены честно.
 import { readFileSync } from 'node:fs';
-import { useApp } from '../src/state/store';
+import { dayKey, useApp } from '../src/state/store';
 import { WORDS_BY_GRADE } from '../src/content/words';
 import { MASTERED_SCORE } from '../src/engine/classes';
 import { btnText, buttons, check, click, has, sleep } from './ui-helpers';
@@ -14,10 +14,23 @@ async function goTab(name: string) {
 }
 
 /**
- * С 0.96.0 на экране «Игры» ровно одна игра за раз: её выбирают сегментом
- * (.games-switch-btn). Тесты переключают игру так же, как ребёнок — тапом.
+ * Витрина игр после 0.99.0: сверху две группы времени (.games-switch-btn),
+ * внутри группы — карточки игр (.games-card). Тесты ходят так же, как ребёнок:
+ * сначала группа, потом карточка.
+ *
+ * Чтобы проверки не зависели от того, сколько игр открыто сегодня, тест
+ * включает режим «все открыты» (`gamesGates: 'open'`) — это настоящая
+ * настройка взрослого, а не подделка. Шкала доступа проверяется отдельно
+ * (`tests/game-access.test.ts`) и своим сценарием ниже.
  */
-async function goGame(title: string) {
+export const GROUP_OF: Record<string, string> = {
+  'Собери слово': 'Быстро',
+  Филворд: 'Подумать',
+  Кроссворд: 'Подумать',
+};
+
+/** Открыть группу по подписи («Быстро», «Подумать»). */
+async function goGroup(title: string) {
   const seg = Array.from(document.querySelectorAll('.games-switch-btn')).find((b) =>
     (b.textContent ?? '').includes(title),
   ) as HTMLButtonElement | undefined;
@@ -28,8 +41,42 @@ async function goGame(title: string) {
   return !!seg;
 }
 
+/** Открыть игру: группа по карте, затем карточка игры. */
+async function goGame(title: string) {
+  const group = GROUP_OF[title];
+  if (group) await goGroup(group);
+  const card = Array.from(document.querySelectorAll('.games-card')).find((b) =>
+    (b.textContent ?? '').includes(title),
+  ) as HTMLButtonElement | undefined;
+  if (card) {
+    click(card);
+    await sleep(60);
+  }
+  return !!card;
+}
+
+/**
+ * Режим «все игры открыты» — настоящая настройка взрослого (0.99.0).
+ *
+ * Витрина теперь показывает замки, и проверки механик не должны зависеть от
+ * того, сколько ключей набрал тестовый профиль. Доступ по шкале проверяется
+ * отдельным сценарием `runGamesAccessUiChecks` ниже.
+ */
+async function withOpenGates<T>(fn: () => Promise<T>): Promise<T> {
+  const prev = useApp.getState().settings.gamesGates;
+  useApp.getState().setSettings({ gamesGates: 'open' });
+  await sleep(40);
+  try {
+    return await fn();
+  } finally {
+    useApp.getState().setSettings({ gamesGates: prev });
+    await sleep(40);
+  }
+}
+
 export async function runGamesUiChecks() {
   console.log('\n── Игры: вкладка и свободная практика ──');
+  useApp.getState().setSettings({ gamesGates: 'open' });
   useApp.getState().createProfile('Тест игр', '🧩');
   await sleep(60);
 
@@ -54,9 +101,12 @@ export async function runGamesUiChecks() {
   // С 0.96.1 правило рамки живёт подсказкой заголовка, а не строкой на экране:
   // на телефоне текст над полем стоил дороже, чем пользы (замечание «избыток
   // слов в шапке страницы»).
+  // Подпись заголовка (0.96.1) с 0.99.0 начинается с большой буквы и говорит
+  // ещё и про доступ, поэтому проверяем обе части правила, а не регистр.
   check(
     'игры: правило «ничего не сгорает» доступно из заголовка',
-    (document.querySelector('.games-title')?.getAttribute('title') ?? '').includes('ничего не сгорает'),
+    /ничего не сгорает/i.test(document.querySelector('.games-title')?.getAttribute('title') ?? '') &&
+      /одна игра открыта всегда/i.test(document.querySelector('.games-title')?.getAttribute('title') ?? ''),
     document.querySelector('.games-title')?.getAttribute('title') ?? 'подсказки нет',
   );
   check(
@@ -71,16 +121,26 @@ export async function runGamesUiChecks() {
     `плиток: ${document.querySelectorAll('.tileboard-tile').length}`);
   check('игры: плитки несут буквы слова', !!document.querySelector('.word-board'), '');
 
-  // ── Раскладка «один экран — одна игра» (0.96.0) ─────────────────────────
-  check('игры: сверху сегмент выбора игры', document.querySelectorAll('.games-switch-btn').length === 3,
+  // ── Раскладка «один экран — одна игра» (0.96.0 → витрина 0.99.0) ────────
+  check('игры: сверху две группы времени, а не три кнопки в ряд',
+    document.querySelectorAll('.games-switch-btn').length === 2,
     `кнопок: ${document.querySelectorAll('.games-switch-btn').length}`);
+  check('игры: в группе видны карточки игр 2×2',
+    document.querySelectorAll('.games-card').length >= 1,
+    `карточек: ${document.querySelectorAll('.games-card').length}`);
+  check('игры: шкала дня объясняет, что открыто',
+    !!document.querySelector('.games-meter') &&
+      /Открыто|открыто/.test(document.querySelector('.games-meter')?.textContent ?? ''),
+    document.querySelector('.games-meter')?.textContent ?? 'строки нет');
   check('игры: открыта ровно одна игра («Собери слово»)', !!document.querySelector('.game-practice'), '');
   check('игры: поле игры — прокручиваемая сцена остатка экрана', !!document.querySelector('.games-stage'), '');
   check('игры: чипы слов — одна лента вбок, без «стены» на пол-экрана',
     document.querySelectorAll('.game-picks .game-pick').length === learned.length,
     `чипов: ${document.querySelectorAll('.game-pick').length}`);
-  check('игры: экран помечает выбранную игру для скринридера',
+  check('игры: экран помечает выбранную группу для скринридера',
     document.querySelector('.games-switch-btn[aria-selected="true"]') !== null, '');
+  check('игры: экран помечает текущую игру карточкой',
+    document.querySelector('.games-card.on') !== null, '');
   const cols = document.querySelector('.word-board')?.getAttribute('style') ?? '';
   check('игры: число колонок доски считается от длины слова (--slot-cols)', cols.includes('--slot-cols'),
     cols);
@@ -336,7 +396,119 @@ export async function runWordSearchUiChecks() {
  * добирают пул словами своего класса, а «Собери слово» по-прежнему работает
  * только со встреченными.
  */
+/**
+ * Витрина доступа в живом UI (0.99.0).
+ *
+ * Правила движка закреплены в `tests/game-access.test.ts`. Здесь проверяется
+ * то, что видит ребёнок: пустой день — одна открытая карточка и мягкий замок
+ * с условием; после урока — вторая карточка; настройка «все открыты» убирает
+ * замки вовсе. Никакого «нельзя» и красного в замке быть не должно.
+ */
+export async function runGamesAccessUiChecks() {
+  console.log('\n── Игры: витрина доступа ──');
+  const st = useApp.getState();
+  st.setSettings({ gamesGates: 'points' });
+  await sleep(40);
+  // Чистый день: ни уроков, ни заданий, ни баллов.
+  useApp.setState((s) => ({
+    profiles: s.profiles.map((p) =>
+      p.id === s.activeId ? { ...p, days: { ...p.days, [dayKey()]: emptyDayProbe() } } : p,
+    ),
+  }));
+  await sleep(40);
+  await goTab('Игры');
+  await sleep(80);
+
+  const cards = () => Array.from(document.querySelectorAll('.games-card')) as HTMLButtonElement[];
+  const openCards = () => cards().filter((c) => c.dataset.gameOpen === '1');
+
+  check('доступ в UI: в пустой день открыта ровно одна карточка', openCards().length === 1,
+    `открыто: ${openCards().length} из ${cards().length}`);
+  check('доступ в UI: базовая игра — «Собери слово»',
+    (openCards()[0]?.textContent ?? '').includes('Собери слово'), openCards()[0]?.textContent ?? '');
+  // В группе «Быстро» одна игра, поэтому замки смотрим в «Подумать»: там две
+  // игры, и в пустой день обе закрыты — именно этот случай и надо проверить.
+  await goGroup('Подумать');
+  check('доступ в UI: в пустой день группа «Подумать» вся под замком',
+    cards().every((c) => c.dataset.gameOpen === '0') && cards().length === 2,
+    cards().map((c) => `${c.textContent}:${c.dataset.gameOpen}`).join(' | '));
+  check('доступ в UI: у закрытой карточки условие, а не «нельзя»',
+    cards().every((c) => /Откроется за/.test(c.textContent ?? '') && !/нельзя/i.test(c.textContent ?? '')),
+    cards().map((c) => c.textContent).join(' | '));
+  check('доступ в UI: в группе, где всё закрыто, остаётся подсказка',
+    !!document.querySelector('.games-lock-note'), document.querySelector('.games-lock-note')?.textContent ?? '');
+  await goGroup('Быстро');
+  check('доступ в UI: шкала говорит, что откроется за урок',
+    /за урок/.test(document.querySelector('.games-meter')?.textContent ?? ''),
+    document.querySelector('.games-meter')?.textContent ?? '');
+  check('доступ в UI: в пустом дне нет игрового поля вместо игры',
+    !document.querySelector('.ws-card') && !document.querySelector('.cw-card'), '');
+
+  // Тап по замку: условие показывается крупной строкой и ничего не ломает.
+  const locked = cards().find((c) => c.dataset.gameOpen === '0');
+  if (locked) {
+    click(locked);
+    await sleep(60);
+    check('доступ в UI: тап по замку показывает условие', !!document.querySelector('.games-lock-note'),
+      document.querySelector('.games-lock-note')?.textContent ?? 'строки нет');
+    check('доступ в UI: тап по замку не открыл закрытую игру',
+      !document.querySelector('.ws-card') && !document.querySelector('.cw-card'), '');
+  }
+
+  // Один урок — вторая карточка. Считаем «было → стало», как ребёнок.
+  useApp.setState((s) => ({
+    profiles: s.profiles.map((p) =>
+      p.id === s.activeId
+        ? { ...p, days: { ...p.days, [dayKey()]: { ...emptyDayProbe(), lessons: 1, xp: 40 } } }
+        : p,
+    ),
+  }));
+  await sleep(80);
+  check('доступ в UI: урок открывает вторую игру',
+    (document.querySelector('.games-meter')?.textContent ?? '').includes('Открыто 2'),
+    document.querySelector('.games-meter')?.textContent ?? '');
+  await goGroup('Подумать');
+  check('доступ в UI: после урока «Филворд» открылся, а «Кроссворд» ещё нет',
+    cards().filter((c) => c.dataset.gameOpen === '1').length === 1 &&
+      (cards().find((c) => c.dataset.gameOpen === '1')?.textContent ?? '').includes('Филворд'),
+    cards().map((c) => `${c.textContent}:${c.dataset.gameOpen}`).join(' | '));
+  await goGroup('Быстро');
+
+  // Взрослый вернул «все открыты» — замков нет вовсе.
+  useApp.getState().setSettings({ gamesGates: 'open' });
+  await sleep(80);
+  check('доступ в UI: режим «все открыты» убирает замки',
+    cards().every((c) => c.dataset.gameOpen === '1') && !document.querySelector('.games-card.locked'),
+    `карточек: ${cards().length}`);
+  check('доступ в UI: в режиме «все открыты» шкала честно говорит «открыто всё»',
+    (document.querySelector('.games-meter')?.textContent ?? '').includes('открыто всё'),
+    document.querySelector('.games-meter')?.textContent ?? '');
+
+  // Возвращаем как было для следующих проверок.
+  useApp.getState().setSettings({ gamesGates: 'points' });
+  await sleep(40);
+}
+
+/** Пустой счётчик дня для проверок доступа (все поля `DayStat`). */
+function emptyDayProbe() {
+  return {
+    xp: 0,
+    correct: 0,
+    wrong: 0,
+    lessons: 0,
+    flawless: 0,
+    streak: 0,
+    reviewCorrect: 0,
+    reviewWords: [],
+    activeSeconds: 0,
+  };
+}
+
 export async function runGamesPoolChecks() {
+  // Проверки пула ходят по всем трём играм — им нужен режим «все открыты»,
+  // иначе замок доступа подменит результат проверки.
+  useApp.getState().setSettings({ gamesGates: 'open' });
+  await sleep(40);
   console.log('\n── Игры: пул слов ──');
   const active = useApp.getState().profiles.find((p) => p.id === useApp.getState().activeId);
   const gradeNow = (active?.activeClass ?? 2) as keyof typeof WORDS_BY_GRADE;

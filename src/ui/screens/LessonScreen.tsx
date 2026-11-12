@@ -22,6 +22,8 @@ import { CHEER, PRAISE, pick, useMascot } from '../../state/mascot';
 import { FloatingMascot } from '../FloatingMascot';
 import { TaskView } from '../TaskView';
 import { Bar, Confetti, ConfirmDialog, Ring, Stars } from '../Bits';
+import { GAME_GATE_KEYS, dayGameAccess, pluralGames } from '../../engine/game-access';
+import { planOf } from '../../engine/quests';
 import { WordLetters } from '../WordView';
 import { dangerSummary } from '../../engine/word-facts';
 import { sfx } from '../../platform/sound';
@@ -861,6 +863,35 @@ function Results({
   const afterPct = Math.min(100, (xpToday / Math.max(1, goal)) * 100);
   // Цель закрылась именно этим уроком? Это отдельный повод для праздника.
   const closedNow = goalDone && xpBefore < goal;
+  /**
+   * Сколько игр открыл именно этот урок (0.99.0). Считаем «было → стало» по
+   * счётчику уроков дня: ещё одна игра = ещё один урок в зачёте ключей.
+   * Это не новая награда, а объяснение того, что и так произошло.
+   */
+  const gameOpenGain = (() => {
+    if (!profile) return null;
+    const settings = useApp.getState().settings;
+    if (settings.gamesGates !== 'points') return null;
+    const day = todayStat(profile);
+    const lessons = Math.max(0, day.lessons);
+    // Третий и следующие уроки дня ключей не дают (MAX_LESSON_KEYS = 2):
+    // обещать «+1 игра» за них нельзя — это была бы ложь.
+    if (lessons === 0 || lessons > 2) return null;
+    const plan = planOf(profile, dayKey());
+    const common = {
+      dailyGoal: settings.dailyGoal,
+      plan,
+      // Витрина в 0.99.0 — три игры; пороги берём из движка, чтобы число не
+      // разъехалось с `GamesScreen`.
+      totalGames: GAME_GATE_KEYS.length,
+      gates: settings.gamesGates,
+    } as const;
+    const before = dayGameAccess({ ...common, day: { ...day, lessons: lessons - 1 } });
+    const after = dayGameAccess({ ...common, day });
+    // Показываем строку только если этот урок реально открыл игру.
+    if (after.openCount <= before.openCount) return null;
+    return after;
+  })();
 
   return (
     <div className="screen center">
@@ -903,6 +934,24 @@ function Results({
             </div>
           )}
         </div>
+
+        {/* Награда за урок в «Играх» (0.99.0, §8). Ребёнок видит прямую связь
+            «позанимался → открылась игра», а не догадывается, почему вчера
+            было четыре, а сегодня одна. При `open` (взрослый отключил шкалу)
+            строки нет: там открывать нечего. */}
+        {gameOpenGain && (
+          <div className="card games-gain" data-games-gain>
+            <div className="row" style={{ alignItems: 'center', gap: 10, textAlign: 'left' }}>
+              <span className="big-emoji" style={{ fontSize: 34 }} aria-hidden="true">🎁</span>
+              <div className="grow">
+                <h3 style={{ margin: '0 0 2px' }}>+1 игра на сегодня</h3>
+                <p className="tiny muted" style={{ margin: 0 }}>
+                  Открыто {gameOpenGain.openCount} {pluralGames(gameOpenGain.openCount)} — заходи во вкладку «Игры».
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {classWin && (
           <div className="card class-win">

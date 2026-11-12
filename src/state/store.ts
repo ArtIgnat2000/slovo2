@@ -5,6 +5,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import type { BukFacts, ClassId, DailyState, DayStat, LessonSize, LessonState, ListRun, ListRunMode, PracticeList, Profile, ShopState, ShopSlot, ShopTuning, StudyAnswerMeta, StudySession, StudySessionStatus, WeeklyState, Word, WordState } from '../types';
 import { applyAnswer, initState } from '../engine/srs';
 import { EMPTY_GAME_AWARDS, GAME_XP_CAP, gameAward, type GameAwardState } from '../engine/game-awards';
+import type { GamesGates } from '../engine/game-access';
 import { idbStorage } from '../platform/storage';
 import { GEMS_PER_STREAK, levelOf } from '../engine/rewards';
 import { dayKey, prevDay } from '../engine/day';
@@ -116,6 +117,13 @@ export interface Settings {
   themeStyle: ThemeStyle;
   mascot: MascotMode;
   lessonHelp: LessonHelpMode;
+  /**
+   * Доступ к «Играм» (0.99.0). `open` — все игры всегда доступны (как было до
+   * 0.99.0), `points` — открываются за успехи дня (уроки, задания дня, баллы).
+   * По умолчанию `points`: это решение владельца 2026-11-12. Базовая игра
+   * открыта всегда в обоих режимах — без игры остаться нельзя.
+   */
+  gamesGates: GamesGates;
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -128,6 +136,7 @@ const DEFAULT_SETTINGS: Settings = {
   themeStyle: 'classic',
   mascot: 'on',
   lessonHelp: 'socratic',
+  gamesGates: 'points',
 };
 
 /** Показываем поверх любого экрана: «+30 XP», «Сундук: 15 💎» */
@@ -454,6 +463,11 @@ function normalizeSettings(raw: Partial<Settings> | null | undefined): Settings 
       raw.lessonHelp === 'socratic' || raw.lessonHelp === 'direct' || raw.lessonHelp === 'off'
         ? raw.lessonHelp
         : DEFAULT_SETTINGS.lessonHelp,
+    // Старые записи без поля получают 'points' — то же поведение, что у новых.
+    // Неизвестное значение не ломает игру: взрослый сможет переключить.
+    gamesGates: raw.gamesGates === 'open' || raw.gamesGates === 'points'
+      ? raw.gamesGates
+      : DEFAULT_SETTINGS.gamesGates,
   };
 }
 

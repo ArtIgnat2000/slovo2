@@ -10479,6 +10479,83 @@ img.product-photo {
   white-space: nowrap;
   max-width: 100%;
 }
+/* ── Витрина игр: шкала дня и карточки (0.99.0) ──────────────────────────
+   Две группы в полосе (`.games-switch`), под ними шкала дня одной строкой и
+   карточки игр 2×2. Карточка ≥ 44 px по высоте (цель для пальца), замок —
+   нейтральный, без красного: это «ещё не сейчас», а не «нельзя». */
+.games-meter {
+  flex: none;
+  margin: 0;
+  padding: 0 2px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.games-cards {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.games-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-height: 64px;
+  padding: 8px 10px;
+  text-align: left;
+  border: 1.5px solid var(--line);
+  border-radius: 16px;
+  background: var(--card);
+  color: var(--ink);
+  font-family: inherit;
+  cursor: pointer;
+}
+.games-card-emoji {
+  font-size: 20px;
+  line-height: 1.1;
+}
+.games-card-title {
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+.games-card-note {
+  font-size: 11px;
+  line-height: 1.2;
+  color: var(--ink-2);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+/* Выбранная игра: акцентная рамка, а не заливка — эмодзи и подпись должны
+   читаться в любой из 16 тем. */
+.games-card.on {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 30%, transparent);
+}
+/* Замок: та же карточка, только приглушённая. Никакого красного и «X». */
+.games-card.locked {
+  background: var(--bg-2);
+  border-style: dashed;
+  color: var(--ink-2);
+}
+.games-card.locked .games-card-emoji {
+  opacity: 0.75;
+}
+.games-lock-note {
+  flex: none;
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: var(--bg-2);
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--ink-2);
+}
+
 /* Сцена игры: занимает остаток высоты экрана и прокручивается сама. */
 .games-stage {
   flex: 1 1 auto;

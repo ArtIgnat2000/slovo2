@@ -37,8 +37,9 @@ import { runWorldUiChecks } from './world-ui.test';
 import { runBaseTourUiChecks } from './base-tour-ui.test';
 import { runRatingUiChecks } from './rating-ui.test';
 import { runGamesUiChecks } from './games-ui.test';
+import { runGameAccessChecks } from './game-access.test';
 import { runWordSearchUiChecks } from './games-ui.test';
-import { runCrosswordUiChecks, runGamesPoolChecks, runGamesTabletLayoutChecks } from './games-ui.test';
+import { runCrosswordUiChecks, runGamesAccessUiChecks, runGamesPoolChecks, runGamesTabletLayoutChecks } from './games-ui.test';
 import { runCrosswordChecks } from './crossword.test';
 import { runWordSearchChecks } from './word-search.test';
 import { runWordBoardChecks } from './word-board.test';
@@ -2142,6 +2143,10 @@ async function main() {
   await runWordSearchUiChecks();
   await runCrosswordChecks();
   await runCrosswordUiChecks();
+  // Доступ за успехи дня (0.99.0): базовая игра открыта всегда, XP из игр
+  // в ключи не идёт, взрослый может отключить шкалу.
+  await runGameAccessChecks();
+  await runGamesAccessUiChecks();
   // Главная причина жалобы «слова не меняются»: крошечный пул встреченных слов.
   await runGamesPoolChecks();
   // Планшет: две колонки, иначе кроссворд и филворд не помещаются по вертикали.
