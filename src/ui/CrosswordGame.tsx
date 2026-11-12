@@ -95,6 +95,8 @@ export function CrosswordGame({ pool, priorityIds, onGoLessons }: CrosswordGameP
   /** Праздник победы (0.98.0): конфетти один раз на решётку и без «лишнего движения». */
   const [confetti, setConfetti] = useState(false);
   const celebratedRef = useRef(false);
+  /** Номера слотов, за которые звук уже прозвучал (см. эффект ниже). */
+  const goodSlotsRef = useRef<Set<number>>(new Set());
 
   const [fills, setFills] = useState<Record<string, string>>({});
   const [activeSlot, setActiveSlot] = useState<number>(1);
@@ -192,6 +194,10 @@ export function CrosswordGame({ pool, priorityIds, onGoLessons }: CrosswordGameP
   useEffect(() => {
     scoredRef.current = false;
     celebratedRef.current = false;
+    // Новая решётка — чистый список «уже озвученных» слов. Без сброса номера
+    // слотов совпали бы с прошлой сеткой, и первый собранный слот нового
+    // кроссворда остался бы без звука.
+    goodSlotsRef.current = new Set();
     setAwarded(null);
     setConfetti(false);
   }, [board]);
@@ -204,7 +210,6 @@ export function CrosswordGame({ pool, priorityIds, onGoLessons }: CrosswordGameP
    * переходы статусов слотов `good` и озвучиваем только НОВЫЕ — иначе при
    * каждом тапе по клетке звучал бы весь уже собранный кроссворд.
    */
-  const goodSlotsRef = useRef<Set<number>>(new Set());
   useEffect(() => {
     if (!board) return;
     let fresh = 0;
@@ -218,11 +223,13 @@ export function CrosswordGame({ pool, priorityIds, onGoLessons }: CrosswordGameP
         fresh++;
       }
     }
-    if (fresh > 0) {
+    // На победе звучат фанфары (`sfx.finish`), а не «ещё один верный ответ»:
+    // иначе последнее слово накладывается на финальную мелодию.
+    if (fresh > 0 && !isWin) {
       sfx.correct();
       haptic.correct();
     }
-  }, [board, slotStatus]);
+  }, [board, slotStatus, isWin]);
 
   const active = board?.slots.find((s) => s.slot === activeSlot) ?? board?.slots[0] ?? null;
 
