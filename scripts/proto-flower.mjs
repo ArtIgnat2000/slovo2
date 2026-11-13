@@ -117,6 +117,9 @@ let word = 'КОТ';
 let opened = 0;
 let wrong = 0;
 let tried = [];
+// Промах живёт 0.52 с. Держим его в состоянии, а не только классом: render
+// переписывает className целиком, и класс, навешенный снаружи, тут же стирался.
+let puffing = false;
 
 function stems(n) {
   if (n <= 4) return [44, 100];
@@ -132,7 +135,7 @@ function render() {
   const [low, high] = stems(total);
   const stem = Math.round(low + (opened / total) * (high - low));
 
-  $('scene').className = 'flower-scene' + (done ? ' is-done' : '');
+  $('scene').className = 'flower-scene' + (done ? ' is-done' : '') + (puffing ? ' is-wrong' : '');
   $('scene').dataset.flowerDone = done ? '1' : '0';
   $('plant').style.setProperty('--stem', stem + 'px');
   $('progress').textContent = 'Открыто букв: ' + opened + ' из ' + total;
@@ -156,30 +159,44 @@ function render() {
   core.innerHTML = '<img src="/flower/center.webp" alt="" draggable="false" />' + (done ? '<span class="flower-core-spark">✦</span>' : '');
   bloom.appendChild(core);
 
+  // Пыльца при промахе и светлячки на победе — как в сцене игры.
+  const plant = $('plant');
+  const stale = plant.querySelector('.flower-pollen');
+  if (stale) stale.remove();
+  if (puffing) {
+    const puff = document.createElement('span');
+    puff.className = 'flower-pollen';
+    puff.textContent = '✳';
+    plant.appendChild(puff);
+  }
+  const sparks = $('sparks');
+  sparks.hidden = !done;
+  if (done) {
+    sparks.innerHTML = [0, 1, 2, 3, 4, 5].map((i) => '<span class="flower-spark flower-spark-' + i + '">✦</span>').join('');
+  } else {
+    sparks.innerHTML = '';
+  }
+
   // Слово под цветком — как в игре: открытые буквы, остальные точками.
   $('word').innerHTML = letters.map((ch, i) =>
     '<span class="' + (i < opened ? 'flower-word-on' : 'flower-word-off') + '">' + (i < opened ? ch : '·') + '</span>').join('');
   $('word').setAttribute('aria-label', 'Открыто ' + opened + ' из ' + total + ' букв');
 
-  // Пыльца на промахе.
-  const old = document.querySelector('.flower-pollen');
-  if (old) old.remove();
-
   // Карточки-буквы: верная + три соседки, перемешаны.
   const box = $('options');
-  if (done) {
+  if (done && box) {
     box.outerHTML = '<div class="flower-win" role="status" id="win">' +
       '<p class="flower-win-title">Цветок распустился!</p>' +
       '<p class="flower-win-word">' + word + '</p>' +
       '<p class="tiny"><b>+2 ⚡</b> <span class="muted">· засчитано в задания дня</span></p>' +
       '<p class="tiny muted">Ещё пару слов сегодня — и задания дня закрыты.</p>' +
       '<button type="button" class="btn primary" onclick="nextWord()">Новое слово →</button></div>';
-  } else if (!document.getElementById('options')) {
-    // Победа была — возвращаем сетку карточек.
+  } else if (!box && !done) {
+    // Победа была — возвращаем сетку карточек (иначе перерисовывать некуда).
     const win = $('win');
     if (win) win.outerHTML = '<div class="tl-options" role="group" aria-label="Выбери следующую букву" id="options"></div>';
     return render();
-  } else {
+  } else if (box) {
     const answer = letters[opened];
     const wrongs = (WORDS[word].choices[answer] || ['А','Б','В']).slice(0, 3);
     const cards = [answer, ...wrongs].sort(() => Math.random() - 0.5);
@@ -195,6 +212,7 @@ function pick(letter) {
   if (opened >= letters.length) return;
   const answer = letters[opened];
   if (letter === answer) {
+    puffing = false;
     opened += 1;
     tried = [];
     const petals = document.querySelectorAll('.flower-blossom');
@@ -205,12 +223,8 @@ function pick(letter) {
     wrong += 1;
     tried.push(letter);
     const scene = $('scene');
-    scene.classList.add('is-wrong');
-    const puff = document.createElement('span');
-    puff.className = 'flower-pollen';
-    puff.textContent = '✳';
-    $('plant').appendChild(puff);
-    setTimeout(() => { scene.classList.remove('is-wrong'); const p = document.querySelector('.flower-pollen'); if (p) p.remove(); }, 520);
+    puffing = true;
+    setTimeout(() => { puffing = false; render(); }, 520);
     if (wrong === 1) $('clue').textContent = '💡 ' + WORDS[word].hint + ' (подсказка мягче не станет — просто пробуй дальше)';
     if (wrong >= 2) $('clue').textContent = '💡 Следующая буква — ' + answer + '. Выбери её из карточек.';
     log('× «' + letter + '» — пыльца и качание. Цветок не пострадал, открыто всё ещё ' + opened + '.');
