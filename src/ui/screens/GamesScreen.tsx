@@ -1,3 +1,4 @@
+import { GameRecords } from '../GameRecords';
 /**
  * «Игры» — отдельная вкладка со свободными механиками (P0, H-рамка).
  *
@@ -309,6 +310,7 @@ export function GamesScreen({ onGoLessons }: { onGoLessons: () => void }) {
         </p>
       )}
 
+      {profile && <GameRecords profileId={profile.id} />}
       <div
         className="games-stage"
         id="games-stage"
@@ -382,7 +384,7 @@ export function GamesScreen({ onGoLessons }: { onGoLessons: () => void }) {
             пула и первые слова выглядели «пропущенными». */}
         {game === 'search' && (
           <WordSearchGame
-            key={`ws-${gamesPool.length}`}
+            key={`ws-${profile?.id}-${gamesPool.length}`}
             pool={gamesPool}
             grade={grade}
             priorityIds={priorityIds}
@@ -392,7 +394,7 @@ export function GamesScreen({ onGoLessons }: { onGoLessons: () => void }) {
 
         {game === 'crossword' && (
           <CrosswordGame
-            key={`cw-${gamesPool.length}`}
+            key={`cw-${profile?.id}-${gamesPool.length}`}
             pool={gamesPool}
             priorityIds={priorityIds}
             onGoLessons={onGoLessons}

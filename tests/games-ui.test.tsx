@@ -1,3 +1,4 @@
+import { parseRecords, recordsSnapshot } from '../src/platform/game-records';
 // «Игры» через настоящий UI (0.92.0): вкладка открывается, свободная практика
 // живёт по правилам рамки — ничего не сгорает, ничего не считается, словечки
 // ребёнку показывают только изученные. «Скоро»-карточки помечены честно.
@@ -313,6 +314,7 @@ export async function runWordSearchUiChecks() {
   }
   check('филворд: слово найдено тапами', foundCount() === 1, counter());
 
+  const recordsBeforeWs = parseRecords(recordsSnapshot(useApp.getState().activeId!)).search.completed;
   // Добиваем остальные цели — пока не появится баннер победы.
   for (const chip of chips()) {
     const target = (chip.dataset.wsText ?? '').trim();
@@ -337,6 +339,8 @@ export async function runWordSearchUiChecks() {
   // плашка «подпрыгивает» (.ws-win-party), рядом стоит честная строка о
   // наградах из `gameAwardHint()`. Конфетти в jsdom не проверяем: ветка
   // зависит от `prefers-reduced-motion` и от Web Animations.
+  check('филворд: победа записала ровно одну сетку', parseRecords(recordsSnapshot(useApp.getState().activeId!)).search.completed === recordsBeforeWs + 1, '');
+  check('филворд: рекорд виден в финале', /Лучшая сетка/.test(document.querySelector('.ws-win')?.textContent ?? ''), '');
   check('филворд: победа отмечена праздничной плашкой',
     !!document.querySelector('.ws-win-party'), document.querySelector('.ws-win')?.className ?? 'плашки нет');
   check('филворд: в финале есть честная подпись о наградах',
@@ -664,6 +668,7 @@ export async function runCrosswordUiChecks() {
   check('кроссворд: все слова зеленые', document.querySelectorAll('.cw-chip-good').length === chips().length,
     `зеленых: ${document.querySelectorAll('.cw-chip-good').length} / ${chips().length}`);
   // Финал (0.98.0): праздничная плашка и честная строка о наградах.
+  check('кроссворд: рекорд виден в финале', /Лучшая сетка/.test(document.querySelector('.cw-win')?.textContent ?? ''), '');
   check('кроссворд: победа отмечена праздничной плашкой',
     !!document.querySelector('.cw-win.ws-win-party'), document.querySelector('.cw-win')?.className ?? 'плашки нет');
   check('кроссворд: в финале есть честная подпись о наградах',
