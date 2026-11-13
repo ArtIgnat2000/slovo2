@@ -11665,46 +11665,83 @@ img.product-photo {
 }
 .ring-clue-body { min-width: 0; }
 
-/* Сцена круга: квадрат, вписанный в ширину карточки. Размер кнопки — в
-   процентах от сцены, поэтому круг одинаково выглядит на 360 и на 1040 px. */
+/* Сцена круга: квадрат, вписанный в ширину карточки. Радиус и размер буквы —
+   в px и считаются от диаметра круга, поэтому круг одинаково выглядит на 360
+   и на 1040 px, а буквы никогда не сходятся в центр.
+
+   ЧЕМ БЫЛО ПЛОХО (0.109.1): смещение буквы задавалось `translateY(-42%)`, а
+   проценты в translate считаются от размера САМОЙ кнопки (44 px), а не от
+   круга. Радиус выходил 44 × 0.42 ≈ 18 px вместо 118: восемь букв сбивались в
+   пятно ~81 px в середине круга 280 px и наезжали друг на друга — владелец
+   видел «буквы непонятно что тут и почему» (скриншот 2026-11-13). Теперь
+   радиус задан числом (`--ring-radius`) и от него же зависят размер буквы и
+   кольцо дорожки: геометрия не может разъехаться молча. */
 .ring-stage {
   display: grid;
   place-items: center;
   padding: 6px 0;
+  /* Круг упирается и в ширину карточки, и в высоту окна: на низком экране
+     (Android, клавиатура, ландшафт) буквы не должны уезжать под нижнее меню. */
+  --ring-size: min(280px, 78vw, 42vh);
+  --ring-dot: 44px;
+  /* Радиус орбиты: половина круга минус полбуквы и запас на ореол следующей
+     буквы. Так крайние буквы стоят внутри пунктирной дорожки, а не на ней. */
+  --ring-radius: calc(var(--ring-size) / 2 - var(--ring-dot) / 2 - 6px);
 }
 .ring {
   position: relative;
-  width: min(280px, 78vw);
+  width: var(--ring-size);
+  height: var(--ring-size);
   aspect-ratio: 1;
   border-radius: 50%;
   border: 2px dashed color-mix(in srgb, var(--primary) 35%, var(--line));
+  /* Палец ведёт по кругу, а не тянет страницу: та же блокировка, что у
+     филворда. Тап остаётся: без него недоступна клавиатура. */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 .ring-dot {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 44px;
-  height: 44px;
-  margin: -22px 0 0 -22px;
+  /* Размер буквы фиксирован: 44 px — это тап-зона, мельче палец ребёнка не
+     попадает. Кругу он не мешает: радиус орбиты считается от --ring-size. */
+  width: var(--ring-dot);
+  height: var(--ring-dot);
+  margin: calc(var(--ring-dot) / -2) 0 0 calc(var(--ring-dot) / -2);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  border: 2px solid var(--line);
-  background: var(--bg-2);
+  /* Кнопка буквы должна читаться как кнопка, а не сливаться с карточкой:
+     в тёмной теме --bg-2 (#201b14) лежит на --card (#282219) с контрастом
+     1,02 — владелец видел на скриншоте 2026-11-13 «одну букву» вместо семи.
+     Рамка с примесью акцента даёт 2,47 : 1 к карточке, подложка — мягкий
+     оттенок акцента, чтобы буква стояла на своей опоре в любой теме. */
+  border: 2px solid color-mix(in srgb, var(--line) 78%, var(--primary));
+  background: color-mix(in srgb, var(--primary-soft) 52%, var(--bg-2));
   color: var(--ink);
   font: inherit;
-  font-size: 19px;
+  font-size: calc(var(--ring-dot) * 0.43);
   font-weight: 800;
+  line-height: 1;
   cursor: pointer;
-  /* Позиция на окружности: радиус 42% сцены, угол от «12 часов» по часовой. */
-  transform: rotate(var(--ring-angle, 0deg)) translateY(-42%) rotate(calc(-1 * var(--ring-angle, 0deg)));
+  /* Позиция на окружности: угол от «12 часов» по часовой стрелке, радиус —
+     в px от диаметра круга. Второй поворот возвращает букву в вертикаль. */
+  transform: rotate(var(--ring-angle, 0deg)) translateY(calc(-1 * var(--ring-radius)))
+    rotate(calc(-1 * var(--ring-angle, 0deg)));
   transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
 }
+/* Собранная буква — заливка акцентом с контрастными чернилами: пара
+   --primary / --on-primary в проекте читается в обеих темах (4,62 : 1 светлая,
+   9,40 : 1 тёмная), и «собрано» отличается от «ещё нет» с одного взгляда.
+   Раньше отличалась только рамка — при сбитых в центр буквах (см. выше) это
+   выглядело одинаково. */
 .ring-dot-passed {
-  background: var(--primary-soft);
+  background: var(--primary);
   border-color: var(--primary);
-  color: var(--ink);
+  color: var(--on-primary);
 }
 /* Следующая буква получает мягкий ореол — это не подсказка ответа, а место,
    с которого продолжается движение (после отпускания пальца). */
@@ -11723,7 +11760,15 @@ img.product-photo {
   font-size: 26px;
   color: var(--ink-2);
 }
-.ring-status { text-align: center; margin: 0; }
+/* Строка состояния — последняя в карточке, а слева внизу стоит плавающая
+   кнопка звука (44 px + 12 px от края). На телефоне она накрывала начало
+   строки («Эта буква не следующая…» обрезалась, скриншот 2026-11-13):
+   отступаем от левого края ровно на её ширину. */
+.ring-status {
+  text-align: center;
+  margin: 0;
+  padding-left: 52px;
+}
 .ring-win,
 .tl-win {
   display: flex;

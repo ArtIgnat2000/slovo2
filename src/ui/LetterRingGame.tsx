@@ -10,6 +10,7 @@
  * «Собери слово».
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { PointerEvent as ReactPointerEvent } from 'react';
 import type { Word } from '../types';
 import { ringBoard, ringDone, ringPool, ringStep, RING_MAX_LETTERS } from '../engine/ring';
 import { boardOrder, poolDeck } from '../engine/pool-cursor';
@@ -57,6 +58,8 @@ export function LetterRingGame({
   });
   const board = useMemo(() => (word ? ringBoard(word) : null), [word]);
   const [collected, setCollected] = useState(0);
+  /** Тот же прогресс, но читаемый синхронно — для ведения пальцем. */
+  const collectedRef = useRef(0);
   const [message, setMessage] = useState('Веди пальцем по буквам по порядку.');
   const [award, setAward] = useState<{ xp: number; gems: number } | null>(null);
   const [confetti, setConfetti] = useState(false);
@@ -94,15 +97,24 @@ export function LetterRingGame({
   }, [confetti]);
 
   const step = (index: number) => {
-    if (!board || done) return;
-    const next = ringStep(board, collected, index);
-    if (next === collected) {
+    if (!board) return;
+    // Прогресс читаем из ref, а не из состояния кадра: при быстром ведении
+    // палец проходит две буквы до перерисовки, и замыкание со старым
+    // `collected` отбросило бы верную вторую букву как «не следующую».
+    const current = collectedRef.current;
+    if (current >= board.letters) return;
+    // Уже пройденная буква при ведении — это норма (палец задержался или
+    // вернулся назад), а не ошибка: молча пропускаем, без звука и без строки.
+    if (index < current) return;
+    if (index !== current) {
       // Промах — не наказание: мягкий звук и та же строка.
       sfx.tap();
       haptic.tap();
       setMessage('Эта буква не следующая — начни с той, где огонёк.');
       return;
     }
+    const next = ringStep(board, current, index);
+    collectedRef.current = next;
     setCollected(next);
     if (ringDone(board, next)) return; // победу обрабатывает эффект
     sfx.correct();
@@ -116,9 +128,71 @@ export function LetterRingGame({
     scored.current = false;
     setAward(null);
     setConfetti(false);
+    collectedRef.current = 0;
     setCollected(0);
     setMessage('Веди пальцем по буквам по порядку.');
     setWord(fresh);
+  };
+
+  /**
+   * Ведение пальцем (0.109.1).
+   *
+   * Игра обещает «проведи по буквам», а раньше принимала только тапы: ребёнок
+   * вёл палец по кругу, и ничего не происходило — буквы просто не реагировали
+   * (жалоба 2026-11-13). Тап остаётся рабочим как вторая дорога (клавиатура и
+   * доступность), но движение теперь засчитывается так же, как нажатие.
+   *
+   * Считаем только СЛЕДУЮЩУЮ букву: ведение мимо не «съедает» прогресс и не
+   * ругает, оно просто ничего не делает — правило «ошибка ничего не отнимает»
+   * остаётся. Клик после pointerup глушим, иначе тап засчитался бы дважды.
+   */
+  const swallowClick = useRef(false);
+  const dragging = useRef(false);
+
+  const dotFromPoint = (x: number, y: number): number | null => {
+    try {
+      const el = document.elementFromPoint?.(x, y);
+      const dot = el?.closest?.('[data-ring-index]') as HTMLElement | null | undefined;
+      if (!dot) return null;
+      const index = Number(dot.dataset.ringIndex);
+      return Number.isNaN(index) ? null : index;
+    } catch {
+      return null;
+    }
+  };
+
+  const onRingPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (done) return;
+    swallowClick.current = true;
+    dragging.current = true;
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      /* jsdom и старые движки — ведение просто не продолжается движением */
+    }
+    // Точку нажатия тоже проверяем: pointerdown по букве приходит и без тапа
+    // (длинное нажатие с отпусканием вне экрана).
+    const index = dotFromPoint(event.clientX, event.clientY);
+    if (index !== null) step(index);
+  };
+
+  const onRingPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!dragging.current || done) return;
+    const index = dotFromPoint(event.clientX, event.clientY);
+    // `step` сам отбросит не следующую букву — повторять проверку здесь не надо.
+    if (index !== null) step(index);
+  };
+
+  const onRingPointerUp = () => {
+    dragging.current = false;
+    // Клик после ведения не нужен: буква уже засчитана. Флаг снимаем в
+    // следующем тике, когда событие click браузер уже отправил.
+    window.setTimeout(() => (swallowClick.current = false), 0);
+  };
+
+  const onDotClick = (index: number) => {
+    if (swallowClick.current) return;
+    step(index);
   };
 
   if (!board) {
@@ -171,7 +245,15 @@ export function LetterRingGame({
       </div>
 
       <div className="ring-stage">
-        <div className="ring" role="group" aria-label="Буквы по кругу">
+        <div
+          className="ring"
+          role="group"
+          aria-label="Буквы по кругу"
+          onPointerDown={onRingPointerDown}
+          onPointerMove={onRingPointerMove}
+          onPointerUp={onRingPointerUp}
+          onPointerCancel={onRingPointerUp}
+        >
           {board.dots.map((dot) => {
             const passed = dot.index < collected;
             const nextToPress = dot.index === collected;
@@ -196,7 +278,7 @@ export function LetterRingGame({
                 }}
                 aria-pressed={passed}
                 aria-label={`Буква ${dot.index + 1}: ${dot.letter}`}
-                onClick={() => step(dot.index)}
+                onClick={() => onDotClick(dot.index)}
               >
                 {dot.letter}
               </button>
