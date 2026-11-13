@@ -10497,25 +10497,50 @@ img.product-photo {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
-/* 0.103.0: в группе стало 5–6 игр. Держим 2×2 и уводим остальные вбок
-   прокруткой полки, а не растягиваем экран: каждые лишние 72 px карточек
-   съедают поле игры и упираются в нижнее меню (замечание 2026-11-11).
-   Скроллбар скрыт — полка узнаётся по обрезанной третьей карточке. */
+/* 0.109.2: телефон показывает ВСЕ игры группы, без горизонтальной полки.
+   Было: 2×2 и остальные вбок в скрыто-прокручиваемой полке. Пятая карточка
+   («Цветок слова») стояла третьей колонкой ровно за правым краем — ни обрезка,
+   ни скроллбар её не выдавали, и владелец справедливо решил, что игры нет
+   (замечание 2026-11-13: «видно только 4 игры, а пятая уже не помещается»).
+   Скрытая прокрутка вместо видимого списка — плохая сделка: место экономит,
+   а игру прячет. Теперь все карточки в обычной сетке, а высоту вернули
+   компактностью: на телефоне карточка в одну строку (эмодзи + название),
+   описание ушло в `title`/`aria-label`. Три ряда по 46 px стоят столько же,
+   сколько раньше два по 64. */
 @media (max-width: 719px) {
   .games-cards {
-    grid-auto-flow: column;
-    grid-template-rows: repeat(2, minmax(0, 1fr));
-    grid-template-columns: none;
-    grid-auto-columns: calc(50% - 4px);
-    overflow-x: auto;
-    overflow-y: hidden;
-    scroll-snap-type: x proximity;
-    overscroll-behavior-x: contain;
-    padding-bottom: 2px;
-    scrollbar-width: none;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-flow: row;
   }
-  .games-cards::-webkit-scrollbar { display: none; }
-  .games-cards > .games-card { scroll-snap-align: start; }
+  .games-card {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    min-height: 46px;
+    padding: 6px 8px;
+  }
+  .games-card-emoji { font-size: 17px; }
+  .games-card-title {
+    font-size: 12.5px;
+    line-height: 1.15;
+    /* Длинное название («Слоговая мозаика») не рвёт сетку: две строки — предел. */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  /* Описание под названием на телефоне скрыто — кроме закрытой карточки:
+     у неё вместо описания условие, и терять его нельзя. */
+  .games-card-note { display: none; }
+  .games-card.locked .games-card-note {
+    display: -webkit-box;
+    font-size: 10.5px;
+    flex-basis: 100%;
+  }
+  .games-card.locked {
+    flex-wrap: wrap;
+    min-height: 46px;
+  }
 }
 .games-card {
   display: flex;

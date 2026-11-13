@@ -3,6 +3,7 @@
 // Проверяем ровно то, что нельзя проверить движком: карточки стоят на месте,
 // игра открывается, круг ведёт к победе, а ошибка в «Хитрой букве» даёт
 // подсказку, а не провал.
+import { readFileSync } from 'node:fs';
 import { WORDS_BY_GRADE } from '../src/content/words';
 import { MASTERED_SCORE } from '../src/engine/classes';
 import { dayKey, useApp } from '../src/state/store';
@@ -219,13 +220,23 @@ export async function runWordFlowerUiChecks(): Promise<void> {
   const petalImgs = Array.from(document.querySelectorAll('.flower-blossom img.flower-petal-img')) as HTMLImageElement[];
   check('цветок UI: лепестки нарисованы (картинка на каждом)',
     petalImgs.length === document.querySelectorAll('.flower-blossom').length && petalImgs.length >= 2 &&
-      petalImgs.every((img) => img.getAttribute('src') === '/flower/petal.webp'),
+      petalImgs.every((img) => img.getAttribute('src') === `${import.meta.env.BASE_URL}flower/petal.webp`),
     `картинок: ${petalImgs.length}`);
   check('цветок UI: серединка, листья и поляна — тоже рисунок',
-    (document.querySelector('.flower-core img') as HTMLImageElement | null)?.getAttribute('src') === '/flower/center.webp' &&
+    (document.querySelector('.flower-core img') as HTMLImageElement | null)?.getAttribute('src') === `${import.meta.env.BASE_URL}flower/center.webp` &&
       document.querySelectorAll('img.flower-leaf').length === 2 &&
       !!document.querySelector('.flower-meadow'),
     '');
+  // 0.109.2: стражи от 404 на GitHub Pages. Приложение живёт по `/slovo2/`,
+  // поэтому абсолютный `/flower/...` открывал рамку вместо картинки — ровно
+  // скриншот владельца «проблемы с графикой» от 2026-11-13, при том что
+  // подложка сцены грузилась (её путь переписывает Vite в CSS).
+  check('цветок UI: адрес картинок идёт от BASE_URL, а не от корня сайта',
+    petalImgs.length > 0 && petalImgs.every((img) => (img.getAttribute('src') ?? '').startsWith(import.meta.env.BASE_URL)),
+    petalImgs[0]?.getAttribute('src') ?? 'картинок нет');
+  check('цветок UI: в исходнике сцены нет абсолютных путей /flower/',
+    !/src="\/flower\//.test(readFileSync('src/ui/FlowerScene.tsx', 'utf8')),
+    'найден src="/flower/…"');
   check('цветок UI: ни один лепесток не открыт в начале',
     document.querySelectorAll('.flower-blossom.is-open').length === 0, '');
   check('цветок UI: закрытые лепестки букв не выдают',

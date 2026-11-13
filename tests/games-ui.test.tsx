@@ -134,6 +134,15 @@ export async function runGamesUiChecks() {
   check('игры: в группе видны карточки игр 2×2',
     document.querySelectorAll('.games-card').length >= 1,
     `карточек: ${document.querySelectorAll('.games-card').length}`);
+  // 0.109.2: карточка обязана нести описание в `aria-label` — на телефоне
+  // строка описания скрыта ради того, чтобы все игры группы помещались без
+  // горизонтальной прокрутки (замечание «видно только 4 игры»).
+  check('игры: у каждой карточки описание доступно из aria-label',
+    Array.from(document.querySelectorAll('.games-card')).every((c) => {
+      const label = c.getAttribute('aria-label') ?? '';
+      return label.includes('.') && label.length > (c.querySelector('.games-card-title')?.textContent ?? '').length;
+    }),
+    Array.from(document.querySelectorAll('.games-card')).map((c) => c.getAttribute('aria-label') ?? 'нет').join(' | '));
   check('игры: шкала дня объясняет, что открыто',
     !!document.querySelector('.games-meter') &&
       /Открыто|открыто/.test(document.querySelector('.games-meter')?.textContent ?? ''),
