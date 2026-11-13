@@ -1,3 +1,4 @@
+import { MemoryGame } from '../MemoryGame';
 import { GameRecords } from '../GameRecords';
 /**
  * «Игры» — отдельная вкладка со свободными механиками (P0, H-рамка).
@@ -45,7 +46,7 @@ import { WordTileBoard } from '../WordTileBoard';
 import { WordSearchGame } from '../WordSearchGame';
 import { CrosswordGame } from '../CrosswordGame';
 
-type GameId = 'build' | 'search' | 'crossword';
+type GameId = 'build' | 'search' | 'crossword' | 'memory';
 /** Группа по времени игры, а не по «жанру»: ребёнку так понятнее (§4-B). */
 type GameGroup = 'fast' | 'think';
 
@@ -86,6 +87,7 @@ const GAMES: Array<{ id: GameId; emoji: string; title: string; oneline: string; 
   { id: 'build', emoji: '🧵', title: 'Собери слово', oneline: 'Выложи слово из карточек.', group: 'fast' },
   { id: 'search', emoji: '🔎', title: 'Филворд', oneline: 'Найди слова в буквенном поле.', group: 'think' },
   { id: 'crossword', emoji: '✏️', title: 'Кроссворд', oneline: 'Собери слова в решётке.', group: 'think' },
+  { id: 'memory', emoji: '🧠', title: 'Мемори', oneline: 'Найди пары карточек.', group: 'think' },
 ];
 
 /** Две группы вкладки: подписи короткие, цели ≥ 44 px. */
@@ -137,6 +139,12 @@ export function GamesScreen({ onGoLessons }: { onGoLessons: () => void }) {
    * Берём из профиля (не из дня): «ошибся вчера» — тоже повод потренировать.
    * SRS при этом не меняется — игра остаётся мягкой тренировкой.
    */
+  // Unlike letter grids, Memory has no word-length ceiling: fifth-grade
+  // long words and phrases must not disappear from its pool.
+  const memoryPool = useMemo(() => {
+    const ids = new Set(met.map(w => w.id));
+    return [...met, ...WORDS_BY_GRADE[grade].filter(w => !ids.has(w.id))];
+  }, [met, grade]);
   const priorityIds = useMemo(() => troubleWords(profile?.words ?? {}), [profile]);
   const [wordId, setWordId] = useState<string | null>(null);
   const settings = useApp((s) => s.settings);
@@ -382,6 +390,7 @@ export function GamesScreen({ onGoLessons }: { onGoLessons: () => void }) {
             урок), игра начинается с первой сетки нового пула, а не с курсора
             старого размера. Без этого курсор мог указывать в середину нового
             пула и первые слова выглядели «пропущенными». */}
+        {game === 'memory' && profile && <MemoryGame key={`memory-${profile.id}-${grade}-${memoryPool.map(w => w.id).join('|')}`} pool={memoryPool} grade={grade} profileId={profile.id} priorityIds={priorityIds} onGoLessons={onGoLessons} />}
         {game === 'search' && (
           <WordSearchGame
             key={`ws-${profile?.id}-${gamesPool.length}`}
