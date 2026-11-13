@@ -25,6 +25,7 @@
     "audit:storage": "node scripts/audit-storage.mjs",
     "images": "node scripts/make-word-images.mjs",
     "flower:art": "node scripts/make-flower-art.mjs",
+    "flower:proto": "node scripts/proto-flower.mjs",
     "images:report": "node scripts/image-coverage.mjs",
     "chests:art": "node scripts/process-chest-art.mjs",
     "buk:art": "python3 scripts/make-buk-art.py && node scripts/make-buk-3d.mjs",
