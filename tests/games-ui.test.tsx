@@ -438,8 +438,8 @@ export async function runGamesAccessUiChecks() {
   check('доступ в UI: в группе, где всё закрыто, остаётся подсказка',
     !!document.querySelector('.games-lock-note'), document.querySelector('.games-lock-note')?.textContent ?? '');
   await goGroup('Быстро');
-  check('доступ в UI: шкала говорит, что откроется за урок',
-    /за урок/.test(document.querySelector('.games-meter')?.textContent ?? ''),
+  check('доступ в UI: шкала показывает прогресс по верным ответам',
+    /0 из 10 верных ответов/.test(document.querySelector('.games-meter')?.textContent ?? ''),
     document.querySelector('.games-meter')?.textContent ?? '');
   check('доступ в UI: в пустом дне нет игрового поля вместо игры',
     !document.querySelector('.ws-card') && !document.querySelector('.cw-card'), '');
@@ -455,20 +455,34 @@ export async function runGamesAccessUiChecks() {
       !document.querySelector('.ws-card') && !document.querySelector('.cw-card'), '');
   }
 
-  // Один урок — вторая карточка. Считаем «было → стало», как ребёнок.
+  // Один слабый урок: до конца дошёл, но верных ответов мало (0.99.1 — такой
+  // урок больше НЕ открывает игру, это и есть правка схемы).
   useApp.setState((s) => ({
     profiles: s.profiles.map((p) =>
       p.id === s.activeId
-        ? { ...p, days: { ...p.days, [dayKey()]: { ...emptyDayProbe(), lessons: 1, xp: 40 } } }
+        ? { ...p, days: { ...p.days, [dayKey()]: { ...emptyDayProbe(), lessons: 1, xp: 84, correct: 5 } } }
         : p,
     ),
   }));
   await sleep(80);
-  check('доступ в UI: урок открывает вторую игру',
+  check('доступ в UI: слабый урок игру не открывает',
+    (document.querySelector('.games-meter')?.textContent ?? '').includes('Открыто 1'),
+    document.querySelector('.games-meter')?.textContent ?? '');
+
+  // 10 верных ответов — первый шаг лестницы: вторая игра.
+  useApp.setState((s) => ({
+    profiles: s.profiles.map((p) =>
+      p.id === s.activeId
+        ? { ...p, days: { ...p.days, [dayKey()]: { ...emptyDayProbe(), correct: 10 } } }
+        : p,
+    ),
+  }));
+  await sleep(80);
+  check('доступ в UI: 10 верных ответов открывают вторую игру',
     (document.querySelector('.games-meter')?.textContent ?? '').includes('Открыто 2'),
     document.querySelector('.games-meter')?.textContent ?? '');
   await goGroup('Подумать');
-  check('доступ в UI: после урока «Филворд» открылся, а «Кроссворд» ещё нет',
+  check('доступ в UI: после 10 верных «Филворд» открылся, а «Кроссворд» ещё нет',
     cards().filter((c) => c.dataset.gameOpen === '1').length === 1 &&
       (cards().find((c) => c.dataset.gameOpen === '1')?.textContent ?? '').includes('Филворд'),
     cards().map((c) => `${c.textContent}:${c.dataset.gameOpen}`).join(' | '));

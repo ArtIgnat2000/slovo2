@@ -75,7 +75,7 @@ export function SettingsTab({ profile, onOpenDiagnostics }: { profile: Profile; 
               {
                 value: 'points',
                 label: 'за успехи дня',
-                hint: 'Одна игра открыта всегда; остальные — за уроки, задания дня и баллы (рекомендуем)',
+                hint: 'Одна игра открыта всегда; остальные — по шагам дня: 10 верных ответов, урок до конца, все задания (рекомендуем)',
               },
               {
                 value: 'open',
