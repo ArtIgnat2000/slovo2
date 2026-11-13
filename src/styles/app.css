@@ -11819,57 +11819,9 @@ img.product-photo {
   .ring-dot { transition: none; }
 }
 
-/* ── 0.105.0: «Цветок слова» ────────────────────────────────────────────────
-   Лепестки — буквы слова, стебель — само слово. Закрытый лепесток нейтрален,
-   открытый — акцентный. Никаких «увядших навсегда» состояний: ошибка даёт
-   мягкую «вспышку» на текущем лепестке и подсказку, а не порчу цветка. */
-.flower-stage {
-  display: grid;
-  gap: 8px;
-  justify-items: center;
-  padding: 6px 0;
-}
-.flower-petals {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 6px;
-}
-.flower-petal {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 50% 50% 46% 46%;
-  border: 2px solid var(--line);
-  background: var(--bg-2);
-  color: var(--ink-2);
-  font-size: 17px;
-  font-weight: 800;
-  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
-}
-.flower-petal-open {
-  border-color: var(--primary);
-  background: var(--primary-soft);
-  color: var(--ink);
-  transform: translateY(-2px);
-}
-/* Текущий лепесток после промаха: мягкая подсветка, а не «жизнь отнята». */
-.flower-petal-touch {
-  border-color: var(--orange-soft);
-  background: var(--orange-soft);
-}
-.flower-stem {
-  display: flex;
-  gap: 4px;
-  margin: 0;
-  font-size: clamp(20px, 6vw, 26px);
-  font-weight: 800;
-  letter-spacing: 1px;
-}
-.flower-open { color: var(--ink); }
-.flower-closed { color: var(--ink-3); }
+/* ── «Цветок слова»: итог и пустое состояние (сцена — в блоке 0.109.0) ──────
+   Старые `.flower-petal/.flower-stem` 0.105.0 удалены в 0.109.0: лепестки и
+   стебель теперь рисует сцена, дублирующие правила только путали бы. */
 .flower-win {
   display: grid;
   gap: 6px;
@@ -11890,9 +11842,6 @@ img.product-photo {
   gap: 8px;
   text-align: center;
   padding: 20px 12px;
-}
-@media (prefers-reduced-motion: reduce) {
-  .flower-petal { transition: none; }
 }
 
 /* ── 0.106.0: «Слоговая мозаика» ────────────────────────────────────────────
@@ -11994,14 +11943,16 @@ img.product-photo {
   color: var(--ink-2);
 }
 
-/* ── 0.108.0: сцена «Цветка слова» ──────────────────────────────────────────
-   Владелец: «нет никакого визуала, скучно». Поэтому визуал = обратная связь:
-   цветок растёт с каждой буквой, лепестки распускаются по одному, ошибка даёт
-   пыльцу (а не красную плашку), победа — цветение со светлячками.
+/* ── 0.109.0: «Цветок слова» — рисованная сцена ─────────────────────────────
+   Владелец: «доделай дизайн цветка, картинку на уровне Pixar». Лепесток,
+   серединка и лист — нарисованные 3D-ассеты (public/flower/*.webp, ~35 КБ в
+   сумме, без сети). На CSS остались стебель (он обязан менять высоту по
+   прогрессу — растяжение рисунка «толстило» бы его), земля, пыльца и
+   светлячки.
 
-   Только токены темы и color-mix: ни картинок, ни внешних шрифтов — офлайн.
-   Все анимации ≤ 1.2 с и без бесконечных циклов (кроме лёгкого покачивания
-   листиков — оно 4 с и отключается при prefers-reduced-motion). */
+   Темы: рисунок природы от темы не зависит, но подложка приглушена до 88 % и
+   в тёмных темах притемняется фильтром — иначе светлая поляна светила бы
+   фонарём в ночной теме. Все анимации ≤ 1.2 с, бесконечных нет. */
 
 .flower-scene {
   position: relative;
@@ -12012,171 +11963,229 @@ img.product-photo {
   border-radius: 18px;
   overflow: hidden;
   border: 1.5px solid var(--line);
-  background:
-    radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--primary) 14%, transparent) 0%, transparent 70%),
-    linear-gradient(180deg, color-mix(in srgb, var(--primary) 8%, var(--card)) 0%, var(--card) 62%, var(--bg-2) 100%);
-  min-height: 196px;
+  background: var(--bg-2);
+  min-height: 210px;
+  isolation: isolate;
 }
 
-/* Небо: солнце и два облака. Медленные, неброские — фон, а не аттракцион. */
-.flower-sky {
+/* Поляна: размытая фотография-подложка. `cover` держит пропорции, поэтому
+   на широком планшете сцена не растягивается в полосу. */
+.flower-meadow {
   position: absolute;
   inset: 0;
+  z-index: 0;
+  background-image: url('/flower/backplate.webp');
+  background-size: cover;
+  background-position: center 62%;
+  opacity: 0.88;
   pointer-events: none;
 }
-.flower-sun {
-  position: absolute;
-  top: 10px;
-  right: 14px;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--amber, #ff9f0a) 85%, white) 0%, transparent 70%);
-  box-shadow: 0 0 18px color-mix(in srgb, var(--amber, #ff9f0a) 45%, transparent);
-  animation: flower-sun 1.2s ease-out both;
+.flower-scene.is-done .flower-meadow { opacity: 0.95; }
+/* Тёмная схема: притушить поляну, чтобы светлый луг не светил фонарём.
+   Тема в проекте — это `data-theme="light|dark"` на `<html>` (см.
+   `src/platform/theme.ts`), а не `data-scheme`; медиазапрос ниже — только
+   подстраховка на первый кадр, пока инлайн-скрипт не поставил атрибут. */
+:root[data-theme='dark'] .flower-meadow {
+  opacity: 0.58;
+  filter: saturate(0.92) brightness(0.68);
 }
-.flower-cloud {
-  position: absolute;
-  height: 10px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--card) 70%, transparent);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--card) 45%, transparent);
-  opacity: 0.7;
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .flower-meadow { opacity: 0.58; filter: saturate(0.92) brightness(0.68); }
 }
-.flower-cloud-a { top: 18px; left: 16px; width: 46px; }
-.flower-cloud-b { top: 34px; left: 46px; width: 30px; opacity: 0.5; }
 
-/* Растение: соцветие поднимается на высоту стебля, стебель растёт. */
+/* Пучки травы у земли — рисуются на CSS, чтобы «поляна» не висела в воздухе. */
+.flower-grass {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 34%;
+  z-index: 0;
+  background:
+    radial-gradient(60% 60% at 18% 100%, color-mix(in srgb, #3f8f3a 70%, transparent) 0%, transparent 70%),
+    radial-gradient(50% 70% at 82% 100%, color-mix(in srgb, #4aa244 55%, transparent) 0%, transparent 72%),
+    linear-gradient(180deg, transparent 0%, color-mix(in srgb, #3f8f3a 32%, transparent) 100%);
+  pointer-events: none;
+}
+
+/* Растение: соцветие, стебель, тень — снизу вверх. `min-height` считается по самой высокой позе (соцветие 140 px +
+   стебель 126 + тень 8): без него слово под цветком прыгало бы вниз, пока
+   стебель растёт. Контент прижат к низу, поэтому рост идёт вверх. */
 .flower-plant {
   position: relative;
+  z-index: 1;
   display: grid;
   justify-items: center;
   align-content: end;
   width: 100%;
+  min-height: 278px;
   padding-top: 6px;
-  z-index: 1;
 }
+/* Соцветие. Размеры лепестка и радиус считаются от ДЛИНЫ слова: у 4 букв
+   лепестки крупные, у 9 — мелкие, иначе на длинном слове они наезжают друг на
+   друга (окружность при r=46 всего 289 px). */
 .flower-bloom {
   position: relative;
-  width: 132px;
-  height: 132px;
-  display: grid;
-  place-items: center;
-  margin-bottom: -10px;
-  transition: margin-bottom 320ms ease;
-}
-.flower-core {
-  position: relative;
+  /* Соцветие выше стебля: нижний лепесток ложится НА стебель, иначе стебель
+     перечёркивал бы его букву (первый кадр 0.109.0 именно так и ломался). */
   z-index: 2;
+  width: 152px;
+  height: 152px;
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  font-size: 20px;
-  color: var(--ink);
-  background: radial-gradient(circle at 40% 35%,
-    color-mix(in srgb, var(--amber, #ff9f0a) 55%, var(--card)) 0%,
-    color-mix(in srgb, var(--amber, #ff9f0a) 22%, var(--card)) 70%);
-  border: 2px solid color-mix(in srgb, var(--amber, #ff9f0a) 45%, var(--line));
-  box-shadow: 0 3px 10px color-mix(in srgb, var(--amber, #ff9f0a) 25%, transparent);
+  margin-bottom: -12px;
+  filter: drop-shadow(0 6px 10px color-mix(in srgb, #1c3a1a 28%, transparent));
+  --petal-size: 48px;
+  --petal-radius: 46px;
 }
-/* Закрытый лепесток: маленький бутон у центра. */
+.flower-bloom.is-roomy { --petal-size: 54px; --petal-radius: 48px; }
+.flower-bloom.is-dense { --petal-size: 40px; --petal-radius: 42px; }
+.flower-bloom.is-denser { --petal-size: 34px; --petal-radius: 38px; }
+
+/* Лепесток: картинка 256 px повёрнута на свой угол и выдвинута от центра.
+   Закрытый — маленький бутон у середины и полупрозрачный «в тени». */
 .flower-blossom {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 40px;
-  height: 44px;
-  margin: -22px 0 0 -20px;
+  width: var(--petal-size);
+  height: var(--petal-size);
+  margin: calc(var(--petal-size) / -2) 0 0 calc(var(--petal-size) / -2);
   display: grid;
   place-items: center;
-  border-radius: 50% 50% 46% 46%;
-  background: color-mix(in srgb, var(--line) 55%, var(--card));
-  border: 1.5px solid var(--line);
-  transform: rotate(var(--petal-angle)) translateY(-24px) scale(0.55);
-  transition: transform 340ms cubic-bezier(0.2, 1.3, 0.4, 1), background 260ms ease, border-color 260ms ease;
-  font-size: 0;
-  color: transparent;
+  transform: rotate(var(--petal-angle)) translateY(calc(var(--petal-radius) * -0.62)) scale(0.62);
+  transition: transform 380ms cubic-bezier(0.2, 1.25, 0.4, 1), opacity 260ms ease;
+  opacity: 0.7;
+  /* Закрытый лепесток — «бутон»: приглушён и чуть темнее, но не серый.
+     Полная серая заливка делала цветок больным, а не закрытым. */
+  filter: saturate(0.62) brightness(0.9);
 }
-/* Открытый лепесток: выдвинут наружу, окрашен, буква читается. */
 .flower-blossom.is-open {
-  transform: rotate(var(--petal-angle)) translateY(-42px) scale(1);
-  background: radial-gradient(circle at 50% 30%,
-    color-mix(in srgb, var(--primary) 30%, var(--card)) 0%,
-    color-mix(in srgb, var(--primary) 12%, var(--card)) 100%);
-  border-color: color-mix(in srgb, var(--primary) 55%, var(--line));
-  box-shadow: 0 4px 10px color-mix(in srgb, var(--primary) 22%, transparent);
-  font-size: 19px;
+  transform: rotate(var(--petal-angle)) translateY(calc(var(--petal-radius) * -1)) scale(1);
+  opacity: 1;
+  filter: none;
+}
+.flower-petal-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+/* Буква лежит НА лепестке и всегда стоит прямо, как бы лепесток ни повернулся.
+   `top: 38 %` — середина широкой части лепестка; при 34 % буква съезжала к
+   серединке цветка и на длинных словах наезжала на соседние лепестки. */
+.flower-petal-letter {
+  position: absolute;
+  top: 38%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(calc(-1 * var(--petal-angle)));
+  font-size: calc(var(--petal-size) * 0.42);
   font-weight: 800;
-  color: var(--ink);
+  line-height: 1;
+  color: #43190d;
+  text-shadow: 0 1px 0 color-mix(in srgb, white 62%, transparent);
+  pointer-events: none;
 }
-.flower-blossom-inner { transform: rotate(calc(-1 * var(--petal-angle))); }
 /* Только что открывшийся лепесток «выстреливает» — единственный акцент шага. */
-.flower-blossom.is-fresh { animation: flower-petal-pop 0.6s cubic-bezier(0.2, 1.5, 0.35, 1) both; }
+.flower-blossom.is-fresh { animation: flower-petal-pop 0.62s cubic-bezier(0.2, 1.5, 0.35, 1) both; }
 @keyframes flower-petal-pop {
-  0% { transform: rotate(var(--petal-angle)) translateY(-24px) scale(0.55); }
-  60% { transform: rotate(var(--petal-angle)) translateY(-46px) scale(1.18); }
-  100% { transform: rotate(var(--petal-angle)) translateY(-42px) scale(1); }
-}
-@keyframes flower-sun {
-  from { opacity: 0; transform: scale(0.6); }
-  to { opacity: 1; transform: scale(1); }
+  0% { transform: rotate(var(--petal-angle)) translateY(calc(var(--petal-radius) * -0.62)) scale(0.62); }
+  62% { transform: rotate(var(--petal-angle)) translateY(calc(var(--petal-radius) * -1.1)) scale(1.2); }
+  100% { transform: rotate(var(--petal-angle)) translateY(calc(var(--petal-radius) * -1)) scale(1); }
 }
 
-/* Стебель: высота приходит из --stem, поэтому «рост» виден без JS-анимаций. */
+/* Серединка — рисованный «ёжик» из семечек. */
+.flower-core {
+  position: relative;
+  z-index: 2;
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  box-shadow: 0 4px 10px color-mix(in srgb, #7a5210 35%, transparent);
+  transition: transform 300ms ease;
+}
+.flower-core img { width: 100%; height: 100%; object-fit: contain; }
+.flower-core.is-done { transform: scale(1.12); }
+.flower-core-spark {
+  position: absolute;
+  right: -6px;
+  top: -8px;
+  font-size: 16px;
+  color: color-mix(in srgb, #ffb01f 85%, white);
+  animation: flower-spark 1.1s ease-out both;
+}
+
+/* Стебель: высота приходит из --stem, поэтому рост виден без JS-анимаций. */
 .flower-trunk {
   position: relative;
-  width: 8px;
-  height: var(--stem, 64px);
-  border-radius: 6px;
-  background: linear-gradient(180deg,
-    color-mix(in srgb, var(--green, #22c55e) 75%, black 10%) 0%,
-    color-mix(in srgb, var(--green, #22c55e) 55%, var(--card)) 100%);
+  width: 9px;
+  height: var(--stem, 48px);
+  border-radius: 6px 6px 3px 3px / 10px 10px 3px 3px;
+  background: linear-gradient(90deg,
+    color-mix(in srgb, #2c6f31 85%, black 10%) 0%,
+    color-mix(in srgb, #62b455 90%, white 6%) 38%,
+    #45953f 78%,
+    color-mix(in srgb, #27632c 80%, black 10%) 100%);
+  box-shadow: inset -1px 0 0 color-mix(in srgb, white 22%, transparent),
+    2px 0 6px color-mix(in srgb, #1c3a1a 18%, transparent);
   transition: height 420ms cubic-bezier(0.2, 1, 0.3, 1);
-  z-index: 0;
+  z-index: 1;
 }
+/* Листья — рисованные, растут из стебля: левый и правый, повёрнутые. */
 .flower-leaf {
   position: absolute;
-  width: 28px;
-  height: 16px;
-  border-radius: 0 100% 0 100%;
-  background: color-mix(in srgb, var(--green, #22c55e) 45%, var(--card));
-  border: 1.5px solid color-mix(in srgb, var(--green, #22c55e) 35%, var(--line));
-  transform-origin: 0 50%;
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  filter: drop-shadow(0 2px 3px color-mix(in srgb, #1c3a1a 30%, transparent));
 }
-.flower-leaf-l { left: -26px; top: 40%; animation: flower-sway 4s ease-in-out infinite; }
-.flower-leaf-r {
-  right: -26px;
-  top: 62%;
-  border-radius: 100% 0 100% 0;
+.flower-leaf-l {
+  left: -40px;
+  top: 42%;
+  transform: rotate(-24deg);
   transform-origin: 100% 50%;
+  animation: flower-sway 4s ease-in-out infinite;
+}
+.flower-leaf-r {
+  right: -40px;
+  top: 66%;
+  transform: rotate(26deg) scaleX(-1);
+  transform-origin: 0 50%;
   animation: flower-sway 4s ease-in-out infinite reverse;
 }
 @keyframes flower-sway {
-  0%, 100% { rotate: -3deg; }
-  50% { rotate: 4deg; }
+  0%, 100% { rotate: -2deg; }
+  50% { rotate: 3deg; }
 }
-/* Земля: горка, из которой растёт цветок. */
+/* Земля. На поляне «горка земли» смотрелась бы горшком, поэтому это мягкая
+   тень-пятно у корня: цветок растёт из травы, а не из ведра. */
 .flower-soil {
-  width: 96px;
-  height: 18px;
-  margin-top: -4px;
-  border-radius: 50% 50% 8px 8px / 70% 70% 8px 8px;
-  background: linear-gradient(180deg,
-    color-mix(in srgb, var(--ink-3) 35%, var(--card)) 0%,
-    color-mix(in srgb, var(--ink-3) 55%, var(--card)) 100%);
+  width: 86px;
+  height: 16px;
+  margin-top: -8px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side,
+    color-mix(in srgb, #1f3d16 46%, transparent) 0%,
+    color-mix(in srgb, #1f3d16 24%, transparent) 58%,
+    transparent 100%);
+  filter: blur(1.5px);
 }
 
 /* Пыльца при промахе: цветок не «портится», просто чихает. */
 .flower-pollen {
   position: absolute;
-  top: 34%;
+  top: 32%;
   left: 50%;
   font-size: 22px;
-  color: color-mix(in srgb, var(--orange-soft) 65%, #c2410c);
+  color: color-mix(in srgb, #ffcf4d 75%, #c2410c);
   animation: flower-pollen 0.5s ease-out both;
   pointer-events: none;
+  z-index: 3;
 }
 @keyframes flower-pollen {
   0% { opacity: 0; transform: translate(-50%, 6px) scale(0.6); }
@@ -12191,26 +12200,24 @@ img.product-photo {
   70% { transform: translateX(4px) rotate(1.2deg); }
 }
 
-/* Победа: лепестки распускаются шире и круглее, летят светлячки. */
-.flower-scene.is-done {
-  background:
-    radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--primary) 22%, transparent) 0%, transparent 72%),
-    linear-gradient(180deg, color-mix(in srgb, var(--primary) 12%, var(--card)) 0%, var(--card) 60%, var(--bg-2) 100%);
-}
+/* Победа: лепестки распускаются шире, летят светлячки, серединка светится. */
 .flower-scene.is-done .flower-blossom.is-open {
-  transform: rotate(var(--petal-angle)) translateY(-50px) scale(1.08);
-  border-color: var(--green);
-  box-shadow: 0 6px 14px color-mix(in srgb, var(--green) 30%, transparent);
+  transform: rotate(var(--petal-angle)) translateY(calc(var(--petal-radius) * -1.1)) scale(1.06);
+}
+.flower-scene.is-done .flower-core {
+  box-shadow: 0 0 18px color-mix(in srgb, #ffcf4d 70%, transparent);
 }
 .flower-sparkles {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  z-index: 3;
 }
 .flower-spark {
   position: absolute;
   font-size: 14px;
-  color: color-mix(in srgb, var(--amber, #ff9f0a) 80%, white);
+  color: color-mix(in srgb, #ffcf4d 85%, white);
+  text-shadow: 0 0 6px color-mix(in srgb, #ffcf4d 60%, transparent);
   animation: flower-spark 1.1s ease-out both;
 }
 .flower-spark-0 { left: 18%; top: 26%; animation-delay: 0s; }
@@ -12225,13 +12232,18 @@ img.product-photo {
   100% { opacity: 0; transform: scale(1.1) translateY(-18px); }
 }
 
-/* Слово под цветком — доступная копия прогресса. */
+/* Слово под цветком — доступная копия прогресса. На поляне нужен контраст:
+   светлая плашка под текстом, чтобы буквы читались при любом фоне. */
 .flower-word {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: flex;
   gap: 3px;
   margin: 0;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--card) 82%, transparent);
+  backdrop-filter: blur(3px);
   font-size: clamp(18px, 5.4vw, 24px);
   font-weight: 800;
   letter-spacing: 1px;
@@ -12240,21 +12252,23 @@ img.product-photo {
 .flower-word-off { color: var(--ink-3); opacity: 0.6; }
 
 @media (prefers-reduced-motion: reduce) {
-  .flower-sun,
   .flower-blossom.is-fresh,
   .flower-pollen,
   .flower-scene.is-wrong .flower-plant,
   .flower-spark,
   .flower-leaf { animation: none; }
   .flower-blossom,
-  .flower-trunk { transition: none; }
+  .flower-trunk,
+  .flower-core { transition: none; }
 }
 @media (max-width: 380px) {
-  .flower-bloom { width: 112px; height: 112px; }
-  .flower-blossom { width: 34px; height: 38px; margin: -19px 0 0 -17px; }
-  .flower-blossom.is-open {
-    transform: rotate(var(--petal-angle)) translateY(-36px) scale(1);
-    font-size: 17px;
-  }
-  .flower-scene.is-done .flower-blossom.is-open { transform: rotate(var(--petal-angle)) translateY(-42px) scale(1.05); }
+  .flower-bloom { width: 132px; height: 132px; --petal-size: 42px; --petal-radius: 40px; }
+  .flower-bloom.is-roomy { --petal-size: 46px; --petal-radius: 41px; }
+  .flower-bloom.is-dense { --petal-size: 35px; --petal-radius: 37px; }
+  .flower-bloom.is-denser { --petal-size: 30px; --petal-radius: 34px; }
+  .flower-plant { min-height: 256px; }
+  .flower-core { width: 50px; height: 50px; }
+  .flower-leaf { width: 38px; height: 38px; }
+  .flower-leaf-l { left: -32px; }
+  .flower-leaf-r { right: -32px; }
 }

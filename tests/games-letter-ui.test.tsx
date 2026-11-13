@@ -162,8 +162,22 @@ export async function runWordFlowerUiChecks(): Promise<void> {
       !!document.querySelector('.flower-trunk') &&
       !!document.querySelector('.flower-soil'),
     `лепестков: ${document.querySelectorAll('.flower-blossom').length}`);
+  // 0.109.0: цветок нарисован картинками, а не CSS-кружками. Проверяем, что
+  // ассеты действительно подключены (иначе сцена молча деградирует до фигур).
+  const petalImgs = Array.from(document.querySelectorAll('.flower-blossom img.flower-petal-img')) as HTMLImageElement[];
+  check('цветок UI: лепестки нарисованы (картинка на каждом)',
+    petalImgs.length === document.querySelectorAll('.flower-blossom').length && petalImgs.length >= 2 &&
+      petalImgs.every((img) => img.getAttribute('src') === '/flower/petal.webp'),
+    `картинок: ${petalImgs.length}`);
+  check('цветок UI: серединка, листья и поляна — тоже рисунок',
+    (document.querySelector('.flower-core img') as HTMLImageElement | null)?.getAttribute('src') === '/flower/center.webp' &&
+      document.querySelectorAll('img.flower-leaf').length === 2 &&
+      !!document.querySelector('.flower-meadow'),
+    '');
   check('цветок UI: ни один лепесток не открыт в начале',
     document.querySelectorAll('.flower-blossom.is-open').length === 0, '');
+  check('цветок UI: закрытые лепестки букв не выдают',
+    document.querySelectorAll('.flower-petal-letter').length === 0, '');
 
   // Раскрываем слово: на каждом шаге перебираем карточки, пока одна не сработает.
   // Так проверка не зависит от того, какое слово выпало.
@@ -184,6 +198,9 @@ export async function runWordFlowerUiChecks(): Promise<void> {
   check('цветок UI: слово раскрывается по буквам', advanced > 0, `шагов: ${advanced}`);
   check('цветок UI: раскрытое слово даёт победу', !!document.querySelector('.flower-win'),
     document.querySelector('.flower-word')?.textContent ?? '');
+  check('цветок UI: на победе буквы стоят на лепестках',
+    document.querySelectorAll('.flower-petal-letter').length ===
+      document.querySelectorAll('.flower-blossom').length, '');
   check('цветок UI: на победе сцена цветёт (все лепестки открыты)',
     document.querySelector('.flower-scene')?.getAttribute('data-flower-done') === '1' &&
       document.querySelectorAll('.flower-blossom.is-open').length ===
