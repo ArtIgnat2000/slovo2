@@ -154,35 +154,49 @@ export async function runWordFlowerUiChecks(): Promise<void> {
 
   const letters = () => Array.from(document.querySelectorAll('.tl-option')) as HTMLButtonElement[];
   check('цветок UI: четыре карточки-буквы', letters().length === 4, `карточек: ${letters().length}`);
-  check('цветок UI: лепестки нарисованы по числу букв', document.querySelectorAll('.flower-petal').length >= 2, '');
+  // 0.108.0: сцена вместо списка — лепестки вокруг центра, стебель, земля.
+  // Проверяем именно визуал: владелец сказал «нет никакого визуала».
+  check('цветок UI: сцена нарисована (лепестки по числу букв)',
+    document.querySelectorAll('.flower-blossom').length >= 2 &&
+      !!document.querySelector('.flower-core') &&
+      !!document.querySelector('.flower-trunk') &&
+      !!document.querySelector('.flower-soil'),
+    `лепестков: ${document.querySelectorAll('.flower-blossom').length}`);
+  check('цветок UI: ни один лепесток не открыт в начале',
+    document.querySelectorAll('.flower-blossom.is-open').length === 0, '');
 
   // Раскрываем слово: на каждом шаге перебираем карточки, пока одна не сработает.
   // Так проверка не зависит от того, какое слово выпало.
   let guard = 0;
   let advanced = 0;
   while (!document.querySelector('.flower-win') && guard++ < 40) {
-    const before = document.querySelectorAll('.flower-petal-open').length;
+    const before = document.querySelectorAll('.flower-blossom.is-open').length;
     // Перебираем все четыре карточки шага: верная одна, остальные — соседки.
     for (const card of letters()) {
       click(card);
       await sleep(15);
-      if (document.querySelectorAll('.flower-petal-open').length > before) break;
+      if (document.querySelectorAll('.flower-blossom.is-open').length > before) break;
     }
-    const after = document.querySelectorAll('.flower-petal-open').length;
+    const after = document.querySelectorAll('.flower-blossom.is-open').length;
     if (after > before) advanced++;
     else break;
   }
   check('цветок UI: слово раскрывается по буквам', advanced > 0, `шагов: ${advanced}`);
   check('цветок UI: раскрытое слово даёт победу', !!document.querySelector('.flower-win'),
-    document.querySelector('.flower-stem')?.textContent ?? '');
+    document.querySelector('.flower-word')?.textContent ?? '');
+  check('цветок UI: на победе сцена цветёт (все лепестки открыты)',
+    document.querySelector('.flower-scene')?.getAttribute('data-flower-done') === '1' &&
+      document.querySelectorAll('.flower-blossom.is-open').length ===
+        document.querySelectorAll('.flower-blossom').length,
+    `открыто: ${document.querySelectorAll('.flower-blossom.is-open').length} из ${document.querySelectorAll('.flower-blossom').length}`);
 
   const winWord = document.querySelector('.flower-win-word')?.textContent ?? '';
   click(btnText('Новое слово →'));
   await sleep(120);
   check('цветок UI: «Новое слово» начинает заново', !document.querySelector('.flower-win') && letters().length === 4, '');
   check('цветок UI: новое слово не то же самое',
-    (document.querySelector('.flower-stem')?.textContent ?? '') !== winWord,
-    `${winWord} → ${document.querySelector('.flower-stem')?.textContent ?? ''}`);
+    (document.querySelector('.flower-word')?.textContent ?? '') !== winWord,
+    `${winWord} → ${document.querySelector('.flower-word')?.textContent ?? ''}`);
 
   useApp.getState().setSettings({ gamesGates: 'points' });
   await sleep(40);

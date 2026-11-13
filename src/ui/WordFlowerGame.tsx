@@ -22,6 +22,7 @@ import { gameAwardHint } from '../engine/game-awards';
 import { todayStat, useApp } from '../state/store';
 import { readBoardMemo, writeBoardMemo } from './WordSearchGame';
 import { WordArt } from './WordView';
+import { FlowerScene } from './FlowerScene';
 import { Confetti } from './Bits';
 import { prefersReducedMotion } from './motion';
 
@@ -51,7 +52,11 @@ export function WordFlowerGame({
     return pickNext(start.cursor, start.avoidIds);
   });
   const [opened, setOpened] = useState(0);
+  /** Только что раскрылся лепесток — для анимации «распуск». */
+  const [justOpened, setJustOpened] = useState(false);
   const [wrong, setWrong] = useState(0);
+  /** Промах «сейчас»: пыльца и качание, гаснут через 0.5 с (0.108.0). */
+  const [puff, setPuff] = useState(false);
   const [tried, setTried] = useState<string[]>([]);
   const [award, setAward] = useState<{ xp: number; gems: number } | null>(null);
   const [confetti, setConfetti] = useState(false);
@@ -93,16 +98,30 @@ export function WordFlowerGame({
     if (next === opened) {
       setWrong((n) => n + 1);
       setTried((list) => (list.includes(letter) ? list : [...list, letter]));
+      setPuff(true);
       sfx.wrong();
       haptic.tap();
       return;
     }
     setOpened(next);
+    setJustOpened(true);
     // Новая буква — новые карточки: чужой промах к следующему шагу не относится.
     setTried([]);
     sfx.correct();
     haptic.correct();
   };
+
+  // Короткие «вспышки» живут ровно столько, сколько длится анимация.
+  useEffect(() => {
+    if (!puff) return;
+    const timer = window.setTimeout(() => setPuff(false), 520);
+    return () => window.clearTimeout(timer);
+  }, [puff]);
+  useEffect(() => {
+    if (!justOpened) return;
+    const timer = window.setTimeout(() => setJustOpened(false), 620);
+    return () => window.clearTimeout(timer);
+  }, [justOpened, opened]);
 
   const another = () => {
     const fresh = pickNext(memo.cursor, memo.avoidIds);
@@ -111,6 +130,8 @@ export function WordFlowerGame({
     setAward(null);
     setConfetti(false);
     setOpened(0);
+    setJustOpened(false);
+    setPuff(false);
     setWrong(0);
     setTried([]);
     setWord(fresh);
@@ -143,27 +164,7 @@ export function WordFlowerGame({
         </button>
       </div>
 
-      <div className="flower-stage" aria-label="Цветок">
-        <div className="flower-petals" aria-hidden="true">
-          {letters.map((ch, i) => (
-            <span
-              key={i}
-              className={`flower-petal${i < opened ? ' flower-petal-open' : ''}${
-                i === opened && tried.length ? ' flower-petal-touch' : ''
-              }`}
-            >
-              {i < opened ? ch : '•'}
-            </span>
-          ))}
-        </div>
-        <p className="flower-stem" aria-live="polite">
-          {letters.map((ch, i) => (
-            <span key={i} className={i < opened ? 'flower-open' : 'flower-closed'}>
-              {i < opened ? ch : '·'}
-            </span>
-          ))}
-        </p>
-      </div>
+      <FlowerScene letters={letters} opened={opened} justOpened={justOpened} wrong={puff} done={done} />
 
       <div className="ring-clue">
         <WordArt word={word} size={56} />
