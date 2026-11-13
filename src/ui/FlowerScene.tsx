@@ -21,6 +21,18 @@
  */
 import type { CSSProperties } from 'react';
 
+/**
+ * Адрес ассета сцены.
+ *
+ * 0.109.2: здесь стояли абсолютные пути `/flower/petal.webp`. В dev это
+ * работало, на GitHub Pages — нет: приложение живёт по `/slovo2/`, и поляна
+ * (её путь Vite переписывает в CSS) грузилась, а `<img>` отдавал 404. Цветок
+ * на проде выглядел рамками вместо лепестков — ровно скриншот владельца от
+ * 2026-11-13. Все остальные картинки в проекте собирают адрес из
+ * `import.meta.env.BASE_URL` — теперь и эта делает так же.
+ */
+const art = (name: string) => `${import.meta.env.BASE_URL}flower/${name}.webp`;
+
 export interface FlowerSceneProps {
   /** Буквы слова (без пробелов и дефисов). */
   letters: string[];
@@ -67,21 +79,21 @@ export function FlowerScene({ letters, opened, justOpened, wrong, done }: Flower
                 style={{ ['--petal-angle' as string]: `${angle}deg` } as CSSProperties}
                 data-flower-petal={i}
               >
-                <img className="flower-petal-img" src="/flower/petal.webp" alt="" draggable={false} />
+                <img className="flower-petal-img" src={art('petal')} alt="" draggable={false} />
                 {open && <span className="flower-petal-letter">{ch}</span>}
               </span>
             );
           })}
           <span className={`flower-core${done ? ' is-done' : ''}`}>
-            <img src="/flower/center.webp" alt="" draggable={false} />
+            <img src={art('center')} alt="" draggable={false} />
             {done && <span className="flower-core-spark">✦</span>}
           </span>
         </div>
 
         {/* Стебель: высота из прогресса, листья — рисованные. */}
         <div className="flower-trunk" aria-hidden="true">
-          <img className="flower-leaf flower-leaf-l" src="/flower/leaf.webp" alt="" draggable={false} />
-          <img className="flower-leaf flower-leaf-r" src="/flower/leaf.webp" alt="" draggable={false} />
+          <img className="flower-leaf flower-leaf-l" src={art('leaf')} alt="" draggable={false} />
+          <img className="flower-leaf flower-leaf-r" src={art('leaf')} alt="" draggable={false} />
         </div>
         <div className="flower-soil" aria-hidden="true" />
 

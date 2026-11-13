@@ -231,4 +231,27 @@ export async function runGamesLetterChecks(): Promise<void> {
     /width:\s*var\(--ring-size\)/.test(ring) && /aspect-ratio:\s*1/.test(ring),
     ring.trim().replace(/\s+/g, ' ').slice(0, 100),
   );
+
+  // ── 9. Витрина игр: ни одна карточка не спрятана за прокруткой ──────────
+  // Замечание владельца 2026-11-13: «на телефоне эта игра вообще не
+  // отображается, потому что видно только 4 игры, а пятая уже не помещается».
+  // Виновата была горизонтальная полка: пятая карточка стояла третьей колонкой
+  // за правым краем, скроллбар скрыт — и игры «нет». jsdom не считает
+  // геометрию, поэтому контракт витрины держим по CSS: сетка вместо полки,
+  // без `overflow-x` и без `grid-auto-flow: column`.
+  const shelves = [...css.matchAll(/@media \(max-width: 719px\)[^{]*\{([\s\S]*?)\n\}/g)]
+    .map((m) => m[1])
+    .filter((body) => /\.games-cards?\b/.test(body))
+    .join('\n');
+  check(
+    'витрина: на телефоне все игры группы в сетке, без горизонтальной полки',
+    shelves.length > 0 && !/overflow-x:\s*auto/.test(shelves) && !/grid-auto-flow:\s*column/.test(shelves),
+    shelves.replace(/\s+/g, ' ').slice(0, 140) || 'правил для .games-cards на ≤719 px нет',
+  );
+  check(
+    'витрина: карточка игры на телефоне — строка в одну высоту (эмодзи + название)',
+    /\.games-card\s*\{[^}]*flex-direction:\s*row/.test(shelves) &&
+      /\.games-card-note\s*\{\s*display:\s*none/.test(shelves),
+    shelves.replace(/\s+/g, ' ').slice(0, 200),
+  );
 }
