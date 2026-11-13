@@ -93,6 +93,13 @@ export async function runGameAccessChecks(): Promise<void> {
   check('доступ: урок до конца при 10 верных открывает третью игру', lessonDone.openCount === 3,
     `openCount=${lessonDone.openCount}`);
 
+  // «Мемори» — четвёртая игра витрины (0.101.0): ей нужны все три ключа.
+  const twoKeysInLadder = access(day({ lessons: 1, correct: 12 }));
+  check('доступ: при двух ключах «Мемори» (четвёртая игра) закрыта',
+    twoKeysInLadder.openCount === 3 && !isGameOpen(twoKeysInLadder, 3), `openCount=${twoKeysInLadder.openCount}`);
+  check('доступ: третий ключ (весь план дня) открывает «Мемори»',
+    isGameOpen(access(fullDay()), 3) && access(fullDay()).openCount === TOTAL, '');
+
   // ── 4. Третий шаг — весь план дня (готовый сундук) ───────────────────────
   const questsOnly = access(day({ lessons: 0, correct: 12, flawless: 5 }));
   check('доступ: закрытые задания без урока — не полный день',

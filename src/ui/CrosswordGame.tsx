@@ -1,3 +1,5 @@
+import { recordGridWin } from '../platform/game-records';
+import { GameBest } from './GameRecords';
 /**
  * «Кроссворд дня» — школьная решётка слов класса без вопросов.
  *
@@ -89,6 +91,7 @@ export function CrosswordGame({ pool, priorityIds, onGoLessons }: CrosswordGameP
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [poolKey, seed, cursor, avoidIds],
   );
+  const roundId = useMemo(() => crypto.randomUUID(), [board]);
   const playGame = useApp((s) => s.playGame);
   const profile = useApp((s) => s.profiles.find((p) => p.id === s.activeId) ?? null);
   const [awarded, setAwarded] = useState<{ xp: number; gems: number } | null>(null);
@@ -177,11 +180,12 @@ export function CrosswordGame({ pool, priorityIds, onGoLessons }: CrosswordGameP
     // Награда за собранную решётку (0.96.7): малый XP с суточным потолком,
     // половинный вес слов в заданиях дня, символический кристалл за первую
     // сетку. SRS не трогаем — игра остаётся мягкой тренировкой.
+    if (profile) recordGridWin(profile.id, 'crossword', roundId, board.slots.length);
     setAwarded(playGame(board.slots.length));
     // Финал (0.98.0): те же фанфары и вибрация, что на результатах урока.
     sfx.finish(3);
     haptic.finish();
-  }, [board, isWin, playGame]);
+  }, [board, isWin, playGame, profile?.id, roundId]);
 
   useEffect(() => {
     if (!isWin || celebratedRef.current) return;
@@ -340,6 +344,7 @@ export function CrosswordGame({ pool, priorityIds, onGoLessons }: CrosswordGameP
                 </p>
               )}
               {awardHint && <p className="ws-win-hint tiny muted">{awardHint}</p>}
+              {profile && <GameBest profileId={profile.id} game="crossword" />}
             </div>
             <button type="button" className="btn primary" onClick={newGrid}>
               🔄 Ещё кроссворд
