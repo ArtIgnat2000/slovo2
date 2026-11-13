@@ -105,6 +105,58 @@ export async function runGamesLetterUiChecks(): Promise<void> {
     `${winWord} → ${document.querySelector('.ring-word')?.textContent ?? ''}`,
   );
 
+  // ── Колесо: слово собирается ВЕДЕНИЕМ пальца, а не только тапами ───────
+  // Игра обещает «проведи по буквам» — до 0.109.1 движение не засчитывалось
+  // вовсе. jsdom не считает геометрию, поэтому `elementFromPoint` подменяется
+  // по координатам: «палец» идёт по буквам в порядке слова.
+  const wheel = document.querySelector('.ring') as HTMLElement | null;
+  if (wheel) {
+    const byCoord: Record<string, Element> = {};
+    const order = dots().slice().sort(
+      (a, b) => Number(a.dataset.ringIndex) - Number(b.dataset.ringIndex),
+    );
+    order.forEach((dot, i) => {
+      byCoord[`${i},0`] = dot;
+    });
+    const original = document.elementFromPoint;
+    (document as unknown as { elementFromPoint: unknown }).elementFromPoint = (x: number, y: number) =>
+      byCoord[`${x},${y}`] ?? null;
+
+    const pev = (type: string, x: number, y: number) => {
+      wheel.dispatchEvent(
+        new window.PointerEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, pointerId: 1 }),
+      );
+    };
+
+    pev('pointerdown', 0, 0);
+    await sleep(20);
+    check(
+      'колесо UI: нажатие на букву засчитывается без click',
+      /1/.test(document.querySelector('.ring-bar strong')?.textContent ?? ''),
+      document.querySelector('.ring-bar strong')?.textContent ?? '',
+    );
+
+    // Ведём палец дальше — вторая и третья буквы принимаются движением, без
+    // единого click. Слово не доводим до конца: победа и награда уже проверены
+    // выше тапами, а лишний `playGame` сдвинул бы общий поток рандома для
+    // последующих сценариев (они детерминированы сидом).
+    for (let i = 1; i < Math.min(3, order.length); i++) {
+      pev('pointermove', i, 0);
+      await sleep(15);
+    }
+    pev('pointerup', 2, 0);
+    await sleep(80);
+
+    const barText = document.querySelector('.ring-bar strong')?.textContent ?? '';
+    check(
+      'колесо UI: ведение пальцем принимает буквы по порядку',
+      barText.includes('3') && !document.querySelector('.ring-win'),
+      barText,
+    );
+
+    (document as unknown as { elementFromPoint: unknown }).elementFromPoint = original;
+  }
+
   // ── Хитрая буква: ошибка даёт подсказку, а не провал ────────────────────
   await goGame('Хитрая буква', 'Подумать');
   const options = () => Array.from(document.querySelectorAll('.tl-option')) as HTMLButtonElement[];
