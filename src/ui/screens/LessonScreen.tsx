@@ -864,29 +864,25 @@ function Results({
   // Цель закрылась именно этим уроком? Это отдельный повод для праздника.
   const closedNow = goalDone && xpBefore < goal;
   /**
-   * Сколько игр открыл именно этот урок (0.99.0). Считаем «было → стало» по
-   * счётчику уроков дня: ещё одна игра = ещё один урок в зачёте ключей.
-   * Это не новая награда, а объяснение того, что и так произошло.
+   * Сколько игр открыл именно этот урок (0.99.1). Считаем «было → стало» по
+   * дню без последнего урока: в лестнице доступ дают 10 верных ответов, урок
+   * до конца и весь план дня. Строка — не награда, а объяснение уже случившегося.
    */
   const gameOpenGain = (() => {
     if (!profile) return null;
     const settings = useApp.getState().settings;
     if (settings.gamesGates !== 'points') return null;
     const day = todayStat(profile);
-    const lessons = Math.max(0, day.lessons);
-    // Третий и следующие уроки дня ключей не дают (MAX_LESSON_KEYS = 2):
-    // обещать «+1 игра» за них нельзя — это была бы ложь.
-    if (lessons === 0 || lessons > 2) return null;
+    if (Math.max(0, day.lessons) < 1) return null;
     const plan = planOf(profile, dayKey());
     const common = {
-      dailyGoal: settings.dailyGoal,
       plan,
-      // Витрина в 0.99.0 — три игры; пороги берём из движка, чтобы число не
-      // разъехалось с `GamesScreen`.
+      // Игры витрины берём из движка, чтобы число не разъехалось с `GamesScreen`.
       totalGames: GAME_GATE_KEYS.length,
       gates: settings.gamesGates,
     } as const;
-    const before = dayGameAccess({ ...common, day: { ...day, lessons: lessons - 1 } });
+    // «До урока» — тот же день, но урок ещё не доведён до конца.
+    const before = dayGameAccess({ ...common, day: { ...day, lessons: day.lessons - 1 } });
     const after = dayGameAccess({ ...common, day });
     // Показываем строку только если этот урок реально открыл игру.
     if (after.openCount <= before.openCount) return null;

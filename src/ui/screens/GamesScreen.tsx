@@ -69,7 +69,7 @@ const lettersCount = (text: string) => [...text].filter((ch) => ch !== ' ' && ch
  * суточным потолком, уроки и повторения игра не заменяет.
  */
 const PLAY_RULE =
-  'Ничего не сгорает: одна игра открыта всегда, остальные — за успехи дня (уроки, задания дня и баллы). Уже открытое не отнимается, ошибки и подсказки доступ не уменьшают. Одна игра не заменяет урок — прогресс в задания дня небольшой. Слова для игр берутся из тех, где были ошибки.';
+  'Ничего не сгорает: одна игра открыта всегда, остальные открываются по шагам дня — 10 верных ответов, урок до конца, все задания дня. Уже открытое не отнимается, ошибки и подсказки доступ не уменьшают. Одна игра не заменяет урок — прогресс в задания дня небольшой. Слова для игр берутся из тех, где были ошибки.';
 
 /**
  * Витрина игр (0.99.0, решение владельца — вариант B из §4).
@@ -150,23 +150,23 @@ export function GamesScreen({ onGoLessons }: { onGoLessons: () => void }) {
   const settings = useApp((s) => s.settings);
 
   /**
-   * Доступ за успехи дня (0.99.0, §8 плана). Считается на лету из уже
+   * Доступ за успехи дня (0.102.0, §8 плана). Считается на лету из уже
    * сохранённого дня: в профиле ничего нового не лежит, поэтому нет миграции,
    * а полночь сбрасывает шкалу сама.
    *
-   * Ключи: уроки (≤ 2) + закрытые задания дня + 1 за баллы дня без наград игр.
-   * По умолчанию `points`; взрослый может вернуть старое поведение (`open`).
+   * Лестница из трёх разных дел: 10 верных ответов → урок до конца → весь
+   * план дня (готовый сундук). В 0.99.0 ключи складывались из одного урока
+   * трижды, и даже слабый урок открывал всё.
    */
   const access = useMemo(() => {
     const day = dayKey();
     return dayGameAccess({
       day: profile ? todayStat(profile) : undefined,
-      dailyGoal: settings.dailyGoal,
       plan: profile ? planOf(profile, day) : [],
       totalGames: GAMES.length,
       gates: settings.gamesGates,
     });
-  }, [profile, settings.dailyGoal, settings.gamesGates]);
+  }, [profile, settings.gamesGates]);
 
   /**
    * Открытая игра. Замок — не «нельзя», а «ещё не сейчас»: если выбранная
@@ -312,9 +312,9 @@ export function GamesScreen({ onGoLessons }: { onGoLessons: () => void }) {
 
       {groupAllLocked && (
         <p className="games-lock-note" role="status">
-          {group === 'fast'
-            ? 'Эта игра откроется, когда наберёшь ключи дня.'
-            : `Откроется за урок — сейчас доступно ${access.openCount} ${pluralGames(access.openCount)}.`}
+          {access.nextCondition
+            ? `Следующая игра — ${access.nextCondition}. Сейчас доступно ${access.openCount} ${pluralGames(access.openCount)}.`
+            : `Сейчас доступно ${access.openCount} ${pluralGames(access.openCount)}.`}
         </p>
       )}
 

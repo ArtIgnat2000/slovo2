@@ -1,20 +1,20 @@
-// Доступ к «Играм» за успехи дня (0.99.0) — правила без DOM.
+// Доступ к «Играм» за успехи дня (0.99.1) — правила без DOM.
 //
-// Почему отдельный файл. Схема «игры за уроки» — единственное место в проекте,
-// где что-то может стать недоступным ребёнку. Ошибка здесь выглядит как
-// «пришёл поиграть, а играть нечего», поэтому правила закреплены тестом:
+// Почему отдельный файл. Схема «игры за успехи дня» — единственное место в
+// проекте, где что-то может стать недоступным ребёнку. Ошибка здесь выглядит
+// как «пришёл поиграть, а играть нечего», поэтому правила закреплены тестом:
 //  • базовая игра открыта всегда, даже при пустом дне;
+//  • лестница из трёх разных дел: 10 верных ответов → урок до конца → весь
+//    план дня (готовый сундук), а не «три множителя одного урока»;
 //  • ключи только прибавляются: ошибки, подсказки и потолок наград доступ
 //    не уменьшают;
-//  • XP из игр в ключи не идёт — иначе игра оплачивала бы доступ к играм;
+//  • игры не открывают игры: найденные слова в филворде в шаг не идут;
 //  • ключи не хранятся в профиле: считаются из дня, полночь сбрасывает сама;
 //  • взрослый может вернуть «всё открыто» настройкой.
 import './setup';
 import {
-  GATE_XP_MIN,
-  GATE_XP_SHARE,
+  GATE_CORRECT_STEP,
   GAME_GATE_KEYS,
-  MAX_LESSON_KEYS,
   dayGameAccess,
   isGameOpen,
   lockHint,
@@ -40,12 +40,21 @@ function day(over: Partial<DayStat> = {}): DayStat {
     lessons: 0,
     flawless: 0,
     reviewCorrect: 0,
+    reviewWords: [],
     ...over,
   };
 }
 
-const access = (d: DayStat, goal = 120, opts: { gates?: 'open' | 'points' } = {}) =>
-  dayGameAccess({ day: d, dailyGoal: goal, plan: PLAN, totalGames: TOTAL, gates: opts.gates ?? 'points' });
+const access = (d: DayStat, opts: { gates?: 'open' | 'points'; plan?: QuestPlanItem[] } = {}) =>
+  dayGameAccess({
+    day: d,
+    plan: opts.plan ?? PLAN,
+    totalGames: TOTAL,
+    gates: opts.gates ?? 'points',
+  });
+
+/** Весь план дня закрыт: 2 урока, 12 верных ответов, серия 5. */
+const fullDay = () => day({ lessons: 2, correct: 12, flawless: 5 });
 
 export async function runGameAccessChecks(): Promise<void> {
   console.log('\n── Игры: доступ за успехи дня ──');
@@ -55,79 +64,114 @@ export async function runGameAccessChecks(): Promise<void> {
   check('доступ: в пустой день открыта одна игра', zero.openCount === 1, `openCount=${zero.openCount}`);
   check('доступ: базовая игра открыта при нуле ключей', isGameOpen(zero, 0), '');
   check('доступ: остальные игры в пустой день закрыты',
-    !isGameOpen(zero, 1) && !isGameOpen(zero, 2), `openCount=${zero.openCount}`);
-  check('доступ: шкала не «нельзя», а «ещё за урок»',
-    zero.nextHint.includes('за урок') && !/нельзя/i.test(zero.nextHint), zero.nextHint);
+    !isGameOpen(zero, 1) && !isGameOpen(zero, 2) && !isGameOpen(zero, 3), `openCount=${zero.openCount}`);
+  check('доступ: шкала не «нельзя», а прогресс верных ответов',
+    zero.nextHint.includes('из') && !/нельзя/i.test(zero.nextHint), zero.nextHint);
 
-  // ── 2. Один урок = одна новая игра (решение владельца) ──────────────────
-  const one = access(day({ lessons: 1, xp: 40 }));
-  check('доступ: первый урок открывает вторую игру', one.openCount === 2, `openCount=${one.openCount}`);
-  check('доступ: за уроки начисляется максимум MAX_LESSON_KEYS',
-    one.parts.lessons === 1 && access(day({ lessons: 5 })).parts.lessons === MAX_LESSON_KEYS,
-    `уроки: ${access(day({ lessons: 5 })).parts.lessons}`);
+  // ── 2. Первый шаг — верные ответы, и он не требует урока ────────────────
+  const almost = access(day({ correct: GATE_CORRECT_STEP - 1 }));
+  const step = access(day({ correct: GATE_CORRECT_STEP }));
+  check('доступ: до 10 верных ответов вторая игра закрыта', almost.openCount === 1, `openCount=${almost.openCount}`);
+  check('доступ: 10 верных ответов открывают вторую игру', step.openCount === 2, `openCount=${step.openCount}`);
+  // Повторение пишет верные ответы в тот же `day.correct` (`answer()` → ok),
+  // а `reviewCorrect` — отдельный счётчик точности. Проверяем именно то, что
+  // шаг не требует урока: 10 верных без единого урока уже открывают игру.
+  check('доступ: 10 верных ответов без урока открывают вторую игру',
+    access(day({ lessons: 0, correct: 10, reviewCorrect: 10 })).openCount === 2, 'повторение без урока');
 
-  const two = access(day({ lessons: 2, xp: 80 }));
-  check('доступ: два урока с баллами и заданием открывают четыре игры', two.openCount === 4, `openCount=${two.openCount}`);
-  check('доступ: на двух уроках открыто всё', two.nextHint === 'Сегодня открыто всё', two.nextHint);
+  // ── 3. Второй шаг — урок ДО КОНЦА, и он требует первого ─────────────────
+  // Главная правка 0.99.1: «дошёл до конца и всё провалил» больше не даёт то
+  // же, что «дошёл и справился».
+  const badLesson = access(day({ lessons: 1, correct: 5, xp: 84 }));
+  check('доступ: слабый урок НЕ открывает третью игру', badLesson.openCount === 1,
+    `openCount=${badLesson.openCount}, правильных=${badLesson.correctProgress.have}`);
+  const weakButLong = access(day({ lessons: 3, correct: 8 }));
+  check('доступ: три слабых урока тоже не открывают третью игру', weakButLong.openCount === 1,
+    `openCount=${weakButLong.openCount}`);
 
-  const twoKeys = dayGameAccess({ day: day({ lessons: 2 }), dailyGoal: 120, plan: [], totalGames: 4 });
-  check('доступ: Мемори закрыто при двух ключах', !isGameOpen(twoKeys, 3), '');
-  const threeKeys = dayGameAccess({ day: day({ lessons: 2, xp: 60 }), dailyGoal: 120, plan: [], totalGames: 4 });
-  check('доступ: третий ключ открывает Мемори', isGameOpen(threeKeys, 3) && threeKeys.openCount === 4, '');
+  const lessonDone = access(day({ lessons: 1, correct: 12 }));
+  check('доступ: урок до конца при 10 верных открывает третью игру', lessonDone.openCount === 3,
+    `openCount=${lessonDone.openCount}`);
 
-  // ── 3. Задания дня тоже дают ключи ──────────────────────────────────────
-  // План дня: 2 урока + 12 верных ответов + серия из 5 без ошибок. Закрываем
-  // все три задания (уроки тоже!), иначе ключей будет меньше.
-  const questDay = access(day({ lessons: 2, xp: 0, correct: 12, flawless: 5 }));
-  check('доступ: закрытые задания дня дают ключи',
-    questDay.parts.quests === 3 && questDay.openCount === TOTAL,
-    `openCount=${questDay.openCount}, задания: ${questDay.parts.quests}`);
-  check('доступ: три задания дают три ключа', questDay.parts.quests === 3, `задания: ${questDay.parts.quests}`);
+  // «Мемори» — четвёртая игра витрины (0.101.0): ей нужны все три ключа.
+  const twoKeysInLadder = access(day({ lessons: 1, correct: 12 }));
+  check('доступ: при двух ключах «Мемори» (четвёртая игра) закрыта',
+    twoKeysInLadder.openCount === 3 && !isGameOpen(twoKeysInLadder, 3), `openCount=${twoKeysInLadder.openCount}`);
+  check('доступ: третий ключ (весь план дня) открывает «Мемори»',
+    isGameOpen(access(fullDay()), 3) && access(fullDay()).openCount === TOTAL, '');
 
-  // ── 4. Ключ за баллы: половина цели, и без XP из игр ─────────────────────
-  const threshold = Math.max(GATE_XP_MIN, Math.round(120 * GATE_XP_SHARE));
-  const xpLow = access(day({ xp: threshold - 1 }));
-  const xpHigh = access(day({ xp: threshold }));
-  check('доступ: до порога баллов ключа нет', xpLow.parts.xp === 0, `xp=${threshold - 1}`);
-  check('доступ: на пороге баллов ключ появляется', xpHigh.parts.xp === 1, `xp=${threshold}`);
+  // ── 4. Третий шаг — весь план дня (готовый сундук) ───────────────────────
+  const questsOnly = access(day({ lessons: 0, correct: 12, flawless: 5 }));
+  check('доступ: закрытые задания без урока — не полный день',
+    questsOnly.steps.chest === false && questsOnly.openCount < TOTAL, `openCount=${questsOnly.openCount}`);
 
-  // Главное правило схемы: игра не оплачивает доступ к играм.
-  const onlyGames = access(day({ xp: 6, games: { xp: 6, correct: 0, words: 9 } }));
-  check('доступ: XP из игр не считаются в ключи',
-    onlyGames.parts.xp === 0 && onlyGames.openCount === 1, `xp из игр: ${onlyGames.parts.xp}`);
-  const workPlusGames = access(day({ xp: threshold + 6, games: { xp: 6, correct: 0, words: 9 } }));
-  check('доступ: баллы уроков считаются вместе с наградой игр в дне',
-    workPlusGames.parts.xp === 1, `xp дня: ${threshold + 6}`);
+  const chestReady = access(fullDay());
+  check('доступ: весь план дня открывает все игры', chestReady.openCount === TOTAL, `openCount=${chestReady.openCount}`);
+  check('доступ: «открыто всё» — честная строка', chestReady.nextHint === 'Сегодня открыто всё', chestReady.nextHint);
+  check('доступ: до полного открытия ключей не остаётся', chestReady.leftToAll === 0, '');
+  // Сундук не обязательно забирать: считаем задания, а не тап.
+  check('доступ: забор сундука для доступа не нужен',
+    access({ ...fullDay(), bonusChestsClaimed: 0 } as DayStat).openCount === TOTAL, 'claimed не влияет');
 
-  // ── 5. Шкала не растёт выше витрины ─────────────────────────────────────
-  const everything = access(day({ lessons: 2, xp: 400, correct: 40, flawless: 20 }));
+  // ── 5. Игра не открывает игру ───────────────────────────────────────────
+  // 24 найденных слова в филворде = 12 половинных «верных ответов» и задание
+  // «12 верных» закрыто, но шаг «10 верных в уроке» — нет.
+  const onlyGames = access(day({ correct: 0, flawless: 0, games: { xp: 6, correct: 12, words: 24, dayGemTaken: true } }));
+  check('доступ: награды игр не дают шаг «10 верных ответов»',
+    onlyGames.steps.correct === false && onlyGames.correctProgress.have === 0,
+    `have=${onlyGames.correctProgress.have}`);
+  // Сетка может закрыть задание «12 верных ответов» (половинный вес — это
+  // честное правило наград), и это один ключ. Но весь день игрой не собрать:
+  // без урока и без серии «без ошибок» до всех игр не дойти.
+  check('доступ: даже две сетки не открывают все игры',
+    onlyGames.openCount < TOTAL && onlyGames.steps.lesson === false,
+    `openCount=${onlyGames.openCount}, steps=${JSON.stringify(onlyGames.steps)}`);
+
+  // ── 6. Шкала не растёт выше витрины ─────────────────────────────────────
+  const everything = access(day({ lessons: 5, correct: 60, flawless: 30, reviewWords: ['a', 'b', 'c', 'd', 'e'] }));
   check('доступ: открыто не больше игр на витрине', everything.openCount === TOTAL, `openCount=${everything.openCount}`);
-  check('доступ: «открыто всё» — честная строка', everything.nextHint === 'Сегодня открыто всё', everything.nextHint);
-  check('доступ: до полного открытия не остаётся ключей', everything.leftToAll === 0, '');
 
-  // ── 6. Взрослый может отключить шкалу ───────────────────────────────────
-  const openMode = access(day(), 120, { gates: 'open' });
+  // ── 7. Взрослый может отключить шкалу ───────────────────────────────────
+  const openMode = access(day(), { gates: 'open' });
   check('доступ: режим «все открыты» показывает всё', openMode.openCount === TOTAL, `openCount=${openMode.openCount}`);
   check('доступ: в режиме «все открыты» замков нет',
-    lockHint(openMode, 0) === '' && lockHint(openMode, 2) === '', '');
+    lockHint(openMode, 0) === '' && lockHint(openMode, 3) === '', '');
 
-  // ── 7. Текст замка: одно условие, без «нельзя» ──────────────────────────
-  check('доступ: замок объясняет условие', lockHint(zero, 1).includes('урок'), lockHint(zero, 1));
-  check('доступ: замок не ругается', !/нельзя|нет доступа/i.test(lockHint(zero, 2)), lockHint(zero, 2));
+  // ── 8. Текст замка: одно условие, без «нельзя» ──────────────────────────
+  check('доступ: замок объясняет первое действие', /Откроется за \d+ верн/.test(lockHint(zero, 1)), lockHint(zero, 1));
+  check('доступ: после 10 верных замок говорит про урок',
+    lockHint(step, 2) === 'Откроется за урок', lockHint(step, 2));
+  check('доступ: перед последней игрой замок говорит про задания дня',
+    lockHint(lessonDone, 3) === 'Откроется за все задания дня', lockHint(lessonDone, 3));
+  check('доступ: замок не ругается', !/нельзя|нет доступа/i.test(lockHint(zero, 3)), lockHint(zero, 3));
   check('доступ: у открытой игры замка нет', lockHint(zero, 0) === '', lockHint(zero, 0));
 
-  // ── 8. Пороги и подписи ─────────────────────────────────────────────────
+  // ── 9. Пороги и подписи ─────────────────────────────────────────────────
   check('доступ: пороги по возрастанию, базовая игра — нулевой',
     GAME_GATE_KEYS[0] === 0 && GAME_GATE_KEYS.every((v, i) => i === 0 || v > GAME_GATE_KEYS[i - 1]),
     GAME_GATE_KEYS.join(','));
   check('доступ: «1 игра», а не «1 игр»', pluralGames(1) === 'игра', pluralGames(1));
   check('доступ: «2 игры» и «5 игр»', pluralGames(2) === 'игры' && pluralGames(5) === 'игр', '');
 
-  // ── 9. Ключи только прибавляются ────────────────────────────────────────
-  // Ошибки и подсказки не трогают счётчики, по которым считаются ключи:
-  // в `DayStat` для этого просто нет полей, а `wrong` в ключи не входит.
-  const withErrors = access(day({ lessons: 1, xp: 40, wrong: 12 }));
-  check('доступ: ошибки ключей не отнимают', withErrors.openCount === one.openCount, `${withErrors.openCount}`);
+  // ── 10. Ключи только прибавляются ───────────────────────────────────────
+  const withErrors = access(day({ correct: 12, wrong: 12 }));
+  check('доступ: ошибки ключей не отнимают', withErrors.openCount === step.openCount, `${withErrors.openCount}`);
   check('доступ: испорченный день не даёт отрицательных ключей',
-    access(day({ lessons: -5, xp: -100, correct: -3 })).keys === 0, '');
+    access(day({ lessons: -5, correct: -3, xp: -100 })).keys === 0, '');
+  // Лестница монотонна: любой рост дня не уменьшает доступ.
+  const ladder: DayStat[] = [
+    day(),
+    day({ correct: 5 }),
+    day({ correct: 10 }),
+    day({ correct: 10, lessons: 1 }),
+    fullDay(),
+  ];
+  let monotone = true;
+  let prev = 0;
+  for (const d of ladder) {
+    const now = access(d).openCount;
+    if (now < prev) monotone = false;
+    prev = now;
+  }
+  check('доступ: шкала не убывает по ходу дня', monotone, `открыто по шагам: ${ladder.map((d) => access(d).openCount).join(' → ')}`);
 }
