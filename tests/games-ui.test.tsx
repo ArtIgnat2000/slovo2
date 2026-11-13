@@ -434,7 +434,7 @@ export async function runGamesAccessUiChecks() {
   // игры, и в пустой день обе закрыты — именно этот случай и надо проверить.
   await goGroup('Подумать');
   check('доступ в UI: в пустой день группа «Подумать» вся под замком',
-    cards().every((c) => c.dataset.gameOpen === '0') && cards().length === 2,
+    cards().every((c) => c.dataset.gameOpen === '0') && cards().length === 3,
     cards().map((c) => `${c.textContent}:${c.dataset.gameOpen}`).join(' | '));
   check('доступ в UI: у закрытой карточки условие, а не «нельзя»',
     cards().every((c) => /Откроется за/.test(c.textContent ?? '') && !/нельзя/i.test(c.textContent ?? '')),

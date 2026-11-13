@@ -23,7 +23,7 @@ import {
 import type { DayStat, QuestPlanItem } from '../src/types';
 import { check } from './ui-helpers';
 
-const TOTAL = 3;
+const TOTAL = 4;
 
 /** План дня по умолчанию — как у `buildDayPlan`: три задания. */
 const PLAN: QuestPlanItem[] = [
@@ -67,8 +67,13 @@ export async function runGameAccessChecks(): Promise<void> {
     `уроки: ${access(day({ lessons: 5 })).parts.lessons}`);
 
   const two = access(day({ lessons: 2, xp: 80 }));
-  check('доступ: два урока открывают три игры', two.openCount === 3, `openCount=${two.openCount}`);
+  check('доступ: два урока с баллами и заданием открывают четыре игры', two.openCount === 4, `openCount=${two.openCount}`);
   check('доступ: на двух уроках открыто всё', two.nextHint === 'Сегодня открыто всё', two.nextHint);
+
+  const twoKeys = dayGameAccess({ day: day({ lessons: 2 }), dailyGoal: 120, plan: [], totalGames: 4 });
+  check('доступ: Мемори закрыто при двух ключах', !isGameOpen(twoKeys, 3), '');
+  const threeKeys = dayGameAccess({ day: day({ lessons: 2, xp: 60 }), dailyGoal: 120, plan: [], totalGames: 4 });
+  check('доступ: третий ключ открывает Мемори', isGameOpen(threeKeys, 3) && threeKeys.openCount === 4, '');
 
   // ── 3. Задания дня тоже дают ключи ──────────────────────────────────────
   // План дня: 2 урока + 12 верных ответов + серия из 5 без ошибок. Закрываем
