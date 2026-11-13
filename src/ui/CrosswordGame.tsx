@@ -45,6 +45,11 @@ export interface CrosswordGameProps {
   pool: Word[];
   /** Слова с ошибками (0.96.7): решётка собирается из них первыми. */
   priorityIds?: ReadonlyArray<string>;
+  /**
+   * Класс ребёнка (0.104.0): от него зависит потолок длины слова в решётке —
+   * в 5 классе слова до 11 букв попадают в кроссворд.
+   */
+  grade?: number;
   onGoLessons?: () => void;
 }
 
@@ -56,7 +61,7 @@ interface Tile {
   used: boolean;
 }
 
-export function CrosswordGame({ pool, priorityIds, onGoLessons }: CrosswordGameProps) {
+export function CrosswordGame({ pool, priorityIds, grade, onGoLessons }: CrosswordGameProps) {
   const [seed, setSeed] = useState(randSeed);
   // Ключи по содержимому: иначе изменение профиля после награды пересобирало
   // бы решётку посреди игры (тот же корень, что в филворде).
@@ -84,12 +89,13 @@ export function CrosswordGame({ pool, priorityIds, onGoLessons }: CrosswordGameP
     () =>
       buildCrossword(pool, {
         seed,
+        grade,
         cursor,
         avoidIds,
         priorityIds: priorityAtStart.current ? priorityAtStart.current.split('|') : undefined,
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [poolKey, seed, cursor, avoidIds],
+    [poolKey, seed, cursor, avoidIds, grade],
   );
   const roundId = useMemo(() => crypto.randomUUID(), [board]);
   const playGame = useApp((s) => s.playGame);

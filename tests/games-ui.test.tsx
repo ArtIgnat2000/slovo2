@@ -26,8 +26,13 @@ async function goTab(name: string) {
  */
 export const GROUP_OF: Record<string, string> = {
   'Собери слово': 'Быстро',
+  'Колесо букв': 'Быстро',
   Филворд: 'Подумать',
   Кроссворд: 'Подумать',
+  Мемори: 'Подумать',
+  'Хитрая буква': 'Подумать',
+  'Цветок слова': 'Подумать',
+  'Слоговая мозаика': 'Быстро',
 };
 
 /** Открыть группу по подписи («Быстро», «Подумать»). */
@@ -434,7 +439,7 @@ export async function runGamesAccessUiChecks() {
   // игры, и в пустой день обе закрыты — именно этот случай и надо проверить.
   await goGroup('Подумать');
   check('доступ в UI: в пустой день группа «Подумать» вся под замком',
-    cards().every((c) => c.dataset.gameOpen === '0') && cards().length === 3,
+    cards().every((c) => c.dataset.gameOpen === '0') && cards().length === 5,
     cards().map((c) => `${c.textContent}:${c.dataset.gameOpen}`).join(' | '));
   check('доступ в UI: у закрытой карточки условие, а не «нельзя»',
     cards().every((c) => /Откроется за/.test(c.textContent ?? '') && !/нельзя/i.test(c.textContent ?? '')),
@@ -482,8 +487,8 @@ export async function runGamesAccessUiChecks() {
     ),
   }));
   await sleep(80);
-  check('доступ в UI: 10 верных ответов открывают вторую игру',
-    (document.querySelector('.games-meter')?.textContent ?? '').includes('Открыто 2'),
+  check('доступ в UI: 10 верных ответов открывают четыре игры',
+    (document.querySelector('.games-meter')?.textContent ?? '').includes('Открыто 4'),
     document.querySelector('.games-meter')?.textContent ?? '');
   await goGroup('Подумать');
   check('доступ в UI: после 10 верных «Филворд» открылся, а «Кроссворд» ещё нет',

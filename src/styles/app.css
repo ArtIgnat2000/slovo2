@@ -10497,6 +10497,26 @@ img.product-photo {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
+/* 0.103.0: в группе стало 5–6 игр. Держим 2×2 и уводим остальные вбок
+   прокруткой полки, а не растягиваем экран: каждые лишние 72 px карточек
+   съедают поле игры и упираются в нижнее меню (замечание 2026-11-11).
+   Скроллбар скрыт — полка узнаётся по обрезанной третьей карточке. */
+@media (max-width: 719px) {
+  .games-cards {
+    grid-auto-flow: column;
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    grid-template-columns: none;
+    grid-auto-columns: calc(50% - 4px);
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x proximity;
+    overscroll-behavior-x: contain;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+  .games-cards::-webkit-scrollbar { display: none; }
+  .games-cards > .games-card { scroll-snap-align: start; }
+}
 .games-card {
   display: flex;
   flex-direction: column;
@@ -11596,3 +11616,380 @@ img.product-photo {
 .memory-win { border-color: var(--green); }
 @media (min-width: 720px) { .memory-grid, .memory-text .memory-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 @media (prefers-reduced-motion: reduce) { .memory-inner { transition: none; } }
+
+/* ── 0.103.0: «Колесо букв» и «Хитрая буква» ────────────────────────────────
+   Только токены темы: никаких новых цветов и внешних шрифтов. Колесо — круг
+   из кнопок, позиция каждой считается от --ring-angle, поэтому одна и та же
+   разметка работает для слова из 3 и из 8 букв. */
+
+.ring-card,
+.tl-card,
+.flower-card,
+.syl-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-radius: 20px;
+  padding: 14px;
+  box-shadow: var(--shadow);
+}
+.ring-bar,
+.tl-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Собранная часть слова: непройденные буквы — точки, чтобы слово не читалось
+   заранее (иначе колесо превращается в «прочитай вслух»). */
+.ring-word {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  font-size: clamp(20px, 6vw, 28px);
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+.ring-word-on { color: var(--ink); }
+.ring-word-off { color: var(--ink-3, var(--ink-2)); opacity: 0.55; }
+
+.ring-clue,
+.tl-clue {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ring-clue-body { min-width: 0; }
+
+/* Сцена круга: квадрат, вписанный в ширину карточки. Размер кнопки — в
+   процентах от сцены, поэтому круг одинаково выглядит на 360 и на 1040 px. */
+.ring-stage {
+  display: grid;
+  place-items: center;
+  padding: 6px 0;
+}
+.ring {
+  position: relative;
+  width: min(280px, 78vw);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2px dashed color-mix(in srgb, var(--primary) 35%, var(--line));
+}
+.ring-dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background: var(--bg-2);
+  color: var(--ink);
+  font: inherit;
+  font-size: 19px;
+  font-weight: 800;
+  cursor: pointer;
+  /* Позиция на окружности: радиус 42% сцены, угол от «12 часов» по часовой. */
+  transform: rotate(var(--ring-angle, 0deg)) translateY(-42%) rotate(calc(-1 * var(--ring-angle, 0deg)));
+  transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+.ring-dot-passed {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--ink);
+}
+/* Следующая буква получает мягкий ореол — это не подсказка ответа, а место,
+   с которого продолжается движение (после отпускания пальца). */
+.ring-dot-next {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 28%, transparent);
+}
+.ring-dot-danger:not(.ring-dot-passed) {
+  border-style: dashed;
+}
+.ring-core {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 26px;
+  color: var(--ink-2);
+}
+.ring-status { text-align: center; margin: 0; }
+.ring-win,
+.tl-win {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px;
+  border: 1.5px solid var(--green);
+  border-radius: 16px;
+  background: var(--green-soft);
+  text-align: center;
+}
+.ring-win-title,
+.tl-win-title { margin: 0; font-weight: 800; }
+.ring-win-word { margin: 0; font-size: 20px; font-weight: 800; }
+.tl-win-emoji { font-size: 30px; }
+
+/* «Хитрая буква»: слово с прорезью. Слот — отдельная клетка, чтобы ? не
+   прыгал по строке и слово читалось по буквам. */
+.tl-word {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin: 0;
+}
+.tl-slot {
+  min-width: 28px;
+  padding: 2px 4px;
+  border-bottom: 2px solid var(--line);
+  font-size: clamp(20px, 6vw, 26px);
+  font-weight: 800;
+  text-align: center;
+}
+.tl-slot-hidden {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  background: var(--primary-soft);
+  border-radius: 6px 6px 0 0;
+}
+.tl-slot-on { border-bottom-color: var(--green); }
+
+.tl-options {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.tl-option {
+  min-height: 52px;
+  border-radius: 14px;
+  border: 2px solid var(--line);
+  background: var(--bg-2);
+  color: var(--ink);
+  font: inherit;
+  font-size: 22px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.tl-option:hover:not(:disabled) { border-color: var(--primary); }
+/* Неверный вариант гаснет, но остаётся на месте: исчезнувшая кнопка выглядит
+   как «буква потерялась», а ребёнок должен видеть свои попытки. */
+.tl-option-gone {
+  opacity: 0.45;
+  text-decoration: line-through;
+  cursor: default;
+}
+.tl-option-right {
+  border-color: var(--green);
+  background: var(--green-soft);
+}
+.tl-hints { min-height: 42px; display: grid; gap: 4px; }
+.tl-hints p { margin: 0; }
+.tl-ok {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1.5px solid var(--green);
+  background: var(--green-soft);
+}
+.tl-ok p { margin: 0; }
+.tl-note { margin: 0; }
+.ring-empty,
+.tl-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  padding: 20px 12px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ring-dot { transition: none; }
+}
+
+/* ── 0.105.0: «Цветок слова» ────────────────────────────────────────────────
+   Лепестки — буквы слова, стебель — само слово. Закрытый лепесток нейтрален,
+   открытый — акцентный. Никаких «увядших навсегда» состояний: ошибка даёт
+   мягкую «вспышку» на текущем лепестке и подсказку, а не порчу цветка. */
+.flower-stage {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  padding: 6px 0;
+}
+.flower-petals {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+.flower-petal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50% 50% 46% 46%;
+  border: 2px solid var(--line);
+  background: var(--bg-2);
+  color: var(--ink-2);
+  font-size: 17px;
+  font-weight: 800;
+  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+.flower-petal-open {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--ink);
+  transform: translateY(-2px);
+}
+/* Текущий лепесток после промаха: мягкая подсветка, а не «жизнь отнята». */
+.flower-petal-touch {
+  border-color: var(--orange-soft);
+  background: var(--orange-soft);
+}
+.flower-stem {
+  display: flex;
+  gap: 4px;
+  margin: 0;
+  font-size: clamp(20px, 6vw, 26px);
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+.flower-open { color: var(--ink); }
+.flower-closed { color: var(--ink-3); }
+.flower-win {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  padding: 12px;
+  border: 1.5px solid var(--green);
+  border-radius: 16px;
+  background: var(--green-soft);
+  text-align: center;
+}
+.flower-win p { margin: 0; }
+.flower-win-title { font-weight: 800; }
+.flower-win-word { font-size: 20px; font-weight: 800; }
+.flower-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  padding: 20px 12px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .flower-petal { transition: none; }
+}
+
+/* ── 0.106.0: «Слоговая мозаика» ────────────────────────────────────────────
+   Плитка — СЛОГ, а не буква: она шире, поэтому сетка своя, а не буквенная.
+   Слоты в правильном порядке, плитки перемешаны; неверный порядок мягко
+   краснеет и возвращает плитки — ничего не сгорает. */
+.syl-slots {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.syl-slot {
+  min-width: 56px;
+  min-height: 46px;
+  padding: 4px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  border: 2px dashed var(--line);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 20px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.syl-slot-on {
+  border-style: solid;
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.syl-slot-bad {
+  border-color: color-mix(in srgb, var(--orange-soft) 40%, #c2410c);
+  background: var(--orange-soft);
+}
+.syl-tray {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.syl-tile {
+  min-width: 56px;
+  min-height: 48px;
+  padding: 4px 12px;
+  border-radius: 14px;
+  border: 2px solid var(--line);
+  background: var(--bg-2);
+  color: var(--ink);
+  font: inherit;
+  font-size: 20px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.syl-tile:hover:not(:disabled) { border-color: var(--primary); }
+/* Поставленная плитка не исчезает совсем: ребёнок видит, что уже использовал. */
+.syl-tile-used { opacity: 0.35; cursor: default; }
+.syl-win {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  padding: 12px;
+  border: 1.5px solid var(--green);
+  border-radius: 16px;
+  background: var(--green-soft);
+  text-align: center;
+}
+.syl-win p { margin: 0; }
+.syl-win-title { font-weight: 800; }
+.syl-win-word { font-size: 20px; font-weight: 800; }
+.syl-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  padding: 20px 12px;
+}
+
+/* ── 0.107.0: дев-панель игр (только локально) ──────────────────────────────
+   Кнопка живёт в «Родителям → Приложение» и только при `vite dev` или
+   `?dev=1`: ребёнок в проде её не увидит вовсе. */
+.games-dev {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1.5px dashed var(--line);
+  background: var(--bg-2);
+}
+.games-dev-note {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--ink-2);
+}

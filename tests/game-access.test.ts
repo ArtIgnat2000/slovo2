@@ -23,7 +23,7 @@ import {
 import type { DayStat, QuestPlanItem } from '../src/types';
 import { check } from './ui-helpers';
 
-const TOTAL = 4;
+const TOTAL = 8;
 
 /** План дня по умолчанию — как у `buildDayPlan`: три задания. */
 const PLAN: QuestPlanItem[] = [
@@ -72,12 +72,15 @@ export async function runGameAccessChecks(): Promise<void> {
   const almost = access(day({ correct: GATE_CORRECT_STEP - 1 }));
   const step = access(day({ correct: GATE_CORRECT_STEP }));
   check('доступ: до 10 верных ответов вторая игра закрыта', almost.openCount === 1, `openCount=${almost.openCount}`);
-  check('доступ: 10 верных ответов открывают вторую игру', step.openCount === 2, `openCount=${step.openCount}`);
+  // 0.103.0: порог 1 открывает сразу три игры — «Собери слово», «Колесо букв»
+  // и «Филворд». Это не ошибка счёта: игры добираются внутрь шагов, иначе для
+  // последних игр понадобились бы ключи, которых в дне не бывает.
+  check('доступ: 10 верных ответов открывают четыре игры', step.openCount === 4, `openCount=${step.openCount}`);
   // Повторение пишет верные ответы в тот же `day.correct` (`answer()` → ok),
   // а `reviewCorrect` — отдельный счётчик точности. Проверяем именно то, что
   // шаг не требует урока: 10 верных без единого урока уже открывают игру.
   check('доступ: 10 верных ответов без урока открывают вторую игру',
-    access(day({ lessons: 0, correct: 10, reviewCorrect: 10 })).openCount === 2, 'повторение без урока');
+    access(day({ lessons: 0, correct: 10, reviewCorrect: 10 })).openCount === 4, 'повторение без урока');
 
   // ── 3. Второй шаг — урок ДО КОНЦА, и он требует первого ─────────────────
   // Главная правка 0.99.1: «дошёл до конца и всё провалил» больше не даёт то
@@ -90,15 +93,17 @@ export async function runGameAccessChecks(): Promise<void> {
     `openCount=${weakButLong.openCount}`);
 
   const lessonDone = access(day({ lessons: 1, correct: 12 }));
-  check('доступ: урок до конца при 10 верных открывает третью игру', lessonDone.openCount === 3,
+  check('доступ: урок до конца при 10 верных добавляет «Кроссворд»', lessonDone.openCount === 5,
     `openCount=${lessonDone.openCount}`);
 
-  // «Мемори» — четвёртая игра витрины (0.101.0): ей нужны все три ключа.
+  // «Мемори» (0.101.0), «Хитрая буква» (0.103.0) и «Цветок слова» (0.105.0) —
+  // полное открытие: им нужны все три ключа. Индексы 5, 6, 7 — их места в
+  // витрине (после «Слоговой мозаики» в группе «Быстро»).
   const twoKeysInLadder = access(day({ lessons: 1, correct: 12 }));
-  check('доступ: при двух ключах «Мемори» (четвёртая игра) закрыта',
-    twoKeysInLadder.openCount === 3 && !isGameOpen(twoKeysInLadder, 3), `openCount=${twoKeysInLadder.openCount}`);
+  check('доступ: при двух ключах «Мемори» закрыта',
+    twoKeysInLadder.openCount === 5 && !isGameOpen(twoKeysInLadder, 5), `openCount=${twoKeysInLadder.openCount}`);
   check('доступ: третий ключ (весь план дня) открывает «Мемори»',
-    isGameOpen(access(fullDay()), 3) && access(fullDay()).openCount === TOTAL, '');
+    isGameOpen(access(fullDay()), 5) && access(fullDay()).openCount === TOTAL, '');
 
   // ── 4. Третий шаг — весь план дня (готовый сундук) ───────────────────────
   const questsOnly = access(day({ lessons: 0, correct: 12, flawless: 5 }));
@@ -140,15 +145,47 @@ export async function runGameAccessChecks(): Promise<void> {
   // ── 8. Текст замка: одно условие, без «нельзя» ──────────────────────────
   check('доступ: замок объясняет первое действие', /Откроется за \d+ верн/.test(lockHint(zero, 1)), lockHint(zero, 1));
   check('доступ: после 10 верных замок говорит про урок',
-    lockHint(step, 2) === 'Откроется за урок', lockHint(step, 2));
+    lockHint(step, 4) === 'Откроется за урок', lockHint(step, 4));
   check('доступ: перед последней игрой замок говорит про задания дня',
-    lockHint(lessonDone, 3) === 'Откроется за все задания дня', lockHint(lessonDone, 3));
+    lockHint(lessonDone, 5) === 'Откроется за все задания дня', lockHint(lessonDone, 5));
   check('доступ: замок не ругается', !/нельзя|нет доступа/i.test(lockHint(zero, 3)), lockHint(zero, 3));
   check('доступ: у открытой игры замка нет', lockHint(zero, 0) === '', lockHint(zero, 0));
 
+  // ── 0.103.0: игр стало шесть, ключей по-прежнему три ────────────────────
+  // Главная проверка схемы: «3 ключа открывают всё» остаётся правдой, а новые
+  // игры добираются внутрь шагов. Если кто-то снова начнёт растягивать порог
+  // по одной игре, последние игры перестанут открываться НИКОГДА — в дне
+  // просто нет четвёртого ключа.
+  check('доступ: порог задан для каждой игры витрины',
+    GAME_GATE_KEYS.length >= TOTAL, `порогов: ${GAME_GATE_KEYS.length}, игр: ${TOTAL}`);
+  check('доступ: ключей в лестнице по-прежнему три',
+    Math.max(...GAME_GATE_KEYS) === 3, String(Math.max(...GAME_GATE_KEYS)));
+  check('доступ: на трёх ключах открыта вся витрина',
+    access(fullDay()).keys === 3 && access(fullDay()).openCount === TOTAL,
+    `keys=${access(fullDay()).keys}, open=${access(fullDay()).openCount}`);
+  check('доступ: «Колесо букв» и «Слоговая мозаика» открываются первым шагом',
+    isGameOpen(step, 1) && isGameOpen(step, 2) && isGameOpen(step, 3) && !isGameOpen(step, 4),
+    `open=${step.openCount}`);
+  check('доступ: «Хитрая буква» требует все три шага, как «Мемори»',
+    !isGameOpen(lessonDone, 6) && isGameOpen(access(fullDay()), 6),
+    `open=${lessonDone.openCount}`);
+  // 0.105.0: «Цветок слова» — седьмая игра, порог тоже третий ключ.
+  check('доступ: «Цветок слова» открывается третьим ключом',
+    !isGameOpen(lessonDone, 7) && isGameOpen(access(fullDay()), 7),
+    `open=${lessonDone.openCount}`);
+  // 0.106.0: «Слоговая мозаика» — восьмая игра, порог первого шага: сложить
+  // 2–4 слога это разминка, а не «подумать».
+  check('доступ: «Слоговая мозаика» открывается вместе с «Колесом букв»',
+    isGameOpen(step, 2) && !isGameOpen(zero, 2), `open=${step.openCount}`);
+  check('доступ: на трёх ключах открыты ВСЕ восемь игр витрины',
+    access(fullDay()).openCount === 8 && GAME_GATE_KEYS.length === 9,
+    `open=${access(fullDay()).openCount}, порогов=${GAME_GATE_KEYS.length}`);
+
   // ── 9. Пороги и подписи ─────────────────────────────────────────────────
-  check('доступ: пороги по возрастанию, базовая игра — нулевой',
-    GAME_GATE_KEYS[0] === 0 && GAME_GATE_KEYS.every((v, i) => i === 0 || v > GAME_GATE_KEYS[i - 1]),
+  // Пороги не убывают (игры внутри одного шага имеют равный порог), базовая
+  // игра — нулевой: она открыта всегда.
+  check('доступ: пороги не убывают, базовая игра — нулевой',
+    GAME_GATE_KEYS[0] === 0 && GAME_GATE_KEYS.every((v, i) => i === 0 || v >= GAME_GATE_KEYS[i - 1]),
     GAME_GATE_KEYS.join(','));
   check('доступ: «1 игра», а не «1 игр»', pluralGames(1) === 'игра', pluralGames(1));
   check('доступ: «2 игры» и «5 игр»', pluralGames(2) === 'игры' && pluralGames(5) === 'игр', '');

@@ -45,8 +45,12 @@ import { Sentence, WordArt, lengthLabel } from '../WordView';
 import { WordTileBoard } from '../WordTileBoard';
 import { WordSearchGame } from '../WordSearchGame';
 import { CrosswordGame } from '../CrosswordGame';
+import { LetterRingGame } from '../LetterRingGame';
+import { TrickyLetterGame } from '../TrickyLetterGame';
+import { WordFlowerGame } from '../WordFlowerGame';
+import { SyllableBoard } from '../SyllableBoard';
 
-type GameId = 'build' | 'search' | 'crossword' | 'memory';
+type GameId = 'build' | 'ring' | 'syl' | 'search' | 'crossword' | 'memory' | 'tricky' | 'flower';
 /** Группа по времени игры, а не по «жанру»: ребёнку так понятнее (§4-B). */
 type GameGroup = 'fast' | 'think';
 
@@ -85,9 +89,22 @@ const PLAY_RULE =
  */
 const GAMES: Array<{ id: GameId; emoji: string; title: string; oneline: string; group: GameGroup }> = [
   { id: 'build', emoji: '🧵', title: 'Собери слово', oneline: 'Выложи слово из карточек.', group: 'fast' },
+  // 0.103.0: «Колесо букв» — второй шаг лестницы, вместе с «Филвордом»
+  // (`GAME_GATE_KEYS[1] = 1`). Группа «Быстро»: провести пальцем по кругу —
+  // это 1–2 минуты, как и «Собери слово».
+  { id: 'ring', emoji: '🎡', title: 'Колесо букв', oneline: 'Проведи по буквам по кругу.', group: 'fast' },
+  // 0.106.0: «Слоговая мозаика» — слово из слогов. Группа «Быстро» и порог
+  // первого шага: сложить 2–4 слога — это 1–2 минуты, как «Собери слово».
+  { id: 'syl', emoji: '🧩', title: 'Слоговая мозаика', oneline: 'Выложи слово из слогов.', group: 'fast' },
   { id: 'search', emoji: '🔎', title: 'Филворд', oneline: 'Найди слова в буквенном поле.', group: 'think' },
   { id: 'crossword', emoji: '✏️', title: 'Кроссворд', oneline: 'Собери слова в решётке.', group: 'think' },
   { id: 'memory', emoji: '🧠', title: 'Мемори', oneline: 'Найди пары карточек.', group: 'think' },
+  // «Хитрая буква» — тоже полное открытие (третий ключ): это игра про
+  // орфограмму, а не разминка, и она не должна открываться раньше «Мемори».
+  { id: 'tricky', emoji: '🪄', title: 'Хитрая буква', oneline: 'Найди опасную букву в слове.', group: 'think' },
+  // 0.105.0: «Цветок слова» — слово раскрывается по буквам, ошибка даёт
+  // подсказку, а не отнимает попытку. Порог — третий ключ (полное открытие).
+  { id: 'flower', emoji: '🌸', title: 'Цветок слова', oneline: 'Раскрой слово по буквам.', group: 'think' },
 ];
 
 /** Две группы вкладки: подписи короткие, цели ≥ 44 px. */
@@ -129,8 +146,13 @@ export function GamesScreen({ onGoLessons }: { onGoLessons: () => void }) {
   const gamesPool = useMemo(() => {
     if (met.length >= GAMES_MIN_POOL) return met.slice(0, 60);
     const ids = new Set(met.map((w) => w.id));
+    // 0.104.0: потолок длины добираемых слов — по правилам класса. В 5 классе
+    // в кроссворд теперь идут слова до 11 букв (`maxWordLengthFor`), и пул не
+    // должен отсекать их раньше движка. Филворд всё равно возьмёт только те,
+    // что влезают в его поле.
+    const longest = grade >= 5 ? 11 : 9;
     const filler = WORDS_BY_GRADE[grade].filter(
-      (w) => !w.text.includes(' ') && !ids.has(w.id) && lettersCount(w.text) <= 9,
+      (w) => !w.text.includes(' ') && !ids.has(w.id) && lettersCount(w.text) <= longest,
     );
     return [...met, ...filler].slice(0, Math.max(GAMES_MIN_POOL, met.length));
   }, [grade, met]);
@@ -144,6 +166,26 @@ export function GamesScreen({ onGoLessons }: { onGoLessons: () => void }) {
   const memoryPool = useMemo(() => {
     const ids = new Set(met.map(w => w.id));
     return [...met, ...WORDS_BY_GRADE[grade].filter(w => !ids.has(w.id))];
+  }, [met, grade]);
+  /**
+   * Пул «Колеса букв» (0.103.0) — короткие слова: круг читается до 8 букв
+   * (`RING_MAX_LETTERS`). Берём тот же набор, что у «Собери слово», плюс
+   * добор словами класса, если своих коротких мало: иначе на трёх знакомых
+   * словах колесо повторялось бы.
+   */
+  const ringPoolWords = useMemo(() => {
+    const ids = new Set(practice.map((w) => w.id));
+    const filler = WORDS_BY_GRADE[grade].filter((w) => !ids.has(w.id));
+    return [...practice, ...filler];
+  }, [practice, grade]);
+  /**
+   * Пул «Хитрой буквы» (0.103.0) — слова с отмеченной опасной буквой. Фразы и
+   * слова без `danger` отсеивает сам движок (`trickyPool`), здесь только
+   * порядок: знакомые и трудные слова первыми.
+   */
+  const trickyPoolWords = useMemo(() => {
+    const ids = new Set(met.map((w) => w.id));
+    return [...met, ...WORDS_BY_GRADE[grade].filter((w) => !ids.has(w.id))];
   }, [met, grade]);
   const priorityIds = useMemo(() => troubleWords(profile?.words ?? {}), [profile]);
   const [wordId, setWordId] = useState<string | null>(null);
@@ -401,10 +443,55 @@ export function GamesScreen({ onGoLessons }: { onGoLessons: () => void }) {
           />
         )}
 
+        {game === 'ring' && profile && (
+          <LetterRingGame
+            key={`ring-${profile.id}-${grade}`}
+            pool={ringPoolWords}
+            grade={grade}
+            profileId={profile.id}
+            priorityIds={priorityIds}
+            onGoLessons={onGoLessons}
+          />
+        )}
+
+        {game === 'tricky' && profile && (
+          <TrickyLetterGame
+            key={`tricky-${profile.id}-${grade}`}
+            pool={trickyPoolWords}
+            grade={grade}
+            profileId={profile.id}
+            priorityIds={priorityIds}
+            onGoLessons={onGoLessons}
+          />
+        )}
+
+        {game === 'flower' && profile && (
+          <WordFlowerGame
+            key={`flower-${profile.id}-${grade}`}
+            pool={trickyPoolWords}
+            grade={grade}
+            profileId={profile.id}
+            priorityIds={priorityIds}
+            onGoLessons={onGoLessons}
+          />
+        )}
+
+        {game === 'syl' && profile && (
+          <SyllableBoard
+            key={`syl-${profile.id}-${grade}`}
+            pool={ringPoolWords}
+            grade={grade}
+            profileId={profile.id}
+            priorityIds={priorityIds}
+            onGoLessons={onGoLessons}
+          />
+        )}
+
         {game === 'crossword' && (
           <CrosswordGame
-            key={`cw-${profile?.id}-${gamesPool.length}`}
+            key={`cw-${profile?.id}-${gamesPool.length}-${grade}`}
             pool={gamesPool}
+            grade={grade}
             priorityIds={priorityIds}
             onGoLessons={onGoLessons}
           />

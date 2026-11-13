@@ -2,6 +2,7 @@ import { isStandalone } from '../../platform/pwa';
 import { ShareApp } from '../ShareApp';
 import { GroupTitle } from './ParentBits';
 import { UpdateCheck } from './UpdateCheck';
+import { GamesDevPanel } from './GamesDevPanel';
 
 interface Props {
   onOpenVlabs: () => void;
@@ -22,6 +23,9 @@ export function AppTab({ onOpenVlabs, onOpenDiagnostics, onOpenTts }: Props) {
             : 'В меню браузера выберите «На экран Домой» или «Установить приложение».'}
         </p>
       </div>
+
+      {/* Только для дев-проверки: в проде без `?dev=1` компонент не рисуется. */}
+      <GamesDevPanel />
 
       <div className="card">
         <GroupTitle title="Обновления" hint={`Версия v${import.meta.env.VITE_APP_VERSION}`} />

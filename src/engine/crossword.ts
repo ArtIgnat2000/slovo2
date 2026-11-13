@@ -57,6 +57,12 @@ export interface CrosswordBoard {
 export interface BuildCrosswordOptions {
   seed: number;
   /**
+   * Класс ребёнка (0.104.0). От него зависит потолок длины слова
+   * (`maxWordLengthFor`) и размер поля: старшим классам нужен простор для
+   * длинных слов. Не передан — поведение как до 0.104.0.
+   */
+  grade?: number;
+  /**
    * С какого места круга начинать выбор слов (0.96.5). «Ещё кроссворд»
    * сдвигает курсор на число показанных слов, поэтому следующая решётка
    * начинается с новых слов (см. `engine/pool-cursor.ts`).
@@ -102,6 +108,20 @@ const CENTER = Math.floor(CANVAS / 2);
 const MAX_ATTEMPTS = 120;
 const MIN_LEN = 3;
 const MAX_LEN = 9;
+/**
+ * Потолок длины слова в сетке по классу (0.104.0, §6-G плана).
+ *
+ * Было 9 для всех: в 5 классе 30 слов из 127 длиннее — они физически не
+ * могли попасть в кроссворд, хотя это нормальные словарные слова («путешествие»,
+ * «электричество»). Теперь 3–4 класс — 9, 5 класс — 11.
+ *
+ * Почему не больше: 12+ букв требуют полотна шире и дают решётку, которую
+ * пятиклассник не удержит на экране 360 px (`useBoardCellCap` ужимает клетку
+ * до нечитаемой). 11 — предел, при котором сетка ещё читается.
+ */
+export function maxWordLengthFor(grade: number): number {
+  return grade >= 5 ? 11 : MAX_LEN;
+}
 
 const key = (row: number, col: number): string => `${row},${col}`;
 /** Ключ клетки для Map/Record — принимает объект клетки. */
@@ -322,6 +342,7 @@ export function buildCrossword(
   opts: BuildCrosswordOptions,
 ): CrosswordBoard | null {
   const { seed, maxWords = 6 } = opts;
+  const maxLen = opts.grade === undefined ? MAX_LEN : maxWordLengthFor(opts.grade);
   // Пул без повторов: одно слово — один слот решётки (иначе в сетке могло
   // оказаться два одинаковых слова, а пул букв — двойным).
   const seen = new Set<string>();
@@ -331,7 +352,7 @@ export function buildCrossword(
     .filter((w) => {
       if (seen.has(w.id)) return false;
       const n = lettersOf(w.text).length;
-      const ok = n >= MIN_LEN && n <= MAX_LEN;
+      const ok = n >= MIN_LEN && n <= maxLen;
       if (ok) seen.add(w.id);
       return ok;
     });
