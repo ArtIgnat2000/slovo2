@@ -1,3 +1,4 @@
+import { runGameRecordsChecks } from './game-records.test';
 // Смоук-тест (npm run test:smoke): в jsdom проходит урок целиком «руками» —
 // кликами по настоящим кнопкам — и проверяет то, что нельзя проверить сборкой:
 // диалог выхода из урока, монотонную полоску прогресса, пометку отработки ошибки,
@@ -2139,6 +2140,7 @@ async function main() {
 
   // Игры: вкладка, свободная практика и честные «скоро»-карточки (0.92.0).
   await runGamesUiChecks();
+  runGameRecordsChecks();
   await runWordSearchChecks();
   await runWordSearchUiChecks();
   await runCrosswordChecks();

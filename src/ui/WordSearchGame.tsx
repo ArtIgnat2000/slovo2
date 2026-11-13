@@ -1,3 +1,5 @@
+import { recordGridWin } from '../platform/game-records';
+import { GameBest } from './GameRecords';
 /**
  * «Филворд» — найди знакомые слова на буквенном поле.
  *
@@ -148,6 +150,7 @@ export function WordSearchGame({ pool, grade, priorityIds, onGoLessons }: WordSe
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [poolKey, grade, seed, cursor, avoidIds],
   );
+  const roundId = useMemo(() => crypto.randomUUID(), [board]);
   const playGame = useApp((s) => s.playGame);
   const profile = useApp((s) => s.profiles.find((p) => p.id === s.activeId) ?? null);
   /** Что игра дала сегодня — для честной подписи на поле (0.96.7). */
@@ -185,12 +188,13 @@ export function WordSearchGame({ pool, grade, priorityIds, onGoLessons }: WordSe
     if (!board || scoredRef.current) return;
     if (!won) return;
     scoredRef.current = true;
+    if (profile) recordGridWin(profile.id, 'search', roundId, foundIds.length);
     setAwarded(playGame(foundIds.length));
     // Праздник: те же фанфары и вибрация, что на результатах урока, — игра
     // заканчивается «событием», а не просто галочкой.
     sfx.finish(3);
     haptic.finish();
-  }, [board, won, foundIds, playGame]);
+  }, [board, won, foundIds, playGame, profile?.id, roundId]);
 
   // Конфетти отдельным эффектом: оно не должно зависеть от того, успел ли
   // сработать `playGame` (например, когда потолок дня уже выбран и награда 0).
@@ -424,6 +428,7 @@ export function WordSearchGame({ pool, grade, priorityIds, onGoLessons }: WordSe
                 </p>
               )}
               {awardHint && <p className="ws-win-hint tiny muted">{awardHint}</p>}
+              {profile && <GameBest profileId={profile.id} game="search" />}
             </div>
             <button type="button" className="btn primary" onClick={newGrid}>
               🔄 Ещё сетку

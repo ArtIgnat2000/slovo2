@@ -1,3 +1,4 @@
+import { GameRecords } from '../GameRecords';
 // Краткий обзор обучения для родителя.
 //
 // Первый экран отвечает только на два вопроса: как продвигаются слова выбранного
@@ -299,6 +300,7 @@ export function OverviewTab({ profile }: Props) {
           </div>
         </>
       )}
+      <GameRecords profileId={profile.id} detailed />
     </div>
   );
 }
