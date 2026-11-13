@@ -2,6 +2,8 @@
 import './setup';
 import {
   buildWordSearch,
+  directionsFor,
+  fieldSizeFor,
   matchSelection,
   selectionCells,
   sameCell,
@@ -30,7 +32,12 @@ export async function runWordSearchChecks(): Promise<void> {
   check('филворд: доска со seed=42 собирается', !!a, '');
   check('филворд: одинаковый seed → одинаковая доска', !!a && !!b && JSON.stringify(a) === JSON.stringify(b), '');
   if (!a) return;
-  check('филворд: поле 8×8 в младших классах', a.size === 8, `size=${a.size}`);
+  // 0.104.0: главное правило — малым классам поле МЕНЬШЕ (7×7 в 1 классе),
+  // 2–3 класс — 8×8, 4–5 — 9×9 с диагоналями.
+  check('филворд: поле 8×8 во 2 классе', a.size === 8, `size=${a.size}`);
+  const grade1 = buildWordSearch(someShortWords(), { grade: 1, seed: 42 });
+  check('филворд: 1 класс → поле 7×7, меньше, чем у старших',
+    !!grade1 && grade1.size === 7, `size=${grade1?.size}`);
   check('филворд: 3–5 слов на поле', a.words.length >= 3 && a.words.length <= 5,
     `слов: ${a.words.length}`);
 
@@ -54,6 +61,13 @@ export async function runWordSearchChecks(): Promise<void> {
   // ── 2. Размеры поля ──────────────────────────────────────────────────────
   const grade4 = buildWordSearch(someShortWords(), { grade: 4, seed: 7 });
   check('филворд: 4 класс → поле 9×9', !!grade4 && grade4.size === 9, `size=${grade4?.size}`);
+  // Диагонали: с 4 класса, а не только с 5-го (0.104.0, §6-G).
+  check('филворд: правила класса — размер и диагонали в одном месте',
+    fieldSizeFor(1) === 7 && fieldSizeFor(2) === 8 && fieldSizeFor(3) === 8 &&
+      fieldSizeFor(4) === 9 && fieldSizeFor(5) === 9 &&
+      directionsFor(1).length === 2 && directionsFor(3).length === 2 &&
+      directionsFor(4).length === 4 && directionsFor(5).length === 4,
+    `размеры: ${[1, 2, 3, 4, 5].map(fieldSizeFor).join('/')}, направлений: ${[1, 3, 4, 5].map((g) => directionsFor(g).length).join('/')}`);
   const longWords = WORDS.filter((w) => !w.text.includes(' ') && [...w.text].length >= 10).slice(0, 4);
   const grown = buildWordSearch(longWords, { grade: 2, seed: 7 });
   check('филворд: на длинных словах поле вырастает (до 12×12)', !!grown && grown.size > 8, `size=${grown?.size}`);

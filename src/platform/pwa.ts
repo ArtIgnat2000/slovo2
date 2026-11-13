@@ -49,6 +49,11 @@ export function initPWA(onUpdate: () => void) {
  * после того как новый воркер забрал управление.
  */
 export function applyUpdate() {
+  // Отметка «перезагружаемся ради обновления». Номер версии здесь не пишем:
+  // этот код исполняется ещё в СТАРОЙ сборке, и раньше именно оттуда в
+  // плашку попадал прошлый релиз (0.102.1). После перезагрузки номер
+  // возьмётся из установленной сборки — см. takeAppliedVersion.
+  writeStore(APPLIED_KEY, 'applied');
   if (!reloadOnControllerChange && 'serviceWorker' in navigator) {
     reloadOnControllerChange = true;
     navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload(), { once: true });
@@ -218,21 +223,29 @@ export function updatePending(): boolean {
 /**
  * Версия, до которой только что обновились, — один раз после перезагрузки.
  * `null`, если обновления не было (или плашку уже показали).
+ *
+ * Номер берём из **этой** сборки, а не из того, что записали перед
+ * перезагрузкой. Записанное значение — только отметка «мы перезагружались
+ * ради обновления»: писать туда `VITE_APP_VERSION` нельзя, потому что код,
+ * который пишет, исполняется ещё в СТАРОЙ сборке (0.102.1). Именно из-за
+ * этого после установки 0.102.0 показывалось «Обновлено до v0.101.0».
+ * Теперь плашка называет ту версию, которая действительно сейчас работает.
  */
 export function takeAppliedVersion(): string | null {
-  const v = readStore(APPLIED_KEY);
-  if (v !== null) writeStore(APPLIED_KEY, null);
-  return v;
+  const applied = readStore(APPLIED_KEY) !== null;
+  if (applied) writeStore(APPLIED_KEY, null);
+  if (!applied) return null;
+  const version = (import.meta as { env?: { VITE_APP_VERSION?: string } }).env?.VITE_APP_VERSION;
+  return version ?? null;
 }
 
 /**
- * Перезагрузка ради обновления. Перед ней фиксируем, до какой версии
- * обновились: после перезагрузки покажем «Обновили до vX» и снимем ожидание.
+ * Перезагрузка ради обновления. Перед ней снимаем ожидание и ставим отметку
+ * «перезагружались ради обновления»: после перезагрузки покажем плашку с
+ * версией новой сборки (см. `takeAppliedVersion`).
  */
 export function applyUpdateNow() {
   writeStore(PENDING_KEY, null);
-  const version = (import.meta as { env?: { VITE_APP_VERSION?: string } }).env?.VITE_APP_VERSION;
-  if (version) writeStore(APPLIED_KEY, version);
   applyUpdate();
 }
 

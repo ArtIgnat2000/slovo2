@@ -235,7 +235,8 @@ export async function runUpdateCheckUiChecks(): Promise<void> {
     check('сторож обновлений: ожидание запомнено', updatePending(), String(localStorage.getItem('slovo2-update-pending')));
     stop();
 
-    // 11. Как только перезагружать безопасно — применяет и пишет версию для плашки.
+    // 11. Как только перезагружать безопасно — применяет и ставит отметку
+    //     «перезагружались ради обновления».
     localStorage.removeItem('slovo2-update-pending');
     localStorage.removeItem('slovo2-update-applied');
     stop = startUpdateWatch(() => true);
@@ -245,10 +246,22 @@ export async function runUpdateCheckUiChecks(): Promise<void> {
     check('сторож обновлений: применяет один раз и снимает ожидание', !updatePending());
     stop();
 
-    // 12. Плашка «Обновили до версии» показывается один раз.
+    // 12. Плашка «Обновили до версии» показывается один раз и называет версию
+    //     работающей сборки — а не ту, что записали перед перезагрузкой.
     const applied = takeAppliedVersion();
     check('после автообновления известна версия для плашки', applied === 'test', String(applied));
     check('плашка «Обновили» показывается один раз', takeAppliedVersion() === null);
+    // 12a. Регрессия 0.102.1: перед перезагрузкой писалась версия СТАРОЙ
+    //      сборки, и после установки 0.102.0 плашка говорила «до v0.101.0».
+    localStorage.setItem('slovo2-update-applied', '0.0.1');
+    const fromOldBuild = takeAppliedVersion();
+    check(
+      'плашка называет версию установленной сборки, а не записанную старой',
+      fromOldBuild === 'test',
+      String(fromOldBuild),
+    );
+    localStorage.removeItem('slovo2-update-applied');
+    check('без отметки об обновлении плашки нет', takeAppliedVersion() === null);
     check(
       'ожидание обновления не висит вечно',
       FORCE_AFTER_MS === 24 * 60 * 60 * 1000,

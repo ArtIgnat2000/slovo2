@@ -164,6 +164,32 @@ function uniqueById<T extends { id: string }>(list: ReadonlyArray<T>): T[] {
 }
 
 /**
+ * Правила сетки по классу (0.104.0, §6-G плана «Игры»).
+ *
+ * До 0.104.0 всё было «одно на всех»: поле 8×8 в младших и 9×9 с 4 класса,
+ * диагонали — только с 5-го. Владелец просил обратное: **малым классам поле
+ * поменьше**, а старшим — всё, что они уже могут. Отсюда одна функция, а не
+ * числа, разбросанные по коду: правила класса должны меняться в одном месте.
+ *
+ * Почему 7×7 для 1 класса, а не 6×6 из §6-G: на 6×6 не помещаются три слова
+ * по 7–8 букв практически ни в каком расположении, и поле начало бы отдавать
+ * `null` (пустой экран) на нормальном пуле первого класса. 7×7 — предел, на
+ * котором три коротких слова встают без пересечений, а клетка остаётся
+ * крупной для пальца.
+ */
+export function fieldSizeFor(grade: number): number {
+  if (grade <= 1) return 7;
+  if (grade === 2) return 8;
+  if (grade === 3) return 8;
+  return 9;
+}
+
+/** Диагонали: с 4 класса. Раньше — только с 5-го, хотя в 4 классе слова уже длинные. */
+export function directionsFor(grade: number): WsCell[] {
+  return grade >= 4 ? DIRECTIONS_WITH_DIAGONALS : DIRECTIONS_STRAIGHT;
+}
+
+/**
  * Собираем доску из переданного пула (это уже «встреченные ребёнком» слова).
  * Возвращает null, если спрятать нечего — UI показывает честную заглушку.
  */
@@ -177,8 +203,8 @@ export function buildWordSearch(pool: ReadonlyArray<{
   const uniquePool = uniqueById(pool);
   const candidates = uniquePool.filter((w) => !w.text.includes(' ') && lettersOf(w.text).length >= 2);
 
-  // Базовый размер по классу; если коротких слов не хватает — растим поле.
-  let size = grade >= 4 ? 9 : 8;
+  // Размер и направления поля — по правилам класса (0.104.0, §6-G плана).
+  let size = fieldSizeFor(grade);
   while (size < 12 && candidates.filter((w) => lettersOf(w.text).length <= size).length < WS_MIN_WORDS) {
     size += 1;
   }
@@ -186,7 +212,7 @@ export function buildWordSearch(pool: ReadonlyArray<{
   if (placeable.length < WS_MIN_WORDS) return null;
 
   const rng = mulberry32(seed);
-  const directions = grade >= 5 ? DIRECTIONS_WITH_DIAGONALS : DIRECTIONS_STRAIGHT;
+  const directions = directionsFor(grade);
   const grid: Array<Array<string | null>> = Array.from({ length: size }, () => Array.from({ length: size }, () => null));
   const placed: WsPlacedWord[] = [];
   const placedIds = new Set<string>();

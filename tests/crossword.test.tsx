@@ -4,6 +4,7 @@ import {
   buildCrossword,
   evaluateFills,
   cellKey,
+  maxWordLengthFor,
   type CrosswordCell,
 } from '../src/engine/crossword';
 import { WORDS_BY_GRADE } from '../src/content/words';
@@ -176,7 +177,7 @@ export async function runCrosswordChecks(): Promise<void> {
 
   // Все классы дают играбельную доску
   for (const grade of [1, 2, 3, 4, 5] as const) {
-    const board = buildCrossword(poolOf(grade), { seed: 7 });
+    const board = buildCrossword(poolOf(grade), { seed: 7, grade });
     check(`кроссворд: ${grade} класс собирается`, !!board && board.slots.length >= 3, `${board?.rows}×${board?.cols}, слоты: ${board?.slots.length}`);
   }
 
@@ -189,6 +190,21 @@ export async function runCrosswordChecks(): Promise<void> {
     });
   }
   const win = evaluateFills(a, solution);
+  // ── Правила класса (0.104.0, §6-G) ──────────────────────────────────────
+  check('кроссворд: потолок длины — 9 в младших, 11 в 5 классе',
+    maxWordLengthFor(1) === 9 && maxWordLengthFor(4) === 9 && maxWordLengthFor(5) === 11,
+    [1, 2, 3, 4, 5].map(maxWordLengthFor).join('/'));
+  const longPool = WORDS_BY_GRADE[5].filter((w) => !w.text.includes(' ') && [...w.text].length > 9);
+  check('кроссворд: в 5 классе есть длинные слова для проверки', longPool.length >= 10, `слов: ${longPool.length}`);
+  const longBoard = buildCrossword(longPool, { seed: 3, grade: 5, maxWords: 6 });
+  const longIn = longBoard?.slots.filter((s) => [...s.text].length > 9).length ?? 0;
+  check('кроссворд: 5 класс — длинные слова попадают в решётку', longIn > 0,
+    `длинных слотов: ${longIn}, всего: ${longBoard?.slots.length}`);
+  const shortBoard = buildCrossword(longPool, { seed: 3, grade: 3, maxWords: 6, cursor: 0 });
+  check('кроссворд: без класса поведение прежнее (потолок 9)',
+    (shortBoard?.slots.every((s) => [...s.text].length <= 9) ?? true),
+    shortBoard?.slots.map((s) => s.text).join(',') ?? 'null');
+
   check('кроссворд: полное решение — победа', win.win && win.correct.length === a.slots.length, '');
   const empty = evaluateFills(a, {});
   check('кроссворд: пустое заполнение — не победа, ошибок 0', !empty.win && empty.wrong.length === 0, '');

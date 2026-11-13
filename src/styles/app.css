@@ -10497,6 +10497,26 @@ img.product-photo {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
+/* 0.103.0: в группе стало 5–6 игр. Держим 2×2 и уводим остальные вбок
+   прокруткой полки, а не растягиваем экран: каждые лишние 72 px карточек
+   съедают поле игры и упираются в нижнее меню (замечание 2026-11-11).
+   Скроллбар скрыт — полка узнаётся по обрезанной третьей карточке. */
+@media (max-width: 719px) {
+  .games-cards {
+    grid-auto-flow: column;
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    grid-template-columns: none;
+    grid-auto-columns: calc(50% - 4px);
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x proximity;
+    overscroll-behavior-x: contain;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+  .games-cards::-webkit-scrollbar { display: none; }
+  .games-cards > .games-card { scroll-snap-align: start; }
+}
 .games-card {
   display: flex;
   flex-direction: column;
@@ -11596,3 +11616,645 @@ img.product-photo {
 .memory-win { border-color: var(--green); }
 @media (min-width: 720px) { .memory-grid, .memory-text .memory-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 @media (prefers-reduced-motion: reduce) { .memory-inner { transition: none; } }
+
+/* ── 0.103.0: «Колесо букв» и «Хитрая буква» ────────────────────────────────
+   Только токены темы: никаких новых цветов и внешних шрифтов. Колесо — круг
+   из кнопок, позиция каждой считается от --ring-angle, поэтому одна и та же
+   разметка работает для слова из 3 и из 8 букв. */
+
+.ring-card,
+.tl-card,
+.flower-card,
+.syl-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-radius: 20px;
+  padding: 14px;
+  box-shadow: var(--shadow);
+}
+.ring-bar,
+.tl-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Собранная часть слова: непройденные буквы — точки, чтобы слово не читалось
+   заранее (иначе колесо превращается в «прочитай вслух»). */
+.ring-word {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  font-size: clamp(20px, 6vw, 28px);
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+.ring-word-on { color: var(--ink); }
+.ring-word-off { color: var(--ink-3, var(--ink-2)); opacity: 0.55; }
+
+.ring-clue,
+.tl-clue {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ring-clue-body { min-width: 0; }
+
+/* Сцена круга: квадрат, вписанный в ширину карточки. Размер кнопки — в
+   процентах от сцены, поэтому круг одинаково выглядит на 360 и на 1040 px. */
+.ring-stage {
+  display: grid;
+  place-items: center;
+  padding: 6px 0;
+}
+.ring {
+  position: relative;
+  width: min(280px, 78vw);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2px dashed color-mix(in srgb, var(--primary) 35%, var(--line));
+}
+.ring-dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background: var(--bg-2);
+  color: var(--ink);
+  font: inherit;
+  font-size: 19px;
+  font-weight: 800;
+  cursor: pointer;
+  /* Позиция на окружности: радиус 42% сцены, угол от «12 часов» по часовой. */
+  transform: rotate(var(--ring-angle, 0deg)) translateY(-42%) rotate(calc(-1 * var(--ring-angle, 0deg)));
+  transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+.ring-dot-passed {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--ink);
+}
+/* Следующая буква получает мягкий ореол — это не подсказка ответа, а место,
+   с которого продолжается движение (после отпускания пальца). */
+.ring-dot-next {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 28%, transparent);
+}
+.ring-dot-danger:not(.ring-dot-passed) {
+  border-style: dashed;
+}
+.ring-core {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 26px;
+  color: var(--ink-2);
+}
+.ring-status { text-align: center; margin: 0; }
+.ring-win,
+.tl-win {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px;
+  border: 1.5px solid var(--green);
+  border-radius: 16px;
+  background: var(--green-soft);
+  text-align: center;
+}
+.ring-win-title,
+.tl-win-title { margin: 0; font-weight: 800; }
+.ring-win-word { margin: 0; font-size: 20px; font-weight: 800; }
+.tl-win-emoji { font-size: 30px; }
+
+/* «Хитрая буква»: слово с прорезью. Слот — отдельная клетка, чтобы ? не
+   прыгал по строке и слово читалось по буквам. */
+.tl-word {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin: 0;
+}
+.tl-slot {
+  min-width: 28px;
+  padding: 2px 4px;
+  border-bottom: 2px solid var(--line);
+  font-size: clamp(20px, 6vw, 26px);
+  font-weight: 800;
+  text-align: center;
+}
+.tl-slot-hidden {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  background: var(--primary-soft);
+  border-radius: 6px 6px 0 0;
+}
+.tl-slot-on { border-bottom-color: var(--green); }
+
+.tl-options {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.tl-option {
+  min-height: 52px;
+  border-radius: 14px;
+  border: 2px solid var(--line);
+  background: var(--bg-2);
+  color: var(--ink);
+  font: inherit;
+  font-size: 22px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.tl-option:hover:not(:disabled) { border-color: var(--primary); }
+/* Неверный вариант гаснет, но остаётся на месте: исчезнувшая кнопка выглядит
+   как «буква потерялась», а ребёнок должен видеть свои попытки. */
+.tl-option-gone {
+  opacity: 0.45;
+  text-decoration: line-through;
+  cursor: default;
+}
+.tl-option-right {
+  border-color: var(--green);
+  background: var(--green-soft);
+}
+.tl-hints { min-height: 42px; display: grid; gap: 4px; }
+.tl-hints p { margin: 0; }
+.tl-ok {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1.5px solid var(--green);
+  background: var(--green-soft);
+}
+.tl-ok p { margin: 0; }
+.tl-note { margin: 0; }
+.ring-empty,
+.tl-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  padding: 20px 12px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ring-dot { transition: none; }
+}
+
+/* ── 0.105.0: «Цветок слова» ────────────────────────────────────────────────
+   Лепестки — буквы слова, стебель — само слово. Закрытый лепесток нейтрален,
+   открытый — акцентный. Никаких «увядших навсегда» состояний: ошибка даёт
+   мягкую «вспышку» на текущем лепестке и подсказку, а не порчу цветка. */
+.flower-stage {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  padding: 6px 0;
+}
+.flower-petals {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+.flower-petal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50% 50% 46% 46%;
+  border: 2px solid var(--line);
+  background: var(--bg-2);
+  color: var(--ink-2);
+  font-size: 17px;
+  font-weight: 800;
+  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+.flower-petal-open {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--ink);
+  transform: translateY(-2px);
+}
+/* Текущий лепесток после промаха: мягкая подсветка, а не «жизнь отнята». */
+.flower-petal-touch {
+  border-color: var(--orange-soft);
+  background: var(--orange-soft);
+}
+.flower-stem {
+  display: flex;
+  gap: 4px;
+  margin: 0;
+  font-size: clamp(20px, 6vw, 26px);
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+.flower-open { color: var(--ink); }
+.flower-closed { color: var(--ink-3); }
+.flower-win {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  padding: 12px;
+  border: 1.5px solid var(--green);
+  border-radius: 16px;
+  background: var(--green-soft);
+  text-align: center;
+}
+.flower-win p { margin: 0; }
+.flower-win-title { font-weight: 800; }
+.flower-win-word { font-size: 20px; font-weight: 800; }
+.flower-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  padding: 20px 12px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .flower-petal { transition: none; }
+}
+
+/* ── 0.106.0: «Слоговая мозаика» ────────────────────────────────────────────
+   Плитка — СЛОГ, а не буква: она шире, поэтому сетка своя, а не буквенная.
+   Слоты в правильном порядке, плитки перемешаны; неверный порядок мягко
+   краснеет и возвращает плитки — ничего не сгорает. */
+.syl-slots {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.syl-slot {
+  min-width: 56px;
+  min-height: 46px;
+  padding: 4px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  border: 2px dashed var(--line);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 20px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.syl-slot-on {
+  border-style: solid;
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.syl-slot-bad {
+  border-color: color-mix(in srgb, var(--orange-soft) 40%, #c2410c);
+  background: var(--orange-soft);
+}
+.syl-tray {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.syl-tile {
+  min-width: 56px;
+  min-height: 48px;
+  padding: 4px 12px;
+  border-radius: 14px;
+  border: 2px solid var(--line);
+  background: var(--bg-2);
+  color: var(--ink);
+  font: inherit;
+  font-size: 20px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.syl-tile:hover:not(:disabled) { border-color: var(--primary); }
+/* Поставленная плитка не исчезает совсем: ребёнок видит, что уже использовал. */
+.syl-tile-used { opacity: 0.35; cursor: default; }
+.syl-win {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  padding: 12px;
+  border: 1.5px solid var(--green);
+  border-radius: 16px;
+  background: var(--green-soft);
+  text-align: center;
+}
+.syl-win p { margin: 0; }
+.syl-win-title { font-weight: 800; }
+.syl-win-word { font-size: 20px; font-weight: 800; }
+.syl-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  padding: 20px 12px;
+}
+
+/* ── 0.107.0: дев-панель игр (только локально) ──────────────────────────────
+   Кнопка живёт в «Родителям → Приложение» и только при `vite dev` или
+   `?dev=1`: ребёнок в проде её не увидит вовсе. */
+.games-dev {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1.5px dashed var(--line);
+  background: var(--bg-2);
+}
+.games-dev-note {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--ink-2);
+}
+
+/* ── 0.108.0: сцена «Цветка слова» ──────────────────────────────────────────
+   Владелец: «нет никакого визуала, скучно». Поэтому визуал = обратная связь:
+   цветок растёт с каждой буквой, лепестки распускаются по одному, ошибка даёт
+   пыльцу (а не красную плашку), победа — цветение со светлячками.
+
+   Только токены темы и color-mix: ни картинок, ни внешних шрифтов — офлайн.
+   Все анимации ≤ 1.2 с и без бесконечных циклов (кроме лёгкого покачивания
+   листиков — оно 4 с и отключается при prefers-reduced-motion). */
+
+.flower-scene {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 10px 8px 12px;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1.5px solid var(--line);
+  background:
+    radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--primary) 14%, transparent) 0%, transparent 70%),
+    linear-gradient(180deg, color-mix(in srgb, var(--primary) 8%, var(--card)) 0%, var(--card) 62%, var(--bg-2) 100%);
+  min-height: 196px;
+}
+
+/* Небо: солнце и два облака. Медленные, неброские — фон, а не аттракцион. */
+.flower-sky {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.flower-sun {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--amber, #ff9f0a) 85%, white) 0%, transparent 70%);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--amber, #ff9f0a) 45%, transparent);
+  animation: flower-sun 1.2s ease-out both;
+}
+.flower-cloud {
+  position: absolute;
+  height: 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--card) 70%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--card) 45%, transparent);
+  opacity: 0.7;
+}
+.flower-cloud-a { top: 18px; left: 16px; width: 46px; }
+.flower-cloud-b { top: 34px; left: 46px; width: 30px; opacity: 0.5; }
+
+/* Растение: соцветие поднимается на высоту стебля, стебель растёт. */
+.flower-plant {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: end;
+  width: 100%;
+  padding-top: 6px;
+  z-index: 1;
+}
+.flower-bloom {
+  position: relative;
+  width: 132px;
+  height: 132px;
+  display: grid;
+  place-items: center;
+  margin-bottom: -10px;
+  transition: margin-bottom 320ms ease;
+}
+.flower-core {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  font-size: 20px;
+  color: var(--ink);
+  background: radial-gradient(circle at 40% 35%,
+    color-mix(in srgb, var(--amber, #ff9f0a) 55%, var(--card)) 0%,
+    color-mix(in srgb, var(--amber, #ff9f0a) 22%, var(--card)) 70%);
+  border: 2px solid color-mix(in srgb, var(--amber, #ff9f0a) 45%, var(--line));
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--amber, #ff9f0a) 25%, transparent);
+}
+/* Закрытый лепесток: маленький бутон у центра. */
+.flower-blossom {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 40px;
+  height: 44px;
+  margin: -22px 0 0 -20px;
+  display: grid;
+  place-items: center;
+  border-radius: 50% 50% 46% 46%;
+  background: color-mix(in srgb, var(--line) 55%, var(--card));
+  border: 1.5px solid var(--line);
+  transform: rotate(var(--petal-angle)) translateY(-24px) scale(0.55);
+  transition: transform 340ms cubic-bezier(0.2, 1.3, 0.4, 1), background 260ms ease, border-color 260ms ease;
+  font-size: 0;
+  color: transparent;
+}
+/* Открытый лепесток: выдвинут наружу, окрашен, буква читается. */
+.flower-blossom.is-open {
+  transform: rotate(var(--petal-angle)) translateY(-42px) scale(1);
+  background: radial-gradient(circle at 50% 30%,
+    color-mix(in srgb, var(--primary) 30%, var(--card)) 0%,
+    color-mix(in srgb, var(--primary) 12%, var(--card)) 100%);
+  border-color: color-mix(in srgb, var(--primary) 55%, var(--line));
+  box-shadow: 0 4px 10px color-mix(in srgb, var(--primary) 22%, transparent);
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.flower-blossom-inner { transform: rotate(calc(-1 * var(--petal-angle))); }
+/* Только что открывшийся лепесток «выстреливает» — единственный акцент шага. */
+.flower-blossom.is-fresh { animation: flower-petal-pop 0.6s cubic-bezier(0.2, 1.5, 0.35, 1) both; }
+@keyframes flower-petal-pop {
+  0% { transform: rotate(var(--petal-angle)) translateY(-24px) scale(0.55); }
+  60% { transform: rotate(var(--petal-angle)) translateY(-46px) scale(1.18); }
+  100% { transform: rotate(var(--petal-angle)) translateY(-42px) scale(1); }
+}
+@keyframes flower-sun {
+  from { opacity: 0; transform: scale(0.6); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Стебель: высота приходит из --stem, поэтому «рост» виден без JS-анимаций. */
+.flower-trunk {
+  position: relative;
+  width: 8px;
+  height: var(--stem, 64px);
+  border-radius: 6px;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--green, #22c55e) 75%, black 10%) 0%,
+    color-mix(in srgb, var(--green, #22c55e) 55%, var(--card)) 100%);
+  transition: height 420ms cubic-bezier(0.2, 1, 0.3, 1);
+  z-index: 0;
+}
+.flower-leaf {
+  position: absolute;
+  width: 28px;
+  height: 16px;
+  border-radius: 0 100% 0 100%;
+  background: color-mix(in srgb, var(--green, #22c55e) 45%, var(--card));
+  border: 1.5px solid color-mix(in srgb, var(--green, #22c55e) 35%, var(--line));
+  transform-origin: 0 50%;
+}
+.flower-leaf-l { left: -26px; top: 40%; animation: flower-sway 4s ease-in-out infinite; }
+.flower-leaf-r {
+  right: -26px;
+  top: 62%;
+  border-radius: 100% 0 100% 0;
+  transform-origin: 100% 50%;
+  animation: flower-sway 4s ease-in-out infinite reverse;
+}
+@keyframes flower-sway {
+  0%, 100% { rotate: -3deg; }
+  50% { rotate: 4deg; }
+}
+/* Земля: горка, из которой растёт цветок. */
+.flower-soil {
+  width: 96px;
+  height: 18px;
+  margin-top: -4px;
+  border-radius: 50% 50% 8px 8px / 70% 70% 8px 8px;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--ink-3) 35%, var(--card)) 0%,
+    color-mix(in srgb, var(--ink-3) 55%, var(--card)) 100%);
+}
+
+/* Пыльца при промахе: цветок не «портится», просто чихает. */
+.flower-pollen {
+  position: absolute;
+  top: 34%;
+  left: 50%;
+  font-size: 22px;
+  color: color-mix(in srgb, var(--orange-soft) 65%, #c2410c);
+  animation: flower-pollen 0.5s ease-out both;
+  pointer-events: none;
+}
+@keyframes flower-pollen {
+  0% { opacity: 0; transform: translate(-50%, 6px) scale(0.6); }
+  35% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -22px) scale(1.25); }
+}
+/* Промах качает всё растение: заметно, но не «сломалось». */
+.flower-scene.is-wrong .flower-plant { animation: flower-shake 0.42s ease; }
+@keyframes flower-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px) rotate(-1.2deg); }
+  70% { transform: translateX(4px) rotate(1.2deg); }
+}
+
+/* Победа: лепестки распускаются шире и круглее, летят светлячки. */
+.flower-scene.is-done {
+  background:
+    radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--primary) 22%, transparent) 0%, transparent 72%),
+    linear-gradient(180deg, color-mix(in srgb, var(--primary) 12%, var(--card)) 0%, var(--card) 60%, var(--bg-2) 100%);
+}
+.flower-scene.is-done .flower-blossom.is-open {
+  transform: rotate(var(--petal-angle)) translateY(-50px) scale(1.08);
+  border-color: var(--green);
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--green) 30%, transparent);
+}
+.flower-sparkles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.flower-spark {
+  position: absolute;
+  font-size: 14px;
+  color: color-mix(in srgb, var(--amber, #ff9f0a) 80%, white);
+  animation: flower-spark 1.1s ease-out both;
+}
+.flower-spark-0 { left: 18%; top: 26%; animation-delay: 0s; }
+.flower-spark-1 { left: 72%; top: 18%; animation-delay: 0.1s; }
+.flower-spark-2 { left: 34%; top: 10%; animation-delay: 0.2s; }
+.flower-spark-3 { left: 60%; top: 34%; animation-delay: 0.05s; }
+.flower-spark-4 { left: 8%; top: 46%; animation-delay: 0.15s; }
+.flower-spark-5 { left: 84%; top: 44%; animation-delay: 0.25s; }
+@keyframes flower-spark {
+  0% { opacity: 0; transform: scale(0.4) translateY(6px); }
+  40% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.1) translateY(-18px); }
+}
+
+/* Слово под цветком — доступная копия прогресса. */
+.flower-word {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 3px;
+  margin: 0;
+  font-size: clamp(18px, 5.4vw, 24px);
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+.flower-word-on { color: var(--ink); }
+.flower-word-off { color: var(--ink-3); opacity: 0.6; }
+
+@media (prefers-reduced-motion: reduce) {
+  .flower-sun,
+  .flower-blossom.is-fresh,
+  .flower-pollen,
+  .flower-scene.is-wrong .flower-plant,
+  .flower-spark,
+  .flower-leaf { animation: none; }
+  .flower-blossom,
+  .flower-trunk { transition: none; }
+}
+@media (max-width: 380px) {
+  .flower-bloom { width: 112px; height: 112px; }
+  .flower-blossom { width: 34px; height: 38px; margin: -19px 0 0 -17px; }
+  .flower-blossom.is-open {
+    transform: rotate(var(--petal-angle)) translateY(-36px) scale(1);
+    font-size: 17px;
+  }
+  .flower-scene.is-done .flower-blossom.is-open { transform: rotate(var(--petal-angle)) translateY(-42px) scale(1.05); }
+}
