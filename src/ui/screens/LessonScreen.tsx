@@ -13,7 +13,7 @@ import {
   availableClass,
 } from '../../content/words';
 import { classComplete, classProgress, nextClass } from '../../engine/classes';
-import { buildLesson, DEFAULT_LESSON_SIZE, lessonCardLimit, lookupWith, makeTask, pickDanger, repairTask, shuffle, type WordLookup } from '../../engine/scheduler';
+import { buildLesson, DEFAULT_LESSON_SIZE, lessonCardLimit, lookupWith, makeTask, orderLessonTasks, pickDanger, repairTask, shuffle, type WordLookup } from '../../engine/scheduler';
 import { drillLimit, hardWords, listModeOf, listWords, MAX_LIST_WORDS } from '../../engine/word-lists';
 import { pickReview, pickReviewWords } from '../../engine/srs';
 import { dayKey, dayPlan, masteredCount, todayStat, useActiveProfile, useApp } from '../../state/store';
@@ -1214,11 +1214,9 @@ function buildQueue(profile: Profile | null, lessonId: string): Task[] {
   const exclude = new Set([...lesson.wordIds, ...(current?.wordIds ?? [])]);
   const review = pickReview(WORDS, states, exclude, 3);
   const tasks = buildLesson({ lesson, level, states, reviewWords: review, maxCards });
-  // Знакомство держим в начале — это первое, что видит ребёнок; повторение — в конце
-  const intro = tasks.filter((t) => t.kind === 'intro');
-  const rest = shuffle(tasks.filter((t) => t.kind !== 'intro' && t.reason !== 'review'));
-  const rev = tasks.filter((t) => t.reason === 'review');
-  return [...intro, ...rest, ...rev];
+  // После каждой новой карточки сразу закрепляем то же слово; оставшиеся
+  // задания перемешаны, повторение прежних уроков остаётся в конце.
+  return orderLessonTasks(tasks);
 }
 
 /**

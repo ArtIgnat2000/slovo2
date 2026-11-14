@@ -48,6 +48,24 @@ export function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
+/** В обычном уроке первое закрепление идёт сразу за знакомством с тем же словом. */
+export function orderLessonTasks(tasks: Task[]): Task[] {
+  const introductions = tasks.filter((task) => task.kind === 'intro');
+  const practice = tasks.filter((task) => task.kind !== 'intro' && task.reason !== 'review');
+  const paired = new Set<Task>();
+  const opening = introductions.flatMap((intro) => {
+    const first = practice.find((task) => task.wordId === intro.wordId && !paired.has(task));
+    if (!first) return [intro];
+    paired.add(first);
+    return [intro, first];
+  });
+  return [
+    ...opening,
+    ...shuffle(practice.filter((task) => !paired.has(task))),
+    ...tasks.filter((task) => task.kind !== 'intro' && task.reason === 'review'),
+  ];
+}
+
 /**
  * Похожие по звучанию буквы: именно их дети и путают.
  * Из этой таблицы собираем и варианты ответа, и «ошибку робота».
