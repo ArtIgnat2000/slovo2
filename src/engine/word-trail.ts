@@ -1,5 +1,5 @@
 /**
- * «Тропа слов» — новая игра про слово как дорогу (0.110.0).
+ * «Тропа слов» — игра про слово как дорогу (0.112.0).
  *
  * Идея из исследования `docs/proposals/new-game-concepts.md`: между уроком и
  * наградой нет места, где слово становится миром. Здесь ребёнок **чинит**
@@ -12,6 +12,10 @@
  *
  * Рамка «Игры» остаётся прежней: SRS не меняется, таймеров и жизней нет,
  * награда — `playGame` без кристаллов (см. `trailAward` в UI).
+ *
+ * 0.112.0: все классы (1–5) идут по всей программе, 5 класс — текстовым
+ * режимом; каждый четвёртый отрезок (4-я, 8-я, 12-я, 16-я остановка) на третьем
+ * слове открывает буквенный лабиринт; после остановки — две строки истории.
  */
 import type { ClassId, TrailProgress, Word } from '../types';
 import { LESSON_BY_ID, LESSONS_BY_GRADE, WORD_BY_ID } from '../content/words';
@@ -19,19 +23,19 @@ import { syllableBoard, syllableFits, type SyllableBoard, type SyllableTile } fr
 import { trickyOptions } from './tricky-letter';
 
 /**
- * Сколько остановок показываем в превью для 1/3/4 классов.
+ * Длина короткого маршрута для тестов и превью.
  *
- * 2 класс с 0.111.0 идёт по всей программе — 16 остановок; остальные классы
- * остаются двухостановочным превью до отдельной проверки. Это не «нельзя»:
- * игра просто ещё не проверена на этих классах.
+ * С 0.112.0 игра идёт по всей программе (`trailStopsFor`), а эта константа
+ * осталась только у `trailStops()` по умолчанию: два урока «Школа → Птицы»
+ * удобно проверять без прохода всех 16 остановок 2 класса.
  */
 export const TRAIL_STOPS_MVP = 2;
 /**
- * Курируемые две остановки для превью и проверок.
+ * Курируемые две остановки для короткого маршрута.
  *
- * В игре 2 класса с 0.111.0 идут все 16 остановок, а этот список остаётся для
- * `trailStops(2)` без явного `limit` — так тесты и будущие превью получают
- * короткий маршрут «Школа → Птицы». В контенте порядок уроков не трогаем: он
+ * В игре с 0.112.0 идут все уроки класса, а этот список остаётся для
+ * `trailStops(2)` без явного `limit` — так тесты и превью получают короткий
+ * маршрут «Школа → Птицы». В контенте порядок уроков не трогаем: он
  * определяет программу, а не витрину тропы.
  */
 export const TRAIL_LESSON_IDS: Partial<Record<ClassId, readonly string[]>> = {
@@ -65,7 +69,7 @@ export type TrailMode = 'letters' | 'syllables';
  * Шаг считается по индексу слова в остановке, а не по его данным: так цикл
  * всегда одинаковый и ребёнок учит одно действие за раз.
  */
-export type TrailAction = 'letters' | 'walk' | 'find' | 'syllables';
+export type TrailAction = 'letters' | 'walk' | 'find' | 'maze' | 'syllables';
 
 /** Остановка — урок класса, из которого собрана дорога. */
 export interface TrailStop {
@@ -169,14 +173,18 @@ export function trailModeFor(word: Word, index = 0): TrailMode {
  * чиним букву. Ошибка выбора не ломает дорогу: `buildTrail` всё равно
  * построит путь из букв.
  */
-export function trailActionFor(word: Word, index = 0): TrailAction {
+export function trailActionFor(word: Word, index = 0, stopIndex = 0): TrailAction {
   const step = ((Math.floor(index) % 4) + 4) % 4;
   const hasLetters = (word.danger?.length ?? 0) > 0;
   const hasSyllables = syllableFits(word);
+  const hasVisual = !!word.image || !!word.emoji;
   if (step === 0) return hasLetters ? 'letters' : hasSyllables ? 'syllables' : 'walk';
   if (step === 1) return 'walk';
   if (step === 2) {
-    if (word.image) return 'find';
+    // Каждый четвёртый отрезок вместо «найти» даёт редкий лабиринт: новизна
+    // без новой игры и без отдельного счётчика в профиле.
+    if (stopIndex >= 0 && stopIndex % 4 === 3) return 'maze';
+    if (hasVisual) return 'find';
     return hasSyllables ? 'syllables' : 'walk';
   }
   return hasSyllables ? 'syllables' : hasLetters ? 'letters' : 'walk';
@@ -222,23 +230,24 @@ export function trailStops(
 /**
  * Открыта ли тропа для класса.
  *
- * 5 класс — текстовый режим без картинок, его ещё нет; показывать там
- * картинки-заглушки значит обещать то, чего игра не умеет. 1–4 классы
- * работают: у слов есть изображения.
+ * С 0.112.0 открыты все пять классов. 5 класс идёт текстовым режимом: там
+ * картинок почти нет, поэтому «найти» показывает четыре слова с эмодзи и
+ * подсказкой, а не четыре фотографии.
  */
 export function trailAvailable(grade: ClassId): boolean {
-  return grade >= 1 && grade <= 4;
+  return grade >= 1 && grade <= 5;
 }
 
 /**
- * Остановки для класса в объёме 0.111.0.
+ * Остановки класса в объёме полной программы.
  *
- * 2 класс — все 16 уроков программы. 1, 3 и 4 — две остановки-превью: игра
- * там ещё не проверялась. 5 класс — пусто до текстового режима.
+ * Каждый урок с двумя и более играбельными словами становится остановкой.
+ * Ограничение `TRAIL_STOPS_MVP` с 0.112.0 не применяется: 1 класс — 5
+ * остановок, 2 — 16, 3 — 13, 4 — 15, 5 — все уроки с подходящими словами.
  */
 export function trailStopsFor(grade: ClassId): TrailStop[] {
   if (!trailAvailable(grade)) return [];
-  return trailStops(grade, { limit: grade === 2 ? 0 : TRAIL_STOPS_MVP });
+  return trailStops(grade, { limit: 0 });
 }
 
 /**
@@ -259,7 +268,9 @@ function orderStopWords(fits: Word[], perStop: number): Word[] {
   };
   const letters = take((word) => (word.danger?.length ?? 0) > 0) ?? take(() => true);
   const syllables = take((word) => syllableFits(word));
-  const find = take((word) => !!word.image);
+  // «Найти» сначала получает слово с настоящей картинкой; если её нет —
+  // слово с эмодзи: для 5 класса и абстрактных слов это текстовый режим.
+  const find = take((word) => !!word.image) ?? take((word) => !!word.emoji);
   const walk = take(() => true);
   const rest = fits.filter((word) => !taken.has(word.id));
   return [letters, walk, find, syllables, ...rest]
@@ -302,9 +313,10 @@ export function buildTrail(
  * Четыре картинки для задания «найти»: верное слово и три соседа.
  *
  * Сначала берём слова той же темы — так выбор не подсказывается «чужим»
- * экраном. Если темы не хватает, добираем словами класса. Все варианты — с
- * картинкой (для 1–4 класса она есть), без фраз и дефисов. `pick` — источник
- * случайности: в тестах он детерминированный.
+ * экраном. Если темы не хватает, добираем словами класса. Картинка
+ * предпочтительна, но эмодзи тоже годится: 5 класс и абстрактные слова идут
+ * текстовым режимом, а не пустой рамкой. `pick` — источник случайности:
+ * в тестах он детерминированный.
  */
 export function trailFindOptions(
   word: Word,
@@ -315,13 +327,30 @@ export function trailFindOptions(
   const candidates = pool.filter((item) => {
     if (seen.has(item.id) || seen.has(item.text)) return false;
     if (/[\s-]/.test(item.text)) return false;
-    if (!item.image) return false;
+    if (!item.image && !item.emoji) return false;
     return true;
   });
   const sameTheme = shuffle(candidates.filter((item) => item.theme === word.theme), pick);
   const otherTheme = shuffle(candidates.filter((item) => item.theme !== word.theme), pick);
   const distractors = [...sameTheme, ...otherTheme].slice(0, 3);
   return shuffle([word, ...distractors], pick);
+}
+
+/**
+ * Четыре ветки лабиринта для текущей плиты.
+ *
+ * Лабиринт — это путь по буквам: на каждой развилке верная буква открывает
+ * следующую плиту, неверная показывает подсказку и не отнимает прогресс.
+ * `position` — сколько букв уже пройдено; верная буква всегда среди вариантов.
+ */
+export function trailMazeOptions(
+  task: TrailTask,
+  position: number,
+  pick: () => number = Math.random,
+): string[] {
+  const answer = task.segments[position];
+  if (!answer) return [];
+  return trickyOptions(answer, task.segments, pick);
 }
 
 /** Фишер–Йетс на переданном источнике случайности. */
@@ -466,4 +495,41 @@ export function trailSummary(stops: readonly TrailStop[], progress: TrailProgres
     allDone: totalStops > 0 && doneStops === totalStops,
     currentTitle: current?.title ?? '',
   };
+}
+
+/**
+ * Две строки истории после остановки (0.112.0).
+ *
+ * Это не отдельный экран и не диалог: короткая сцена, которая связывает
+ * открытку с местом. Для 2 класса тексты написаны под его 16 остановок;
+ * для остальных классов — спокойная формула, которую можно заменить
+ * авторскими строками без изменения UI.
+ */
+const TRAIL_STORIES: Record<string, readonly [string, string]> = {
+  school: ['В школьном дворе пахнет мелом и яблоками.', 'На стене — новая открытка «Школа».'],
+  schoolpeople: ['Учительница помахала Буквёнку с крыльца.', 'Теперь он знает, как зовут всех в школе.'],
+  birds: ['Над тропой пролетела стая птиц.', 'Открытка «Птицы» легла в альбом.'],
+  animals: ['Из-за куста высунулся любопытный нос.', 'Буквёнок прошёл мимо зверей и не испугался.'],
+  food: ['На привале пахло тёплым хлебом.', 'Открытка «Еда» — самая вкусная в коллекции.'],
+  garden: ['Яблоки в саду созрели и пахнут мёдом.', 'Буквёнок выбрал самое большое и пошёл дальше.'],
+  city: ['Город зажёг окна и загудел машинами.', 'На площади появилась открытка «Город».'],
+  country: ['За холмом открылась широкая страна.', 'Флаг на открытке «Наша страна» ярко горит.'],
+  home: ['Дома тепло пахнет чаем и деревом.', 'Буквёнок повесил открытку над камином.'],
+  work: ['В мастерской стучат молотки.', 'Открытка «Труд» пахнет стружкой.'],
+  winter: ['Снег скрипит под сапогами.', 'Открытка «Зима» холодная, но красивая.'],
+  nature: ['Лес шумит и дышит.', 'Буквёнок оставил открытку «Природа» на пне.'],
+  calendar: ['В календаре загорелся новый день.', 'До конца тропы осталось совсем немного.'],
+  polite: ['Буквёнок сказал «спасибо» и улыбнулся.', 'Открытка «Вежливые слова» — самая добрая.'],
+  people: ['На площади собрались люди.', 'Каждый помахал Буквёнку на прощание.'],
+  adverbs: ['Дорога побежала быстро-быстро.', 'Последняя открытка «Как и когда» на месте.'],
+};
+
+/** Две строки для открытки: авторские для 2 класса, тёплая формула для остальных. */
+export function trailStory(stop: TrailStop, next?: TrailStop | null): [string, string] {
+  const custom = TRAIL_STORIES[stop.id];
+  if (custom) return [...custom];
+  const second = next
+    ? `Впереди — «${next.title}»: дорога зовёт дальше.`
+    : 'Тропа пройдена — все открытки собраны.';
+  return [`Буквёнок прошёл остановку «${stop.title}» и сохранил открытку.`, second];
 }
