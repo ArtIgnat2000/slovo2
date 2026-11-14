@@ -1,10 +1,10 @@
 /**
- * «Тропа слов» (0.111.0) через настоящий UI.
+ * «Тропа слов» (0.112.0) через настоящий UI.
  *
  * Проверяем дорогу глазами ребёнка: баннер над витриной, продолжение с
  * сохранённого слова, цикл «пройти → найти → слоги», починку буквы,
- * открытку остановки, альбом-карту 16 остановок, возврат к витрине без
- * потери прогресса и честное отсутствие тропы у 5 класса.
+ * лабиринт, открытку с двумя строками истории, альбом-карту 16 остановок,
+ * возврат к витрине без потери прогресса и текстовый режим 5 класса.
  */
 import { useApp } from '../src/state/store';
 import { trailStopsFor } from '../src/engine/word-trail';
@@ -76,6 +76,19 @@ async function playFind(): Promise<boolean> {
   click(right);
   await sleep(50);
   return walkAll();
+}
+
+/** Пройти лабиринт: каждая верная буква открывает следующую плиту. */
+async function playMaze(): Promise<boolean> {
+  for (let guard = 0; guard < 24 && $('[data-trail-maze]'); guard++) {
+    const answer = $('[data-trail-maze]')?.getAttribute('data-trail-maze-answer');
+    if (!answer) return false;
+    const branch = $$('.trail-maze-branch').find((b) => (b.textContent ?? '') === answer);
+    if (!branch) return false;
+    click(branch);
+    await sleep(60);
+  }
+  return !!$('.trail-done');
 }
 
 /** Выложить мост из слогов по порядку из `data-trail-slots`. */
@@ -343,17 +356,101 @@ export async function runWordTrailUiChecks(): Promise<void> {
   check(
     'тропа: прогресс 2 класса не виден в 3-м',
     !!thirdBanner &&
-      (thirdBanner.textContent ?? '').includes('0 из 2') &&
+      (thirdBanner.textContent ?? '').includes('0 из 13') &&
       !(thirdBanner.textContent ?? '').includes('Школа'),
     thirdBanner?.textContent ?? 'баннера нет',
   );
 
-  useApp.getState().setActiveClass(5);
+  // Лабиринт: каждый четвёртый отрезок вместо «найти». Ставим тропу на 4-ю
+  // остановку и продолжаем с третьего слова — там уже лабиринт.
+  useApp.getState().setActiveClass(2);
+  await sleep(90);
+  const animals = stops[3];
+  useApp.getState().setTrail({
+    v: 2,
+    grade: 2,
+    stop: 3,
+    // Четвёртое слово остановки уже пройдено: после лабиринта остановка
+    // закрывается сразу, и открытка показывает историю без лишнего шага.
+    words: [
+      ...stops.slice(0, 3).flatMap((s) => s.wordIds),
+      animals.wordIds[0],
+      animals.wordIds[1],
+      animals.wordIds[3],
+    ],
+    cards: stops.slice(0, 3).map((s) => s.id),
+  });
+  await sleep(80);
+  const mazeBanner = $('[data-trail-banner]') as HTMLButtonElement | null;
+  if (mazeBanner) click(mazeBanner);
   await sleep(90);
   check(
-    'тропа: 5 классу баннер не показывается',
-    !$('[data-trail-banner]'),
-    document.querySelector('.games-screen')?.textContent?.slice(0, 120) ?? 'нет экрана',
+    'тропа: 4-я остановка открывает лабиринт',
+    !!$('[data-trail-maze]') && $$('.trail-maze-branch').length === 4,
+    $('.trail-maze')?.textContent ?? 'лабиринта нет',
+  );
+  check(
+    'тропа: в лабиринте виден пройденный путь',
+    $$('.trail-maze-route span').length === (WORD_BY_ID[animals.wordIds[2]].text.length),
+    `букв: ${$$('.trail-maze-route span').length}`,
+  );
+  const mazeWrong = $$('.trail-maze-branch').find(
+    (b) => (b.textContent ?? '') !== $('[data-trail-maze]')?.getAttribute('data-trail-maze-answer'),
+  );
+  if (mazeWrong) click(mazeWrong);
+  await sleep(60);
+  check(
+    'тропа: тупик лабиринта не отнимает прогресс',
+    !!$('[data-trail-maze]') && !!$('.trail-maze')?.textContent?.includes('тупик'),
+    $('.trail-maze')?.textContent ?? 'нет',
+  );
+  const mazeDone = await playMaze();
+  check('тропа: лабиринт пройден до конца слова', mazeDone, '');
+  await sleep(100);
+  check(
+    'тропа: на открытке две строки истории',
+    !!$('.trail-story') && $$('.trail-story-line').length === 2,
+    $('.trail-story')?.textContent ?? 'истории нет',
+  );
+
+  // 5 класс: тропа открыта текстовым режимом — четыре слова с эмодзи.
+  const backAfterMaze = buttons().find(
+    (b) => b.getAttribute('aria-label') === 'Вернуться к играм',
+  );
+  if (backAfterMaze) click(backAfterMaze);
+  await sleep(80);
+  useApp.getState().setActiveClass(5);
+  await sleep(90);
+  const fifthBanner = $('[data-trail-banner]') as HTMLButtonElement | null;
+  check(
+    'тропа: 5 классу баннер показывается',
+    !!fifthBanner && (fifthBanner.textContent ?? '').includes('0 из 22'),
+    fifthBanner?.textContent ?? 'баннера нет',
+  );
+
+  const fifthStops = trailStopsFor(5);
+  const sport = fifthStops[5];
+  useApp.getState().setTrail({
+    v: 2,
+    grade: 5,
+    stop: 5,
+    words: [...fifthStops.slice(0, 5).flatMap((s) => s.wordIds), ...sport.wordIds.slice(0, 2)],
+    cards: fifthStops.slice(0, 5).map((s) => s.id),
+  });
+  await sleep(80);
+  const textBanner = $('[data-trail-banner]') as HTMLButtonElement | null;
+  if (textBanner) click(textBanner);
+  await sleep(90);
+  check(
+    'тропа: 5 класс продолжает текстовым «найти»',
+    $('.trail-screen')?.getAttribute('data-trail-word') === WORD_BY_ID[sport.wordIds[2]].text &&
+      !!$('.trail-find-grid.text-mode'),
+    $('.trail-find')?.textContent ?? 'нет задания',
+  );
+  check(
+    'тропа: в текстовом режиме четыре слова и эмодзи',
+    $$('.trail-find-word').length === 4 && $$('.trail-find-emoji').length === 4,
+    `слов: ${$$('.trail-find-word').length}, эмодзи: ${$$('.trail-find-emoji').length}`,
   );
 
 }

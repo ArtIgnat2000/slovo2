@@ -1,5 +1,5 @@
 /**
- * «Тропа слов» — экран игры (0.111.0).
+ * «Тропа слов» — экран игры (0.112.0).
  *
  * Один экран, одна остановка: слово чинится (опасная буква или порядок слогов),
  * находится по картинке или просто проходится — и по нему идёт Буквёнок.
@@ -20,7 +20,9 @@ import {
   normalizeTrail,
   trailActionFor,
   trailFindOptions,
+  trailMazeOptions,
   trailResume,
+  trailStory,
   trailStopsFor,
   trailSyllableBoard,
   trailStep,
@@ -42,7 +44,7 @@ import { sfx } from '../platform/sound';
 import { haptic } from '../platform/haptics';
 import { prefersReducedMotion } from './motion';
 
-type TrailPhase = 'repair' | 'walk' | 'find' | 'syllables' | 'word-done' | 'stop-done' | 'all-done';
+type TrailPhase = 'repair' | 'walk' | 'find' | 'maze' | 'syllables' | 'word-done' | 'stop-done' | 'all-done';
 
 /** Фишер–Йетс: порядок слогов не должен подсказывать ответ. */
 function shuffleTiles(list: SyllableTile[]): SyllableTile[] {
@@ -82,6 +84,7 @@ export function WordTrailGame({
   const [rejected, setRejected] = useState<string[]>([]);
   const [findWords, setFindWords] = useState<Word[]>([]);
   const [findRejected, setFindRejected] = useState<string[]>([]);
+  const [mazeWrong, setMazeWrong] = useState(0);
   const [picked, setPicked] = useState<SyllableTile[]>([]);
   const [walked, setWalked] = useState(0);
   const [message, setMessage] = useState('');
@@ -95,8 +98,16 @@ export function WordTrailGame({
     () => (task && task.mode === 'syllables' ? trailSyllableBoard(task, shuffleTiles) : null),
     [task],
   );
+  const mazeOptions = useMemo(
+    () => (phase === 'maze' && task ? trailMazeOptions(task, walked) : []),
+    [phase, task, walked],
+  );
   const hint = task ? trickyHint(task.word, wrong) : 'none';
   const usedIds = new Set(picked.map((tile) => tile.id));
+  // Текстовый режим: если у всех вариантов нет картинок, показываем слова с
+  // эмодзи. Для 5 класса это основной режим, для 1–4 — страховка для
+  // абстрактных слов.
+  const findHasImages = findWords.length > 0 && findWords.every((item) => !!item.image);
 
   /**
    * Новое слово — новое задание. Эффект зависит от индекса остановки, а не от
@@ -119,7 +130,7 @@ export function WordTrailGame({
     }
     const stop = stops[resume.stopIndex];
     const at = stop?.wordIds.indexOf(wordId) ?? 0;
-    const action = trailActionFor(word, at);
+    const action = trailActionFor(word, at, resume.stopIndex);
     const pool = WORDS_BY_GRADE[grade as ClassId] ?? [];
     const options = action === 'find' ? trailFindOptions(word, pool) : [];
     const mode = action === 'syllables' ? 'syllables' : 'letters';
@@ -132,9 +143,16 @@ export function WordTrailGame({
     setTask(buildTrail(word, mode, dangerIndex));
     setFindWords(options);
     const nextPhase: TrailPhase =
-      action === 'letters' ? 'repair' : action === 'find' ? (options.length >= 4 ? 'find' : 'walk') : action;
+      action === 'letters'
+        ? 'repair'
+        : action === 'find'
+          ? options.length >= 4
+            ? 'find'
+            : 'walk'
+          : action;
     setPhase(nextPhase);
     setWrong(0);
+    setMazeWrong(0);
     setRejected([]);
     setFindRejected([]);
     setPicked([]);
@@ -200,11 +218,8 @@ export function WordTrailGame({
 
   if (!profile) return null;
   if (!stops.length) {
-    // 5 класс закрыт до текстового режима: там картинки только у двух слов из
-    // пятнадцати, и «найти» превращалось бы в угадайку по эмодзи. Баннер в
-    // «Играх» для 5 класса не показывается; этот экран — страховка на случай
-    // смены класса при открытой тропе.
-    const gated = grade >= 5;
+    // Страховка для класса без играбельных слов: баннер в «Играх» в этом
+    // случае не показывается, а прямой вход объясняет, что делать.
     return (
       <div className="screen games-screen trail-screen">
         <header className="trail-head">
@@ -215,12 +230,8 @@ export function WordTrailGame({
         </header>
         <div className="trail-empty">
           <div className="games-empty-emoji" aria-hidden="true">🗺️</div>
-          <p className="games-empty-title">{gated ? 'Тропа для 5 класса ещё в работе' : 'Пока некуда идти'}</p>
-          <p className="tiny muted">
-            {gated
-              ? 'Сейчас тропа открыта для 1–4 классов: слова с картинками и короткие дороги.'
-              : 'В этом классе ещё нет слов, из которых можно выложить дорогу.'}
-          </p>
+          <p className="games-empty-title">Пока некуда идти</p>
+          <p className="tiny muted">В этом классе ещё нет слов, из которых можно выложить дорогу.</p>
           {onGoLessons && (
             <button type="button" className="btn primary wide" onClick={onGoLessons}>
               К урокам →
@@ -247,17 +258,24 @@ export function WordTrailGame({
   const stop = resume.stop ?? stops[0];
   const hiddenIndex =
     task && task.mode === 'letters' && phase === 'repair' && hint !== 'revealed' ? task.dangerIndex : -1;
-  /** На сцене всегда всё слово: в слоговом режиме открыты только выложенные слоги. */
+  /** На сцене всегда всё слово, кроме лабиринта: там открыты только пройденные буквы. */
   const sceneTotal = task?.segments.length ?? 0;
-  const sceneSegments = phase === 'syllables' ? picked.map((tile) => tile.text) : (task?.segments ?? []);
-  // В слоговом режиме герой стоит на последней выложенной плите (или ждёт на
-  // первой пустой), а не исчезает за полсекунды до открытки.
+  const sceneSegments =
+    phase === 'syllables'
+      ? picked.map((tile) => tile.text)
+      : phase === 'maze'
+        ? (task?.segments.slice(0, walked) ?? [])
+        : (task?.segments ?? []);
+  // В слоговом режиме герой стоит на последней выложенной плите; в лабиринте —
+  // на последней открытой букве. `-1` — герой ещё ждёт у входа.
   const passed =
     phase === 'walk'
       ? walked
-      : phase === 'syllables'
-        ? Math.min(picked.length, Math.max(0, sceneTotal - 1))
-        : -1;
+      : phase === 'maze'
+        ? walked - 1
+        : phase === 'syllables'
+          ? Math.min(picked.length, Math.max(0, sceneTotal - 1))
+          : -1;
   const sceneNote =
     phase === 'repair'
       ? hint === 'revealed'
@@ -266,15 +284,20 @@ export function WordTrailGame({
       : phase === 'walk'
         ? 'Тапни следующую плиту — Буквёнок шагнёт по слову.'
         : phase === 'find'
-          ? 'Найди картинку к слову — и дорога откроется.'
-          : phase === 'syllables'
-            ? 'Выложи мост из слогов: каждый слог — плита дороги.'
-            : phase === 'word-done'
-              ? 'Слово пройдено. Дальше — следующее.'
-              : phase === 'all-done'
-                ? 'Тропа пройдена — все открытки собраны.'
-                : 'Остановка позади — открытка сохранена.';
+          ? findHasImages
+            ? 'Найди картинку к слову — и дорога откроется.'
+            : 'Найди слово по подсказке — и дорога откроется.'
+          : phase === 'maze'
+            ? 'Лабиринт: каждая верная буква открывает следующую плиту.'
+            : phase === 'syllables'
+              ? 'Выложи мост из слогов: каждый слог — плита дороги.'
+              : phase === 'word-done'
+                ? 'Слово пройдено. Дальше — следующее.'
+                : phase === 'all-done'
+                  ? 'Тропа пройдена — все открытки собраны.'
+                  : 'Остановка позади — открытка сохранена.';
   const stopNumber = Math.min(resume.stopIndex + 1, summary.totalStops);
+  const story = trailStory(stop, stops[resume.stopIndex + 1] ?? null);
 
   return (
     <div className="screen games-screen trail-screen" data-trail-word={task?.word.text}>
@@ -313,7 +336,7 @@ export function WordTrailGame({
           interactive={phase === 'walk'}
           wide={phase === 'syllables'}
           heroState={
-            phase === 'walk'
+            phase === 'walk' || phase === 'maze'
               ? 'walk'
               : phase === 'word-done' || phase === 'stop-done' || phase === 'all-done'
                 ? 'cheer'
@@ -405,10 +428,14 @@ export function WordTrailGame({
         )}
 
         {phase === 'find' && task && findWords.length > 0 && (
-          <section className="trail-card trail-find" aria-label="Найди картинку к слову">
+          <section
+            className="trail-card trail-find"
+            aria-label={findHasImages ? 'Найди картинку к слову' : 'Найди слово по подсказке'}
+          >
             <div className="trail-find-head">
               <p className="trail-find-title">
-                Найди картинку к слову <b>«{task.word.text}»</b>
+                {findHasImages ? 'Найди картинку к слову ' : 'Найди слово '}
+                <b>«{task.word.text}»</b>
               </p>
               <p className="clue-hint">
                 💡 {wrong > 0 ? task.word.sentence.replace('____', '…') : task.word.hint}
@@ -416,9 +443,9 @@ export function WordTrailGame({
             </div>
 
             <div
-              className="trail-find-grid"
+              className={`trail-find-grid${findHasImages ? '' : ' text-mode'}`}
               role="group"
-              aria-label="Картинки"
+              aria-label={findHasImages ? 'Картинки' : 'Слова'}
               data-trail-find-target={task.word.id}
             >
               {findWords.map((item) => {
@@ -431,7 +458,7 @@ export function WordTrailGame({
                     type="button"
                     className={`trail-find-card${rejected ? ' rejected' : ''}${revealed ? ' revealed' : ''}`}
                     data-trail-find={item.id}
-                    aria-label={`Картинка: ${item.text}`}
+                    aria-label={findHasImages ? `Картинка: ${item.text}` : `Слово: ${item.text}`}
                     disabled={rejected}
                     onClick={() => {
                       if (!task || phase !== 'find') return;
@@ -445,21 +472,104 @@ export function WordTrailGame({
                       }
                       setWrong((n) => n + 1);
                       setFindRejected((list) => (list.includes(item.id) ? list : [...list, item.id]));
-                      setMessage('Это другая картинка. Попробуй ещё — ничего не потеряно.');
+                      setMessage(
+                        findHasImages
+                          ? 'Это другая картинка. Попробуй ещё — ничего не потеряно.'
+                          : 'Это другое слово. Попробуй ещё — ничего не потеряно.',
+                      );
                       sfx.wrong();
                       haptic.tap();
                     }}
                   >
-                    <WordArt word={item} size={72} />
+                    {findHasImages ? (
+                      <WordArt word={item} size={72} />
+                    ) : (
+                      <>
+                        <span className="trail-find-emoji" aria-hidden="true">
+                          {item.emoji || '📖'}
+                        </span>
+                        <span className="trail-find-word">{item.text}</span>
+                      </>
+                    )}
                   </button>
                 );
               })}
             </div>
 
             <p className="tiny" role="status">
-              {message || 'Выбери картинку: ошибка ничего не отнимает.'}
+              {message || (findHasImages ? 'Выбери картинку: ошибка ничего не отнимает.' : 'Выбери слово: ошибка ничего не отнимает.')}
             </p>
-            {wrong >= 2 && <p className="tiny muted">Верная картинка подсвечена.</p>}
+            {wrong >= 2 && (
+              <p className="tiny muted">{findHasImages ? 'Верная картинка подсвечена.' : 'Верное слово подсвечено.'}</p>
+            )}
+          </section>
+        )}
+
+        {phase === 'maze' && task && (
+          <section
+            className="trail-card trail-maze"
+            aria-label="Буквенный лабиринт"
+            data-trail-maze={task.word.id}
+            data-trail-maze-answer={task.segments[walked] ?? ''}
+          >
+            <div className="trail-find-head">
+              <p className="trail-find-title">
+                Лабиринт: веди Буквёнка по буквам слова <b>«{task.word.text}»</b>
+              </p>
+              <p className="clue-hint">
+                💡 {mazeWrong >= 2 ? `Следующая буква — «${task.segments[walked] ?? ''}»` : 'Каждая верная буква открывает плиту.'}
+              </p>
+            </div>
+
+            <p className="trail-maze-route" aria-hidden="true">
+              {task.segments.map((letter, index) => (
+                <span
+                  key={`${letter}-${index}`}
+                  className={index < walked ? 'done' : index === walked ? 'next' : ''}
+                >
+                  {index < walked ? letter : '·'}
+                </span>
+              ))}
+            </p>
+
+            <div className="trail-maze-branches" role="group" aria-label="Выбери следующую букву">
+              {mazeOptions.map((letter, index) => {
+                const correct = letter === task.segments[walked];
+                return (
+                  <button
+                    key={`${letter}-${index}`}
+                    type="button"
+                    className={`trail-maze-branch${mazeWrong >= 2 && correct ? ' revealed' : ''}`}
+                    onClick={() => {
+                      if (!task || phase !== 'maze') return;
+                      if (correct) {
+                        const next = walked + 1;
+                        setMazeWrong(0);
+                        setMessage('Буква на месте — плита открыта.');
+                        sfx.correct();
+                        haptic.correct();
+                        if (next >= task.segments.length) {
+                          finishWord();
+                          return;
+                        }
+                        setWalked(next);
+                        return;
+                      }
+                      setMazeWrong((n) => n + 1);
+                      setMessage('Это тупик. Попробуй другую букву — прогресс не сгорает.');
+                      sfx.wrong();
+                      haptic.tap();
+                    }}
+                  >
+                    {letter}
+                  </button>
+                );
+              })}
+            </div>
+
+            <p className="tiny" role="status">
+              {message || 'Выбери букву, которая продолжает слово.'}
+            </p>
           </section>
         )}
 
@@ -573,7 +683,11 @@ export function WordTrailGame({
             <p className="trail-done-title">
               {phase === 'all-done' ? 'Все остановки пройдены!' : `Остановка «${stop.title}» пройдена!`}
             </p>
-            <p className="tiny">
+            <div className="trail-story" aria-label="История остановки">
+              <p className="trail-story-line">{story[0]}</p>
+              <p className="trail-story-line">{story[1]}</p>
+            </div>
+            <p className="tiny muted">
               Открытка «{stop.title}» сохранена.
               {phase === 'all-done' && ' Буквёнок дошёл до конца тропы.'}
             </p>

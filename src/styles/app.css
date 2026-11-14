@@ -12817,6 +12817,7 @@ button.trail-seg:focus-visible { outline: 2px solid var(--primary); outline-offs
   /* Плита остаётся 44 px: это цель для пальца, мельче нельзя. */
   .trail-seg { font-size: 17px; }
   .trail-path-wide .trail-seg { width: auto; min-width: 50px; }
+  .trail-maze-branch { min-height: 48px; font-size: 21px; }
   .trail-back-text { display: none; }
 }
 
@@ -12874,6 +12875,103 @@ button.trail-seg:focus-visible { outline: 2px solid var(--primary); outline-offs
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 26%, transparent);
 }
 .trail-find-card .word-art-frame { pointer-events: none; }
+/* Текстовый режим «найти»: эмодзи + слово. Так играют 5 класс и абстрактные
+   слова 1–4 классов; высота карточки та же, что у картинки, — 96 px. */
+.trail-find-grid.text-mode .trail-find-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 6px;
+}
+.trail-find-emoji {
+  font-size: clamp(28px, 8vw, 40px);
+  line-height: 1;
+}
+.trail-find-word {
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+/* Лабиринт: редкая остановка каждые четыре отрезка. Ветки — те же цели
+   44 px, что и плиты дороги; пройденный путь виден над ветками. */
+.trail-maze-route {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 5px;
+  margin: 0;
+}
+.trail-maze-route span {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1.5px dashed var(--line);
+  border-radius: 8px;
+  background: var(--bg-2);
+  color: var(--ink-2);
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1;
+}
+.trail-maze-route span.done {
+  border-style: solid;
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--ink);
+}
+.trail-maze-route span.next {
+  border-style: solid;
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.trail-maze-branches {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.trail-maze-branch {
+  min-width: 0;
+  min-height: 52px;
+  padding: 0 4px;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 23px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.trail-maze-branch:hover { border-color: var(--primary); }
+.trail-maze-branch:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.trail-maze-branch:active { transform: translateY(1px); }
+.trail-maze-branch.revealed {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 26%, transparent);
+}
+
+/* Две строки истории на открытке: чтение, а не диалог. */
+.trail-story {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 9px 11px;
+  border-left: 3px solid var(--primary);
+  border-radius: 10px;
+  background: var(--bg-2);
+  text-align: left;
+}
+.trail-story-line {
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: 1.3;
+}
 
 /* Альбом открыток = карта 16 остановок. Своя прокрутка, чтобы шапка с
    «К тропе» оставалась на месте и возврат не терялся на длинном списке. */
