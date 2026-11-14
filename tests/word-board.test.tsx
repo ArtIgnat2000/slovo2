@@ -104,8 +104,34 @@ export async function runWordBoardChecks(): Promise<void> {
     !!banner && (banner.textContent ?? '').includes('Оранжевым'), banner?.textContent ?? '');
   const filled = box.querySelectorAll('.tileboard-slot.filled').length;
   check('игра: все лунки заполнены нужными буквами', filled === word.text.length, `заполнено: ${filled}`);
+  check('игра: после сборки пустой лоток букв не рендерится',
+    !box.querySelector('.tileboard-tray'), `лотков: ${box.querySelectorAll('.tileboard-tray').length}`);
   root.unmount();
   box.remove();
+
+  // Тот же порядок в уроке (0.114.3): задача не «игра», но лоток после сборки
+  // так же пуст. Раньше он оставался в уроке и отнимал место у вердикта.
+  const lessonBox = document.createElement('div');
+  document.body.appendChild(lessonBox);
+  const lessonRoot = createRoot(lessonBox);
+  lessonRoot.render(createElement(WordTileBoard, { word, onSolve: () => {} }));
+  await sleep(60);
+  check('урок: до сборки лоток букв на месте', !!lessonBox.querySelector('.tileboard-tray'), '');
+  for (const ch of needed) {
+    const btn = Array.from(lessonBox.querySelectorAll('.tileboard-tile')).find(
+      (b) => (b.textContent ?? '').trim() === ch && !(b as HTMLButtonElement).disabled,
+    ) as HTMLButtonElement | undefined;
+    if (!btn) throw new Error(`в уроке нет плитки «${ch}»`);
+    click(btn);
+    await sleep(15);
+  }
+  await sleep(60);
+  check('урок: после сборки пустой лоток букв тоже убран',
+    !lessonBox.querySelector('.tileboard-tray'), `лотков: ${lessonBox.querySelectorAll('.tileboard-tray').length}`);
+  check('урок: лунки со словом остались на экране',
+    lessonBox.querySelectorAll('.tileboard-slot.filled').length === word.text.length, '');
+  lessonRoot.unmount();
+  lessonBox.remove();
 
   // ── 3. Раскладка доски на телефоне (0.96.0) ─────────────────────────────
   // Слово из 10–17 букв раньше уезжало за экран: плитки были фиксированной
