@@ -1,9 +1,9 @@
 /**
  * Открытки «Тропы слов» (0.113.0, волна A2).
  *
- * Волна идёт постепенно: нарисованы 10 остановок 2 класса, остальные 6 ещё
- * ждут своей картинки и показывают прежнюю карточку. Тест держит именно это
- * состояние, чтобы «недоделанная волна» не выглядела как сломанный альбом.
+ * Все 16 остановок 2 класса получили открытки. Для другого класса (и новой
+ * остановки) функция возвращает `null`, и UI показывает прежнюю карточку:
+ * волна не должна ломать альбом 1/3/4/5 классов.
  */
 import assert from 'node:assert/strict';
 import { existsSync, statSync } from 'node:fs';
@@ -15,13 +15,9 @@ const withCard = stops.filter((stop) => !!trailPostcard(stop));
 const withoutCard = stops.filter((stop) => !trailPostcard(stop));
 
 assert.equal(stops.length, 16, 'в альбоме 16 остановок 2 класса');
-assert.equal(withCard.length, 10, 'нарисовано 10 открыток');
-assert.equal(trailPostcardCount(stops), 10, 'счётчик открыток сходится');
-assert.deepEqual(
-  withoutCard.map((stop) => stop.id),
-  ['winter', 'nature', 'calendar', 'polite', 'people', 'adverbs'],
-  'оставшиеся 6 остановок ждут волны A2',
-);
+assert.equal(withCard.length, 16, 'нарисованы все 16 открыток');
+assert.equal(trailPostcardCount(stops), 16, 'счётчик открыток сходится');
+assert.equal(withoutCard.length, 0, 'у 2 класса нет остановок без открытки');
 for (const stop of withCard) {
   const path = `src/assets/postcards/${stop.id}.webp`;
   assert.ok(existsSync(path), `${stop.id}: файл открытки на месте`);
@@ -35,4 +31,4 @@ assert.equal(
   'неизвестная остановка не получает чужую открытку',
 );
 
-console.log(`✓ тропа: открытки — ${withCard.length}/16 остановок 2 класса, остальные 6 с фолбэком`);
+console.log(`✓ тропа: открытки — ${withCard.length}/16 остановок 2 класса, фолбэк для остальных классов`);

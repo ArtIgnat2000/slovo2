@@ -1,9 +1,10 @@
 /**
  * Открытки остановок «Тропы слов» (0.113.0, волна A2).
  *
- * Пока нарисованы 10 из 16 остановок 2 класса; остальные получают прежнюю
- * карточку с первой картинкой/эмодзи. Так альбом не ломается на недоделанной
- * волне и новая открытка появляется ровно там, где файл уже есть.
+ * Нарисованы все 16 остановок 2 класса. Для другого класса или новой
+ * остановки функция честно возвращает `null`, и UI показывает прежнюю
+ * карточку с первой картинкой/эмодзи: альбом не ломается на недоделанной
+ * волне.
  */
 import type { TrailStop } from '../engine/word-trail';
 import animals from '../assets/postcards/animals.webp';
@@ -16,6 +17,12 @@ import home from '../assets/postcards/home.webp';
 import school from '../assets/postcards/school.webp';
 import schoolpeople from '../assets/postcards/schoolpeople.webp';
 import work from '../assets/postcards/work.webp';
+import winter from '../assets/postcards/winter.webp';
+import nature from '../assets/postcards/nature.webp';
+import calendar from '../assets/postcards/calendar.webp';
+import polite from '../assets/postcards/polite.webp';
+import people from '../assets/postcards/people.webp';
+import adverbs from '../assets/postcards/adverbs.webp';
 
 const TRAIL_POSTCARDS: Record<string, string> = {
   school,
@@ -28,6 +35,12 @@ const TRAIL_POSTCARDS: Record<string, string> = {
   country,
   home,
   work,
+  winter,
+  nature,
+  calendar,
+  polite,
+  people,
+  adverbs,
 };
 
 
