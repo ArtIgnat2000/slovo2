@@ -12342,3 +12342,435 @@ img.product-photo {
   .flower-leaf-l { left: -32px; }
   .flower-leaf-r { right: -32px; }
 }
+
+/* ── 0.110.0: «Тропа слов» ──────────────────────────────────────────────────
+   Слово как дорога: буквы — плиты, слоги — мосты, герой идёт к остановке.
+   Только токены темы: ни новых цветов, ни картинок, ни Canvas. Сцена — CSS,
+   поэтому она одинаково живёт в светлой и тёмной теме и не тянет сеть.
+
+   Раскладка: шапка и счётчик не прокручиваются, сцена и карточка задания —
+   в `.trail-body` с собственной прокруткой. На 360×640 сцена с двумя рядами
+   плиток, карточка ремонта и нижнее меню укладываются без «уезжания». */
+
+.trail-banner {
+  flex: none;
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1.5px solid color-mix(in srgb, var(--primary) 42%, var(--line));
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--primary-soft) 0%, var(--card) 100%);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+}
+.trail-banner:active { transform: translateY(1px); }
+.trail-banner:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.trail-banner-emoji { flex: none; font-size: 24px; line-height: 1; }
+.trail-banner-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.trail-banner-title { font-size: 13.5px; font-weight: 800; line-height: 1.15; }
+.trail-banner-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.5px;
+  line-height: 1.2;
+  color: var(--ink-2);
+}
+.trail-banner-go { flex: none; font-size: 18px; font-weight: 800; color: var(--primary-ink); }
+
+.trail-screen {
+  /* Экран держит высоту окна: шапка фиксирована, тело прокручивается. */
+  gap: var(--sp-2);
+}
+.trail-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+.trail-back {
+  flex: none;
+  min-height: 44px;
+  white-space: nowrap;
+}
+.trail-head-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.trail-title {
+  margin: 0;
+  font-size: var(--fs-lg);
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.trail-sub {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.5px;
+  line-height: 1.2;
+  color: var(--ink-2);
+}
+.trail-count {
+  flex: none;
+  padding: 4px 9px;
+  border-radius: var(--r-pill);
+  background: var(--primary-soft);
+  color: var(--primary-ink);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.trail-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding-bottom: var(--sp-2);
+}
+
+/* Сцена: небо, солнце, два холма и дорога. Всё — CSS, без фоновых файлов. */
+.trail-scene {
+  position: relative;
+  flex: none;
+  min-height: 168px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 12px 10px 10px;
+  border: 1.5px solid var(--line);
+  border-radius: 20px;
+  background: linear-gradient(180deg, var(--primary-soft) 0%, var(--bg-2) 62%, var(--card) 100%);
+  overflow: hidden;
+}
+.trail-sky {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.trail-sun {
+  position: absolute;
+  right: 14%;
+  top: 14px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--orange-soft);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--orange-soft) 35%, transparent);
+  opacity: 0.9;
+}
+.trail-hill {
+  position: absolute;
+  bottom: 26px;
+  border-radius: 50% 50% 0 0;
+  background: var(--green-soft);
+  opacity: 0.55;
+}
+.trail-hill-back { left: -18%; width: 78%; height: 74px; }
+.trail-hill-front { right: -22%; width: 86%; height: 60px; opacity: 0.45; }
+.trail-cloud {
+  position: absolute;
+  left: 12%;
+  top: 18px;
+  font-size: 19px;
+  line-height: 1;
+  opacity: 0.55;
+}
+
+.trail-route {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+}
+.trail-path {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 0;
+}
+.trail-landmark {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1.5px dashed var(--line);
+  border-radius: 50%;
+  background: var(--card);
+  font-size: 23px;
+  line-height: 1;
+  box-shadow: var(--shadow);
+}
+.trail-landmark-end {
+  border-style: solid;
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+/* Плита дороги. 44 px — цель для пальца; на 360 px в среднюю колонку
+   помещается четыре плиты, поэтому слово из восьми букв идёт в два ряда. */
+.trail-seg {
+  position: relative;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 2px solid var(--line);
+  border-radius: 11px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: default;
+}
+button.trail-seg { cursor: pointer; }
+button.trail-seg:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.trail-seg-text { pointer-events: none; }
+.trail-seg-empty {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--line) 75%, transparent);
+  background: transparent;
+  color: var(--ink-3);
+}
+/* Пустая плита, на которой стоит герой: мягкий акцент вместо заливки —
+   видно, куда шагать, но это ещё не пройденная плита. */
+.trail-seg-empty.trail-seg-now {
+  border-color: var(--primary);
+  border-style: dashed;
+  background: var(--primary-soft);
+  color: var(--primary-ink);
+}
+.trail-seg-hidden {
+  border-style: dashed;
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary-ink);
+  animation: trail-wobble 1.6s ease-in-out infinite;
+}
+/* Пройденная плита — мягкая заливка акцента: буква остаётся читаемой, а
+   прогресс виден с одного взгляда. Текущая — заливка --primary; в neon
+   чернила на ней берём из --neon-primary-ink, как у кнопок проекта. */
+.trail-seg-passed {
+  border-color: color-mix(in srgb, var(--primary) 55%, var(--line));
+  background: var(--primary-soft);
+  color: var(--primary-ink);
+}
+.trail-seg-now {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--on-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 28%, transparent);
+}
+:root[data-theme-style='neon'] .trail-seg-now { color: var(--neon-primary-ink); }
+
+/* Слоговые плиты шире буквенных: «ран» и «даш» не должны обрезаться. */
+.trail-path-wide .trail-seg {
+  width: auto;
+  min-width: 54px;
+  padding: 0 10px;
+  font-size: 16px;
+}
+
+/* Герой — маленький значок в углу текущей плиты. Он не закрывает букву:
+   ребёнок читает слово, а не ищет персонажа. */
+.trail-hero {
+  position: absolute;
+  right: 1px;
+  bottom: 0;
+  font-size: 14px;
+  line-height: 1;
+  animation: trail-bob 1.15s ease-in-out infinite;
+  filter: drop-shadow(0 1px 0 var(--card));
+}
+.trail-scene-note {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  min-height: 16px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.25;
+  color: var(--ink-2);
+}
+
+/* Карточка задания под сценой. */
+.trail-card {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 12px;
+  border: 1.5px solid var(--line);
+  border-radius: 20px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+.trail-clue {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.trail-clue-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.trail-clue-body .clue-hint { margin: 0; text-align: left; }
+.trail-clue-body .tiny { margin: 0; }
+
+.trail-options { gap: 8px; }
+.trail-hint { display: grid; gap: 3px; min-height: 18px; }
+.trail-hint p { margin: 0; }
+
+.trail-tray {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.trail-syllable {
+  min-width: 54px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-2);
+  color: var(--ink);
+  font: inherit;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+.trail-syllable:hover:not(:disabled) { border-color: var(--primary); }
+.trail-syllable:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.trail-syllable-used {
+  opacity: 0.4;
+  text-decoration: line-through;
+  cursor: default;
+}
+.trail-syllable-next {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 28%, transparent);
+}
+
+.trail-walk-line { margin: 0; font-size: var(--fs-sm); }
+.trail-meter {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--bg-2);
+}
+.trail-meter i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+  transition: width 180ms ease;
+}
+
+.trail-done {
+  align-items: center;
+  text-align: center;
+}
+.trail-done-title {
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: 800;
+  line-height: 1.2;
+}
+.trail-done-word {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+.trail-postcard-art {
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid var(--primary);
+  border-radius: 16px;
+  background: var(--primary-soft);
+  font-size: 34px;
+  line-height: 1;
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--primary) 22%, transparent);
+}
+.trail-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 12px;
+  text-align: center;
+}
+
+@keyframes trail-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+@keyframes trail-wobble {
+  0%, 100% { transform: rotate(0deg); }
+  30% { transform: rotate(-2deg); }
+  70% { transform: rotate(2deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trail-hero,
+  .trail-seg-hidden { animation: none; }
+  .trail-meter i { transition: none; }
+}
+@media (min-width: 720px) {
+  .trail-scene { min-height: 200px; padding: 16px 18px 12px; }
+  .trail-card { padding: 16px; }
+  .trail-path { gap: 7px; }
+  .trail-seg { width: 48px; height: 48px; font-size: 19px; }
+  .trail-path-wide .trail-seg { width: auto; min-width: 60px; }
+  .trail-landmark { width: 48px; height: 48px; font-size: 25px; }
+}
+@media (max-width: 380px) {
+  .trail-scene { min-height: 156px; }
+  .trail-landmark { width: 40px; height: 40px; font-size: 21px; }
+  /* Плита остаётся 44 px: это цель для пальца, мельче нельзя. */
+  .trail-seg { font-size: 17px; }
+  .trail-path-wide .trail-seg { width: auto; min-width: 50px; }
+  .trail-back-text { display: none; }
+}

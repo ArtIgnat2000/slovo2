@@ -8,6 +8,9 @@ import assert from 'node:assert/strict';
 // Заморозка ударений (0.60.0): отдельный файл, но в том же прогоне, чтобы
 // сдвинутое ударение ловилось там же, где проверяется контент.
 import './stress.test';
+// «Тропа слов» (0.110.0): движок игры без DOM — в том же прогоне контента.
+import './word-trail.test';
+import './word-trail-css.test';
 import {
   AVAILABLE_CLASSES,
   CLASS_IDS,
