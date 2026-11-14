@@ -73,6 +73,7 @@
 * `tests/trail-biome.test.ts`, `tests/word-trail-css.test.ts`,
   `tests/word-trail-ui.test.tsx` — стражи.
 * `docs/proposals/art-plan-pixar.md` — статус волны A1.
+* `docs/promo/0.113.0/biomes-preview.webp` — все пять фонов одним кадром.
 
 ## 6. Что дальше
 
