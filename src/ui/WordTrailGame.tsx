@@ -1,26 +1,27 @@
 /**
- * «Тропа слов» — экран игры (0.110.0).
+ * «Тропа слов» — экран игры (0.111.0).
  *
  * Один экран, одна остановка: слово чинится (опасная буква или порядок слогов),
- * а потом по нему идёт маленький герой Буквёнок. Буквы — плиты, слоги — мосты;
- * ошибка не отнимает ни попытки, ни прогресса, а открывает подсказку.
+ * находится по картинке или просто проходится — и по нему идёт Буквёнок.
+ * Цикл остановки: починить → пройти → найти → слоги. Буквы — плиты, слоги —
+ * мосты; ошибка не отнимает ни попытки, ни прогресса, а открывает подсказку.
  *
  * Рамка «Игры»: SRS не трогаем, таймеров/жизней/проигрыша нет, уйти можно в
  * любой момент — прогресс каждого слова уже лежит в профиле (`profile.trail`).
  * Награда — открытка за остановку и малый XP через `playGame(..., { gems: false })`:
- * кристаллов тропа не печатает.
+ * кристаллов тропа не печатает. Альбом открыток — отдельный экран поверх игры.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { ClassId, TrailProgress } from '../types';
-import { WORD_BY_ID } from '../content/words';
+import type { ClassId, TrailProgress, Word } from '../types';
+import { WORD_BY_ID, WORDS_BY_GRADE } from '../content/words';
 import {
   buildTrail,
   EMPTY_TRAIL,
   normalizeTrail,
-  TRAIL_STOPS_MVP,
-  trailModeFor,
+  trailActionFor,
+  trailFindOptions,
   trailResume,
-  trailStops,
+  trailStopsFor,
   trailSyllableBoard,
   trailStep,
   trailSummary,
@@ -34,12 +35,14 @@ import { gameAwardHint } from '../engine/game-awards';
 import { todayStat, useApp } from '../state/store';
 import { WordArt } from './WordView';
 import { TrailScene } from './TrailScene';
+import { TrailAlbum } from './TrailAlbum';
+import { TrailHero } from './TrailHero';
 import { Confetti } from './Bits';
 import { sfx } from '../platform/sound';
 import { haptic } from '../platform/haptics';
 import { prefersReducedMotion } from './motion';
 
-type TrailPhase = 'repair' | 'walk' | 'syllables' | 'word-done' | 'stop-done' | 'all-done';
+type TrailPhase = 'repair' | 'walk' | 'find' | 'syllables' | 'word-done' | 'stop-done' | 'all-done';
 
 /** Фишер–Йетс: порядок слогов не должен подсказывать ответ. */
 function shuffleTiles(list: SyllableTile[]): SyllableTile[] {
@@ -64,11 +67,10 @@ export function WordTrailGame({
 }) {
   const profile = useApp((s) => s.profiles.find((p) => p.id === profileId) ?? null);
   const setTrail = useApp((s) => s.setTrail);
-  const stops = useMemo(
-    () => trailStops(grade as ClassId, { limit: TRAIL_STOPS_MVP }),
-    [grade],
+  const stops = useMemo(() => trailStopsFor(grade as ClassId), [grade]);
+  const [progress, setProgress] = useState<TrailProgress>(() =>
+    normalizeTrail(profile?.trail, grade as ClassId),
   );
-  const [progress, setProgress] = useState<TrailProgress>(() => normalizeTrail(profile?.trail));
   const resume = useMemo(() => trailResume(stops, progress), [stops, progress]);
   const summary = useMemo(() => trailSummary(stops, progress), [stops, progress]);
   const [wordId, setWordId] = useState<string | null>(resume.wordId);
@@ -78,11 +80,14 @@ export function WordTrailGame({
   const [task, setTask] = useState<TrailTask | null>(null);
   const [wrong, setWrong] = useState(0);
   const [rejected, setRejected] = useState<string[]>([]);
+  const [findWords, setFindWords] = useState<Word[]>([]);
+  const [findRejected, setFindRejected] = useState<string[]>([]);
   const [picked, setPicked] = useState<SyllableTile[]>([]);
   const [walked, setWalked] = useState(0);
   const [message, setMessage] = useState('');
   const [award, setAward] = useState<{ xp: number; gems: number } | null>(null);
   const [confetti, setConfetti] = useState(false);
+  const [albumOpen, setAlbumOpen] = useState(false);
   const awarded = useRef(false);
   const prevStop = useRef(resume.stopIndex);
 
@@ -96,6 +101,11 @@ export function WordTrailGame({
   /**
    * Новое слово — новое задание. Эффект зависит от индекса остановки, а не от
    * объекта `resume`: иначе каждое пройденное слово сбрасывало бы задание.
+   *
+   * Действие берём из цикла остановки (`trailActionFor`), а не из чётности
+   * индекса: ребёнок должен увидеть дорогу, поиск картинки и слоги, а не четыре
+   * одинаковых ремонта подряд. Если «найти» не из чего собрать четыре картинки,
+   * честно откатываемся на дорогу — пустая карточка хуже смены действия.
    */
   useEffect(() => {
     if (!wordId) {
@@ -109,24 +119,31 @@ export function WordTrailGame({
     }
     const stop = stops[resume.stopIndex];
     const at = stop?.wordIds.indexOf(wordId) ?? 0;
-    const mode = trailModeFor(word, at);
+    const action = trailActionFor(word, at);
+    const pool = WORDS_BY_GRADE[grade as ClassId] ?? [];
+    const options = action === 'find' ? trailFindOptions(word, pool) : [];
+    const mode = action === 'syllables' ? 'syllables' : 'letters';
     // Опасную букву выбираем из отмеченных: одно и то же слово не должно
     // закрывать одну и ту же букву каждый заход.
     const dangerIndex =
-      mode === 'letters' && word.danger.length
+      action === 'letters' && word.danger.length
         ? word.danger[Math.floor(Math.random() * word.danger.length)]
         : -1;
     setTask(buildTrail(word, mode, dangerIndex));
-    setPhase(mode === 'letters' ? 'repair' : 'syllables');
+    setFindWords(options);
+    const nextPhase: TrailPhase =
+      action === 'letters' ? 'repair' : action === 'find' ? (options.length >= 4 ? 'find' : 'walk') : action;
+    setPhase(nextPhase);
     setWrong(0);
     setRejected([]);
+    setFindRejected([]);
     setPicked([]);
     setWalked(0);
     setAward(null);
     setConfetti(false);
     setMessage('');
     awarded.current = false;
-  }, [wordId, resume.stopIndex, stops]);
+  }, [wordId, resume.stopIndex, stops, grade]);
 
   /** Перешли на следующую остановку — начинаем с её первого непройденного слова. */
   useEffect(() => {
@@ -183,6 +200,11 @@ export function WordTrailGame({
 
   if (!profile) return null;
   if (!stops.length) {
+    // 5 класс закрыт до текстового режима: там картинки только у двух слов из
+    // пятнадцати, и «найти» превращалось бы в угадайку по эмодзи. Баннер в
+    // «Играх» для 5 класса не показывается; этот экран — страховка на случай
+    // смены класса при открытой тропе.
+    const gated = grade >= 5;
     return (
       <div className="screen games-screen trail-screen">
         <header className="trail-head">
@@ -193,14 +215,31 @@ export function WordTrailGame({
         </header>
         <div className="trail-empty">
           <div className="games-empty-emoji" aria-hidden="true">🗺️</div>
-          <p className="games-empty-title">Пока некуда идти</p>
-          <p className="tiny muted">В этом классе ещё нет слов, из которых можно выложить дорогу.</p>
+          <p className="games-empty-title">{gated ? 'Тропа для 5 класса ещё в работе' : 'Пока некуда идти'}</p>
+          <p className="tiny muted">
+            {gated
+              ? 'Сейчас тропа открыта для 1–4 классов: слова с картинками и короткие дороги.'
+              : 'В этом классе ещё нет слов, из которых можно выложить дорогу.'}
+          </p>
           {onGoLessons && (
             <button type="button" className="btn primary wide" onClick={onGoLessons}>
               К урокам →
             </button>
           )}
         </div>
+      </div>
+    );
+  }
+
+  if (albumOpen) {
+    return (
+      <div className="screen games-screen trail-screen">
+        <TrailAlbum
+          stops={stops}
+          progress={progress}
+          currentIndex={resume.stopIndex}
+          onClose={() => setAlbumOpen(false)}
+        />
       </div>
     );
   }
@@ -226,11 +265,15 @@ export function WordTrailGame({
         : 'Одна плита шатается. Почини её — и дорога откроется.'
       : phase === 'walk'
         ? 'Тапни следующую плиту — Буквёнок шагнёт по слову.'
-        : phase === 'syllables'
-          ? 'Выложи мост из слогов: каждый слог — плита дороги.'
-          : phase === 'word-done'
-            ? 'Слово пройдено. Дальше — следующее.'
-            : 'Остановка позади — открытка сохранена.';
+        : phase === 'find'
+          ? 'Найди картинку к слову — и дорога откроется.'
+          : phase === 'syllables'
+            ? 'Выложи мост из слогов: каждый слог — плита дороги.'
+            : phase === 'word-done'
+              ? 'Слово пройдено. Дальше — следующее.'
+              : phase === 'all-done'
+                ? 'Тропа пройдена — все открытки собраны.'
+                : 'Остановка позади — открытка сохранена.';
   const stopNumber = Math.min(resume.stopIndex + 1, summary.totalStops);
 
   return (
@@ -249,9 +292,15 @@ export function WordTrailGame({
               : `Остановка ${stopNumber} из ${summary.totalStops} · «${stop.title}»`}
           </p>
         </div>
-        <span className="trail-count" aria-label={`Пройдено остановок: ${summary.doneStops} из ${summary.totalStops}`}>
-          {summary.doneStops}/{summary.totalStops}
-        </span>
+        <button
+          type="button"
+          className="trail-album-btn"
+          data-trail-album-open
+          onClick={() => setAlbumOpen(true)}
+          aria-label={`Открытки: открыто ${summary.doneStops} из ${summary.totalStops}`}
+        >
+          <span aria-hidden="true">🎴</span> {summary.doneStops}/{summary.totalStops}
+        </button>
       </header>
 
       <div className="trail-body">
@@ -263,6 +312,13 @@ export function WordTrailGame({
           passed={passed}
           interactive={phase === 'walk'}
           wide={phase === 'syllables'}
+          heroState={
+            phase === 'walk'
+              ? 'walk'
+              : phase === 'word-done' || phase === 'stop-done' || phase === 'all-done'
+                ? 'cheer'
+                : 'idle'
+          }
           onStep={(index) => {
             if (!task || phase !== 'walk') return;
             const result = trailStep(walked, task.segments.length, index);
@@ -348,6 +404,65 @@ export function WordTrailGame({
           </section>
         )}
 
+        {phase === 'find' && task && findWords.length > 0 && (
+          <section className="trail-card trail-find" aria-label="Найди картинку к слову">
+            <div className="trail-find-head">
+              <p className="trail-find-title">
+                Найди картинку к слову <b>«{task.word.text}»</b>
+              </p>
+              <p className="clue-hint">
+                💡 {wrong > 0 ? task.word.sentence.replace('____', '…') : task.word.hint}
+              </p>
+            </div>
+
+            <div
+              className="trail-find-grid"
+              role="group"
+              aria-label="Картинки"
+              data-trail-find-target={task.word.id}
+            >
+              {findWords.map((item) => {
+                const rejected = findRejected.includes(item.id);
+                const correct = item.id === task.word.id;
+                const revealed = wrong >= 2 && correct;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`trail-find-card${rejected ? ' rejected' : ''}${revealed ? ' revealed' : ''}`}
+                    data-trail-find={item.id}
+                    aria-label={`Картинка: ${item.text}`}
+                    disabled={rejected}
+                    onClick={() => {
+                      if (!task || phase !== 'find') return;
+                      if (correct) {
+                        setPhase('walk');
+                        setWalked(0);
+                        setMessage('Верно! Веди Буквёнка.');
+                        sfx.correct();
+                        haptic.correct();
+                        return;
+                      }
+                      setWrong((n) => n + 1);
+                      setFindRejected((list) => (list.includes(item.id) ? list : [...list, item.id]));
+                      setMessage('Это другая картинка. Попробуй ещё — ничего не потеряно.');
+                      sfx.wrong();
+                      haptic.tap();
+                    }}
+                  >
+                    <WordArt word={item} size={72} />
+                  </button>
+                );
+              })}
+            </div>
+
+            <p className="tiny" role="status">
+              {message || 'Выбери картинку: ошибка ничего не отнимает.'}
+            </p>
+            {wrong >= 2 && <p className="tiny muted">Верная картинка подсвечена.</p>}
+          </section>
+        )}
+
         {phase === 'walk' && task && (
           <section className="trail-card trail-walk" aria-label="Веди Буквёнка по слову">
             <p className="trail-walk-line">
@@ -428,6 +543,9 @@ export function WordTrailGame({
 
         {phase === 'word-done' && task && (
           <section className="trail-card trail-done" aria-label="Слово пройдено">
+            <div className="trail-done-hero">
+              <TrailHero state="cheer" size={38} label="Буквёнок радуется" />
+            </div>
             <p className="trail-done-title">Слово на дороге!</p>
             <p className="trail-done-word">{task.word.text}</p>
             {award && award.xp > 0 && (
@@ -448,6 +566,9 @@ export function WordTrailGame({
 
         {(phase === 'stop-done' || phase === 'all-done') && (
           <section className="trail-card trail-done trail-postcard" data-trail-postcard aria-label="Остановка пройдена">
+            <div className="trail-done-hero">
+              <TrailHero state="cheer" size={42} label="Буквёнок радуется" />
+            </div>
             <div className="trail-postcard-art" aria-hidden="true">{stop.emoji}</div>
             <p className="trail-done-title">
               {phase === 'all-done' ? 'Все остановки пройдены!' : `Остановка «${stop.title}» пройдена!`}
@@ -467,7 +588,7 @@ export function WordTrailGame({
                 type="button"
                 className="btn primary wide"
                 onClick={() => {
-                  const next = { ...EMPTY_TRAIL };
+                  const next: TrailProgress = { ...EMPTY_TRAIL, grade: grade as ClassId };
                   setProgress(next);
                   setTrail(next);
                   prevStop.current = 0;

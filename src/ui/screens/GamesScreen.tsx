@@ -56,7 +56,7 @@ import { TrickyLetterGame } from '../TrickyLetterGame';
 import { WordFlowerGame } from '../WordFlowerGame';
 import { SyllableBoard } from '../SyllableBoard';
 import { WordTrailGame } from '../WordTrailGame';
-import { normalizeTrail, TRAIL_STOPS_MVP, trailStops, trailSummary } from '../../engine/word-trail';
+import { normalizeTrail, trailStopsFor, trailSummary } from '../../engine/word-trail';
 
 type GameId = 'build' | 'ring' | 'syl' | 'search' | 'crossword' | 'memory' | 'tricky' | 'flower';
 /** Группа по времени игры, а не по «жанру»: ребёнку так понятнее (§4-B). */
@@ -274,17 +274,18 @@ export function GamesScreen({ onGoLessons }: { onGoLessons: () => void }) {
   const groupAllLocked = groupGames.every((g) => !isGameOpen(access, GAMES.indexOf(g)));
 
   /**
-   * Баннер «Тропы» (0.110.0). Игра всегда открыта и не входит в `GAMES`:
-   * девятая карточка сдвинула бы индексы `GAME_GATE_KEYS` и сломала доступ
-   * к остальным играм. Прогресс читаем из профиля, а не из локального
-   * состояния, поэтому баннер честно показывает, где ребёнок остановился.
+   * Баннер «Тропы» (0.111.0). Игра не входит в `GAMES`: девятая карточка
+   * сдвинула бы индексы `GAME_GATE_KEYS` и сломала доступ к остальным играм.
+   * Прогресс читаем из профиля, а не из локального состояния, поэтому баннер
+   * честно показывает, где ребёнок остановился.
+   *
+   * `trailStopsFor` отдаёт 16 остановок для 2 класса, по две для 1/3/4 и
+   * пусто для 5: у пятого класса картинки только у двух слов из пятнадцати,
+   * и витрина не должна обещать игру, которой там ещё нет.
    */
-  const trailStopsList = useMemo(
-    () => trailStops(grade, { limit: TRAIL_STOPS_MVP }),
-    [grade],
-  );
+  const trailStopsList = useMemo(() => trailStopsFor(grade), [grade]);
   const trailInfo = useMemo(
-    () => trailSummary(trailStopsList, normalizeTrail(profile?.trail)),
+    () => trailSummary(trailStopsList, normalizeTrail(profile?.trail, grade)),
     [trailStopsList, profile?.trail],
   );
   useEffect(() => {

@@ -1,9 +1,10 @@
 /**
- * «Тропа слов» (0.110.0): стражи раскладки и движения.
+ * «Тропа слов» (0.111.0): стражи раскладки и движения.
  *
- * jsdom не считает геометрию, поэтому проверяем CSS как контракт: плита не
- * меньше 44 px (цель для пальца), сцена не тянет внешние картинки, а
- * `prefers-reduced-motion` действительно выключает анимации героя и плиты.
+ * jsdom не считает геометрию, поэтому проверяем CSS как контракт: плита, кнопка
+ * альбома и карточка поиска не меньше 44 px (цель для пальца), сцена не тянет
+ * внешние картинки, а `prefers-reduced-motion` действительно выключает
+ * анимации Буквёнка и дрожащей плиты.
  */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -16,6 +17,10 @@ const trail = css.slice(start);
 assert.match(trail, /\.trail-seg\s*\{[^}]*width:\s*44px[^}]*height:\s*44px/s, 'плита 44×44 — цель для пальца');
 assert.match(trail, /\.trail-path-wide \.trail-seg\s*\{[^}]*min-width:\s*54px/s, 'слоговые плиты шире буквенных');
 assert.match(trail, /\.trail-banner\s*\{[^}]*min-height:\s*52px/s, 'баннер не меньше 52 px');
+assert.match(trail, /\.trail-album-btn\s*\{[^}]*min-height:\s*44px/s, 'кнопка альбома — цель 44 px');
+assert.match(trail, /\.trail-find-card\s*\{[^}]*min-height:\s*96px/s, 'карточка поиска не меньше 96 px');
+assert.match(trail, /\.trail-album-grid\s*\{[^}]*grid-template-columns:\s*repeat\(2/s, 'альбом — сетка 2×N');
+assert.match(trail, /\.trail-hero-svg\.is-cheer \.trail-hero-arm-a\s*\{[^}]*rotate\(-118deg\)/s, 'в радости руки подняты');
 assert.match(
   trail,
   /@media \(prefers-reduced-motion: reduce\)\s*\{[^}]*\.trail-hero[^}]*animation:\s*none[^}]*\}/s,
@@ -39,4 +44,4 @@ assert.ok(
   'на 380 px высота плиты не переопределяется',
 );
 
-console.log('✓ тропа: CSS-стражи — 44 px, reduced motion, без внешних картинок и скрытой полки');
+console.log('✓ тропа: CSS-стражи — 44 px, reduced motion, альбом 2×N, без внешних картинок и скрытой полки');
