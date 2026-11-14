@@ -329,6 +329,9 @@ async function playLesson(mode: Mode, stopAfterVerdicts = 0): Promise<RunInfo> {
         buildVerdictCards.add(card);
         buildVerdicts++;
       }
+      // Последняя сборка может сразу вести к результатам: сохранить счётчик
+      // до выхода, а не только после следующего действия на карточке.
+      info.buildVerdicts = buildVerdicts;
       if (stopAfterVerdicts && info.verdicts >= stopAfterVerdicts) return info;
     }
     lastVerdict = verdict;
@@ -410,7 +413,13 @@ async function goToBuild(): Promise<boolean> {
     }
     const intro = taskButton((b) => (b.textContent ?? '').includes('Запомнил'));
     if (intro) {
+      const introducedWord = currentWord();
       click(intro);
+      await sleep(60);
+      const firstPracticeWord = currentWord();
+      check('урок: после знакомства проверяется то же слово',
+        !!introducedWord && firstPracticeWord?.id === introducedWord.id,
+        `карточка=${introducedWord?.text}, задание=${firstPracticeWord?.text}`);
       continue;
     }
     const options = Array.from(document.querySelectorAll('.option')) as HTMLButtonElement[];
