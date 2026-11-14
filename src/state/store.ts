@@ -2,9 +2,10 @@ import { nextAdaptiveState, type Outcome } from '../engine/adaptive';
 import { isThemeStyle, type ThemeStyle } from '../engine/theme-styles';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { BukFacts, ClassId, DailyState, DayStat, LessonSize, LessonState, ListRun, ListRunMode, PracticeList, Profile, ShopState, ShopSlot, ShopTuning, StudyAnswerMeta, StudySession, StudySessionStatus, WeeklyState, Word, WordState } from '../types';
+import type { BukFacts, ClassId, DailyState, DayStat, LessonSize, LessonState, ListRun, ListRunMode, PracticeList, Profile, ShopState, ShopSlot, ShopTuning, StudyAnswerMeta, StudySession, StudySessionStatus, TrailProgress, WeeklyState, Word, WordState } from '../types';
 import { applyAnswer, initState } from '../engine/srs';
 import { EMPTY_GAME_AWARDS, GAME_XP_CAP, gameAward, type GameAwardState } from '../engine/game-awards';
+import { normalizeTrail } from '../engine/word-trail';
 import type { GamesGates } from '../engine/game-access';
 import { idbStorage } from '../platform/storage';
 import { GEMS_PER_STREAK, levelOf } from '../engine/rewards';
@@ -423,6 +424,10 @@ function normalizeProfile(raw: Partial<Profile> | null | undefined): Profile | n
         worldBase: normalizeWorldBase(raw.shop?.worldBase, normalizeBuildingsOwned(raw.shop?.buildingsOwned)),
         activeBuilding: normalizeActiveBuilding(raw.shop?.activeBuilding, normalizeBuildingsOwned(raw.shop?.buildingsOwned)),
       },
+      // «Тропа слов» (0.110.0): строка идёт после ...raw, чтобы битое значение
+      // из файла выгрузки не пережило санитайзер. Поля нет у старых профилей —
+      // не добавляем пустое, UI читает его через normalizeTrail.
+      ...(raw.trail !== undefined ? { trail: normalizeTrail(raw.trail) } : {}),
       puzzle,
     };
 }
@@ -493,7 +498,13 @@ interface AppState {
    * Начисляет малый XP с суточным потолком и половинный вес в заданиях дня;
    * кристаллы — символический бонус за первую сетку дня. SRS не трогает.
    */
-  playGame: (words: number) => { xp: number; gems: number };
+  playGame: (words: number, opts?: { gems?: boolean }) => { xp: number; gems: number };
+  /**
+   * «Тропа слов» (0.110.0): сохранить прогресс остановки. Слово/остановка
+   * добавляются в UI, а стор только чистит и кладёт значение в профиль —
+   * так же, как остальные нормализованные поля.
+   */
+  setTrail: (trail: TrailProgress) => void;
   /** Завершённый обычный урок открывает бонусный сундук и может выдать пороги недели. */
   finishLesson: (lessonId: string, pct: number) => WeeklyMilestone[];
   addXp: (n: number) => void;
@@ -1249,13 +1260,21 @@ export const useApp = create<AppState>()(
           patchActive(s, (p) => (n === 0 ? p : { ...p, freezes: Math.max(0, p.freezes + n) })),
         ),
 
-      playGame: (words) => {
+      playGame: (words, opts) => {
         const current = getActive(get());
         if (!current || !Number.isFinite(words) || words <= 0) return { xp: 0, gems: 0 };
         const today = dayKey();
         const day = readDay(current, today);
         const award = gameAward({ words, today: (day.games ?? EMPTY_GAME_AWARDS) as GameAwardState });
-        if (award.xp === 0 && award.gems === 0 && award.correct === 0 && award.next === day.games) {
+        // «Тропа слов» (0.110.0) кормит задания дня и малый XP, но НЕ печатает
+        // кристаллы и не забирает «первую сетку дня» у сеточных игр: открытки —
+        // отдельная награда, а 💎 за первую сетку остаётся у филворда/кроссворда.
+        const noGems = opts?.gems === false;
+        const gems = noGems ? 0 : award.gems;
+        const nextGames: GameAwardState = noGems
+          ? { ...award.next, dayGemTaken: (day.games as GameAwardState | undefined)?.dayGemTaken ?? false }
+          : award.next;
+        if (award.xp === 0 && gems === 0 && award.correct === 0 && award.next.words === (day.games?.words ?? 0)) {
           return { xp: 0, gems: 0 };
         }
         set((s) =>
@@ -1264,20 +1283,23 @@ export const useApp = create<AppState>()(
             return {
               ...p,
               xp: p.xp + award.xp,
-              gems: award.gems ? p.gems + award.gems : p.gems,
+              gems: gems ? p.gems + gems : p.gems,
               days: {
                 ...p.days,
                 [today]: {
                   ...d,
                   xp: d.xp + award.xp,
-                  games: award.next,
+                  games: nextGames,
                 },
               },
             };
           }),
         );
-        return { xp: award.xp, gems: award.gems };
+        return { xp: award.xp, gems };
       },
+
+      setTrail: (trail) =>
+        set((s) => patchActive(s, (p) => ({ ...p, trail: normalizeTrail(trail) }))),
 
       claimQuest: (id, gems) =>
         set((s) =>

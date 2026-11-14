@@ -50,6 +50,7 @@ import { runWordSearchChecks } from './word-search.test';
 import { runWordBoardChecks } from './word-board.test';
 import { runGameAwardChecks } from './game-awards.test';
 import { runMemoryChecks } from './memory.test';
+import { runWordTrailUiChecks } from './word-trail-ui.test';
 // Смена цвета купленной вещи не должна включать музыку (регрессия магазина).
 import './recolor-music.test';
 import { LESSONS, WORDS } from '../src/content/words';
@@ -2169,6 +2170,9 @@ async function main() {
   await runWordBoardChecks();
   await runGameAwardChecks();
   await runMemoryChecks();
+
+  // «Тропа слов» (0.110.0): баннер, resume, буквы, слоги и открытка.
+  await runWordTrailUiChecks();
 
   const failures = failureCount();
   console.log(failures ? `\n✗ ошибок: ${failures}` : '\n✓ все проверки пройдены');

@@ -55,6 +55,8 @@ import { LetterRingGame } from '../LetterRingGame';
 import { TrickyLetterGame } from '../TrickyLetterGame';
 import { WordFlowerGame } from '../WordFlowerGame';
 import { SyllableBoard } from '../SyllableBoard';
+import { WordTrailGame } from '../WordTrailGame';
+import { normalizeTrail, TRAIL_STOPS_MVP, trailStops, trailSummary } from '../../engine/word-trail';
 
 type GameId = 'build' | 'ring' | 'syl' | 'search' | 'crossword' | 'memory' | 'tricky' | 'flower';
 /** Группа по времени игры, а не по «жанру»: ребёнку так понятнее (§4-B). */
@@ -195,6 +197,8 @@ export function GamesScreen({ onGoLessons }: { onGoLessons: () => void }) {
   }, [met, grade]);
   const priorityIds = useMemo(() => troubleWords(profile?.words ?? {}), [profile]);
   const [wordId, setWordId] = useState<string | null>(null);
+  /** «Тропа слов» (0.110.0) — отдельный экран поверх витрины, не девятая карточка. */
+  const [trailOpen, setTrailOpen] = useState(false);
   const settings = useApp((s) => s.settings);
 
   /**
@@ -269,6 +273,36 @@ export function GamesScreen({ onGoLessons }: { onGoLessons: () => void }) {
   const groupGames = GAMES.filter((g) => g.group === group);
   const groupAllLocked = groupGames.every((g) => !isGameOpen(access, GAMES.indexOf(g)));
 
+  /**
+   * Баннер «Тропы» (0.110.0). Игра всегда открыта и не входит в `GAMES`:
+   * девятая карточка сдвинула бы индексы `GAME_GATE_KEYS` и сломала доступ
+   * к остальным играм. Прогресс читаем из профиля, а не из локального
+   * состояния, поэтому баннер честно показывает, где ребёнок остановился.
+   */
+  const trailStopsList = useMemo(
+    () => trailStops(grade, { limit: TRAIL_STOPS_MVP }),
+    [grade],
+  );
+  const trailInfo = useMemo(
+    () => trailSummary(trailStopsList, normalizeTrail(profile?.trail)),
+    [trailStopsList, profile?.trail],
+  );
+  useEffect(() => {
+    if (!profile) setTrailOpen(false);
+  }, [profile]);
+
+  if (trailOpen && profile) {
+    return (
+      <WordTrailGame
+        key={`trail-${profile.id}-${grade}`}
+        profileId={profile.id}
+        grade={grade}
+        onExit={() => setTrailOpen(false)}
+        onGoLessons={onGoLessons}
+      />
+    );
+  }
+
   return (
     <div className="screen games-screen">
       {/* Заголовок в одну строку: «Игры». Правило рамки («ничего не сгорает»)
@@ -278,6 +312,34 @@ export function GamesScreen({ onGoLessons }: { onGoLessons: () => void }) {
           🧩 Игры
         </h2>
       </header>
+
+      {/* «Тропа слов» (0.110.0): баннер над витриной, а не девятая карточка.
+          Игра открыта всегда и не участвует в шкале доступа — она про слово
+          как дорогу, а не про очередной ключ дня. */}
+      {profile && trailStopsList.length > 0 && (
+        <button
+          type="button"
+          className="trail-banner"
+          data-trail-banner
+          onClick={() => setTrailOpen(true)}
+          aria-label={
+            trailInfo.allDone
+              ? 'Тропа слов. Все остановки пройдены — можно пройти заново'
+              : `Тропа слов. Остановка «${trailInfo.currentTitle}», пройдено ${trailInfo.doneStops} из ${trailInfo.totalStops}`
+          }
+        >
+          <span className="trail-banner-emoji" aria-hidden="true">🗺️</span>
+          <span className="trail-banner-body">
+            <span className="trail-banner-title">Тропа слов</span>
+            <span className="trail-banner-sub">
+              {trailInfo.allDone
+                ? 'Все остановки пройдены · можно заново'
+                : `Остановка «${trailInfo.currentTitle}» · ${trailInfo.doneStops} из ${trailInfo.totalStops}`}
+            </span>
+          </span>
+          <span className="trail-banner-go" aria-hidden="true">→</span>
+        </button>
+      )}
 
       {/* Две группы вместо трёх кнопок в один ряд (0.99.0, §4-B): подписи
           читаются на 360 px и место остаётся для новых игр. */}
