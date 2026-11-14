@@ -1,12 +1,12 @@
 /**
- * «Тропа слов» (0.110.0): чистый движок без DOM.
+ * «Тропа слов» (0.111.0): чистый движок без DOM.
  *
- * Проверяем то, что ребёнок увидит глазами: остановки 2 класса, дорогу из
- * букв, мост из слогов, шаг по плите, честный санитайзер прогресса и
- * продолжение с того же места после перезапуска.
+ * Проверяем то, что ребёнок увидит глазами: 16 остановок 2 класса, цикл
+ * «починить → пройти → найти → слоги», дорогу из букв, мост из слогов, шаг
+ * по плите, честный санитайзер прогресса и продолжение с того же места.
  */
 import assert from 'node:assert/strict';
-import { LESSONS_BY_GRADE, WORD_BY_ID, WORDS } from '../src/content/words';
+import { LESSONS_BY_GRADE, WORD_BY_ID, WORDS, WORDS_BY_GRADE } from '../src/content/words';
 import {
   buildTrail,
   EMPTY_TRAIL,
@@ -14,11 +14,15 @@ import {
   TRAIL_MAX_LETTERS,
   TRAIL_STOPS_MVP,
   TRAIL_WORDS_PER_STOP,
+  trailActionFor,
+  trailAvailable,
   trailFits,
+  trailFindOptions,
   trailModeFor,
   trailResume,
   trailStep,
   trailStops,
+  trailStopsFor,
   trailSummary,
   withTrailStop,
   withTrailWord,
@@ -41,21 +45,50 @@ const word = (over: Partial<Word>): Word => ({
 
 // ── 1. Остановки класса ─────────────────────────────────────────────────────
 const stops = trailStops(2);
-assert.equal(stops.length, TRAIL_STOPS_MVP, '2 класс: в MVP две остановки');
-assert.deepEqual(stops.map((s) => s.id), ['school', 'birds'], 'остановки — «Школа» и «Птицы»');
+assert.equal(stops.length, TRAIL_STOPS_MVP, '2 класс: превью из двух остановок');
+assert.deepEqual(stops.map((s) => s.id), ['school', 'birds'], 'превью — «Школа» и «Птицы»');
 assert.deepEqual(stops.map((s) => s.title), ['Школа', 'Птицы'], 'названия остановок');
 assert.ok(stops.every((s) => s.wordIds.length <= TRAIL_WORDS_PER_STOP), 'в остановке не больше четырёх слов');
 assert.ok(stops.every((s) => s.wordIds.length >= 2), 'в остановке хотя бы два слова');
 assert.ok(stops.every((s) => s.wordIds.every((id) => !!WORD_BY_ID[id])), 'все слова остановки есть в банке');
 assert.equal(stops[0].wordIds[0], 'g2_алфавит', 'первым стоит слово с опасной буквой');
-assert.equal(stops[0].wordIds[1], 'g2_карандаш', 'вторым — слово из слогов');
+assert.equal(stops[0].wordIds[1], 'g2_класс', 'вторым — слово, которое просто проходим');
+assert.equal(stops[0].wordIds[2], 'g2_картина', 'третьим — слово с картинкой');
+assert.equal(stops[0].wordIds[3], 'g2_карандаш', 'четвёртым — слово из слогов');
+assert.deepEqual(
+  stops[0].wordIds.map((id, index) => trailActionFor(WORD_BY_ID[id], index)),
+  ['letters', 'walk', 'find', 'syllables'],
+  'цикл остановки: починить → пройти → найти → слоги',
+);
 assert.equal(trailModeFor(WORD_BY_ID[stops[0].wordIds[0]], 0), 'letters', 'первое задание — буквы');
-assert.equal(trailModeFor(WORD_BY_ID[stops[0].wordIds[1]], 1), 'syllables', 'второе задание — слоги');
+assert.equal(trailModeFor(WORD_BY_ID[stops[0].wordIds[3]], 3), 'syllables', 'последнее задание — слоги');
 assert.equal(trailModeFor(WORD_BY_ID['g2_класс'], 1), 'letters', 'односложное слово остаётся буквенным');
+assert.equal(trailActionFor(WORD_BY_ID['g2_класс'], 2), 'find', 'у слова с картинкой — поиск');
+assert.equal(
+  trailActionFor(word({ text: 'крот', syllables: ['крот'], danger: [2], image: undefined }), 2),
+  'walk',
+  'без картинки «найти» заменяется дорогой',
+);
 
-const allStops = trailStops(2, { limit: 0 });
-assert.equal(allStops.length, LESSONS_BY_GRADE[2].length, 'без лимита — все уроки 2 класса');
+const allStops = trailStopsFor(2);
+assert.equal(allStops.length, LESSONS_BY_GRADE[2].length, '2 класс: все 16 уроков — остановки');
+assert.equal(allStops.length, 16, 'в программе 2 класса ровно 16 остановок');
+assert.deepEqual(
+  allStops.map((s) => s.id),
+  LESSONS_BY_GRADE[2].map((lesson) => lesson.id),
+  'остановки идут по порядку уроков',
+);
 assert.ok(allStops.every((s) => s.wordIds.length >= 2 && s.wordIds.length <= TRAIL_WORDS_PER_STOP), 'каждая остановка 2–4 слова');
+assert.deepEqual(trailStops(2, { limit: 0 }).map((s) => s.id), allStops.map((s) => s.id), 'без лимита — тот же список');
+
+// 1, 3 и 4 классы — двухостановочное превью; 5 класс закрыт до текстового режима.
+assert.equal(trailAvailable(2), true, '2 класс открыт');
+assert.equal(trailAvailable(5), false, '5 класс закрыт');
+assert.deepEqual(trailStopsFor(5), [], '5 классу тропа не предлагается');
+for (const grade of [1, 3, 4] as const) {
+  assert.equal(trailAvailable(grade), true, `${grade} класс открыт`);
+  assert.equal(trailStopsFor(grade).length, TRAIL_STOPS_MVP, `${grade} класс: превью из двух остановок`);
+}
 
 // ── 2. Какие слова годятся ──────────────────────────────────────────────────
 assert.equal(trailFits(word({ text: 'алфавит', danger: [0] })), true, 'обычное слово с опасной буквой годится');
@@ -95,6 +128,23 @@ assert.equal(syll.dangerIndex, -1, 'у слогов нет закрытой бу
 assert.equal(syll.answer, '', 'у слогов нет буквенного ответа');
 assert.deepEqual(syll.options, [], 'у слогов нет вариантов буквы');
 
+// ── 4.1. Найти картинку ─────────────────────────────────────────────────────
+const picture = WORD_BY_ID['g2_картина'];
+assert.ok(picture, 'слово «картина» на месте');
+const find = trailFindOptions(picture!, WORDS_BY_GRADE[2], () => 0.42);
+assert.equal(find.length, 4, 'четыре картинки на выбор');
+assert.ok(find.includes(picture!), 'среди них есть верная картинка');
+assert.equal(new Set(find.map((item) => item.id)).size, 4, 'картинки без повторов');
+assert.ok(find.every((item) => !!item.image), 'у каждого варианта есть картинка');
+assert.ok(find.every((item) => !/[\s-]/.test(item.text)), 'фраз и дефисов среди вариантов нет');
+assert.deepEqual(
+  find.map((item) => item.text),
+  trailFindOptions(picture!, WORDS_BY_GRADE[2], () => 0.42).map((item) => item.text),
+  'один и тот же pick даёт тот же набор',
+);
+const findClass = trailFindOptions(WORD_BY_ID['g2_воробей'], WORDS_BY_GRADE[2], () => 0.42);
+assert.ok(findClass.every((item) => item.grades.includes(2)), 'варианты — из класса ребёнка');
+
 // ── 5. Шаг по плите ─────────────────────────────────────────────────────────
 assert.equal(trailStep(0, 7, 0), 'next', 'первая плита — шаг');
 assert.equal(trailStep(0, 7, 3), 'again', 'не та плита — герой стоит');
@@ -112,6 +162,33 @@ assert.deepEqual(fixed.words, ['g2_алфавит', 'g2_карандаш'], 'wor
 assert.deepEqual(fixed.cards, ['school'], 'cards без повторов');
 assert.equal(normalizeTrail({ stop: -5 }).stop, 0, 'отрицательный stop — ноль');
 assert.equal(normalizeTrail({ stop: Infinity }).stop, 0, 'бесконечность — ноль');
+
+// Класс-владелец (0.111.0): старый v1 — это 2 класс, чужой класс — чистый лист.
+assert.equal(normalizeTrail({ v: 1, words: ['g2_алфавит'] }).v, 2, 'v1 поднимается до v2');
+const legacyTwo = normalizeTrail({ v: 1, stop: 1, words: ['g2_алфавит'], cards: ['school'] }, 2);
+assert.equal(legacyTwo.grade, 2, 'v1 считается прогрессом 2 класса');
+assert.deepEqual(legacyTwo.words, ['g2_алфавит'], 'v1 не теряет слова 2 класса');
+assert.equal(legacyTwo.stop, 1, 'v1 не теряет остановку');
+const foreign = normalizeTrail(
+  { v: 2, grade: 2, stop: 1, words: ['g2_алфавит'], cards: ['school'] },
+  3,
+);
+assert.deepEqual(
+  foreign,
+  { v: 2, grade: 3, stop: 0, words: [], cards: [] },
+  'прогресс 2 класса не продолжается в 3-м',
+);
+const legacyForeign = normalizeTrail({ v: 1, stop: 1, words: ['g2_алфавит'], cards: ['school'] }, 1);
+assert.deepEqual(
+  legacyForeign,
+  { v: 2, grade: 1, stop: 0, words: [], cards: [] },
+  'старый прогресс 2 класса не протекает в 1-й',
+);
+const ownWord = WORDS_BY_GRADE[3][0].id;
+const sameClass = normalizeTrail({ v: 2, grade: 3, stop: 1, words: [ownWord], cards: [] }, 3);
+assert.equal(sameClass.stop, 1, 'свой класс сохраняет остановку');
+assert.deepEqual(sameClass.words, [ownWord], 'свой класс сохраняет слова');
+assert.equal(normalizeTrail({ v: 2, grade: 2, words: ['g2_алфавит'] }, 2).grade, 2, 'grade проставляется');
 
 // ── 7. Продолжение и сводка ─────────────────────────────────────────────────
 const start = trailResume(stops, EMPTY_TRAIL);
@@ -134,6 +211,14 @@ assert.equal(trailResume(stops, next).wordId, stops[1].wordIds[0], 'и её пе
 assert.deepEqual(next.cards, ['school'], 'открытка первой остановки сохранена');
 assert.equal(withTrailWord(next, stops[0].wordIds[0]).words.length, next.words.length, 'повторное слово не дублируется');
 
+// Сохранённый `stop` — не истина: смена класса или старый профиль не должны
+// уводить на чужую остановку. Ищем первую незакрытую.
+const stalePointer = { ...one, stop: 1 };
+assert.equal(trailResume(stops, stalePointer).stopIndex, 0, 'открытая остановка важнее сохранённого stop');
+assert.equal(trailResume(stops, closed).stopIndex, 0, 'закрытая остановка ещё показывает открытку');
+assert.equal(trailResume(stops, closed).stopDone, true, 'открытка не перепрыгивается');
+assert.equal(trailSummary(stops, closed).currentTitle, 'Птицы', 'сводка уже смотрит на следующую остановку');
+
 let all = next;
 for (const id of stops[1].wordIds) all = withTrailWord(all, id);
 const finish = trailResume(stops, all);
@@ -149,14 +234,20 @@ assert.equal(summary.allDone, true, 'сводка: тропа пройдена')
 assert.equal(trailSummary(stops, EMPTY_TRAIL).doneStops, 0, 'сводка пустой тропы');
 
 // ── 8. В банке хватает слов ─────────────────────────────────────────────────
-for (const grade of [1, 2, 3, 4, 5] as const) {
-  const list = trailStops(grade, { limit: 0 });
+for (const grade of [1, 2, 3, 4] as const) {
+  const list = trailStopsFor(grade);
   assert.ok(list.length > 0, `${grade} класс: есть хотя бы одна остановка`);
   assert.ok(list.every((s) => s.wordIds.every((id) => trailFits(WORD_BY_ID[id]))), `${grade} класс: только пригодные слова`);
 }
+for (const grade of [1, 3, 4] as const) {
+  for (const stop of trailStopsFor(grade)) {
+    // В превью 1/3/4 классов у каждого слова есть картинка: «найти» не должно
+    // превращаться в пустую карточку.
+    assert.ok(stop.wordIds.every((id) => !!WORD_BY_ID[id].image), `${grade} класс, ${stop.id}: у слов есть картинки`);
+  }
+}
 
 console.log(
-  `✓ тропа: ${stops.length} остановки 2 класса (` +
-    stops.map((s) => `${s.title} — ${s.wordIds.length} сл.`).join(', ') +
-    `); движок букв/слогов, шаг и санитайзер проверены`,
+  `✓ тропа: ${allStops.length} остановок 2 класса, превью 1/3/4 — по ${TRAIL_STOPS_MVP}; ` +
+    `цикл букв/дороги/картинок/слогов, шаг и санитайзер проверены`,
 );

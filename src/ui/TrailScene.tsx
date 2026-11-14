@@ -1,15 +1,16 @@
 /**
- * Сцена «Тропы слов» (0.110.0): слово как дорога.
+ * Сцена «Тропы слов» (0.111.0): слово как дорога.
  *
- * Никакого Canvas и картинок: фон — градиент из токенов темы, плиты — кнопки
- * или span'ы, герой — эмодзи. Поэтому сцена одинаково работает в светлой и
- * тёмной теме, не тянет сеть и не ломается на 360 px.
+ * Никакого Canvas и внешних картинок: фон — градиент из токенов темы, плиты —
+ * кнопки или span'ы, герой — инлайн-SVG. Поэтому сцена одинаково работает в
+ * светлой и тёмной теме, не тянет сеть и не ломается на 360 px.
  *
  * `passed` — сколько плит уже позади. Герой стоит на следующей плите: она
- * подсвечена, а пройденные залиты акцентом. `-1` — героя ещё нет (слово не
- * починено).
+ * подсвечена, а пройденные залиты акцентом. `-1` — герой ждёт на старте
+ * (слово ещё не починено или идёт поиск картинки).
  */
 import type { TrailStop } from '../engine/word-trail';
+import { TrailHero, type TrailHeroState } from './TrailHero';
 
 export function TrailScene({
   stop,
@@ -19,6 +20,7 @@ export function TrailScene({
   passed = -1,
   interactive = false,
   wide = false,
+  heroState = 'walk',
   onStep,
   note,
 }: {
@@ -35,6 +37,8 @@ export function TrailScene({
   interactive?: boolean;
   /** Слоговые плиты шире буквенных. */
   wide?: boolean;
+  /** Поза героя: стоит, идёт или радуется. */
+  heroState?: TrailHeroState;
   onStep?: (index: number) => void;
   /** Подпись под дорогой: что делать сейчас. */
   note?: string;
@@ -75,7 +79,11 @@ export function TrailScene({
             const body = (
               <>
                 <span className="trail-seg-text">{hidden ? '?' : filled ? segments[i] : ''}</span>
-                {current && <span className="trail-hero" aria-hidden="true">🚶</span>}
+                {current && (
+                  <span className="trail-hero" aria-hidden="true">
+                    <TrailHero state={heroState} size={20} />
+                  </span>
+                )}
               </>
             );
             // Тап только там, где есть настоящая буква и герой ещё не дошёл:

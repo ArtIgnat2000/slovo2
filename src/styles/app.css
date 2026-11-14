@@ -12430,16 +12430,29 @@ img.product-photo {
   line-height: 1.2;
   color: var(--ink-2);
 }
-.trail-count {
+/* Кнопка альбома: та же мягкая пилюля, но цель пальца — 44 px, потому что
+   теперь это действие, а не счётчик. */
+.trail-album-btn {
   flex: none;
+  min-width: 52px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
   padding: 4px 9px;
+  border: 1.5px solid color-mix(in srgb, var(--primary) 30%, var(--line));
   border-radius: var(--r-pill);
   background: var(--primary-soft);
   color: var(--primary-ink);
+  font: inherit;
   font-size: 12px;
   font-weight: 800;
   line-height: 1.2;
+  cursor: pointer;
 }
+.trail-album-btn:active { transform: translateY(1px); }
+.trail-album-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
 .trail-body {
   flex: 1 1 auto;
@@ -12607,16 +12620,47 @@ button.trail-seg:focus-visible { outline: 2px solid var(--primary); outline-offs
   font-size: 16px;
 }
 
-/* Герой — маленький значок в углу текущей плиты. Он не закрывает букву:
-   ребёнок читает слово, а не ищет персонажа. */
+/* Герой — маленький Буквёнок в углу текущей плиты. Он не закрывает букву:
+   ребёнок читает слово, а не ищет персонажа. SVG наследует токены темы, а
+   анимация живёт внутри (ноги/руки), чтобы не дёргать всю плиту. */
 .trail-hero {
   position: absolute;
-  right: 1px;
-  bottom: 0;
-  font-size: 14px;
-  line-height: 1;
-  animation: trail-bob 1.15s ease-in-out infinite;
+  right: -1px;
+  bottom: -1px;
+  width: 20px;
+  height: 25px;
+  display: block;
+  pointer-events: none;
   filter: drop-shadow(0 1px 0 var(--card));
+}
+.trail-hero-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.trail-hero-leg,
+.trail-hero-arm {
+  transform-box: fill-box;
+}
+.trail-hero-leg-a { transform-origin: 50% 4%; }
+.trail-hero-leg-b { transform-origin: 50% 4%; }
+.trail-hero-arm-a { transform-origin: 88% 12%; }
+.trail-hero-arm-b { transform-origin: 12% 12%; }
+.trail-hero-svg.is-walk .trail-hero-leg-a { animation: trail-leg-a 0.52s ease-in-out infinite alternate; }
+.trail-hero-svg.is-walk .trail-hero-leg-b { animation: trail-leg-b 0.52s ease-in-out infinite alternate; }
+.trail-hero-svg.is-walk .trail-hero-arm-a { animation: trail-arm-a 0.52s ease-in-out infinite alternate; }
+.trail-hero-svg.is-walk .trail-hero-arm-b { animation: trail-arm-b 0.52s ease-in-out infinite alternate; }
+.trail-hero-svg.is-cheer .trail-hero-arm-a { transform: rotate(-118deg); }
+.trail-hero-svg.is-cheer .trail-hero-arm-b { transform: rotate(118deg); }
+.trail-hero-star {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.trail-hero-svg.is-cheer .trail-hero-star {
+  opacity: 1;
+  animation: trail-star 0.9s ease-in-out infinite alternate;
 }
 .trail-scene-note {
   position: relative;
@@ -12754,8 +12798,9 @@ button.trail-seg:focus-visible { outline: 2px solid var(--primary); outline-offs
   70% { transform: rotate(2deg); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .trail-hero,
-  .trail-seg-hidden { animation: none; }
+  .trail-hero-svg,
+  .trail-hero-svg *,
+  .trail-seg-hidden { animation: none !important; }
   .trail-meter i { transition: none; }
 }
 @media (min-width: 720px) {
@@ -12773,4 +12818,189 @@ button.trail-seg:focus-visible { outline: 2px solid var(--primary); outline-offs
   .trail-seg { font-size: 17px; }
   .trail-path-wide .trail-seg { width: auto; min-width: 50px; }
   .trail-back-text { display: none; }
+}
+
+/* ── 0.111.0: «Найти», открытки и Буквёнок ──────────────────────────────────
+   Новые части тропы не вводят новых цветов: карточки поиска — та же рамка и
+   мягкие токены, альбом — сетка 2×N с картинкой-открыткой. На 360 px сетка
+   остаётся двухколоночной: 64 px картинки помещаются в 140 px карточку. */
+
+/* Задание «найти»: 2×2 картинки, каждая — цель не меньше 96 px по высоте. */
+.trail-find-head {
+  display: grid;
+  gap: 2px;
+}
+.trail-find-title {
+  margin: 0;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  line-height: 1.25;
+}
+.trail-find-title b { font-weight: 800; }
+.trail-find-head .clue-hint {
+  margin: 0;
+  text-align: left;
+}
+.trail-find-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.trail-find-card {
+  min-width: 0;
+  min-height: 96px;
+  display: grid;
+  place-items: center;
+  padding: 6px;
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  background: var(--bg-2);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.trail-find-card:hover:not(:disabled) { border-color: var(--primary); }
+.trail-find-card:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.trail-find-card:active:not(:disabled) { transform: translateY(1px); }
+.trail-find-card.rejected {
+  opacity: 0.38;
+  border-style: dashed;
+  cursor: default;
+}
+.trail-find-card.revealed {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 26%, transparent);
+}
+.trail-find-card .word-art-frame { pointer-events: none; }
+
+/* Альбом открыток = карта 16 остановок. Своя прокрутка, чтобы шапка с
+   «К тропе» оставалась на месте и возврат не терялся на длинном списке. */
+.trail-album {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.trail-album .trail-head { flex: none; }
+/* Прокручивается только сетка: «← К тропе» и счётчик остаются на месте. */
+.trail-album-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding-bottom: var(--sp-2);
+}
+.trail-album-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.trail-album-card {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 9px;
+  border: 1.5px dashed var(--line);
+  border-radius: 16px;
+  background: var(--card);
+}
+.trail-album-card.earned {
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--primary) 38%, var(--line));
+  background: linear-gradient(150deg, var(--primary-soft) 0%, var(--card) 78%);
+}
+.trail-album-card.now {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 28%, transparent);
+}
+.trail-album-art {
+  height: 64px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--bg-2);
+  font-size: 30px;
+  line-height: 1;
+}
+.trail-album-card.earned .trail-album-art { background: color-mix(in srgb, var(--primary-soft) 65%, var(--card)); }
+.trail-album-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.trail-album-stop {
+  margin: 0;
+  font-size: 11.5px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.trail-album-word {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+.trail-album-hint,
+.trail-album-danger,
+.trail-album-state {
+  margin: 0;
+  font-size: 10.5px;
+  line-height: 1.25;
+  color: var(--ink-2);
+}
+.trail-album-hint {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.trail-album-danger { color: var(--primary-ink); }
+.trail-album-note {
+  margin: 0;
+  padding: 0 4px;
+  text-align: center;
+}
+.trail-done-hero {
+  display: flex;
+  justify-content: center;
+  line-height: 0;
+}
+
+/* «Одной строкой» на очень узком экране альбом остаётся сеткой: карточки
+   становятся чуть ниже, но 16 остановок не превращаются в километр. */
+@media (max-width: 360px) {
+  .trail-album-grid,
+  .trail-find-grid { gap: 7px; }
+  .trail-album-card { padding: 7px; }
+}
+
+@keyframes trail-leg-a {
+  from { transform: rotate(-13deg); }
+  to { transform: rotate(13deg); }
+}
+@keyframes trail-leg-b {
+  from { transform: rotate(13deg); }
+  to { transform: rotate(-13deg); }
+}
+@keyframes trail-arm-a {
+  from { transform: rotate(7deg); }
+  to { transform: rotate(-7deg); }
+}
+@keyframes trail-arm-b {
+  from { transform: rotate(-7deg); }
+  to { transform: rotate(7deg); }
+}
+@keyframes trail-star {
+  from { transform: scale(0.72) rotate(-8deg); opacity: 0.6; }
+  to { transform: scale(1.06) rotate(8deg); opacity: 1; }
 }
