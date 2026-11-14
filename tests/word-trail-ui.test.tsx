@@ -159,6 +159,12 @@ export async function runWordTrailUiChecks(): Promise<void> {
     `плит: ${$$('.trail-seg').length}, герой: ${!!$('.trail-hero-svg')}`,
   );
   check(
+    'тропа: у сцены есть биом-фон',
+    $('.trail-scene')?.getAttribute('data-trail-biome') === 'school' &&
+      !!$('.trail-backdrop.biome-school'),
+    $('.trail-scene')?.getAttribute('data-trail-biome') ?? 'биома нет',
+  );
+  check(
     'тропа: продолжила со второго слова остановки',
     $('.trail-screen')?.getAttribute('data-trail-word') === WORD_BY_ID[school.wordIds[1]].text,
     `${$('.trail-screen')?.getAttribute('data-trail-word')} ≠ ${WORD_BY_ID[school.wordIds[1]].text}`,

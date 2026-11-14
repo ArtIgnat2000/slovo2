@@ -12515,6 +12515,36 @@ img.product-photo {
   line-height: 1;
   opacity: 0.55;
 }
+/* 0.113.0: пять нарисованных биомов. Под растром остаётся прежний CSS-пейзаж:
+   если WebP не загрузился, сцена не превращается в пустое место. */
+.trail-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background-repeat: no-repeat;
+  background-position: center 44%;
+  background-size: cover;
+}
+.trail-backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in srgb, var(--bg) 8%, transparent) 58%,
+    color-mix(in srgb, var(--bg) 58%, transparent) 86%,
+    color-mix(in srgb, var(--bg) 82%, transparent) 100%
+  );
+}
+.trail-backdrop.biome-school { background-image: url('../assets/trail/school.webp'); }
+.trail-backdrop.biome-forest { background-image: url('../assets/trail/forest.webp'); }
+.trail-backdrop.biome-home { background-image: url('../assets/trail/home.webp'); }
+.trail-backdrop.biome-winter { background-image: url('../assets/trail/winter.webp'); }
+.trail-backdrop.biome-city { background-image: url('../assets/trail/city.webp'); }
+[data-theme='dark'] .trail-backdrop {
+  filter: brightness(0.72) saturate(0.88);
+}
 
 .trail-route {
   position: relative;

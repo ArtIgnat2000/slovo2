@@ -1,8 +1,9 @@
 /**
- * Сцена «Тропы слов» (0.111.0): слово как дорога.
+ * Сцена «Тропы слов» (0.113.0): слово как дорога.
  *
- * Никакого Canvas и внешних картинок: фон — градиент из токенов темы, плиты —
- * кнопки или span'ы, герой — инлайн-SVG. Поэтому сцена одинаково работает в
+ * Никакого Canvas и внешних картинок: фон — пять локальных WebP-биомов поверх
+ * градиента темы, плиты — кнопки или span'ы, герой — инлайн-SVG. Если WebP не
+ * загрузился, остаётся прежний CSS-пейзаж. Поэтому сцена одинаково работает в
  * светлой и тёмной теме, не тянет сеть и не ломается на 360 px.
  *
  * `passed` — сколько плит уже позади. Герой стоит на следующей плите: она
@@ -11,6 +12,7 @@
  */
 import type { TrailStop } from '../engine/word-trail';
 import { TrailHero, type TrailHeroState } from './TrailHero';
+import { trailBiome } from './trail-biome';
 
 export function TrailScene({
   stop,
@@ -44,17 +46,22 @@ export function TrailScene({
   note?: string;
 }) {
   const safePassed = Number.isFinite(passed) ? Math.max(-1, Math.min(total, Math.floor(passed))) : -1;
+  const biome = trailBiome(stop);
   return (
     <section
-      className="trail-scene"
+      className={`trail-scene trail-scene-${biome}`}
       aria-label={`Дорога к остановке «${stop.title}»`}
       data-trail-scene
+      data-trail-biome={biome}
     >
       <div className="trail-sky" aria-hidden="true">
+        {/* CSS-пейзаж остаётся под растровым фоном: если WebP не загрузился,
+            ребёнок видит прежнюю сцену, а не пустое место. */}
         <span className="trail-sun" />
         <span className="trail-hill trail-hill-back" />
         <span className="trail-hill trail-hill-front" />
         <span className="trail-cloud">☁️</span>
+        <span className={`trail-backdrop biome-${biome}`} />
       </div>
 
       <div className="trail-route">
