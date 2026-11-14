@@ -7234,6 +7234,20 @@ img.product-photo {
   max-width: 100%;
   max-height: var(--art-clue-hero);
   aspect-ratio: 1;
+  /* Hero-подсказка — это сам снимок, а не рамка вокруг него. Паспарту с 12 %
+     воздуха (≈24 px с каждой стороны) съедало четверть картинки; на «Собери
+     слово» ребёнок видел маленькую фотографию в пустом поле. Убираем плиту,
+     рамку и внутреннее поле: рисунок занимает весь отведённый квадрат. */
+  padding: 0;
+  border: 0;
+  border-radius: clamp(14px, 4vw, 22px);
+  background: transparent;
+  box-shadow: none;
+  overflow: hidden;
+}
+.lesson-screen .clue-hero > .word-art-frame > .word-art-inner > .word-art {
+  border-radius: inherit;
+  background: transparent;
 }
 .lesson-screen .clue-hero > .clue-body {
   flex: none;

@@ -290,8 +290,13 @@ export async function runLessonArtChecks() {
   check(
     'картинка: токены подсказок задают потолок, а не прибитый размер',
     /--art-clue:\s*clamp\(104px,[^;]*svh/.test(tokens) &&
-      /--art-clue-hero:\s*clamp\(128px,[^;]*svh/.test(tokens),
+      /--art-clue-hero:\s*clamp\(160px,[^;]*svh/.test(tokens),
     tokens.match(/--art-clue(?:-hero)?:[^;]*;/g)?.join(' · ') ?? 'токены не найдены',
+  );
+  check(
+    'картинка: hero-снимок вырос до 300 px и использует 36svh',
+    /--art-clue-hero:\s*clamp\(160px,\s*min\(80vw,\s*36svh\),\s*300px\)/.test(tokens),
+    tokens.match(/--art-clue-hero:[^;]*;/)?.[0] ?? 'токен не найден',
   );
   check(
     'картинка: на коротком экране потолок подсказки под клавиатурой снижается',
@@ -331,6 +336,14 @@ export async function runLessonArtChecks() {
     /flex:\s*1\s+1\s+0%/.test(lessonHeroArtRule) &&
       /aspect-ratio:\s*1/.test(lessonHeroArtRule) &&
       /max-height:\s*var\(--art-clue-hero\)/.test(lessonHeroArtRule),
+    lessonHeroArtRule.replace(/\s+/g, ' ') || 'правило hero-снимка не найдено',
+  );
+  check(
+    'картинка: hero-снимок идёт без паспарту и пустого поля вокруг',
+    /padding:\s*0/.test(lessonHeroArtRule) &&
+      /border:\s*0/.test(lessonHeroArtRule) &&
+      /background:\s*transparent/.test(lessonHeroArtRule) &&
+      /box-shadow:\s*none/.test(lessonHeroArtRule),
     lessonHeroArtRule.replace(/\s+/g, ' ') || 'правило hero-снимка не найдено',
   );
 
