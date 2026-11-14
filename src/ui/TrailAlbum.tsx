@@ -13,6 +13,7 @@ import type { TrailProgress } from '../types';
 import type { TrailStop } from '../engine/word-trail';
 import { WORD_BY_ID } from '../content/words';
 import { WordArt } from './WordView';
+import { trailPostcard } from './trail-postcards';
 
 export function TrailAlbum({
   stops,
@@ -51,6 +52,7 @@ export function TrailAlbum({
         <div className="trail-album-grid">
           {stops.map((stop, index) => {
             const word = WORD_BY_ID[stop.wordIds[0]];
+            const postcard = trailPostcard(stop);
             const earned =
               stop.wordIds.length > 0 && stop.wordIds.every((id) => progress.words.includes(id));
             const current = index === safeCurrent;
@@ -68,8 +70,14 @@ export function TrailAlbum({
                     : `${index + 1}. ${stop.title}. ${current ? 'Сейчас на тропе' : 'Впереди'}`
                 }
               >
-                <div className="trail-album-art" aria-hidden="true">
-                  {earned && word ? <WordArt word={word} size={64} lazy /> : <span>{stop.emoji}</span>}
+                <div className={`trail-album-art${earned && postcard ? ' has-postcard' : ''}`} aria-hidden="true">
+                  {earned && postcard ? (
+                    <img className="trail-album-postcard" src={postcard} alt="" width={320} height={180} loading="lazy" decoding="async" />
+                  ) : earned && word ? (
+                    <WordArt word={word} size={64} lazy />
+                  ) : (
+                    <span>{stop.emoji}</span>
+                  )}
                 </div>
                 <div className="trail-album-body">
                   <p className="trail-album-stop">

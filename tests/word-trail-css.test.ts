@@ -31,7 +31,27 @@ assert.match(
   /@media \(prefers-reduced-motion: reduce\)\s*\{[^}]*\.trail-seg-hidden[^}]*animation:\s*none[^}]*\}/s,
   'reduced motion выключает дрожание плиты',
 );
-assert.ok(!/url\(/.test(trail), 'сцена «Тропы» не тянет внешние картинки');
+const urls = [...trail.matchAll(/url\(([^)]+)\)/g)].map((match) =>
+  match[1].trim().replace(/^['"]|['"]$/g, ''),
+);
+assert.equal(urls.length, 5, 'в «Тропе» ровно пять фонов-биомов');
+assert.ok(
+  urls.every((url) => url.startsWith('../assets/trail/') && url.endsWith('.webp')),
+  `фоны — только локальные WebP: ${urls.join(', ')}`,
+);
+assert.ok(!/(?:https?:)?\/\//.test(trail), 'сцена «Тропы» не тянет внешние картинки');
+assert.match(
+  trail,
+  /\.trail-backdrop\.biome-winter\s*\{[^}]*background-image:\s*url\('\.\.\/assets\/trail\/winter\.webp'\)/s,
+  'зимний биом подключён локальным файлом',
+);
+assert.match(
+  trail,
+  /\[data-theme='dark'\]\s*\.trail-backdrop\s*\{[^}]*filter:/s,
+  'тёмная тема приглушает растровый фон',
+);
+assert.match(trail, /\.trail-postcard-img\s*\{[^}]*aspect-ratio:\s*16\s*\/\s*9/s, 'открытка держит 16:9');
+assert.match(trail, /\.trail-album-art\.has-postcard\s*\{[^}]*aspect-ratio:\s*16\s*\/\s*9/s, 'открытка в альбоме держит 16:9');
 assert.ok(!/overflow-x:\s*auto/.test(trail), 'в «Тропе» нет скрытой горизонтальной полки');
 // На узком экране плиту не уменьшаем: 44 px — не косметика, а доступность.
 const narrow = trail.slice(trail.indexOf('@media (max-width: 380px)'));
@@ -44,4 +64,4 @@ assert.ok(
   'на 380 px высота плиты не переопределяется',
 );
 
-console.log('✓ тропа: CSS-стражи — 44 px, reduced motion, альбом 2×N, без внешних картинок и скрытой полки');
+console.log('✓ тропа: CSS-стражи — 44 px, reduced motion, альбом 2×N, 5 локальных биомов, без внешних картинок');

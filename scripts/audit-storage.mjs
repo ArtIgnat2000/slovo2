@@ -17,6 +17,7 @@ mkdirSync(out, { recursive: true });
 await build({
   entryPoints: [path.join(root, 'tests/storage-audit.probe.tsx')],
   bundle: true,
+  loader: { '.webp': 'dataurl' },
   platform: 'node',
   format: 'esm',
   jsx: 'automatic',

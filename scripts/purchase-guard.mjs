@@ -22,6 +22,7 @@ mkdirSync(out, { recursive: true });
 await build({
   entryPoints: [path.join(root, 'tests/purchase-guard.main.tsx')],
   bundle: true,
+  loader: { '.webp': 'dataurl' },
   platform: 'node',
   format: 'esm',
   jsx: 'automatic',

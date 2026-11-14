@@ -159,6 +159,12 @@ export async function runWordTrailUiChecks(): Promise<void> {
     `плит: ${$$('.trail-seg').length}, герой: ${!!$('.trail-hero-svg')}`,
   );
   check(
+    'тропа: у сцены есть биом-фон',
+    $('.trail-scene')?.getAttribute('data-trail-biome') === 'school' &&
+      !!$('.trail-backdrop.biome-school'),
+    $('.trail-scene')?.getAttribute('data-trail-biome') ?? 'биома нет',
+  );
+  check(
     'тропа: продолжила со второго слова остановки',
     $('.trail-screen')?.getAttribute('data-trail-word') === WORD_BY_ID[school.wordIds[1]].text,
     `${$('.trail-screen')?.getAttribute('data-trail-word')} ≠ ${WORD_BY_ID[school.wordIds[1]].text}`,
@@ -250,6 +256,11 @@ export async function runWordTrailUiChecks(): Promise<void> {
     postcard?.textContent ?? 'нет',
   );
   check(
+    'тропа: на открытке нарисованный кадр',
+    !!$('.trail-postcard-img'),
+    $('.trail-postcard-img') ? 'картинка есть' : 'нет картинки',
+  );
+  check(
     'тропа: после последнего слова сразу открытка, без лишнего «Дальше»',
     !btnText('Дальше') && !!btnText('Следующая остановка'),
     postcard?.textContent ?? 'нет',
@@ -271,6 +282,11 @@ export async function runWordTrailUiChecks(): Promise<void> {
     'тропа: в альбоме 16 открыток',
     $$('[data-trail-card]').length === 16,
     `карточек: ${$$('[data-trail-card]').length}`,
+  );
+  check(
+    'тропа: в альбоме открытка «Школы» с картинкой',
+    !!$('[data-trail-card="school"] .trail-album-postcard'),
+    $('[data-trail-card="school"] .trail-album-art')?.innerHTML ?? 'нет',
   );
   check(
     'тропа: открытка «Школы» отмечена, следующая — нет',
