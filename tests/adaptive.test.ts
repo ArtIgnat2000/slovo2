@@ -34,7 +34,7 @@ import './buk-help.test';
 import './buk-chat.test';
 import './buk-3d.test';
 import { effectiveCards, nextAdaptiveState, recordAttempt } from '../src/engine/adaptive';
-import { buildLesson } from '../src/engine/scheduler';
+import { buildLesson, orderLessonTasks } from '../src/engine/scheduler';
 import { LESSONS, WORDS, WORDS_BY_GRADE } from '../src/content/words';
 const finish = (independent: number, total = 4) => ({ kind: 'finish' as const, attempts: { total, independent } });
 assert.equal(effectiveCards(undefined, 16), 16);
@@ -68,6 +68,33 @@ console.log('✓ adaptive rules, primary metrics, phrase introductions, all budg
 // ── Риски scheduler из §13 плана (регрессии) ─────────────────────────────────
 import { DAY, applyAnswer, initState } from '../src/engine/srs';
 import type { WordState } from '../src/types';
+
+// Знакомство с новым словом сразу сопровождается его первым закреплением.
+{
+  const topor = WORDS.find((w) => w.text === 'топор')!;
+  const lopata = WORDS.find((w) => w.text === 'лопата')!;
+  const review = WORDS.find((w) => w.id !== topor.id && w.id !== lopata.id)!;
+  const base = LESSONS.find((l) => l.id === 'work')!;
+  const lesson = { ...base, wordIds: [topor.id, lopata.id] };
+  for (const states of [{}, { [lopata.id]: applyAnswer(initState(), 5) }]) {
+    for (const maxCards of [8, 12, 16, 20]) {
+      const tasks = buildLesson({ lesson, level: 0, states, reviewWords: [review], maxCards });
+      for (let run = 0; run < 10; run++) {
+        const ordered = orderLessonTasks(tasks);
+        assert.deepEqual(ordered.map((t) => t.uid).sort(), tasks.map((t) => t.uid).sort(), 'все задания сохранены ровно по одному разу');
+        for (let i = 0; i < ordered.length; i++) {
+          if (ordered[i].kind === 'intro') {
+            const first = tasks.find((t) => t.wordId === ordered[i].wordId && t.reason === 'practice');
+            assert.equal(ordered[i + 1]?.uid, first?.uid, 'за карточкой идёт первое задание на то же слово');
+          }
+        }
+        const reviewIndex = ordered.findIndex((t) => t.reason === 'review');
+        if (reviewIndex >= 0) assert.ok(ordered.slice(reviewIndex).every((t) => t.reason === 'review'));
+        if (lopata.id in states) assert.ok(!ordered.some((t) => t.kind === 'intro' && t.wordId === lopata.id));
+      }
+    }
+  }
+}
 
 // 1. Фразы («до свидания») нельзя собирать из букв или печатать: им остаются
 //    знакомство, слоги, окошко и «исправь робота» — на всех уровнях навыка.
