@@ -52,6 +52,7 @@ await build({
   absWorkingDir: src,
   entryPoints: [path.join(src, 'src/main.tsx')],
   bundle: true,
+  loader: { '.webp': 'dataurl' },
   format: 'iife',
   platform: 'browser',
   target: 'es2019',

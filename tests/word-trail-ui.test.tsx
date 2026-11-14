@@ -256,6 +256,11 @@ export async function runWordTrailUiChecks(): Promise<void> {
     postcard?.textContent ?? 'нет',
   );
   check(
+    'тропа: на открытке нарисованный кадр',
+    !!$('.trail-postcard-img'),
+    $('.trail-postcard-img') ? 'картинка есть' : 'нет картинки',
+  );
+  check(
     'тропа: после последнего слова сразу открытка, без лишнего «Дальше»',
     !btnText('Дальше') && !!btnText('Следующая остановка'),
     postcard?.textContent ?? 'нет',
@@ -277,6 +282,11 @@ export async function runWordTrailUiChecks(): Promise<void> {
     'тропа: в альбоме 16 открыток',
     $$('[data-trail-card]').length === 16,
     `карточек: ${$$('[data-trail-card]').length}`,
+  );
+  check(
+    'тропа: в альбоме открытка «Школы» с картинкой',
+    !!$('[data-trail-card="school"] .trail-album-postcard'),
+    $('[data-trail-card="school"] .trail-album-art')?.innerHTML ?? 'нет',
   );
   check(
     'тропа: открытка «Школы» отмечена, следующая — нет',

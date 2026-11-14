@@ -31,6 +31,7 @@ await build({
   bundle: true,
   platform: 'node',
   format: 'esm',
+  loader: { '.webp': 'dataurl' },
   jsx: 'automatic',
   target: 'node20',
   outfile: entry,

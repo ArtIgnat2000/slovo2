@@ -169,6 +169,7 @@ process.exit(0);
 await build({
   entryPoints: [entry],
   bundle: true,
+  loader: { '.webp': 'dataurl' },
   platform: 'node',
   format: 'esm',
   jsx: 'automatic',

@@ -12809,6 +12809,17 @@ button.trail-seg:focus-visible { outline: 2px solid var(--primary); outline-offs
   line-height: 1;
   box-shadow: 0 3px 0 color-mix(in srgb, var(--primary) 22%, transparent);
 }
+.trail-postcard-img {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border: 1.5px solid var(--primary);
+  border-radius: 16px;
+  background: var(--primary-soft);
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--primary) 22%, transparent);
+}
 .trail-empty {
   display: flex;
   flex-direction: column;
@@ -13059,6 +13070,18 @@ button.trail-seg:focus-visible { outline: 2px solid var(--primary); outline-offs
   line-height: 1;
 }
 .trail-album-card.earned .trail-album-art { background: color-mix(in srgb, var(--primary-soft) 65%, var(--card)); }
+.trail-album-art.has-postcard {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  background: var(--card);
+}
+.trail-album-postcard {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 .trail-album-body {
   min-width: 0;
   display: flex;

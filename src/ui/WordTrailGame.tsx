@@ -43,6 +43,7 @@ import { Confetti } from './Bits';
 import { sfx } from '../platform/sound';
 import { haptic } from '../platform/haptics';
 import { prefersReducedMotion } from './motion';
+import { trailPostcard } from './trail-postcards';
 
 type TrailPhase = 'repair' | 'walk' | 'find' | 'maze' | 'syllables' | 'word-done' | 'stop-done' | 'all-done';
 
@@ -298,6 +299,7 @@ export function WordTrailGame({
                   : 'Остановка позади — открытка сохранена.';
   const stopNumber = Math.min(resume.stopIndex + 1, summary.totalStops);
   const story = trailStory(stop, stops[resume.stopIndex + 1] ?? null);
+  const postcard = trailPostcard(stop);
 
   return (
     <div className="screen games-screen trail-screen" data-trail-word={task?.word.text}>
@@ -679,7 +681,18 @@ export function WordTrailGame({
             <div className="trail-done-hero">
               <TrailHero state="cheer" size={42} label="Буквёнок радуется" />
             </div>
-            <div className="trail-postcard-art" aria-hidden="true">{stop.emoji}</div>
+            {postcard ? (
+              <img
+                className="trail-postcard-img"
+                src={postcard}
+                alt=""
+                width={320}
+                height={180}
+                decoding="async"
+              />
+            ) : (
+              <div className="trail-postcard-art" aria-hidden="true">{stop.emoji}</div>
+            )}
             <p className="trail-done-title">
               {phase === 'all-done' ? 'Все остановки пройдены!' : `Остановка «${stop.title}» пройдена!`}
             </p>

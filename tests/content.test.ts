@@ -11,6 +11,7 @@ import './stress.test';
 // «Тропа слов» (0.110.0): движок игры без DOM — в том же прогоне контента.
 import './word-trail.test';
 import './trail-biome.test';
+import './trail-postcards.test';
 import './word-trail-css.test';
 import {
   AVAILABLE_CLASSES,

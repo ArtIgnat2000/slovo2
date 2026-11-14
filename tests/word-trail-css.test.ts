@@ -50,6 +50,8 @@ assert.match(
   /\[data-theme='dark'\]\s*\.trail-backdrop\s*\{[^}]*filter:/s,
   'тёмная тема приглушает растровый фон',
 );
+assert.match(trail, /\.trail-postcard-img\s*\{[^}]*aspect-ratio:\s*16\s*\/\s*9/s, 'открытка держит 16:9');
+assert.match(trail, /\.trail-album-art\.has-postcard\s*\{[^}]*aspect-ratio:\s*16\s*\/\s*9/s, 'открытка в альбоме держит 16:9');
 assert.ok(!/overflow-x:\s*auto/.test(trail), 'в «Тропе» нет скрытой горизонтальной полки');
 // На узком экране плиту не уменьшаем: 44 px — не косметика, а доступность.
 const narrow = trail.slice(trail.indexOf('@media (max-width: 380px)'));
