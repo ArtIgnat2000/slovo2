@@ -192,6 +192,7 @@ function Gap({ word, task, onSolve, onAttempt, answered }: Props) {
     const ok = l === correct;
     const quality = ok ? (hintUsed ? 3 : 5) : 0;
     onAttempt?.(quality);
+    later(() => onSolve(quality, l), ok ? 700 : 1200);
     sfx.tap();
     if (ok) {
       sfx.correct();
@@ -200,7 +201,6 @@ function Gap({ word, task, onSolve, onAttempt, answered }: Props) {
       sfx.wrong();
       haptic.wrong();
     }
-    later(() => onSolve(quality, l), ok ? 700 : 1200);
   };
 
   /** Подсказка «50:50» — как в телевикторине: убираем две неверные буквы. */
@@ -283,6 +283,9 @@ function Write({ word, task, onSolve, onAttempt, answered }: Props) {
     const quality = ok ? (hintUsed ? 3 : 5) : 0;
     onAttempt?.(quality);
     setState(ok ? 'ok' : 'bad');
+    // Вердикт ставим в очередь ДО звука: сбой AudioContext на iOS не должен
+    // оставлять ребёнка на зелёном поле без полосы «✓» и кнопки «Далее».
+    later(() => onSolve(quality, val.trim()), ok ? 700 : 1300);
     if (ok) {
       sfx.correct();
       haptic.correct();
@@ -290,7 +293,6 @@ function Write({ word, task, onSolve, onAttempt, answered }: Props) {
       sfx.wrong();
       haptic.wrong();
     }
-    later(() => onSolve(quality, val.trim()), ok ? 700 : 1300);
   };
 
   const hideAll = word.text.split('').map((_, i) => i).filter((i) => i !== task.dangerIdx);
@@ -373,6 +375,7 @@ function Visual({ word, task, onSolve, onAttempt, answered }: Props) {
     const quality = ok ? (hintUsed ? 3 : 5) : 0;
     onAttempt?.(quality);
     setState(ok ? 'ok' : 'bad');
+    later(() => onSolve(quality, val.trim()), ok ? 700 : 1300);
     if (ok) {
       sfx.correct();
       haptic.correct();
@@ -380,7 +383,6 @@ function Visual({ word, task, onSolve, onAttempt, answered }: Props) {
       sfx.wrong();
       haptic.wrong();
     }
-    later(() => onSolve(quality, val.trim()), ok ? 700 : 1300);
   };
 
   if (phase === 'show') {
@@ -468,6 +470,7 @@ function Fix({ word, task, onSolve, onAttempt, answered }: Props) {
     const ok = v === word.text;
     const quality = ok ? (hintUsed ? 3 : 5) : 0;
     onAttempt?.(quality);
+    later(() => onSolve(quality, v), ok ? 700 : 1200);
     sfx.tap();
     if (ok) {
       sfx.correct();
@@ -476,7 +479,6 @@ function Fix({ word, task, onSolve, onAttempt, answered }: Props) {
       sfx.wrong();
       haptic.wrong();
     }
-    later(() => onSolve(quality, v), ok ? 700 : 1200);
   };
 
   return (
