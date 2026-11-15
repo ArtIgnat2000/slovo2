@@ -5073,6 +5073,13 @@ img.product-photo {
   animation: shake 0.4s;
 }
 
+.sentence-filled {
+  color: var(--primary-ink);
+  font-weight: 800;
+  padding: 0 2px;
+  border-radius: 4px;
+  background: var(--primary-soft);
+}
 .sentence {
   background: var(--card);
   border: 2px solid var(--line);
@@ -7189,15 +7196,30 @@ img.product-photo {
   font-size: var(--fs-xs);
   line-height: 1.25;
 }
-/* «Напиши» и «Зрительный диктант»: картинка сверху, пример и подсказка под ней,
-   всё по центру — тот же порядок, что у карточки слова. Снизу экранная клавиатура,
-   поэтому место ограничено: квадрат снимка берёт размер из токена --art-clue
-   (он уже учитывает высоту экрана), а текст под ним занимает ровно свою высоту.
-   Раньше здесь была строка «снимок слева — пример справа»: на узком экране она
-   сжимала рисунок и выводила его за левый край. */
+/* «Напиши» и «Зрительный диктант»: картинка сверху, пример под ней, всё по
+   центру — тот же порядок, что у карточки слова. Снизу экранная клавиатура,
+   поэтому место ограничено. С 0.116.1 снимок больше не «иконка»: он занимает
+   почти всю ширину экрана, а высота ограничена видимой частью viewport, чтобы
+   клавиатура и поле ввода остались на месте. Пустые провалы сверху и снизу
+   убраны: картинка забирает именно ту высоту, которая раньше пропадала зря. */
+.lesson-screen .task-write,
+.lesson-screen .task-visual {
+  min-height: 0;
+  gap: 8px;
+  /* Пока ребёнок пишет, карточка идёт сверху: так большая картинка, пример,
+     поле и клавиатура складываются без пустых провалов. После ответа остаётся
+     мало содержимого — там центрируем, иначе пустота прилипала бы к вердикту. */
+  justify-content: flex-start;
+}
+.lesson-screen.has-verdict .task-write,
+.lesson-screen.has-verdict .task-visual {
+  justify-content: center;
+}
 .lesson-screen .task-write > .clue,
 .lesson-screen .task-visual > .clue {
-  flex: 1 1 auto;
+  /* Не растим строку подсказки: раньше flex: 1 раздувал её и прятал пустоту
+     внутри — между картинкой и примером появлялся провал в 100 px. */
+  flex: none;
   min-height: 0;
   justify-content: center;
 }
@@ -7205,19 +7227,36 @@ img.product-photo {
 .lesson-screen .task-visual > .clue > .word-art-frame {
   flex: none;
   align-self: center;
-  width: var(--art-clue);
-  height: var(--art-clue);
+  /* Ширина страницы минус отступы урока; на коротком экране потолок ниже,
+     чтобы клавиатура не уехала за нижний край. 40svh — не «на глаз»: на
+     360×800 это 320 px при доступных 328 px. */
+  width: min(100%, 40svh);
+  height: auto;
+  aspect-ratio: 1;
   max-width: 100%;
-  /* Паспарту в уроке не нужно (0.116.0): картинка — сама карточка. Плита,
+  /* Паспарту в уроке не нужно (0.115.1): картинка — сама карточка. Плита,
      рамка и 12 px поля съедали четверть рисунка и оставляли пустую коробку
-     вокруг. Так же, как в hero-подсказке, снимок занимает весь квадрат и
-     обрезается по скруглению. */
+     вокруг. Снимок занимает весь квадрат и обрезается по скруглению. */
   padding: 0;
   border: 0;
   border-radius: clamp(14px, 4vw, 22px);
   background: transparent;
   box-shadow: none;
   overflow: hidden;
+}
+/* Ниже 760 px по высоте клавиатура и ввод важнее квадрата: потолок снимка
+   опускается ступенью, а не режет экран. */
+@media (max-height: 760px) {
+  .lesson-screen .task-write > .clue > .word-art-frame,
+  .lesson-screen .task-visual > .clue > .word-art-frame {
+    width: min(100%, 36svh);
+  }
+}
+@media (max-height: 680px) {
+  .lesson-screen .task-write > .clue > .word-art-frame,
+  .lesson-screen .task-visual > .clue > .word-art-frame {
+    width: min(100%, 27svh);
+  }
 }
 .lesson-screen .task-write > .clue > .word-art-frame > .word-art-inner > .word-art,
 .lesson-screen .task-visual > .clue > .word-art-frame > .word-art-inner > .word-art {

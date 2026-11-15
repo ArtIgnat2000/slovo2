@@ -728,7 +728,7 @@ export function LessonScreen({ lessonId, onExit, goal, onStartList }: Props) {
           `.lesson-task.is-frozen`, состояние внутри неё не сбрасывается, так что
           ребёнок видит свой ответ и подсветку «верно/неверно». */}
       <div ref={taskRef} className={`lesson-task ${verdict ? 'is-frozen' : ''}`}>
-        <TaskView key={task.uid} task={task} word={word} noHints={isCheck} onSolve={onSolve} onAttempt={(quality) => {
+        <TaskView key={task.uid} task={task} word={word} noHints={isCheck} answered={!!verdict} onSolve={onSolve} onAttempt={(quality) => {
         if (!finalized.current) {
           studyClock.current?.activity();
           ensureTouchedToday();

@@ -218,6 +218,33 @@ export async function runLessonArtChecks() {
     writeClue?.textContent?.slice(0, 80) ?? '—',
   );
 
+  // После ответа предложение становится целым, а инструкция и пустое поле
+  // уходят: ребёнок видит свой ответ в примере, а не три его копии подряд.
+  root.render(
+    createElement(TaskView, {
+      task: makeTask('write', word.id, 'review', word.danger[0] ?? 0),
+      word,
+      onSolve: () => {},
+      answered: true,
+    }),
+  );
+  await sleep(40);
+  const answeredCard = box.querySelector('.task-write') as HTMLElement | null;
+  check(
+    'картинка: после ответа пропуск в примере заменён самим словом',
+    !!answeredCard?.querySelector('.sentence .sentence-filled')?.textContent?.includes(word.text) &&
+      !answeredCard.querySelector('.sentence .gap'),
+    answeredCard?.querySelector('.sentence')?.textContent ?? '—',
+  );
+  check(
+    'картинка: после ответа нет текста задания, пустого поля и подписи-подсказки',
+    !!answeredCard &&
+      !answeredCard.querySelector('.prompt') &&
+      !answeredCard.querySelector('.typed') &&
+      !answeredCard.querySelector('.clue-hint'),
+    answeredCard?.textContent?.slice(0, 100) ?? '—',
+  );
+
   root.unmount();
   box.remove();
 
@@ -311,23 +338,40 @@ export async function runLessonArtChecks() {
   const clueRowRule =
     css.match(/\.lesson-screen \.task-write > \.clue,[^{]*\{[^}]*\}/)?.[0] ?? '';
   check(
-    'картинка: строка подсказки под клавиатурой забирает остаток высоты задания',
-    /flex:\s*1\s+1\s+auto/.test(clueRowRule) && /min-height:\s*0/.test(clueRowRule),
+    'картинка: строка подсказки не раздувается и не прячет пустоту внутри',
+    /flex:\s*none/.test(clueRowRule) && /min-height:\s*0/.test(clueRowRule),
     clueRowRule.replace(/\s+/g, ' ') || 'правило строки подсказки не найдено',
+  );
+  const writeTaskRule =
+    css.match(/\.lesson-screen \.task-write,\s*\n\.lesson-screen \.task-visual\s*\{[^}]*\}/)?.[0] ?? '';
+  check(
+    'картинка: пока ребёнок пишет, карточка идёт сверху — без пустого провала',
+    /justify-content:\s*flex-start/.test(writeTaskRule) &&
+      /min-height:\s*0/.test(writeTaskRule),
+    writeTaskRule.replace(/\s+/g, ' ') || 'правило .task-write не найдено',
   );
   const clueArtRule =
     css.match(/\.lesson-screen \.task-write > \.clue > \.word-art-frame,[^{]*\{[^}]*\}/)?.[0] ?? '';
   check(
-    'картинка: снимок под клавиатурой стоит по центру сверху и держит квадрат',
+    'картинка: снимок под клавиатурой стоит по центру и держит квадрат',
     /align-self:\s*center/.test(clueArtRule) &&
-      /width:\s*var\(--art-clue\)/.test(clueArtRule) &&
-      /height:\s*var\(--art-clue\)/.test(clueArtRule),
+      /width:\s*min\(100%,\s*40svh\)/.test(clueArtRule) &&
+      /aspect-ratio:\s*1/.test(clueArtRule),
     clueArtRule.replace(/\s+/g, ' ') || 'правило снимка подсказки не найдено',
   );
   check(
-    'картинка: размер снимка под клавиатурой ограничен токеном, а не числом',
-    !/\b\d+px\s*;/.test(clueArtRule.replace(/min-height:[^;]*;/, '')),
+    'картинка: снимок занимает ширину страницы, а не висит иконкой по центру',
+    /width:\s*min\(100%,\s*40svh\)/.test(clueArtRule) &&
+      !/width:\s*var\(--art-clue\)/.test(clueArtRule),
     clueArtRule.replace(/\s+/g, ' ') || 'правило снимка подсказки не найдено',
+  );
+  const shortClueArtRule =
+    css.match(/@media \(max-height: 760px\) \{[^}]*\.task-write[^{]*\{[^}]*\}/)?.[0] ?? '';
+  check(
+    'картинка: на коротком экране снимок опускается ступенью, а не режет клавиатуру',
+    /width:\s*min\(100%,\s*36svh\)/.test(shortClueArtRule) &&
+      /width:\s*min\(100%,\s*27svh\)/.test(css),
+    shortClueArtRule.replace(/\s+/g, ' ') || 'ступени короткого экрана не найдены',
   );
   check(
     'картинка: в «Напиши» и «Диктанте» паспарту тоже убрано',

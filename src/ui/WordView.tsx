@@ -245,12 +245,27 @@ export function WordCard({
  * Предложение с пропуском. Пропуск — пустая рамка: раньше в нём лежало слово
  * прозрачными буквами, из-за чего ширина рамки выдавала длину ответа.
  */
-export function Sentence({ word, hidden = true }: { word: Word; hidden?: boolean }) {
+export function Sentence({
+  word,
+  hidden = true,
+  highlight = false,
+}: {
+  word: Word;
+  hidden?: boolean;
+  /** Ответ уже принят: слово встаёт в пропуск и мягко подсвечивается. */
+  highlight?: boolean;
+}) {
   const parts = word.sentence.split('____');
   return (
     <div className="sentence">
       {parts[0]}
-      {hidden ? <span className="gap" aria-hidden="true" /> : word.text}
+      {hidden ? (
+        <span className="gap" aria-hidden="true" />
+      ) : highlight ? (
+        <b className="sentence-filled">{word.text}</b>
+      ) : (
+        word.text
+      )}
       {parts[1]}
     </div>
   );
@@ -273,9 +288,12 @@ export function WordClue({
   word,
   compact = false,
   layout = 'inline',
+  reveal = false,
 }: {
   word: Word;
   compact?: boolean;
+  /** Полоса вердикта: пропуск в примере заполняется словом, лишний текст уходит. */
+  reveal?: boolean;
   /**
    * inline — картинка сверху, пример под ней, размер по --art-clue: для заданий
    * с клавиатурой, где места мало.
@@ -294,10 +312,12 @@ export function WordClue({
           под клавиатурой и полноценный герой в заданиях без клавиатуры. */}
       <WordArt word={word} size={compact ? lessonSize : 64} />
       <div className="clue-body">
-        <Sentence word={word} />
-        <p className="clue-hint">
-          💡 {word.hint} · <b>{lengthLabel(word)}</b>
-        </p>
+        <Sentence word={word} hidden={!reveal} highlight={reveal} />
+        {!reveal && (
+          <p className="clue-hint">
+            💡 {word.hint} · <b>{lengthLabel(word)}</b>
+          </p>
+        )}
       </div>
     </div>
   );

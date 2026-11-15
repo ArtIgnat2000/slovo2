@@ -26,32 +26,45 @@ interface Props {
    * не просто прячутся стилями.
    */
   noHints?: boolean;
+  /**
+   * Ответ уже принят и на экране полоса вердикта. Тогда задание перестаёт
+   * повторять инструкцию и пустое поле: в примере пропуск заменяется словом,
+   * а «Напиши слово», ввод и клавиатура уходят. Это не отменяет сам ответ —
+   * ребёнок видит его в предложении и в полосе вердикта.
+   */
+  answered?: boolean;
 }
 
-export function TaskView({ task, word, onSolve, onAttempt, noHints }: Props) {
+export function TaskView({ task, word, onSolve, onAttempt, noHints, answered }: Props) {
   return (
     <NoHintsContext.Provider value={!!noHints}>
-      <TaskBody task={task} word={word} onSolve={onSolve} onAttempt={onAttempt} />
+      <TaskBody
+        task={task}
+        word={word}
+        onSolve={onSolve}
+        onAttempt={onAttempt}
+        answered={answered}
+      />
     </NoHintsContext.Provider>
   );
 }
 
-function TaskBody({ task, word, onSolve, onAttempt }: Omit<Props, 'noHints'>) {
+function TaskBody({ task, word, onSolve, onAttempt, answered }: Omit<Props, 'noHints'>) {
   switch (task.kind) {
     case 'intro':
       return <Intro word={word} reason={task.reason} onSolve={onSolve} />;
     case 'syllables':
       return <Syllables word={word} onSolve={onSolve} />;
     case 'gap':
-      return <Gap word={word} task={task} onSolve={onSolve} onAttempt={onAttempt} />;
+      return <Gap word={word} task={task} onSolve={onSolve} onAttempt={onAttempt} answered={answered} />;
     case 'build':
-      return <Build word={word} task={task} onSolve={onSolve} onAttempt={onAttempt} />;
+      return <Build word={word} task={task} onSolve={onSolve} onAttempt={onAttempt} answered={answered} />;
     case 'write':
-      return <Write word={word} task={task} onSolve={onSolve} onAttempt={onAttempt} />;
+      return <Write word={word} task={task} onSolve={onSolve} onAttempt={onAttempt} answered={answered} />;
     case 'visual':
-      return <Visual word={word} task={task} onSolve={onSolve} onAttempt={onAttempt} />;
+      return <Visual word={word} task={task} onSolve={onSolve} onAttempt={onAttempt} answered={answered} />;
     case 'fix':
-      return <Fix word={word} task={task} onSolve={onSolve} onAttempt={onAttempt} />;
+      return <Fix word={word} task={task} onSolve={onSolve} onAttempt={onAttempt} answered={answered} />;
     default:
       return null;
   }
@@ -166,7 +179,7 @@ function Syllables({ word, onSolve }: { word: Word; onSolve: SolveFn }) {
 
 // ── 3. Окошко ───────────────────────────────────────────────────────────────
 
-function Gap({ word, task, onSolve, onAttempt }: Props) {
+function Gap({ word, task, onSolve, onAttempt, answered }: Props) {
   const later = useTaskTimeout();
   const [chosen, setChosen] = useState<string | null>(null);
   const [hintUsed, setHintUsed] = useState(false);
@@ -201,9 +214,9 @@ function Gap({ word, task, onSolve, onAttempt }: Props) {
 
   return (
     <div className="task task-gap">
-      <p className="prompt">Какая буква спряталась?</p>
+      {!answered && <p className="prompt">Какая буква спряталась?</p>}
       <WordLetters word={word} stress markDanger hide={[task.dangerIdx]} />
-      <Sentence word={word} />
+      <Sentence word={word} hidden={!answered} highlight={answered} />
       <div className="options">
         {(task.options ?? []).map((o) => {
           const out = eliminated.includes(o);
@@ -232,14 +245,14 @@ function Gap({ word, task, onSolve, onAttempt }: Props) {
 
 // ── 4. Собери слово ─────────────────────────────────────────────────────────
 
-function Build({ word, task, onSolve, onAttempt }: Props) {
+function Build({ word, task, onSolve, onAttempt, answered }: Props) {
   return (
     <div className="task task-build">
       {/* В сборке нет экранной клавиатуры, поэтому образ можно сделать главным:
           крупная картинка сверху, пример и объём ответа под ней. На коротком
           экране CSS сам возвращает эту карточку в горизонтальную компоновку. */}
-      <WordClue word={word} compact layout="hero" />
-      <p className="prompt">Собери слово из букв</p>
+      <WordClue word={word} compact layout="hero" reveal={answered} />
+      {!answered && <p className="prompt">Собери слово из букв</p>}
       <WordTileBoard
         word={word}
         trayLetters={task.letters ?? undefined}
@@ -252,7 +265,7 @@ function Build({ word, task, onSolve, onAttempt }: Props) {
 
 // ── 5. Напиши слово по памяти ───────────────────────────────────────────────
 
-function Write({ word, task, onSolve, onAttempt }: Props) {
+function Write({ word, task, onSolve, onAttempt, answered }: Props) {
   const later = useTaskTimeout();
   const [val, setVal] = useState('');
   const [state, setState] = useState<'idle' | 'ok' | 'bad'>('idle');
@@ -284,23 +297,25 @@ function Write({ word, task, onSolve, onAttempt }: Props) {
 
   return (
     <div className="task task-write">
-      <WordClue word={word} compact />
-      <p className="prompt">Напиши слово ✍️</p>
-      {hintUsed && (
+      <WordClue word={word} compact reveal={answered} />
+      {!answered && <p className="prompt">Напиши слово ✍️</p>}
+      {!answered && hintUsed && (
         <div style={{ textAlign: 'center', width: '100%' }}>
           <WordLetters word={word} markDanger hide={hideAll} small />
           <p className="tiny">Опасная буква — {word.text[task.dangerIdx].toUpperCase()}</p>
           <HintCard word={word} />
         </div>
       )}
-      <div className={`typed ${state}`} style={{ minHeight: 56 }}>
-        {val || <span style={{ opacity: 0.3 }}>·</span>}
-      </div>
-      {needsCaps(word) && !CAPS_RE.test(val) && (
+      {!answered && (
+        <div className={`typed ${state}`} style={{ minHeight: 56 }}>
+          {val || <span style={{ opacity: 0.3 }}>·</span>}
+        </div>
+      )}
+      {!answered && needsCaps(word) && !CAPS_RE.test(val) && (
         <p className="tiny caps-tip">В слове есть заглавная — клавиша ⇧</p>
       )}
       <Keyboard onKey={key} disabled={state !== 'idle'} />
-      {state === 'idle' && (
+      {!answered && state === 'idle' && (
         <div className="row" style={{ width: '100%' }}>
           {!hintUsed && <HintBtn onClick={() => setHintUsed(true)} />}
           <button className="btn primary wide lg" disabled={!val} onClick={check}>
@@ -314,7 +329,7 @@ function Write({ word, task, onSolve, onAttempt }: Props) {
 
 // ── 6. Зрительный диктант ───────────────────────────────────────────────────
 
-function Visual({ word, task, onSolve, onAttempt }: Props) {
+function Visual({ word, task, onSolve, onAttempt, answered }: Props) {
   const later = useTaskTimeout();
   const ms = task.showMs ?? 2600;
   const [phase, setPhase] = useState<'show' | 'type'>('show');
@@ -383,20 +398,22 @@ function Visual({ word, task, onSolve, onAttempt }: Props) {
 
   return (
     <div className="task task-visual">
-      <WordClue word={word} compact />
-      <p className="prompt">Напиши слово ✍️</p>
-      {peek && (
+      <WordClue word={word} compact reveal={answered} />
+      {!answered && <p className="prompt">Напиши слово ✍️</p>}
+      {!answered && peek && (
         <div className="banner center">
           <WordLetters word={word} stress markDanger small />
           <div className="tiny">👀 Запомни ещё раз!</div>
         </div>
       )}
-      <div className={`typed ${state}`}>{val || <span style={{ opacity: 0.3 }}>·</span>}</div>
-      {needsCaps(word) && !CAPS_RE.test(val) && (
+      {!answered && (
+        <div className={`typed ${state}`}>{val || <span style={{ opacity: 0.3 }}>·</span>}</div>
+      )}
+      {!answered && needsCaps(word) && !CAPS_RE.test(val) && (
         <p className="tiny caps-tip">В слове есть заглавная — клавиша ⇧</p>
       )}
       <Keyboard onKey={key} disabled={state !== 'idle' || peek} />
-      {state === 'idle' && (
+      {!answered && state === 'idle' && (
         <div className="row" style={{ width: '100%' }}>
           {!hintUsed ? (
             <HintBtn
@@ -418,7 +435,7 @@ function Visual({ word, task, onSolve, onAttempt }: Props) {
           </button>
         </div>
       )}
-      {hintUsed && !peek && <HintCard word={word} />}
+      {!answered && hintUsed && !peek && <HintCard word={word} />}
     </div>
   );
 }
@@ -438,7 +455,7 @@ export function findFixDiffIdx(wordText: string, wrong: string): number {
   );
 }
 
-function Fix({ word, task, onSolve, onAttempt }: Props) {
+function Fix({ word, task, onSolve, onAttempt, answered }: Props) {
   const later = useTaskTimeout();
   const [chosen, setChosen] = useState<string | null>(null);
   const [hintUsed, setHintUsed] = useState(false);
@@ -464,7 +481,7 @@ function Fix({ word, task, onSolve, onAttempt }: Props) {
 
   return (
     <div className="task task-fix">
-      <p className="prompt">🤖 Робот ошибся! Выбери верное слово</p>
+      {!answered && <p className="prompt">🤖 Робот ошибся! Выбери верное слово</p>}
       <div className="word-big">
         {wrong.split('').map((c, i) => (
           <span key={i} style={i === diffIdx ? { color: 'var(--red)', background: 'var(--red-soft)', borderRadius: 8, padding: '0 3px' } : undefined}>
@@ -472,7 +489,7 @@ function Fix({ word, task, onSolve, onAttempt }: Props) {
           </span>
         ))}
       </div>
-      <WordClue word={word} compact layout="hero" />
+      <WordClue word={word} compact layout="hero" reveal={answered} />
       <div className="options" style={{ gridTemplateColumns: '1fr' }}>
         {(task.options ?? []).map((o) => {
           const cls = !chosen ? '' : o === word.text ? 'ok' : o === chosen ? 'bad' : 'dim';
