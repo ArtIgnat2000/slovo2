@@ -764,16 +764,22 @@ export function LessonScreen({ lessonId, onExit, goal, onStartList }: Props) {
               <div className="verdict-word">
                 <WordLetters word={word} stress markDanger small />
               </div>
-              <div className="tiny verdict-note">
-                {verdict.ok ? (
-                  dangerSummary(word)
-                ) : word.mnemonic ? (
-                  <>💡 {word.mnemonic}</>
-                ) : (
-                  dangerSummary(word)
-                )}
-              </div>
-              {helpMode !== 'off' && bukVerdictLine && <BukVerdictLine text={bukVerdictLine} />}
+              {/* Верный ответ — без пояснений: заголовок, слово, награда и
+                  «Далее» уже говорят всё. «Опасная буква: О (безударная
+                  гласная)» и реплика БУКа на вердикте были инфошумом и
+                  отнимали высоту у задания. Пояснение и БУК остаются только
+                  при ошибке, где они действительно помогают запомнить. */}
+              {!verdict.ok && (
+                <div className="tiny verdict-note">
+                  {word.mnemonic ? <>💡 {word.mnemonic}</> : dangerSummary(word)}
+                </div>
+              )}
+              {/* БУК говорит в вердикте только после ошибки или когда ребёнок
+                  сам попросил помощи вопросом. Обычное «Серия 3! Так держать!»
+                  на верном ответе — инфошум: убираем его из полосы. */}
+              {(!verdict.ok || usedHelp.current > 0) &&
+                helpMode !== 'off' &&
+                bukVerdictLine && <BukVerdictLine text={bukVerdictLine} />}
             </div>
 
             <button className="btn primary wide lg verdict-next" onClick={goNext}>

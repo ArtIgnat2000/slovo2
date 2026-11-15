@@ -216,6 +216,12 @@ export async function runVerdictChecks(): Promise<void> {
     document.querySelector('.verdict-word')?.textContent ?? '—',
   );
   check(
+    'вердикт: при верном ответе нет пояснения и строки БУКа — только слово и «Далее»',
+    !document.querySelector('.verdict-bar .verdict-note') &&
+      !document.querySelector('.verdict-bar .buk-verdict'),
+    document.querySelector('.verdict-bar .footer-inner')?.textContent?.slice(0, 120) ?? '—',
+  );
+  check(
     'вердикт: кнопка «Далее» живёт в полосе вердикта',
     !!verdictBar()?.querySelector('button.verdict-next') &&
       (verdictBar()?.textContent ?? '').includes('Далее'),
@@ -261,6 +267,11 @@ export async function runVerdictChecks(): Promise<void> {
     'вердикт: ребёнку сказано, что слово вернётся (без наказания)',
     !!document.querySelector('.verdict-bar .stat-pill.again')?.textContent?.includes('повторим'),
     document.querySelector('.verdict-bar .stat-pill.again')?.textContent ?? 'чипа нет',
+  );
+  check(
+    'вердикт: при ошибке пояснение остаётся — там оно помогает',
+    !!document.querySelector('.verdict-bar .verdict-note'),
+    document.querySelector('.verdict-bar .footer-inner')?.textContent?.slice(0, 120) ?? '—',
   );
 
   if (btnText('Далее')) {

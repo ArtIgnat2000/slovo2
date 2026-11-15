@@ -329,6 +329,14 @@ export async function runLessonArtChecks() {
     !/\b\d+px\s*;/.test(clueArtRule.replace(/min-height:[^;]*;/, '')),
     clueArtRule.replace(/\s+/g, ' ') || 'правило снимка подсказки не найдено',
   );
+  check(
+    'картинка: в «Напиши» и «Диктанте» паспарту тоже убрано',
+    /padding:\s*0/.test(clueArtRule) &&
+      /border:\s*0/.test(clueArtRule) &&
+      /background:\s*transparent/.test(clueArtRule) &&
+      /box-shadow:\s*none/.test(clueArtRule),
+    clueArtRule.replace(/\s+/g, ' ') || 'правило снимка подсказки не найдено',
+  );
   const lessonHeroArtRule =
     css.match(/\.lesson-screen \.clue-hero\s*>\s*\.word-art-frame\s*\{[^}]*\}/)?.[0] ?? '';
   check(

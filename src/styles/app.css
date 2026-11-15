@@ -7208,8 +7208,21 @@ img.product-photo {
   width: var(--art-clue);
   height: var(--art-clue);
   max-width: 100%;
-  /* Поле как у фотокарточки: 12% воздуха съедали четверть рисунка. */
-  padding: var(--sp-3);
+  /* Паспарту в уроке не нужно (0.116.0): картинка — сама карточка. Плита,
+     рамка и 12 px поля съедали четверть рисунка и оставляли пустую коробку
+     вокруг. Так же, как в hero-подсказке, снимок занимает весь квадрат и
+     обрезается по скруглению. */
+  padding: 0;
+  border: 0;
+  border-radius: clamp(14px, 4vw, 22px);
+  background: transparent;
+  box-shadow: none;
+  overflow: hidden;
+}
+.lesson-screen .task-write > .clue > .word-art-frame > .word-art-inner > .word-art,
+.lesson-screen .task-visual > .clue > .word-art-frame > .word-art-inner > .word-art {
+  border-radius: inherit;
+  background: transparent;
 }
 
 /* «Собери» и «Исправь»: вместо маленькой иконки слева — карточка образа.
