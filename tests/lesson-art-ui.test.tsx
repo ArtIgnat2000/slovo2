@@ -338,9 +338,17 @@ export async function runLessonArtChecks() {
   const clueRowRule =
     css.match(/\.lesson-screen \.task-write > \.clue,[^{]*\{[^}]*\}/)?.[0] ?? '';
   check(
-    'картинка: строка подсказки под клавиатурой забирает остаток высоты задания',
-    /flex:\s*1\s+1\s+auto/.test(clueRowRule) && /min-height:\s*0/.test(clueRowRule),
+    'картинка: строка подсказки не раздувается и не прячет пустоту внутри',
+    /flex:\s*none/.test(clueRowRule) && /min-height:\s*0/.test(clueRowRule),
     clueRowRule.replace(/\s+/g, ' ') || 'правило строки подсказки не найдено',
+  );
+  const writeTaskRule =
+    css.match(/\.lesson-screen \.task-write,\s*\n\.lesson-screen \.task-visual\s*\{[^}]*\}/)?.[0] ?? '';
+  check(
+    'картинка: пока ребёнок пишет, карточка идёт сверху — без пустого провала',
+    /justify-content:\s*flex-start/.test(writeTaskRule) &&
+      /min-height:\s*0/.test(writeTaskRule),
+    writeTaskRule.replace(/\s+/g, ' ') || 'правило .task-write не найдено',
   );
   const clueArtRule =
     css.match(/\.lesson-screen \.task-write > \.clue > \.word-art-frame,[^{]*\{[^}]*\}/)?.[0] ?? '';

@@ -7206,10 +7206,20 @@ img.product-photo {
 .lesson-screen .task-visual {
   min-height: 0;
   gap: 8px;
+  /* Пока ребёнок пишет, карточка идёт сверху: так большая картинка, пример,
+     поле и клавиатура складываются без пустых провалов. После ответа остаётся
+     мало содержимого — там центрируем, иначе пустота прилипала бы к вердикту. */
+  justify-content: flex-start;
+}
+.lesson-screen.has-verdict .task-write,
+.lesson-screen.has-verdict .task-visual {
+  justify-content: center;
 }
 .lesson-screen .task-write > .clue,
 .lesson-screen .task-visual > .clue {
-  flex: 1 1 auto;
+  /* Не растим строку подсказки: раньше flex: 1 раздувал её и прятал пустоту
+     внутри — между картинкой и примером появлялся провал в 100 px. */
+  flex: none;
   min-height: 0;
   justify-content: center;
 }
