@@ -28,7 +28,7 @@ function ac(): AudioContext | null {
   if (!enabled) return null;
   try {
     if (!ctx) ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    if (ctx.state === 'suspended') void ctx.resume();
+    if (ctx.state === 'suspended') void ctx.resume().catch(() => {});
     return ctx;
   } catch {
     return null;
@@ -36,25 +36,31 @@ function ac(): AudioContext | null {
 }
 
 function tone(freq: number, at: number, dur: number, vol = 0.16, type: OscillatorType = 'sine', glideTo?: number) {
-  const a = ac();
-  if (!a) return;
-  const osc = a.createOscillator();
-  const gain = a.createGain();
-  osc.connect(gain);
-  gain.connect(a.destination);
-  osc.type = type;
-  const t0 = a.currentTime + at;
-  osc.frequency.setValueAtTime(freq, t0);
-  if (glideTo) osc.frequency.exponentialRampToValueAtTime(glideTo, t0 + dur);
-  gain.gain.setValueAtTime(0.0001, t0);
-  gain.gain.linearRampToValueAtTime(vol, t0 + 0.012);
-  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-  osc.start(t0);
-  osc.stop(t0 + dur + 0.03);
+  try {
+    const a = ac();
+    if (!a) return;
+    const osc = a.createOscillator();
+    const gain = a.createGain();
+    osc.connect(gain);
+    gain.connect(a.destination);
+    osc.type = type;
+    const t0 = a.currentTime + at;
+    osc.frequency.setValueAtTime(freq, t0);
+    if (glideTo) osc.frequency.exponentialRampToValueAtTime(glideTo, t0 + dur);
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.linearRampToValueAtTime(vol, t0 + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.start(t0);
+    osc.stop(t0 + dur + 0.03);
+  } catch {
+    // Звук — украшение, а не условие ответа. Закрытый или занятый AudioContext
+    // на iOS не имеет права отменять вердикт и «Далее».
+  }
 }
 
 /** Мягкий стеклянный тембр: основной тон и тихие гармоники с разным затуханием. */
 function chime(freq: number, at: number, dur: number, vol = 0.055) {
+  try {
   const a = ac();
   if (!a) return;
   const partials = [
@@ -77,6 +83,9 @@ function chime(freq: number, at: number, dur: number, vol = 0.055) {
     gain.gain.exponentialRampToValueAtTime(0.0001, end);
     osc.start(t0);
     osc.stop(end + 0.025);
+  }
+  } catch {
+    // см. tone(): сбой звука не должен ломать игровой экран
   }
 }
 

@@ -19,6 +19,7 @@ import { KEYBOARD_ROWS } from '../src/ui/Keyboard';
 import { makeTask } from '../src/engine/scheduler';
 import { sameTypedWord } from '../src/engine/word-facts';
 import { WORDS } from '../src/content/words';
+import { sfx } from '../src/platform/sound';
 import { check, sleep } from './ui-helpers';
 
 /** Все клавиши-буквы раскладки (без «⌫» и «⇧»). */
@@ -193,6 +194,44 @@ export async function runTypingChecks(): Promise<void> {
   check('ввод: «Родина» приносит полный балл (5)', okRun.getSolved() === 5, String(okRun.getSolved()));
   okRun.root.unmount();
   okRun.holder.remove();
+
+  // Сбой звука на iPhone (закрытый AudioContext) не имеет права оставить ребёнка
+  // на зелёном поле без вердикта: «Далее» просто не появится. Проверяем, что
+  // onSolve уже стоит в очереди до вызова sfx.correct().
+  const audioWord = WORDS.find((w) => w.text === 'обезьяна') ?? word;
+  const audioBox = document.createElement('div');
+  document.body.appendChild(audioBox);
+  const audioRoot = createRoot(audioBox);
+  let audioSolved: number | null | undefined;
+  const originalCorrect = sfx.correct;
+  sfx.correct = () => {
+    throw new Error('AudioContext закрыт');
+  };
+  try {
+    audioRoot.render(
+      createElement(TaskView, {
+        task: makeTask('write', audioWord.id, 'review', audioWord.danger[0] ?? 0),
+        word: audioWord,
+        onSolve: (quality) => {
+          audioSolved = quality;
+        },
+      }),
+    );
+    await sleep(60);
+    type(audioBox, audioWord.text);
+    await sleep(20);
+    submit(audioBox);
+    await sleep(850);
+    check(
+      'ввод: сбой звука не отменяет вердикт и не оставляет экран «замороженным»',
+      audioSolved === 5,
+      String(audioSolved),
+    );
+  } finally {
+    sfx.correct = originalCorrect;
+    audioRoot.unmount();
+    audioBox.remove();
+  }
 
   // Неверно: всё строчными — имя не засчитано.
   const badRun = mountWrite(capWord);

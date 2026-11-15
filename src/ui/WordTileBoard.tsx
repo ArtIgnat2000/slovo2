@@ -153,6 +153,12 @@ export function WordTileBoard({
     setState(next);
     if (ok) {
       setResolved(true);
+      if (!unscored) {
+        const q = usedHint ? 3 : 5;
+        onAttempt?.(q);
+        // Сначала вердикт, потом звук: сбой аудио не должен «замораживать» карточку.
+        schedule(() => onSolve?.(q), 700);
+      }
       sfx.correct();
       haptic.correct();
       if (unscored) {
@@ -166,21 +172,17 @@ export function WordTileBoard({
           scoredRef.current = true;
           setAward(playGame(1));
         }
-      } else {
-        const q = usedHint ? 3 : 5;
-        onAttempt?.(q);
-        schedule(() => onSolve?.(q), 700);
       }
       return;
     }
     onAttempt?.(0);
-    sfx.wrong();
-    haptic.wrong();
     setBad(true);
     schedule(() => {
       setState({ tray: shuffledTiles(word.text), slots: Array(word.text.length).fill(null) });
       setBad(false);
     }, 900);
+    sfx.wrong();
+    haptic.wrong();
   };
 
   const tapTray = (tile: BoardTile) => {
