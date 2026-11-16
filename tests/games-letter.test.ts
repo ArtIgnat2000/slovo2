@@ -2,7 +2,7 @@
 //
 // Почему отдельный файл. Это две новые игры, и обе держатся на правилах,
 // которые легко сломать «улучшением»:
-//  • колесо не перемешивает буквы и не пускает длинные слова на круг;
+//  • колесо перемешивает позиции букв, но не пускает длинные слова на круг;
 //  • «Хитрая буква» не отнимает попытки: ошибка даёт подсказку, а не провал;
 //  • верная буква всегда есть среди вариантов и не стоит на фиксированном
 //    месте (иначе ребёнок выучит место, а не букву).
@@ -51,17 +51,44 @@ export async function runGamesLetterChecks(): Promise<void> {
   console.log('\n── Игры: колесо букв и хитрая буква ──');
 
   // ── 1. Колесо: раскладка ────────────────────────────────────────────────
+  // 0.118.1: позиции на круге перемешаны. `index` остаётся порядком букв в
+  // слове (по нему работает шаг), а `angle` — уже случайная позиция.
+  const clockwise = (b: NonNullable<ReturnType<typeof ringBoard>>) =>
+    [...b.dots].sort((a, b2) => a.angle - b2.angle).map((d) => d.letter).join('');
   const board = ringBoard(word({}))!;
   check('колесо: круг из всех букв слова', board?.letters === 6 && board.dots.length === 6, String(board?.letters));
   check(
-    'колесо: буквы идут в порядке слова, а не «как попало»',
+    'колесо: буквы слова на круге не потеряны и не задвоены',
     board.dots.map((d) => d.letter).join('') === 'корова',
     board.dots.map((d) => d.letter).join(''),
   );
   check(
-    'колесо: первая буква — сверху, дальше по часовой стрелке',
-    board.dots[0].angle === 0 && board.dots[1].angle === 60 && board.dots[5].angle === 300,
+    'колесо: по часовой стрелке буквы НЕ идут в порядке слова',
+    clockwise(board) !== 'корова',
+    clockwise(board),
+  );
+  check(
+    'колесо: каждая позиция круга занята ровно один раз',
+    new Set(board.dots.map((d) => d.angle)).size === 6 &&
+      board.dots.every((d) => Number.isInteger(d.angle / 60)),
     board.dots.map((d) => d.angle).join(','),
+  );
+  check(
+    'колесо: раскладка одного слова стабильна между рендерами',
+    ringBoard(word({}))!.dots.map((d) => d.angle).join(',') ===
+      ringBoard(word({}))!.dots.map((d) => d.angle).join(','),
+    ringBoard(word({}))!.dots.map((d) => d.angle).join(','),
+  );
+  const lazy = ringBoard(word({}), () => 0.999999)!;
+  check(
+    'колесо: даже «ленивый» рандом не оставляет порядок и его половину',
+    clockwise(lazy) !== 'корова' && !clockwise(lazy).startsWith('ко'),
+    clockwise(lazy),
+  );
+  check(
+    'колесо: на двух буквах круг тоже не в порядке слова',
+    clockwise(ringBoard(word({ text: 'он', syllables: ['он'] }), () => 0.999999)!) === 'но',
+    clockwise(ringBoard(word({ text: 'он', syllables: ['он'] }), () => 0.999999)!),
   );
   check(
     'колесо: опасная буква отмечена на круге',
