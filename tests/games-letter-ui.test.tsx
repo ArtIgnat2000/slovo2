@@ -75,6 +75,26 @@ export async function runGamesLetterUiChecks(): Promise<void> {
   await goGame('Колесо букв', 'Быстро');
   const dots = () => Array.from(document.querySelectorAll('.ring-dot')) as HTMLButtonElement[];
   check('колесо UI: круг нарисован', dots().length >= 3, `точек: ${dots().length}`);
+  const wheelCss = readFileSync('src/styles/app.css', 'utf8');
+  const coreArtRule = wheelCss.match(/\.ring-core-art\s*\{([^}]*)\}/)?.[1] ?? '';
+  const ringStageRule = wheelCss.match(/\.ring-stage\s*\{([^}]*)\}/)?.[1] ?? '';
+  check(
+    'колесо UI: крупная иллюстрация стоит в центре круга без паспарту',
+    !!document.querySelector('.ring-core > .ring-core-art') &&
+      /padding:\s*0/.test(coreArtRule) && /border:\s*0/.test(coreArtRule) &&
+      /background:\s*transparent/.test(coreArtRule) && /box-shadow:\s*none/.test(coreArtRule),
+    coreArtRule,
+  );
+  check(
+    'колесо UI: круг увеличен и остаётся адаптивным',
+    /--ring-size:\s*min\(320px,\s*88vw,\s*46vh\)/.test(ringStageRule),
+    ringStageRule,
+  );
+  check(
+    'колесо UI: следующая буква нигде не подсвечена',
+    !document.querySelector('.ring-dot-next') && !/\.ring-dot-next\b/.test(wheelCss),
+    '',
+  );
   // 0.118.1: позиции на круге перемешаны. DOM-порядок — порядок букв в слове,
   // а --ring-angle задаёт место; если углы идут по возрастанию, это снова
   // «просто веди по кругу» (замечание владельца 2026-11-16).
@@ -87,6 +107,17 @@ export async function runGamesLetterUiChecks(): Promise<void> {
   );
   const wordText = (document.querySelector('.ring-word')?.textContent ?? '').trim();
   check('колесо UI: слово показано точками, а не целиком', !/[а-яё]/i.test(wordText), wordText);
+  const wrongDot = dots().find((dot) => dot.dataset.ringIndex !== '0' && dot.textContent !== dots()[0]?.textContent);
+  if (wrongDot) {
+    click(wrongDot);
+    await sleep(20);
+    const status = document.querySelector('.ring-status')?.textContent ?? '';
+    check(
+      'колесо UI: ошибка не выдаёт подсказку, какую букву выбрать',
+      /попробуй другую/i.test(status) && !/подсвеченн|следующ\w+ букв/i.test(status),
+      status,
+    );
+  }
 
   // Проходим круг по порядку — как ребёнок пальцем.
   const order = dots().slice().sort(
