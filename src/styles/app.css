@@ -11828,8 +11828,13 @@ body.game-focus .screen.trail-screen {
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  font-size: 26px;
-  color: var(--ink-2);
+  pointer-events: none;
+}
+.ring-core-art {
+  /* Большая иллюстрация — в центре круга; масштабируется вместе с ним,
+     оставляя свободное место до орбиты букв даже на низком экране. */
+  max-width: calc(var(--ring-size) * 0.38);
+  max-height: calc(var(--ring-size) * 0.38);
 }
 /* Строка состояния — последняя в карточке, а слева внизу стоит плавающая
    кнопка звука (44 px + 12 px от края). На телефоне она накрывала начало

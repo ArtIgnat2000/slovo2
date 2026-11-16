@@ -140,14 +140,23 @@ export function ringBoard(word: Word, random?: () => number): RingBoard | null {
 /**
  * Шаг по кругу. Возвращает новое число собранных букв.
  *
- * Правило одно: принимается только СЛЕДУЮЩАЯ буква. Промах возвращает тот же
- * прогресс — и вызывающая сторона по нему понимает, что был промах (сравнение
- * `===`). Так экран не держит второй копии правды: «сколько собрано» есть в
- * одном месте.
+ * Принимается только следующая буква слова, но её кружок может быть любым из
+ * ещё не выбранных кружков с таким же символом. Промах возвращает тот же
+ * прогресс — вызывающая сторона определяет это сравнением `===`.
  */
-export function ringStep(board: RingBoard, collected: number, letterIndex: number): number {
+export function ringStep(
+  board: RingBoard,
+  collected: number,
+  letterIndex: number,
+  selectedIndices: ReadonlyArray<number> = [],
+): number {
   if (collected < 0 || collected >= board.letters) return collected;
-  return letterIndex === collected ? collected + 1 : collected;
+  const dot = board.dots.find((candidate) => candidate.index === letterIndex);
+  if (!dot || selectedIndices.includes(letterIndex)) return collected;
+  // Буквы одинакового начертания взаимозаменяемы: для «молоко» подходят
+  // любые ещё не выбранные кружки с «о», не только конкретный индекс слова.
+  const expected = board.dots.find((candidate) => candidate.index === collected)?.letter;
+  return dot.letter === expected ? collected + 1 : collected;
 }
 
 /** Слово собрано целиком. */
