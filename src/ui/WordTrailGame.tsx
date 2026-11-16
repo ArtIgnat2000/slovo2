@@ -484,7 +484,7 @@ export function WordTrailGame({
                     }}
                   >
                     {findHasImages ? (
-                      <WordArt word={item} size={72} />
+                      <WordArt word={item} size={160} className="trail-find-art" />
                     ) : (
                       <>
                         <span className="trail-find-emoji" aria-hidden="true">
