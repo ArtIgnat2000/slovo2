@@ -12761,20 +12761,53 @@ button.trail-seg:focus-visible { outline: 2px solid var(--primary); outline-offs
   background: var(--card);
   box-shadow: var(--shadow);
 }
+/* 0.118.3: подсказка в «Тропе» — крупная картинка над текстом, без
+   паспарту. Было: WordArt 56 px слева от подсказки, рисунок терялся на
+   телефоне (замечание владельца 2026-11-16: «тут тоже сделай максимально
+   крупно»). Теперь снимок занимает ширину карточки (до 320 px), а подсказка
+   идёт под ним по центру. */
 .trail-clue {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
+  text-align: center;
+  gap: 8px;
+}
+.trail-clue-art {
+  width: min(100%, 320px);
+  height: auto;
+  aspect-ratio: 1 / 1;
+  padding: 0;
+  border: none;
+  border-radius: 20px;
+  background: transparent;
+  box-shadow: none;
+}
+.trail-clue-art .word-art-inner > .word-art {
+  border-radius: 20px;
+  background: transparent;
+  object-fit: cover;
+}
+.trail-clue-art.no-image .word-art-placeholder {
+  font-size: clamp(72px, 30vw, 140px);
+}
+.trail-clue-art.no-image {
+  background: transparent;
 }
 .trail-clue-body {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 2px;
 }
-.trail-clue-body .clue-hint { margin: 0; text-align: left; }
-.trail-clue-body .tiny { margin: 0; }
+.trail-clue-body .clue-hint {
+  margin: 0;
+  text-align: center;
+  font-size: var(--fs-sm);
+}
+.trail-clue-body .tiny { margin: 0; text-align: center; }
 
 .trail-options { gap: 8px; }
 .trail-hint { display: grid; gap: 3px; min-height: 18px; }
@@ -12784,18 +12817,19 @@ button.trail-seg:focus-visible { outline: 2px solid var(--primary); outline-offs
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
 }
 .trail-syllable {
-  min-width: 54px;
-  min-height: 44px;
-  padding: 0 12px;
+  /* Слоги — главное действие задания: крупная цель и крупная буква. */
+  min-width: 72px;
+  min-height: 56px;
+  padding: 0 16px;
   border: 2px solid var(--line);
-  border-radius: 12px;
+  border-radius: 14px;
   background: var(--bg-2);
   color: var(--ink);
   font: inherit;
-  font-size: 17px;
+  font-size: clamp(20px, 6vw, 30px);
   font-weight: 800;
   line-height: 1;
   cursor: pointer;
