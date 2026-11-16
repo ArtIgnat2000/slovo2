@@ -12962,6 +12962,46 @@ button.trail-seg:focus-visible { outline: 2px solid var(--primary); outline-offs
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 26%, transparent);
 }
 .trail-find-card .word-art-frame { pointer-events: none; }
+/* 0.118.2: картинка в «Найди картинку» — сама карточка, без паспарту.
+   Было: WordArt 72 px внутри белой плиты, ещё 6 px поля вокруг — на телефоне
+   рисунок занимал меньше трети кнопки, и владелец справедливо написал
+   «картинки очень мелкие, ничего не видно». Теперь снимок заполняет квадрат
+   целиком (object-fit: cover), остаётся только 2 px рамки-кнопки. */
+.trail-find-grid:not(.text-mode) {
+  max-width: 640px;
+  width: 100%;
+  margin: 0 auto;
+}
+.trail-find-grid:not(.text-mode) .trail-find-card {
+  aspect-ratio: 1 / 1;
+  min-height: 96px;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 20px;
+  background: var(--card);
+}
+.trail-find-art {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: none;
+  border-radius: 20px;
+  background: transparent;
+  box-shadow: none;
+}
+.trail-find-card .trail-find-art.no-image {
+  background: transparent;
+}
+.trail-find-art .word-art-inner > .word-art {
+  border-radius: 20px;
+  background: transparent;
+  object-fit: cover;
+}
+.trail-find-card .trail-find-art .word-art-placeholder {
+  /* Если готовой картинки нет, эмодзи-заглушка тоже крупная: пустой плиты
+     в этой игре быть не должно. */
+  font-size: clamp(44px, 22vw, 96px);
+}
 /* Текстовый режим «найти»: эмодзи + слово. Так играют 5 класс и абстрактные
    слова 1–4 классов; высота карточки та же, что у картинки, — 96 px. */
 .trail-find-grid.text-mode .trail-find-card {

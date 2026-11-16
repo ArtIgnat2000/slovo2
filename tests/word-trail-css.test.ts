@@ -19,6 +19,16 @@ assert.match(trail, /\.trail-path-wide \.trail-seg\s*\{[^}]*min-width:\s*54px/s,
 assert.match(trail, /\.trail-banner\s*\{[^}]*min-height:\s*52px/s, 'баннер не меньше 52 px');
 assert.match(trail, /\.trail-album-btn\s*\{[^}]*min-height:\s*44px/s, 'кнопка альбома — цель 44 px');
 assert.match(trail, /\.trail-find-card\s*\{[^}]*min-height:\s*96px/s, 'карточка поиска не меньше 96 px');
+assert.match(
+  trail,
+  /\.trail-find-grid:not\(\.text-mode\) \.trail-find-card\s*\{[^}]*aspect-ratio:\s*1\s*\/\s*1/s,
+  'картинка-вариант — квадрат на всю ширину колонки',
+);
+assert.match(
+  trail,
+  /\.trail-find-art\s*\{[^}]*width:\s*100%[^}]*height:\s*100%[^}]*padding:\s*0[^}]*border:\s*none/s,
+  'у картинки в «Тропе» нет паспарту — она заполняет карточку',
+);
 assert.match(trail, /\.trail-album-grid\s*\{[^}]*grid-template-columns:\s*repeat\(2/s, 'альбом — сетка 2×N');
 assert.match(trail, /\.trail-hero-svg\.is-cheer \.trail-hero-arm-a\s*\{[^}]*rotate\(-118deg\)/s, 'в радости руки подняты');
 assert.match(

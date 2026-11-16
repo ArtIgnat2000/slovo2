@@ -225,6 +225,12 @@ export async function runWordTrailUiChecks(): Promise<void> {
     $$('[data-trail-find]').map((card) => card.dataset.trailFind).join(', '),
   );
   check(
+    'тропа: картинки без паспарту занимают карточку целиком',
+    $$('.trail-find-card .trail-find-art').length === 4 &&
+      $$('.trail-find-card').every((card) => !!card.querySelector('.trail-find-art')),
+    `крупных картинок: ${$$('.trail-find-card .trail-find-art').length}`,
+  );
+  check(
     'тропа: задание «найти» не прячет букву',
     $$('.trail-seg-hidden').length === 0 && !!$('.trail-find'),
     $('.trail-find')?.textContent ?? 'нет',
