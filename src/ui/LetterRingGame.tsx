@@ -59,6 +59,9 @@ export function LetterRingGame({
   });
   const board = useMemo(() => (word ? ringBoard(word) : null), [word]);
   const [collected, setCollected] = useState(0);
+  /** Какие кружки выбраны: одинаковые буквы можно брать в любом порядке. */
+  const [selectedDots, setSelectedDots] = useState<number[]>([]);
+  const selectedDotsRef = useRef<number[]>([]);
   /** Тот же прогресс, но читаемый синхронно — для ведения пальцем. */
   const collectedRef = useRef(0);
   const [message, setMessage] = useState('Веди пальцем по буквам по порядку.');
@@ -104,17 +107,20 @@ export function LetterRingGame({
     // `collected` отбросило бы верную вторую букву как «не следующую».
     const current = collectedRef.current;
     if (current >= board.letters) return;
-    // Уже пройденная буква при ведении — это норма (палец задержался или
-    // вернулся назад), а не ошибка: молча пропускаем, без звука и без строки.
-    if (index < current) return;
-    if (index !== current) {
+    // Уже выбранная буква при ведении — это норма (палец задержался или
+    // вернулся назад), а не ошибка: молча пропускаем.
+    if (selectedDotsRef.current.includes(index)) return;
+    const next = ringStep(board, current, index, selectedDotsRef.current);
+    if (next === current) {
       // Промах — не наказание: мягкий звук и та же строка.
       sfx.tap();
       haptic.tap();
-      setMessage('Эта буква не следующая — начни с той, где огонёк.');
+      setMessage('Эта буква не следующая — начни с любой подсвеченной.');
       return;
     }
-    const next = ringStep(board, current, index);
+    const selected = [...selectedDotsRef.current, index];
+    selectedDotsRef.current = selected;
+    setSelectedDots(selected);
     collectedRef.current = next;
     setCollected(next);
     if (ringDone(board, next)) return; // победу обрабатывает эффект
@@ -131,6 +137,8 @@ export function LetterRingGame({
     setConfetti(false);
     collectedRef.current = 0;
     setCollected(0);
+    selectedDotsRef.current = [];
+    setSelectedDots([]);
     setMessage('Веди пальцем по буквам по порядку.');
     setWord(fresh);
   };
@@ -234,7 +242,6 @@ export function LetterRingGame({
       </p>
 
       <div className="ring-clue">
-        <WordArt word={board.word} size={56} />
         <div className="ring-clue-body">
           <p className="clue-hint">💡 {board.word.hint}</p>
           {longGradeNote && (
@@ -256,8 +263,8 @@ export function LetterRingGame({
           onPointerCancel={onRingPointerUp}
         >
           {board.dots.map((dot) => {
-            const passed = dot.index < collected;
-            const nextToPress = dot.index === collected;
+            const passed = selectedDots.includes(dot.index);
+            const nextToPress = !passed && dot.letter === board.dots[collected]?.letter;
             return (
               <button
                 key={dot.index}
@@ -285,8 +292,12 @@ export function LetterRingGame({
               </button>
             );
           })}
-          <div className="ring-core" aria-hidden="true">
-            {done ? '🎉' : '✦'}
+          <div className="ring-core">
+            <WordArt
+              word={board.word}
+              size="min(104px, calc(var(--ring-size) * 0.38))"
+              className="ring-core-art"
+            />
           </div>
         </div>
       </div>
