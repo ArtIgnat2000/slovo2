@@ -75,6 +75,16 @@ export async function runGamesLetterUiChecks(): Promise<void> {
   await goGame('Колесо букв', 'Быстро');
   const dots = () => Array.from(document.querySelectorAll('.ring-dot')) as HTMLButtonElement[];
   check('колесо UI: круг нарисован', dots().length >= 3, `точек: ${dots().length}`);
+  // 0.118.1: позиции на круге перемешаны. DOM-порядок — порядок букв в слове,
+  // а --ring-angle задаёт место; если углы идут по возрастанию, это снова
+  // «просто веди по кругу» (замечание владельца 2026-11-16).
+  const angles = dots().map((d) => Number((d.style.getPropertyValue('--ring-angle') || '').replace('deg', '')));
+  check(
+    'колесо UI: буквы на круге перемешаны, а не идут по порядку',
+    angles.length >= 3 && new Set(angles).size === angles.length &&
+      angles.some((a, i) => i > 0 && a < angles[i - 1]),
+    angles.join(','),
+  );
   const wordText = (document.querySelector('.ring-word')?.textContent ?? '').trim();
   check('колесо UI: слово показано точками, а не целиком', !/[а-яё]/i.test(wordText), wordText);
 
