@@ -115,7 +115,7 @@ export function LetterRingGame({
       // Промах — не наказание: мягкий звук и та же строка.
       sfx.tap();
       haptic.tap();
-      setMessage('Эта буква не следующая — начни с любой подсвеченной.');
+      setMessage('Эта буква пока не подходит. Попробуй другую.');
       return;
     }
     const selected = [...selectedDotsRef.current, index];
@@ -264,7 +264,6 @@ export function LetterRingGame({
         >
           {board.dots.map((dot) => {
             const passed = selectedDots.includes(dot.index);
-            const nextToPress = !passed && dot.letter === board.dots[collected]?.letter;
             return (
               <button
                 key={dot.index}
@@ -272,7 +271,6 @@ export function LetterRingGame({
                 className={[
                   'ring-dot',
                   passed ? 'ring-dot-passed' : '',
-                  nextToPress ? 'ring-dot-next' : '',
                   dot.danger ? 'ring-dot-danger' : '',
                 ]
                   .filter(Boolean)
@@ -285,7 +283,7 @@ export function LetterRingGame({
                   ['--ring-angle' as string]: `${dot.angle}deg`,
                 }}
                 aria-pressed={passed}
-                aria-label={`Буква ${dot.index + 1}: ${dot.letter}`}
+                aria-label={`Буква ${dot.letter}`}
                 onClick={() => onDotClick(dot.index)}
               >
                 {dot.letter}
@@ -295,7 +293,7 @@ export function LetterRingGame({
           <div className="ring-core">
             <WordArt
               word={board.word}
-              size="min(104px, calc(var(--ring-size) * 0.38))"
+              size="min(128px, calc(var(--ring-size) * 0.4))"
               className="ring-core-art"
             />
           </div>

@@ -11752,10 +11752,10 @@ body.game-focus .screen.trail-screen {
   padding: 6px 0;
   /* Круг упирается и в ширину карточки, и в высоту окна: на низком экране
      (Android, клавиатура, ландшафт) буквы не должны уезжать под нижнее меню. */
-  --ring-size: min(280px, 78vw, 42vh);
+  --ring-size: min(320px, 88vw, 46vh);
   --ring-dot: 44px;
-  /* Радиус орбиты: половина круга минус полбуквы и запас на ореол следующей
-     буквы. Так крайние буквы стоят внутри пунктирной дорожки, а не на ней. */
+  /* Радиус орбиты: половина круга минус полбуквы и запас до пунктирной
+     дорожки. Так крайние буквы стоят внутри кольца, а не на его линии. */
   --ring-radius: calc(var(--ring-size) / 2 - var(--ring-dot) / 2 - 6px);
 }
 .ring {
@@ -11813,13 +11813,6 @@ body.game-focus .screen.trail-screen {
   border-color: var(--primary);
   color: var(--on-primary);
 }
-/* Следующая буква получает мягкий ореол — место, с которого продолжается
-   движение после отпускания пальца. Позиции на круге перемешаны (0.118.1),
-   поэтому ореол помогает не потерять ход, но слово всё равно надо вспомнить. */
-.ring-dot-next {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 28%, transparent);
-}
 .ring-dot-danger:not(.ring-dot-passed) {
   border-style: dashed;
 }
@@ -11831,14 +11824,30 @@ body.game-focus .screen.trail-screen {
   pointer-events: none;
 }
 .ring-core-art {
-  /* Большая иллюстрация — в центре круга; масштабируется вместе с ним,
-     оставляя свободное место до орбиты букв даже на низком экране. */
-  max-width: calc(var(--ring-size) * 0.38);
-  max-height: calc(var(--ring-size) * 0.38);
+  /* Иллюстрация в центре круга — крупная и без паспарту: сам рисунок,
+     масштабируется вместе с кругом и не закрывает орбиту букв. */
+  max-width: calc(var(--ring-size) * 0.4);
+  max-height: calc(var(--ring-size) * 0.4);
+  padding: 0;
+  border: 0;
+  border-radius: 16px;
+  background: transparent;
+  box-shadow: none;
+}
+.ring-core-art.no-image {
+  background: transparent;
+}
+.ring-core-art .word-art-inner {
+  overflow: hidden;
+  border-radius: 16px;
+}
+.ring-core-art .word-art-inner > .word-art {
+  border-radius: 16px;
+  background: transparent;
 }
 /* Строка состояния — последняя в карточке, а слева внизу стоит плавающая
    кнопка звука (44 px + 12 px от края). На телефоне она накрывала начало
-   строки («Эта буква не следующая…» обрезалась, скриншот 2026-11-13):
+   строки статуса («Эта буква пока не подходит…», скриншот 2026-11-13):
    отступаем от левого края ровно на её ширину. */
 .ring-status {
   text-align: center;
