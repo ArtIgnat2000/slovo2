@@ -249,9 +249,9 @@ export async function runGamesLetterChecks(): Promise<void> {
     shelves.replace(/\s+/g, ' ').slice(0, 140) || 'правил для .games-cards на ≤719 px нет',
   );
   check(
-    'витрина: карточка игры на телефоне — строка в одну высоту (эмодзи + название)',
-    /\.games-card\s*\{[^}]*flex-direction:\s*row/.test(shelves) &&
-      /\.games-card-note\s*\{\s*display:\s*none/.test(shelves),
-    shelves.replace(/\s+/g, ' ').slice(0, 200),
+    'витрина: карточка игры — строка в одну высоту (эмодзи + название)',
+    /\.games-card\s*\{[^}]*flex-direction:\s*row/.test(css) &&
+      /\.games-card\s*\{[^}]*min-height:\s*50px/.test(css),
+    css.match(/\.games-card\s*\{[^}]*\}/)?.[0]?.replace(/\s+/g, ' ') ?? 'правила .games-card нет',
   );
 }

@@ -15,19 +15,18 @@ async function goTab(name: string) {
   await sleep(60);
 }
 
-async function goGroup(title: string) {
-  const seg = Array.from(document.querySelectorAll('.games-switch-btn')).find((b) =>
-    (b.textContent ?? '').includes(title),
-  ) as HTMLButtonElement | undefined;
-  if (seg) {
-    click(seg);
+/** Вернуться с экрана игры к витрине (0.118.0). */
+async function backToCatalog() {
+  const back = document.querySelector('.game-back') as HTMLButtonElement | null;
+  if (back) {
+    click(back);
     await sleep(60);
   }
-  return !!seg;
 }
 
-async function goGame(title: string, group: string) {
-  await goGroup(group);
+/** Открыть игру: с 0.118.0 все карточки стоят на одной витрине. */
+async function goGame(title: string, _group?: string) {
+  await backToCatalog();
   const card = Array.from(document.querySelectorAll('.games-card')).find((b) =>
     (b.textContent ?? '').includes(title),
   ) as HTMLButtonElement | undefined;
@@ -56,19 +55,18 @@ export async function runGamesLetterUiChecks(): Promise<void> {
   await sleep(40);
 
   await goTab('Игры');
+  await backToCatalog();
   await sleep(60);
 
   // ── Карточки: обе игры на витрине ───────────────────────────────────────
   const cards = () => Array.from(document.querySelectorAll('.games-card')) as HTMLButtonElement[];
-  await goGroup('Быстро');
   check(
-    'колесо: карточка есть в группе «Быстро»',
+    'колесо: карточка есть на витрине',
     cards().some((c) => (c.textContent ?? '').includes('Колесо букв')),
     cards().map((c) => c.textContent).join(' | '),
   );
-  await goGroup('Подумать');
   check(
-    'хитрая буква: карточка есть в группе «Подумать»',
+    'хитрая буква: карточка есть на витрине',
     cards().some((c) => (c.textContent ?? '').includes('Хитрая буква')),
     cards().map((c) => c.textContent).join(' | '),
   );
