@@ -293,7 +293,7 @@ export function LetterRingGame({
           <div className="ring-core">
             <WordArt
               word={board.word}
-              size="min(128px, calc(var(--ring-size) * 0.4))"
+              size="var(--ring-core-size)"
               className="ring-core-art"
             />
           </div>
