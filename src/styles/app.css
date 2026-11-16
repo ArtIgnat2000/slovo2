@@ -11757,6 +11757,9 @@ body.game-focus .screen.trail-screen {
   /* Радиус орбиты: половина круга минус полбуквы и запас до пунктирной
      дорожки. Так крайние буквы стоят внутри кольца, а не на его линии. */
   --ring-radius: calc(var(--ring-size) / 2 - var(--ring-dot) / 2 - 6px);
+  /* Диаметр круглого рисунка — расстояние между внутренними краями
+     противоположных буквенных кнопок: изображение касается их по касательной. */
+  --ring-core-size: calc(var(--ring-size) - var(--ring-dot) - var(--ring-dot) - 12px);
 }
 .ring {
   position: relative;
@@ -11824,26 +11827,28 @@ body.game-focus .screen.trail-screen {
   pointer-events: none;
 }
 .ring-core-art {
-  /* Иллюстрация в центре круга — крупная и без паспарту: сам рисунок,
-     масштабируется вместе с кругом и не закрывает орбиту букв. */
-  max-width: calc(var(--ring-size) * 0.4);
-  max-height: calc(var(--ring-size) * 0.4);
+  /* Сам рисунок без паспарту; круглая обрезка достигает внутренних краёв
+     кнопок букв и касается их ровно по касательной. */
+  max-width: var(--ring-core-size);
+  max-height: var(--ring-core-size);
   padding: 0;
   border: 0;
-  border-radius: 16px;
+  border-radius: 50%;
   background: transparent;
   box-shadow: none;
+  overflow: hidden;
 }
 .ring-core-art.no-image {
   background: transparent;
 }
 .ring-core-art .word-art-inner {
   overflow: hidden;
-  border-radius: 16px;
+  border-radius: 50%;
 }
 .ring-core-art .word-art-inner > .word-art {
-  border-radius: 16px;
+  border-radius: 50%;
   background: transparent;
+  object-fit: cover;
 }
 /* Строка состояния — последняя в карточке, а слева внизу стоит плавающая
    кнопка звука (44 px + 12 px от края). На телефоне она накрывала начало

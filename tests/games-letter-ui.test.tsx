@@ -77,17 +77,23 @@ export async function runGamesLetterUiChecks(): Promise<void> {
   check('колесо UI: круг нарисован', dots().length >= 3, `точек: ${dots().length}`);
   const wheelCss = readFileSync('src/styles/app.css', 'utf8');
   const coreArtRule = wheelCss.match(/\.ring-core-art\s*\{([^}]*)\}/)?.[1] ?? '';
+  const coreImageRule = wheelCss.match(/\.ring-core-art \.word-art-inner > \.word-art\s*\{([^}]*)\}/)?.[1] ?? '';
   const ringStageRule = wheelCss.match(/\.ring-stage\s*\{([^}]*)\}/)?.[1] ?? '';
   check(
-    'колесо UI: крупная иллюстрация стоит в центре круга без паспарту',
+    'колесо UI: центральная иллюстрация крупная, без паспарту и обрезана кругом',
     !!document.querySelector('.ring-core > .ring-core-art') &&
-      /padding:\s*0/.test(coreArtRule) && /border:\s*0/.test(coreArtRule) &&
-      /background:\s*transparent/.test(coreArtRule) && /box-shadow:\s*none/.test(coreArtRule),
-    coreArtRule,
+      /--art-size:\s*var\(--ring-core-size\)/.test(
+        (document.querySelector('.ring-core-art') as HTMLElement | null)?.getAttribute('style') ?? '',
+      ) && /padding:\s*0/.test(coreArtRule) && /border:\s*0/.test(coreArtRule) &&
+      /background:\s*transparent/.test(coreArtRule) && /box-shadow:\s*none/.test(coreArtRule) &&
+      /border-radius:\s*50%/.test(coreArtRule) && /overflow:\s*hidden/.test(coreArtRule) &&
+      /object-fit:\s*cover/.test(coreImageRule) && /border-radius:\s*50%/.test(coreImageRule),
+    `${coreArtRule} ${coreImageRule}`,
   );
   check(
-    'колесо UI: круг увеличен и остаётся адаптивным',
-    /--ring-size:\s*min\(320px,\s*88vw,\s*46vh\)/.test(ringStageRule),
+    'колесо UI: круг увеличен, а рисунок касается буквенных кнопок по касательной',
+    /--ring-size:\s*min\(320px,\s*88vw,\s*46vh\)/.test(ringStageRule) &&
+      /--ring-core-size:\s*calc\(var\(--ring-size\) - var\(--ring-dot\) - var\(--ring-dot\) - 12px\)/.test(ringStageRule),
     ringStageRule,
   );
   check(
