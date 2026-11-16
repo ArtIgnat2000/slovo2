@@ -15,42 +15,31 @@ async function goTab(name: string) {
 }
 
 /**
- * Витрина игр после 0.99.0: сверху две группы времени (.games-switch-btn),
- * внутри группы — карточки игр (.games-card). Тесты ходят так же, как ребёнок:
- * сначала группа, потом карточка.
+ * Витрина игр после 0.118.0: все карточки (.games-card) стоят на одном экране
+ * двумя секциями, а после выбора остаётся только игра и «← Игры». Тесты ходят
+ * так же, как ребёнок: карточка → игра → возврат к витрине.
  *
  * Чтобы проверки не зависели от того, сколько игр открыто сегодня, тест
  * включает режим «все открыты» (`gamesGates: 'open'`) — это настоящая
  * настройка взрослого, а не подделка. Шкала доступа проверяется отдельно
  * (`tests/game-access.test.ts`) и своим сценарием ниже.
  */
-export const GROUP_OF: Record<string, string> = {
-  'Собери слово': 'Быстро',
-  'Колесо букв': 'Быстро',
-  Филворд: 'Подумать',
-  Кроссворд: 'Подумать',
-  Мемори: 'Подумать',
-  'Хитрая буква': 'Подумать',
-  'Цветок слова': 'Подумать',
-  'Слоговая мозаика': 'Быстро',
-};
-
-/** Открыть группу по подписи («Быстро», «Подумать»). */
-async function goGroup(title: string) {
-  const seg = Array.from(document.querySelectorAll('.games-switch-btn')).find((b) =>
-    (b.textContent ?? '').includes(title),
-  ) as HTMLButtonElement | undefined;
-  if (seg) {
-    click(seg);
+/** Вернуться с экрана игры к витрине (0.118.0: «← Игры»). */
+async function backToCatalog() {
+  const back = document.querySelector('.game-back') as HTMLButtonElement | null;
+  if (back) {
+    click(back);
     await sleep(60);
   }
-  return !!seg;
 }
 
-/** Открыть игру: группа по карте, затем карточка игры. */
+/**
+ * Открыть игру с витрины. С 0.118.0 группы не переключаются: все игры
+ * стоят подряд двумя секциями, а после выбора витрина уходит целиком.
+ * Поэтому перед выбором обязательно возвращаемся к списку.
+ */
 async function goGame(title: string) {
-  const group = GROUP_OF[title];
-  if (group) await goGroup(group);
+  await backToCatalog();
   const card = Array.from(document.querySelectorAll('.games-card')).find((b) =>
     (b.textContent ?? '').includes(title),
   ) as HTMLButtonElement | undefined;
@@ -104,11 +93,7 @@ export async function runGamesUiChecks() {
 
   await goTab('Игры');
   check('игры: вкладка открылась', !!document.querySelector('.games-screen'), document.body.textContent?.slice(0, 200) ?? '');
-  // С 0.96.1 правило рамки живёт подсказкой заголовка, а не строкой на экране:
-  // на телефоне текст над полем стоил дороже, чем пользы (замечание «избыток
-  // слов в шапке страницы»).
-  // Подпись заголовка (0.96.1) с 0.99.0 начинается с большой буквы и говорит
-  // ещё и про доступ, поэтому проверяем обе части правила, а не регистр.
+  // С 0.96.1 правило рамки живёт подсказкой заголовка, а не строкой на экране.
   check(
     'игры: правило «ничего не сгорает» доступно из заголовка',
     /ничего не сгорает/i.test(document.querySelector('.games-title')?.getAttribute('title') ?? '') &&
@@ -120,47 +105,56 @@ export async function runGamesUiChecks() {
     !document.querySelector('.games-sub') && !document.querySelector('.games-oneline'),
     document.querySelector('.games-head')?.textContent ?? '',
   );
-  check('игры: свободная практика есть на экране', has('Собери слово'), '');
-  check('игры: изученные слова видны чипами', document.querySelectorAll('.game-pick').length === learned.length,
-    `чипов: ${document.querySelectorAll('.game-pick').length}`);
-  check('игры: плиточный конструктор отрисован', document.querySelectorAll('.tileboard-tile').length > 0,
-    `плиток: ${document.querySelectorAll('.tileboard-tile').length}`);
-  check('игры: плитки несут буквы слова', !!document.querySelector('.word-board'), '');
 
-  // ── Раскладка «один экран — одна игра» (0.96.0 → витрина 0.99.0) ────────
-  check('игры: сверху две группы времени, а не три кнопки в ряд',
-    document.querySelectorAll('.games-switch-btn').length === 2,
-    `кнопок: ${document.querySelectorAll('.games-switch-btn').length}`);
-  check('игры: в группе видны карточки игр 2×2',
-    document.querySelectorAll('.games-card').length >= 1,
-    `карточек: ${document.querySelectorAll('.games-card').length}`);
-  // 0.109.2: карточка обязана нести описание в `aria-label` — на телефоне
-  // строка описания скрыта ради того, чтобы все игры группы помещались без
-  // горизонтальной прокрутки (замечание «видно только 4 игры»).
+  // ── Витрина (0.118.0): только игры, без сегмента и без поля ─────────────
+  check('игры: витрина — отдельный экран без игрового поля',
+    !!document.querySelector('.games-catalog') && !document.querySelector('.games-stage') &&
+      !document.querySelector('.game-practice'), '');
+  check('игры: все восемь игр видны сразу, двумя секциями',
+    document.querySelectorAll('.games-group').length === 2 &&
+      document.querySelectorAll('.games-card').length === 8,
+    `секций: ${document.querySelectorAll('.games-group').length}, карточек: ${document.querySelectorAll('.games-card').length}`);
+  check('игры: переключателя групп больше нет — ничего не прячется',
+    document.querySelectorAll('.games-switch-btn').length === 0, '');
   check('игры: у каждой карточки описание доступно из aria-label',
     Array.from(document.querySelectorAll('.games-card')).every((c) => {
       const label = c.getAttribute('aria-label') ?? '';
       return label.includes('.') && label.length > (c.querySelector('.games-card-title')?.textContent ?? '').length;
     }),
     Array.from(document.querySelectorAll('.games-card')).map((c) => c.getAttribute('aria-label') ?? 'нет').join(' | '));
+  check('игры: условие замка не обрезается в карточке',
+    document.querySelectorAll('.games-card-note').length === 0, '');
   check('игры: шкала дня объясняет, что открыто',
     !!document.querySelector('.games-meter') &&
       /Открыто|открыто/.test(document.querySelector('.games-meter')?.textContent ?? ''),
     document.querySelector('.games-meter')?.textContent ?? 'строки нет');
-  check('игры: открыта ровно одна игра («Собери слово»)', !!document.querySelector('.game-practice'), '');
+
+  // ── Экран игры: витрина уходит, остаётся игра и «← Игры» ────────────────
+  check('игры: «Собери слово» открывается карточкой', await goGame('Собери слово'), '');
+  check('игры: после выбора остался только экран игры',
+    !!document.querySelector('.games-stage') && !document.querySelector('.games-catalog') &&
+      !document.querySelector('.games-cards') && !document.querySelector('.games-switch-btn'),
+    document.body.textContent?.slice(0, 160) ?? '');
+  check('игры: из игры есть очевидный выход «← Игры»',
+    (document.querySelector('.game-back')?.textContent ?? '').includes('Игры') &&
+      document.querySelector('.game-back')?.getAttribute('aria-label') === 'Вернуться к играм',
+    document.querySelector('.game-back')?.textContent ?? 'кнопки нет');
+  check('игры: в шапке игры её название',
+    (document.querySelector('.game-topbar-title')?.textContent ?? '').includes('Собери слово'),
+    document.querySelector('.game-topbar-title')?.textContent ?? '');
   check('игры: поле игры — прокручиваемая сцена остатка экрана', !!document.querySelector('.games-stage'), '');
+  check('игры: свободная практика есть на экране', has('Собери слово'), '');
+  check('игры: изученные слова видны чипами', document.querySelectorAll('.game-pick').length === learned.length,
+    `чипов: ${document.querySelectorAll('.game-pick').length}`);
+  check('игры: плиточный конструктор отрисован', document.querySelectorAll('.tileboard-tile').length > 0,
+    `плиток: ${document.querySelectorAll('.tileboard-tile').length}`);
+  check('игры: плитки несут буквы слова', !!document.querySelector('.word-board'), '');
   check('игры: чипы слов — одна лента вбок, без «стены» на пол-экрана',
     document.querySelectorAll('.game-picks .game-pick').length === learned.length,
     `чипов: ${document.querySelectorAll('.game-pick').length}`);
-  check('игры: экран помечает выбранную группу для скринридера',
-    document.querySelector('.games-switch-btn[aria-selected="true"]') !== null, '');
-  check('игры: экран помечает текущую игру карточкой',
-    document.querySelector('.games-card.on') !== null, '');
   const cols = document.querySelector('.word-board')?.getAttribute('style') ?? '';
   check('игры: число колонок доски считается от длины слова (--slot-cols)', cols.includes('--slot-cols'),
     cols);
-
-  // «Скоро»-карточек больше нет: все три механики P0–P1 запущены.
   check('игры: «скоро»-карточки больше не нужны — все механики в игре', !document.querySelector('.game-soon'), '');
 
   // Собираем показанное слово тапами по плиткам в порядке букв.
@@ -217,6 +211,16 @@ export async function runGamesUiChecks() {
     check('игры: у нового слова — чистая доска', document.querySelectorAll('.tileboard-slot.filled').length === 0,
       `заполнено: ${document.querySelectorAll('.tileboard-slot.filled').length}`);
   }
+
+  // ── Выход из игры (0.118.0) ─────────────────────────────────────────────
+  check('игры: на экране игры нижнее меню скрыто — не уйти случайно',
+    document.body.classList.contains('game-focus'), document.body.className);
+  await backToCatalog();
+  check('игры: «← Игры» возвращает к витрине',
+    !!document.querySelector('.games-catalog') && !document.querySelector('.games-stage') &&
+      !document.querySelector('.game-back'), '');
+  check('игры: после возврата нижнее меню снова на месте',
+    !document.body.classList.contains('game-focus'), document.body.className);
 }
 
 // «Филворд» (0.94.0): поле отрисовано, слова вычитаются сканом сетки, игра
@@ -247,7 +251,7 @@ export async function runWordSearchUiChecks() {
   await sleep(60);
   await goTab('Игры');
   await sleep(60);
-  check('филворд: игра выбирается сегментом', await goGame('Филворд'), '');
+  check('филворд: игра выбирается карточкой', await goGame('Филворд'), '');
 
   const cells = () => Array.from(document.querySelectorAll('.ws-cell')) as HTMLButtonElement[];
   check('филворд: раздел и поле есть на экране', !!document.querySelector('.ws-grid'), '');
@@ -435,6 +439,7 @@ export async function runGamesAccessUiChecks() {
   }));
   await sleep(40);
   await goTab('Игры');
+  await backToCatalog();
   await sleep(80);
 
   const cards = () => Array.from(document.querySelectorAll('.games-card')) as HTMLButtonElement[];
@@ -444,18 +449,15 @@ export async function runGamesAccessUiChecks() {
     `открыто: ${openCards().length} из ${cards().length}`);
   check('доступ в UI: базовая игра — «Собери слово»',
     (openCards()[0]?.textContent ?? '').includes('Собери слово'), openCards()[0]?.textContent ?? '');
-  // В группе «Быстро» одна игра, поэтому замки смотрим в «Подумать»: там две
-  // игры, и в пустой день обе закрыты — именно этот случай и надо проверить.
-  await goGroup('Подумать');
-  check('доступ в UI: в пустой день группа «Подумать» вся под замком',
-    cards().every((c) => c.dataset.gameOpen === '0') && cards().length === 5,
+  check('доступ в UI: витрина показывает все игры сразу',
+    cards().length === 8, `карточек: ${cards().length}`);
+  check('доступ в UI: в пустой день семь карточек под замком',
+    cards().filter((c) => c.dataset.gameOpen === '0').length === 7,
     cards().map((c) => `${c.textContent}:${c.dataset.gameOpen}`).join(' | '));
-  check('доступ в UI: у закрытой карточки условие, а не «нельзя»',
-    cards().every((c) => /Откроется за/.test(c.textContent ?? '') && !/нельзя/i.test(c.textContent ?? '')),
-    cards().map((c) => c.textContent).join(' | '));
-  check('доступ в UI: в группе, где всё закрыто, остаётся подсказка',
-    !!document.querySelector('.games-lock-note'), document.querySelector('.games-lock-note')?.textContent ?? '');
-  await goGroup('Быстро');
+  check('доступ в UI: у закрытой карточки условие в aria-label, а не «нельзя»',
+    cards().filter((c) => c.dataset.gameOpen === '0').every((c) =>
+      /Откроется за/.test(c.getAttribute('aria-label') ?? '') && !/нельзя/i.test(c.textContent ?? '')),
+    cards().map((c) => c.getAttribute('aria-label') ?? '').join(' | '));
   check('доступ в UI: шкала показывает прогресс по верным ответам',
     /0 из 10 верных ответов/.test(document.querySelector('.games-meter')?.textContent ?? ''),
     document.querySelector('.games-meter')?.textContent ?? '');
@@ -499,12 +501,10 @@ export async function runGamesAccessUiChecks() {
   check('доступ в UI: 10 верных ответов открывают четыре игры',
     (document.querySelector('.games-meter')?.textContent ?? '').includes('Открыто 4'),
     document.querySelector('.games-meter')?.textContent ?? '');
-  await goGroup('Подумать');
   check('доступ в UI: после 10 верных «Филворд» открылся, а «Кроссворд» ещё нет',
-    cards().filter((c) => c.dataset.gameOpen === '1').length === 1 &&
-      (cards().find((c) => c.dataset.gameOpen === '1')?.textContent ?? '').includes('Филворд'),
+    openCards().length === 4 && openCards().some((c) => (c.textContent ?? '').includes('Филворд')) &&
+      cards().find((c) => (c.textContent ?? '').includes('Кроссворд'))?.dataset.gameOpen === '0',
     cards().map((c) => `${c.textContent}:${c.dataset.gameOpen}`).join(' | '));
-  await goGroup('Быстро');
 
   // Взрослый вернул «все открыты» — замков нет вовсе.
   useApp.getState().setSettings({ gamesGates: 'open' });
@@ -608,7 +608,7 @@ export async function runCrosswordUiChecks() {
   console.log('\n── Кроссворд дня: решётка и пул ──');
   await goTab('Игры');
   await sleep(60);
-  check('кроссворд: игра выбирается сегментом', await goGame('Кроссворд'), '');
+  check('кроссворд: игра выбирается карточкой', await goGame('Кроссворд'), '');
 
   const cells = () => Array.from(document.querySelectorAll('.cw-cell')) as HTMLButtonElement[];
   const tiles = () => Array.from(document.querySelectorAll('.cw-tile')) as HTMLButtonElement[];

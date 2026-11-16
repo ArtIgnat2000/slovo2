@@ -15,6 +15,13 @@ const $ = <T extends Element = HTMLElement>(sel: string) => document.querySelect
 const $$ = (sel: string) => Array.from(document.querySelectorAll(sel)) as HTMLElement[];
 
 async function goGamesTab(): Promise<void> {
+  // 0.118.0: после выбора игры витрина скрыта. Если тест пришёл из игры,
+  // сначала выходим «← Игры», иначе баннера на экране просто нет.
+  const back = document.querySelector('.game-back') as HTMLButtonElement | null;
+  if (back) {
+    click(back);
+    await sleep(70);
+  }
   const tab = buttons().find(
     (b) => (b.textContent ?? '').includes('Игры') && b.className.includes('tab'),
   );
