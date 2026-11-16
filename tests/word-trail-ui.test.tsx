@@ -259,6 +259,11 @@ export async function runWordTrailUiChecks(): Promise<void> {
     $$('.trail-seg-empty').length === pencil.syllables.length,
     `пустых: ${$$('.trail-seg-empty').length}`,
   );
+  check(
+    'тропа: подсказка-картинка в слогах крупная и без паспарту',
+    $$('.trail-clue-art').length === 1 && !!$('.trail-clue-art'),
+    `крупных подсказок: ${$$('.trail-clue-art').length}`,
+  );
 
   const syllables = await playSyllables();
   check('тропа: слоговое слово пройдено', syllables, '');

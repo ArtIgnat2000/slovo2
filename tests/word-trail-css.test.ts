@@ -26,6 +26,16 @@ assert.match(
 );
 assert.match(
   trail,
+  /\.trail-clue-art\s*\{[^}]*width:\s*min\(100%,\s*320px\)[^}]*padding:\s*0[^}]*border:\s*none/s,
+  'подсказка-картинка в «Тропе» крупная и без паспарту',
+);
+assert.match(
+  trail,
+  /\.trail-syllable\s*\{[^}]*min-height:\s*56px[^}]*font-size:\s*clamp/s,
+  'слоговые плиты крупные',
+);
+assert.match(
+  trail,
   /\.trail-find-art\s*\{[^}]*width:\s*100%[^}]*height:\s*100%[^}]*padding:\s*0[^}]*border:\s*none/s,
   'у картинки в «Тропе» нет паспарту — она заполняет карточку',
 );

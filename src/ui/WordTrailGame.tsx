@@ -367,7 +367,7 @@ export function WordTrailGame({
         {phase === 'repair' && task && (
           <section className="trail-card" aria-label="Почини слово">
             <div className="trail-clue">
-              <WordArt word={task.word} size={56} />
+              <WordArt word={task.word} size={320} className="trail-clue-art" />
               <div className="trail-clue-body">
                 <p className="clue-hint">💡 {task.word.hint}</p>
                 <p className="tiny muted">Одна буква выпала — выбери её.</p>
@@ -592,7 +592,7 @@ export function WordTrailGame({
         {phase === 'syllables' && board && (
           <section className="trail-card" aria-label="Выложи мост из слогов">
             <div className="trail-clue">
-              <WordArt word={board.word} size={56} />
+              <WordArt word={board.word} size={320} className="trail-clue-art" />
               <div className="trail-clue-body">
                 <p className="clue-hint">💡 {board.word.hint}</p>
                 <p className="tiny muted">Каждый слог — плита моста. Порядок важен.</p>
