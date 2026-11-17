@@ -298,7 +298,7 @@ function Write({ word, task, onSolve, onAttempt, answered }: Props) {
   const hideAll = word.text.split('').map((_, i) => i).filter((i) => i !== task.dangerIdx);
 
   return (
-    <div className="task task-write">
+    <div className={`task task-write${hintUsed ? ' has-hint' : ''}`}>
       <WordClue word={word} compact reveal={answered} />
       {!answered && <p className="prompt">Напиши слово ✍️</p>}
       {!answered && hintUsed && (

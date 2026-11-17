@@ -217,6 +217,15 @@ export async function runLessonArtChecks() {
     !!writeClue?.querySelector('.sentence') && !!writeClue?.querySelector('.clue-hint'),
     writeClue?.textContent?.slice(0, 80) ?? '—',
   );
+  const hintButton = box.querySelector('.task-write [data-hint]') as HTMLButtonElement | null;
+  hintButton?.click();
+  await sleep(40);
+  const hintedWrite = box.querySelector('.task-write') as HTMLElement | null;
+  check(
+    'картинка: открытая подсказка включает компактную раскладку урока',
+    !!hintedWrite?.classList.contains('has-hint'),
+    hintedWrite?.className ?? '—',
+  );
 
   // После ответа предложение становится целым, а инструкция и пустое поле
   // уходят: ребёнок видит свой ответ в примере, а не три его копии подряд.
@@ -372,6 +381,12 @@ export async function runLessonArtChecks() {
     /width:\s*min\(100%,\s*36svh\)/.test(shortClueArtRule) &&
       /width:\s*min\(100%,\s*27svh\)/.test(css),
     shortClueArtRule.replace(/\s+/g, ' ') || 'ступени короткого экрана не найдены',
+  );
+  check(
+    'картинка: после открытия подсказки квадрат ужимается, освобождая место вводу и клавиатуре',
+    /\.task-write\.has-hint\s*>\s*\.clue\s*>\s*\.word-art-frame\s*\{[^}]*width:\s*min\(100%,\s*20svh\)/.test(css) &&
+      /@media\s*\(max-height:\s*760px\)\s*\{[^}]*\.task-write\.has-hint\s*>\s*\.clue\s*>\s*\.word-art-frame\s*\{[^}]*width:\s*min\(100%,\s*16svh\)/.test(css),
+    'компактный квадрат при показанной подсказке',
   );
   check(
     'картинка: в «Напиши» и «Диктанте» паспарту тоже убрано',
