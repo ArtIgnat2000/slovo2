@@ -97,6 +97,13 @@ export async function runGamesLetterUiChecks(): Promise<void> {
     ringStageRule,
   );
   check(
+    'колесо UI: победная сцена уменьшается и убирает повторяющиеся строки результата',
+    /\.ring-card\.is-done\s*\{[^}]*gap:\s*6px[^}]*padding:\s*10px/.test(wheelCss) &&
+      /\.ring-card\.is-done\s+\.ring-stage\s*\{[^}]*--ring-size:\s*min\(320px,\s*88vw,\s*34svh\)/.test(wheelCss) &&
+      /\.ring-card\.is-done\s+\.ring-status,[^}]*\.ring-win-word\s*\{[^}]*display:\s*none/.test(wheelCss),
+    'компактная победная сцена',
+  );
+  check(
     'колесо UI: следующая буква нигде не подсвечена',
     !document.querySelector('.ring-dot-next') && !/\.ring-dot-next\b/.test(wheelCss),
     '',
@@ -136,8 +143,10 @@ export async function runGamesLetterUiChecks(): Promise<void> {
   await sleep(120);
   check(
     'колесо UI: прохождение по кругу собирает слово',
-    !!document.querySelector('.ring-win') && (document.querySelector('.ring-win-word')?.textContent ?? '').length > 0,
-    document.querySelector('.ring-status')?.textContent ?? 'нет строки',
+    !!document.querySelector('.ring-win') &&
+      (document.querySelector('.ring-win-word')?.textContent ?? '').length > 0 &&
+      document.querySelector('.ring-card')?.classList.contains('is-done'),
+    document.querySelector('.ring-card')?.className ?? 'нет карточки',
   );
 
   // «Другое слово» даёт новое слово и чистый круг.

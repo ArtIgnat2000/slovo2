@@ -223,7 +223,7 @@ export function LetterRingGame({
   const longGradeNote = grade >= 3;
 
   return (
-    <section className="ring-card" aria-label="Колесо букв">
+    <section className={`ring-card${done ? ' is-done' : ''}`} aria-label="Колесо букв">
       <Confetti show={confetti} />
       <div className="ring-bar">
         <strong className="grow">

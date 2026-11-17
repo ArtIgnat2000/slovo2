@@ -7258,6 +7258,17 @@ img.product-photo {
     width: min(100%, 27svh);
   }
 }
+/* Подсказка открывает ещё три полезных строки (буквы, опасная буква,
+   мнемоника). На мобильном экране квадрат временно становится компактнее,
+   чтобы эти строки, ввод и все три ряда клавиатуры оставались видны вместе. */
+.lesson-screen .task-write.has-hint > .clue > .word-art-frame {
+  width: min(100%, 20svh);
+}
+@media (max-height: 760px) {
+  .lesson-screen .task-write.has-hint > .clue > .word-art-frame {
+    width: min(100%, 16svh);
+  }
+}
 .lesson-screen .task-write > .clue > .word-art-frame > .word-art-inner > .word-art,
 .lesson-screen .task-visual > .clue > .word-art-frame > .word-art-inner > .word-art {
   border-radius: inherit;
@@ -11874,6 +11885,26 @@ body.game-focus .screen.trail-screen {
 .ring-win-title,
 .tl-win-title { margin: 0; font-weight: 800; }
 .ring-win-word { margin: 0; font-size: 20px; font-weight: 800; }
+/* После сборки кольцо и карточка результата дублировали итог, из-за чего
+   блок награды уезжал за нижний край на Android. Уменьшаем сцену только в
+   победном состоянии; слово уже целиком видно над колесом, поэтому повтор
+   внутри панели убираем. Сама сцена остаётся прокручиваемой как страховка. */
+.ring-card.is-done {
+  gap: 6px;
+  padding: 10px;
+}
+.ring-card.is-done .ring-status,
+.ring-card.is-done .ring-win-word {
+  display: none;
+}
+.ring-card.is-done .ring-stage {
+  --ring-size: min(320px, 88vw, 34svh);
+  padding: 2px 0;
+}
+.ring-card.is-done .ring-win {
+  gap: 4px;
+  padding: 8px;
+}
 .tl-win-emoji { font-size: 30px; }
 
 /* «Хитрая буква»: слово с прорезью. Слот — отдельная клетка, чтобы ? не
